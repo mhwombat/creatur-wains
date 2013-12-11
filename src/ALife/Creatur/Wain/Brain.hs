@@ -1,0 +1,129 @@
+------------------------------------------------------------------------
+-- |
+-- Module      :  ALife.Creatur.Wain.Brain
+-- Copyright   :  (c) Amy de Buitléir 2012-2013
+-- License     :  BSD-style
+-- Maintainer  :  amy@nualeargais.ie
+-- Stability   :  experimental
+-- Portability :  portable
+--
+-- ???
+--
+------------------------------------------------------------------------
+{-# LANGUAGE DeriveGeneric, TypeFamilies, FlexibleContexts,
+    StandaloneDeriving #-}
+module ALife.Creatur.Wain.Brain
+  (
+    Brain(..),
+    buildBrain,
+    classify,
+    recommendAction,
+    feedback,
+    numberOfClassifierModels,
+    numberOfDeciderModels,
+    randomBrain
+  ) where
+
+import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
+import qualified ALife.Creatur.Genetics.BRGCWord8 as G
+import ALife.Creatur.Genetics.Diploid (Diploid)
+import qualified ALife.Creatur.Wain.Classifier as C
+import qualified ALife.Creatur.Wain.Decider as D
+import ALife.Creatur.Wain.GeneticSOM (numModels)
+import ALife.Creatur.Wain.Response (Response(..), setOutcome)
+import ALife.Creatur.Wain.Scenario (Scenario)
+import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix)
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
+import Control.Applicative ((<$>), (<*>))
+import Control.Monad.Random (Rand, RandomGen)
+import Data.Datamining.Pattern (Pattern, Metric)
+import Data.Serialize (Serialize)
+import Data.Word (Word8)
+import GHC.Generics (Generic)
+import System.Random (Random)
+
+data Brain p a = Brain
+  {
+    -- | Component that categorises and identifies patterns
+    bClassifier :: C.Classifier p,
+    -- | Component that makes decisions
+    bDecider :: D.Decider a,
+    -- | The last situation the agent was in, and the agent's response
+    bLastResponse :: Maybe (Response a)
+  } deriving (Generic)
+
+deriving instance (Eq p, Eq a, Pattern p, Metric p ~ UIDouble) 
+    => Eq (Brain p a)
+
+instance (Serialize p, Serialize a, Pattern p, Eq a, Metric p ~ UIDouble)
+    => Serialize (Brain p a)
+         
+instance (Diploid p, Diploid a, Pattern p, Eq a, Metric p ~ UIDouble)
+    => Diploid (Brain p a)
+
+instance (Pattern p, Metric p ~ UIDouble)
+      => Statistical (Brain p a) where
+  stats (Brain c d _) = map (prefix "classifier ") (stats c)
+    ++ map (prefix "decider ") (stats d)
+
+instance (Pattern p, Show p, Show (Metric p), Show a, Eq a)
+      => Show (Brain p a) where
+  show (Brain c d lr) = "Brain (" ++ show c ++ ") (" ++ show d ++ ") ("
+    ++ show lr ++ ")"
+
+-- | Construct a brain
+buildBrain :: C.Classifier p -> D.Decider a -> Brain p a
+buildBrain c d = Brain c d Nothing
+
+instance (Genetic p, Genetic a, Pattern p, Metric p ~ UIDouble, Eq a)
+    => Genetic (Brain p a) where
+  put (Brain c d _) = G.put c >> G.put d
+  get = do
+    c0 <- G.get
+    let c = case c0 of
+          (Left xs) -> Left ("Classifier:":xs)
+          (Right c1) -> Right c1
+    d0 <- G.get
+    let d = case d0 of
+          (Left xs) -> Left ("Decider:":xs)
+          (Right d1) -> Right d1
+    return $ buildBrain <$> c <*> d
+
+randomBrain
+  :: (RandomGen g, Pattern p, Metric p ~ UIDouble, Eq a, Random a)
+    => Word8 -> [p] -> Word8 -> Rand g (Brain p a)
+randomBrain maxClassifierSize ps maxDeciderSize = do
+  c <- C.randomClassifier maxClassifierSize ps
+  let numClassifierModels = fromIntegral . numModels $ c
+  d <- D.randomDecider numClassifierModels maxDeciderSize
+  return $ buildBrain c d
+
+-- | Find out how similar the input is to the models in the classifier.
+classify
+  :: (Pattern p, Metric p ~ UIDouble)
+    => p -> Brain p a -> ([Metric p], Brain p a)
+classify s b = (sig, b')
+  where (_, sig, c') = C.classify (bClassifier b) s
+        b' = b { bClassifier = c' }
+
+recommendAction
+  :: (Pattern p, Metric p ~ UIDouble, Eq a, Enum a, Bounded a)
+    => Scenario -> Brain p a -> (a, Brain p a)
+recommendAction s (Brain c d _) = (action r, Brain c d (Just r))
+  where r = D.recommendResponse d s
+
+feedback
+  :: (Pattern p, Metric p ~ UIDouble, Eq a)
+    => UIDouble -> Brain p a -> Brain p a
+feedback deltaHappiness (Brain c d lr) =
+  case lr of
+    Nothing -> Brain c d Nothing
+    Just r  -> Brain c d' (Just r')
+                where r' = r `setOutcome` deltaHappiness
+                      d' = D.feedback d r'
+
+numberOfClassifierModels :: (Pattern p, Metric p ~ UIDouble) => Brain p a -> Int
+numberOfClassifierModels = numModels . bClassifier
+
+numberOfDeciderModels :: (Pattern p, Metric p ~ UIDouble, Eq a) => Brain p a -> Int
+numberOfDeciderModels = numModels . bDecider

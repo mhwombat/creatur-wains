@@ -1,0 +1,62 @@
+Name:              creatur-wains
+Version:           2.1.0
+Stability:         experimental
+Description:       An artificial agent called the "Wain", designed to
+                   run in the Créatúr framework. Wains have sufficient
+                   intelligence to discover patterns in data and make 
+                   survival decisions based on those patterns.
+                   .
+                   About the name: \"Wain\" (rhymes with “rain”, or
+                   alternatively, with “mean”) is a word for “child”,
+                   commonly used in Donegal and Northern Ireland.
+                   .
+Synopsis:          Artificial agent specialised for for pattern 
+                   discovery.
+License:           BSD3
+License-file:      LICENSE
+Copyright:         (c) Amy de Buitléir 2010-2012
+Author:            Amy de Buitléir
+Maintainer:        amy@nualeargais.ie
+Build-Type:        Simple
+Cabal-Version:     >=1.8
+
+library
+  GHC-Options:      -Wall -Werror
+  Hs-source-dirs:   src
+  exposed-modules:  ALife.Creatur.Wain,
+                    ALife.Creatur.Wain.Brain,
+                    ALife.Creatur.Wain.Classifier,
+                    ALife.Creatur.Wain.Condition,
+                    ALife.Creatur.Wain.Decider,
+                    ALife.Creatur.Wain.GeneticSOM,
+                    ALife.Creatur.Wain.Pretty,
+                    ALife.Creatur.Wain.Response,
+                    ALife.Creatur.Wain.Scenario,
+                    ALife.Creatur.Wain.Statistics,
+                    ALife.Creatur.Wain.UnitInterval,
+                    ALife.Creatur.Wain.Util
+  Build-Depends:    base >= 4 && < 5,
+                    cereal ==0.4.*,
+                    creatur ==4.1.*,
+                    grid ==7.*,
+                    MonadRandom ==0.1.*,
+                    mtl ==2.1.*,
+                    random ==1.0.*,
+                    som ==6.*,
+                    transformers ==0.3.*
+
+Test-suite wain-tests
+  Type:             exitcode-stdio-1.0
+  Main-is:          Main.hs
+  GHC-Options:      -Wall -Werror
+  Hs-source-dirs:   test
+  Build-Depends:    base >= 4 && < 5,
+                    cereal ==0.4.*,
+                    creatur ==4.1.*,
+                    creatur-wains,
+                    random ==1.0.*,
+                    som ==6.*,
+                    transformers ==0.3.*,
+                    test-framework ==0.8,
+                    test-framework-quickcheck2 ==0.3.*,
+                    QuickCheck ==2.4.* || ==2.5 || == 2.6

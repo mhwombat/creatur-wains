@@ -1,0 +1,75 @@
+------------------------------------------------------------------------
+-- |
+-- Module      :  ALife.Creatur.Wain.Response
+-- Copyright   :  (c) Amy de Buitléir 2013
+-- License     :  BSD-style
+-- Maintainer  :  amy@nualeargais.ie
+-- Stability   :  experimental
+-- Portability :  portable
+--
+-- ???
+--
+------------------------------------------------------------------------
+{-# LANGUAGE DeriveGeneric, TypeFamilies, FlexibleContexts #-}
+module ALife.Creatur.Wain.Response
+  (
+    Response(..),
+    copyOutcomeTo,
+    setOutcome,
+    possibleResponses
+  ) where
+
+import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
+import ALife.Creatur.Genetics.Diploid (Diploid)
+import Data.Datamining.Pattern (Pattern, Metric, difference,
+  makeSimilar)
+import Data.Maybe (fromMaybe)
+import Data.Serialize (Serialize)
+import GHC.Generics (Generic)
+
+-- | A model of a situation and the response to it
+data Response s a o = Response
+  {
+    situation :: s,
+    action :: a,
+    -- | Happiness level change (predicted or actual).
+    --   Response patterns stored in the decider will have a @Just@
+    --   value; stimuli received from the outside will have a @Nothing@
+    --   value.
+    outcome :: Maybe o
+  } deriving (Eq, Show, Generic)
+
+instance (Serialize s, Serialize a, Serialize o)
+  => Serialize (Response s a o)
+
+instance (Eq a, Pattern s, Fractional (Metric s), Num o, Ord o, Eq o,
+  Fractional o, Pattern o, Metric o ~ Metric s)
+      => Pattern (Response s a o) where
+  type Metric (Response s a o) = Metric s
+  difference x y =
+    if action x == action y
+      then difference (situation x) (situation y)
+      else 1.0
+  makeSimilar target r x = Response s a o
+    where s = makeSimilar (situation target) r (situation x)
+          a = action x
+          o = Just $ makeSimilar (fromMaybe 0.0 . outcome $ target) r (fromMaybe 0.0 . outcome $ x)
+
+-- | The initial sequences stored at birth are genetically determined.
+instance (Genetic s, Genetic a, Genetic o)
+    => Genetic (Response s a o)
+
+instance (Diploid s, Diploid a, Diploid o) => Diploid (Response s a o)
+
+possibleResponses :: (Enum a, Bounded a) => s -> [Response s a o]
+possibleResponses s
+  = map (\a -> Response s a Nothing) [minBound..maxBound]
+
+copyOutcomeTo :: Response s a o -> Response s a o -> Response s a o
+copyOutcomeTo source target = target { outcome=outcome source }
+
+setOutcome :: Response s a o -> o -> Response s a o
+setOutcome r o = r { outcome=Just o }
+
+-- getOutcome :: Response s a -> Double
+-- getOutcome = outcome

@@ -1,0 +1,103 @@
+------------------------------------------------------------------------
+-- |
+-- Module      :  ALife.Creatur.Wain.Response
+-- Copyright   :  (c) Amy de Buitléir 2013
+-- License     :  BSD-style
+-- Maintainer  :  amy@nualeargais.ie
+-- Stability   :  experimental
+-- Portability :  portable
+--
+-- ???
+--
+------------------------------------------------------------------------
+{-# LANGUAGE DeriveGeneric, TypeFamilies, FlexibleContexts #-}
+module ALife.Creatur.Wain.Response
+  (
+    Response(..),
+    copyOutcomeTo,
+    setOutcome,
+    possibleResponses
+  ) where
+
+import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
+import ALife.Creatur.Genetics.Diploid (Diploid)
+import ALife.Creatur.Wain.Condition (Condition)
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
+import Data.Datamining.Pattern (Pattern, Metric, difference,
+  makeSimilar)
+import Data.Maybe (fromMaybe)
+import Data.Serialize (Serialize)
+import GHC.Generics (Generic)
+
+-- Weights to use when comparing possible courses of action.
+-- TODO: Make genetic
+deciderWeights :: [UIDouble]
+deciderWeights =
+  [
+    0.3, -- direct object signature
+    0.2, -- indirect object signature
+    0.2, -- condition
+    0.2, -- action
+    0.1  -- result
+  ]
+
+-- | A model of a situation and the response to it
+data Response a = Response
+  {
+    -- | The pattern probabilities identified by the classifier
+    --   for the direct object of the action.
+    directObject :: [UIDouble],
+    -- | The pattern probabilities identified by the classifier
+    --   for the indirect object of the action.
+    indirectObject :: [UIDouble],
+    -- | Current condition
+    condition :: Condition,
+    -- | Action
+    action :: a,
+    -- | Happiness level change (predicted or actual).
+    --   Response patterns stored in the decider will have a @Just@
+    --   value; stimuli received from the outside will have a @Nothing@
+    --   value.
+    outcome :: Maybe UIDouble
+  } deriving (Eq, Show, Generic)
+
+instance (Serialize a) => Serialize (Response a)
+
+instance (Eq a) => Pattern (Response a) where
+  type Metric (Response a) = UIDouble
+  difference x y = sum . zipWith (*) deciderWeights $ ds
+    where ds = [doDiff, ioDiff, cDiff, aDiff, rDiff]
+          doDiff = difference (directObject x) (directObject y)
+          ioDiff = difference (indirectObject x) (indirectObject y)
+          cDiff = difference (condition x) (condition y)
+          aDiff = if action x == action y then 0.0 else 1.0
+          rDiff = case outcome x of
+                    (Just rx) ->
+                      case outcome y of
+                        (Just ry) -> abs (rx - ry)
+                        Nothing -> 1
+                    Nothing -> 1
+  makeSimilar target r x = Response dObj iObj cond a o
+    where dObj = makeSimilar (directObject target) r (directObject x)
+          iObj = makeSimilar (indirectObject target) r (indirectObject x)
+          cond = makeSimilar (condition target) r (condition x)
+          a = action x
+          o = Just $ makeSimilar (fromMaybe 0.0 . outcome $ target) r (fromMaybe 0.0 . outcome $ x)
+
+-- | The initial sequences stored at birth are genetically determined.
+instance (Genetic a) => Genetic (Response a)
+
+instance (Diploid a) => Diploid (Response a)
+
+possibleResponses :: (Enum a, Bounded a) => [UIDouble] -> [UIDouble] -> Condition -> [Response a]
+possibleResponses dObj iObj cond
+  = map (\a -> Response dObj iObj cond a Nothing) [minBound..maxBound]
+
+copyOutcomeTo :: Response a -> Response a -> Response a
+copyOutcomeTo source target = target { outcome=outcome source }
+
+setOutcome :: Response a -> UIDouble -> Response a
+setOutcome r o = r { outcome=Just o }
+
+-- getOutcome :: Response s a -> Double
+-- getOutcome = outcome
