@@ -37,13 +37,16 @@ import System.Random (Random(..), randomR)
 --   The functions random and arbitrary will only generate values in
 --   the unit interval.
 newtype UIDouble = UIDouble Double
-  deriving (Show, Eq, Ord, Generic, Enum, Num, Fractional, Floating, RealFrac)
+  deriving (Eq, Ord, Generic, Enum, Num, Fractional, Floating, RealFrac)
 
 uiToDouble :: UIDouble -> Double
 uiToDouble (UIDouble a) = a
 
 doubleToUI :: Double -> UIDouble
 doubleToUI = UIDouble . enforceRange unitInterval
+
+instance Show UIDouble where
+  show (UIDouble a) = show a
 
 instance Real UIDouble where
   toRational (UIDouble a) = toRational a

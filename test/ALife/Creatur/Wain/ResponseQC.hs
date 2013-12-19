@@ -28,6 +28,7 @@ import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
 import Control.Applicative
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
+import System.Random (Random, random, randomR)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -47,6 +48,12 @@ instance Arbitrary TestResponse where
   arbitrary = do
     r <- arbitrary
     Response <$> arbitrary <*> arbitrary <*> pure (Just r)
+
+-- | This is used for testing random SOM generation
+instance Random TestAction where
+  randomR (a,b) g = (toEnum n, g')
+    where (n, g') = randomR (fromEnum a, fromEnum b) g
+  random = randomR (minBound,maxBound)
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ResponseQC"

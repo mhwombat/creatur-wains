@@ -24,10 +24,13 @@ import ALife.Creatur.Wain.GeneticSOM
 import ALife.Creatur.Wain.TestUtils (TestPattern, arb8BitInt,
   prop_serialize_round_trippable, prop_genetic_round_trippable,
   prop_diploid_identity)
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
+import Control.Monad.Random (evalRand)
 import Data.Datamining.Clustering.SOM (setCounter)
 import Data.Datamining.Pattern (Pattern, Metric)
 import Data.Word (Word16)
+import System.Random (mkStdGen)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -64,6 +67,13 @@ equiv s1 s2 = sParams s1 == sParams s2
                 && models s1 == models s2
                 && sCounters s1 == sCounters s2
 
+prop_can_generate_random_geneticSOM :: Int -> Property
+prop_can_generate_random_geneticSOM seed = property $
+  som `seq` True
+  where g = mkStdGen seed
+        xs = [1..]
+        som = evalRand (randomGeneticSOM 5 xs) g :: GeneticSOM UIDouble
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
   [
@@ -78,5 +88,7 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
     testProperty "prop_genetic_round_trippable - GeneticSOM"
       (prop_genetic_round_trippable equiv :: GeneticSOM TestPattern -> Property),
     testProperty "prop_diploid_identity - GeneticSOM"
-      (prop_diploid_identity equiv :: GeneticSOM TestPattern -> Property)
+      (prop_diploid_identity equiv :: GeneticSOM TestPattern -> Property),
+    testProperty "prop_can_generate_random_geneticSOM"
+      prop_can_generate_random_geneticSOM
   ]

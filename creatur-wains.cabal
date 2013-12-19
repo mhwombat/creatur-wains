@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           2.1.0
+Version:           3.0.0
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -36,7 +36,7 @@ library
                     ALife.Creatur.Wain.UnitInterval,
                     ALife.Creatur.Wain.Util
   Build-Depends:    base >= 4 && < 5,
-                    cereal ==0.4.*,
+                    cereal ==0.3.* || == 0.4.*,
                     creatur ==4.1.*,
                     grid ==7.*,
                     MonadRandom ==0.1.*,
@@ -51,10 +51,11 @@ Test-suite wain-tests
   GHC-Options:      -Wall -Werror
   Hs-source-dirs:   test
   Build-Depends:    base >= 4 && < 5,
-                    cereal ==0.4.*,
+                    cereal ==0.3.* || == 0.4.*,
                     creatur ==4.1.*,
                     creatur-wains,
                     random ==1.0.*,
+                    MonadRandom ==0.1.*,
                     som ==6.*,
                     transformers ==0.3.*,
                     test-framework ==0.8,

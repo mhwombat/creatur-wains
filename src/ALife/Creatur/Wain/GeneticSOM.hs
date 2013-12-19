@@ -25,6 +25,7 @@ module ALife.Creatur.Wain.GeneticSOM
     models,
     justClassify,
     reportAndTrain,
+    learn,
     randomGeneticSOM
   ) where
 
@@ -36,10 +37,13 @@ import ALife.Creatur.Wain.Statistics (Statistical, dStat, iStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble) 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
-import Data.Datamining.Pattern (Pattern, Metric)
+import Data.Datamining.Pattern (Pattern, Metric, makeSimilar)
 import qualified Data.Datamining.Clustering.Classifier as C
 import Data.Datamining.Clustering.SOM (SOM, defaultSOM, toGridMap,
   counter, setCounter)
+-- TODO: Either move currentLearningFunction or "learn" to
+-- Data.Datamining.Clustering.SOM
+import Data.Datamining.Clustering.SOMInternal (currentLearningFunction)
 import Data.Serialize (Serialize)
 import qualified Data.Serialize as S
 import Data.Word (Word8, Word16)
@@ -103,6 +107,12 @@ randomGeneticSOM
 randomGeneticSOM maxSize xs = do
   params <- randomParams maxSize
   return . buildGeneticSOM params $ xs
+
+learn :: Pattern p => GeneticSOM p -> p -> Label -> GeneticSOM p
+learn s p l = s { sSOM=gm' }
+  where gm = sSOM s
+        f = makeSimilar p (currentLearningFunction gm 0)
+        gm' = adjust f l gm
 
 justClassify :: (Pattern p, Ord (Metric p)) => GeneticSOM p -> p -> Label
 justClassify s = C.classify (sSOM s)

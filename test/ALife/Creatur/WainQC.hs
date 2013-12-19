@@ -27,22 +27,17 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
-instance Arbitrary Sex where
-  arbitrary = elements [Male, Female]
-
 equiv :: Wain TestPattern TestAction -> Wain TestPattern TestAction -> Bool
 equiv a1 a2 =
   appearance a1 == appearance a2
   && brain a1 `B.equiv` brain a2
-  && sex a1 == sex a2
 
 strawMan :: Gen (Wain TestPattern TestAction)
 strawMan = do
     a <- arbitrary
     b <- arbitrary
-    s <- arbitrary
     c <- arbitrary
-    return $ Wain "" a b s c ([],[])
+    return $ Wain "" a b c ([],[])
   
 -- | Can't just generate an arbitrary genome and build an agent from
 --   it, because random genomes tend to be invalid.

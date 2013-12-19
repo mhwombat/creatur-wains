@@ -15,6 +15,7 @@ module ALife.Creatur.Wain.Classifier
   (
     Classifier,
     classify,
+    learn,
     numModels,
     models,
     conflation,
@@ -23,7 +24,7 @@ module ALife.Creatur.Wain.Classifier
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label,
-  models, reportAndTrain, numModels, counts, randomGeneticSOM)
+  models, reportAndTrain, numModels, counts, randomGeneticSOM, learn)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Datamining.Pattern (Pattern, Metric)

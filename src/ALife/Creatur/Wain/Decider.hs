@@ -39,10 +39,12 @@ randomDecider
   :: (RandomGen g, Eq a, Random a)
     => Word8 -> Word8 -> Rand g (Decider a)
 randomDecider numClassifierModels maxDeciderSize = do
-  let k = 3*maxDeciderSize*maxDeciderSize -- shouldn't be necessary
-  xs <- replicateM (fromIntegral k) (randomResponse . fromIntegral $ numClassifierModels)
-  --xs <- sequence . repeat . randomResponse . fromIntegral $ numClassifierModels
+  let k = numTiles . fromIntegral $ maxDeciderSize
+  xs <- replicateM k (randomResponse . fromIntegral $ numClassifierModels)
   randomGeneticSOM maxDeciderSize xs
+
+numTiles :: Int -> Int
+numTiles s = 3*s*(s-1) + 1
 
 recommendResponse
   :: (Eq a, Enum a, Bounded a)

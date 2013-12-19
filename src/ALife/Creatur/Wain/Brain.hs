@@ -18,6 +18,7 @@ module ALife.Creatur.Wain.Brain
     buildBrain,
     classify,
     recommendAction,
+    learn,
     feedback,
     numberOfClassifierModels,
     numberOfDeciderModels,
@@ -29,7 +30,7 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as C
 import qualified ALife.Creatur.Wain.Decider as D
-import ALife.Creatur.Wain.GeneticSOM (numModels)
+import ALife.Creatur.Wain.GeneticSOM (Label, numModels)
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix)
@@ -101,9 +102,9 @@ randomBrain maxClassifierSize ps maxDeciderSize = do
 -- | Find out how similar the input is to the models in the classifier.
 classify
   :: (Pattern p, Metric p ~ UIDouble)
-    => p -> Brain p a -> ([Metric p], Brain p a)
-classify s b = (sig, b')
-  where (_, sig, c') = C.classify (bClassifier b) s
+    => p -> Brain p a -> (Label, [Metric p], Brain p a)
+classify s b = (label, sig, b')
+  where (label, sig, c') = C.classify (bClassifier b) s
         b' = b { bClassifier = c' }
 
 recommendAction
@@ -111,6 +112,9 @@ recommendAction
     => Scenario -> Brain p a -> (a, Brain p a)
 recommendAction s (Brain c d _) = (action r, Brain c d (Just r))
   where r = D.recommendResponse d s
+
+learn :: Pattern p => Brain p a -> p -> Label -> Brain p a
+learn b p l = b { bClassifier=C.learn (bClassifier b) p l }
 
 feedback
   :: (Pattern p, Metric p ~ UIDouble, Eq a)

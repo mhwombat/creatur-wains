@@ -31,7 +31,7 @@ import ALife.Creatur.Wain.Util (unitInterval, enforceRange,
 import ALife.Creatur.Wain.Random (RandomInitial(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, dStat)
 import Control.Applicative ((<$>), (<*>))
-import Control.Monad.Random (getRandom, getRandomR)
+import Control.Monad.Random (getRandom)
 import Data.Datamining.Pattern (Pattern, Metric, adjustNum,
   difference, makeSimilar)
 import Data.Serialize (Serialize)
@@ -99,8 +99,8 @@ instance Statistical Condition where
 instance RandomInitial Condition where
   randomInitial = do
     e <- getRandom
-    p <- getRandomR (0, 1-e)
-    b <- getRandomR (0, 1-e-p)
+    p <- getRandom
+    b <- getRandom
     return $ Condition e p b
 
 initialCondition :: Condition

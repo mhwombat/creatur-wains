@@ -70,7 +70,7 @@ prop_diploid_identity eq g = property $ express g g `eq` g
 prop_show_read_round_trippable :: (Read a, Show a) => (a -> a -> Bool) -> a -> Property
 prop_show_read_round_trippable eq x
   = property $ (read . show $ x) `eq` x
-    
+
 data TestPattern = TestPattern Word8
   deriving (Show, Eq, Generic)
 
