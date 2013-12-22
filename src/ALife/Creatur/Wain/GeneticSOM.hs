@@ -108,8 +108,8 @@ randomGeneticSOM maxSize xs = do
   params <- randomParams maxSize
   return . buildGeneticSOM params $ xs
 
-learn :: Pattern p => GeneticSOM p -> p -> Label -> GeneticSOM p
-learn s p l = s { sSOM=gm' }
+learn :: Pattern p => p -> Label -> GeneticSOM p -> GeneticSOM p
+learn p l s = s { sSOM=gm' }
   where gm = sSOM s
         f = makeSimilar p (currentLearningFunction gm 0)
         gm' = adjust f l gm

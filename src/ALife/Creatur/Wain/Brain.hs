@@ -16,9 +16,11 @@ module ALife.Creatur.Wain.Brain
   (
     Brain(..),
     buildBrain,
+    assessSituation,
     classify,
     recommendAction,
-    learn,
+    learnLabel,
+    learnAction,
     feedback,
     numberOfClassifierModels,
     numberOfDeciderModels,
@@ -30,9 +32,10 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as C
 import qualified ALife.Creatur.Wain.Decider as D
+import ALife.Creatur.Wain.Condition (Condition)
 import ALife.Creatur.Wain.GeneticSOM (Label, numModels)
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
-import ALife.Creatur.Wain.Scenario (Scenario)
+import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Control.Applicative ((<$>), (<*>))
@@ -99,11 +102,25 @@ randomBrain maxClassifierSize ps maxDeciderSize = do
   d <- D.randomDecider numClassifierModels maxDeciderSize
   return $ buildBrain c d
 
+assessSituation
+  :: (Pattern p, Metric p ~ UIDouble)
+    => p -> p -> Condition -> Brain p a -> (Label, Label, Scenario, Brain p a)
+assessSituation p1 p2 cond b = (l1, l2, sc, b2)
+  where (l1, sig1, b1) = classify' p1 b
+        (l2, sig2, b2) = classify' p2 b1
+        sc = Scenario sig1 sig2 cond
+
 -- | Find out how similar the input is to the models in the classifier.
 classify
   :: (Pattern p, Metric p ~ UIDouble)
+    => p -> Brain p a -> (Label, Brain p a)
+classify p b = (label, b')
+  where (label, _, b') = classify' p b
+
+classify'
+  :: (Pattern p, Metric p ~ UIDouble)
     => p -> Brain p a -> (Label, [Metric p], Brain p a)
-classify s b = (label, sig, b')
+classify' s b = (label, sig, b')
   where (label, sig, c') = C.classify (bClassifier b) s
         b' = b { bClassifier = c' }
 
@@ -113,8 +130,16 @@ recommendAction
 recommendAction s (Brain c d _) = (action r, Brain c d (Just r))
   where r = D.recommendResponse d s
 
-learn :: Pattern p => Brain p a -> p -> Label -> Brain p a
-learn b p l = b { bClassifier=C.learn (bClassifier b) p l }
+learnLabel :: Pattern p => p -> Label -> Brain p a -> Brain p a
+learnLabel p l b = b { bClassifier=C.learn p l (bClassifier b) }
+
+learnAction :: (Pattern p, Metric p ~ UIDouble, Eq a, Enum a, Bounded a)
+    => Scenario -> a -> Brain p a -> Brain p a
+learnAction s a b = b { bLastResponse = Just r }
+  where r = Response s a Nothing
+  
+-- lastResponse : Brain p a -> Maybe (Response a)
+-- lastResponse = bLastResponse
 
 feedback
   :: (Pattern p, Metric p ~ UIDouble, Eq a)
@@ -125,6 +150,9 @@ feedback deltaHappiness (Brain c d lr) =
     Just r  -> Brain c d' (Just r')
                 where r' = r `setOutcome` deltaHappiness
                       d' = D.feedback d r'
+
+-- teach :: Brain p a -> Response a -> Brain p a
+-- teach b r = b { bDecider = D.feedback (bDecider b) r } 
 
 numberOfClassifierModels :: (Pattern p, Metric p ~ UIDouble) => Brain p a -> Int
 numberOfClassifierModels = numModels . bClassifier
