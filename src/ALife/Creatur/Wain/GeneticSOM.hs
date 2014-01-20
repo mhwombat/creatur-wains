@@ -11,16 +11,17 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE TypeFamilies, DeriveGeneric, FlexibleContexts,
-    UndecidableInstances #-}
+    FlexibleInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOM
   (
-    Params(..),
     GeneticSOM(..),
     Label,
     buildGeneticSOM,
     validTimeRange,
     numModels,
     patternCount,
+    setCounts,
     counts,
     models,
     justClassify,
@@ -32,15 +33,15 @@ module ALife.Creatur.Wain.GeneticSOM
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
-import ALife.Creatur.Util (fromEither)
-import ALife.Creatur.Wain.Statistics (Statistical, dStat, iStat, stats)
-import ALife.Creatur.Wain.UnitInterval (UIDouble) 
+import ALife.Creatur.Wain.Statistics (Statistical, iStat, stats)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
+  uiToDouble)
+import ALife.Creatur.Wain.Util (forceIntToWord8, forceIntToWord16)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
 import Data.Datamining.Pattern (Pattern, Metric, makeSimilar)
 import qualified Data.Datamining.Clustering.Classifier as C
-import Data.Datamining.Clustering.SOM (SOM, defaultSOM, toGridMap,
-  counter, setCounter)
+import Data.Datamining.Clustering.SOM (SOM(..), DecayingGaussian(..))
 -- TODO: Either move currentLearningFunction or "learn" to
 -- Data.Datamining.Clustering.SOM
 import Data.Datamining.Clustering.SOMInternal (currentLearningFunction)
@@ -48,9 +49,9 @@ import Data.Serialize (Serialize)
 import qualified Data.Serialize as S
 import Data.Word (Word8, Word16)
 import GHC.Generics (Generic)
-import Math.Geometry.Grid (tileCount)
+import Math.Geometry.Grid (tileCount, size)
 import Math.Geometry.Grid.Hexagonal (hexHexGrid, HexHexGrid)
-import Math.Geometry.GridMap (adjust, elems)
+import qualified Math.Geometry.GridMap as GM
 import Math.Geometry.GridMap.Lazy (LGridMap, lazyGridMap)
 
 validTimeRange :: (Int, Int)
@@ -58,147 +59,140 @@ validTimeRange = (0,100000)
 
 type Label = (Int, Int)
 
-data Params = Params
-  {
-    pSize :: Word8,
-    pR0  :: UIDouble,
-    pRf  :: UIDouble,
-    pW0  :: Word8,
-    pWf  :: Word8,
-    pTf  :: Word16
-  } deriving (Eq, Show, Generic)
+instance Serialize (DecayingGaussian Double)
 
-instance Statistical (Params) where
-  stats (Params s r0 rf w0 wf tf) =
-    [ iStat "edge size" . fromIntegral $ s, dStat "r0" r0,
-      dStat "rf" rf, iStat "w0" . fromIntegral $ w0,
-      iStat "wf" . fromIntegral $ wf, iStat "tf" . fromIntegral $  tf ]
+instance Genetic (DecayingGaussian Double) where
+  put (DecayingGaussian r0 rf w0 wf tf) = do
+    G.put $ doubleToUI r0
+    G.put $ doubleToUI rf
+    G.put . forceIntToWord8 $ round w0
+    G.put . forceIntToWord8 $ round wf
+    G.put . forceIntToWord16 $ round tf
+  get = do
+    r0 <- G.get :: G.Reader (Either [String] UIDouble)
+    rf <- G.get :: G.Reader (Either [String] UIDouble)
+    w0 <- G.get :: G.Reader (Either [String] Word8)
+    wf <- G.get :: G.Reader (Either [String] Word8)
+    tf <- G.get :: G.Reader (Either [String] Word16)
+    return $ DecayingGaussian <$> fmap uiToDouble r0
+      <*> fmap uiToDouble rf <*> fmap fromIntegral w0
+      <*> fmap fromIntegral wf <*> fmap fromIntegral tf
 
-instance Serialize Params
-instance Genetic Params
-instance Diploid (Params)
+instance (Diploid a) => Diploid (DecayingGaussian a)
 
-randomParams :: RandomGen g => Word8 -> Rand g (Params)
-randomParams maxSize = do
+instance Serialize HexHexGrid where
+  put g = S.put (size g)
+  get = do
+    n <- S.get
+    return $ hexHexGrid n
+
+instance Genetic HexHexGrid where
+  put g = G.put . forceIntToWord8 $ size g
+  get = do
+    n <- G.get :: G.Reader (Either [String] Word8)
+    return $ hexHexGrid <$> fmap fromIntegral n
+
+instance Diploid HexHexGrid where
+  express g1 g2 = hexHexGrid $ express (size g1) (size g2)
+
+instance (Serialize p) => Serialize (LGridMap HexHexGrid p)
+
+instance (Genetic p) => Genetic (LGridMap HexHexGrid p) where
+  put gm = G.put (GM.toGrid gm) >> G.put (GM.elems gm)
+  get = do
+    g <- G.get
+    ps <- G.get
+    return $ lazyGridMap <$> g <*> ps
+instance (Diploid p) => Diploid (LGridMap HexHexGrid p) where
+  express gm1 gm2 = lazyGridMap g ps
+    where g = express (GM.toGrid gm1) (GM.toGrid gm2)
+          ps = express (GM.elems gm1) (GM.elems gm2)
+
+instance (Serialize f, Serialize t, Serialize p) =>
+  Serialize (SOM f t (LGridMap HexHexGrid) Label p)
+instance (Genetic f, Genetic t, Genetic p) =>
+  Genetic (SOM f t (LGridMap HexHexGrid) Label p)
+instance (Diploid f, Diploid t, Diploid p) =>
+  Diploid (SOM f t (LGridMap HexHexGrid) Label p)
+
+data GeneticSOM p =
+  GeneticSOM
+    {
+      sSOM :: (SOM (DecayingGaussian Double) Word16 (LGridMap HexHexGrid) Label p),
+      sCounters :: (LGridMap HexHexGrid Word16)
+    }
+  deriving (Eq, Show, Generic)
+
+buildGeneticSOM
+  :: (Pattern p, Metric p ~ Double)
+    => Word8 -> DecayingGaussian Double -> [p] -> GeneticSOM p
+buildGeneticSOM s f xs = GeneticSOM som ks
+  where g = hexHexGrid $ fromIntegral s
+        gm = lazyGridMap g xs
+        som = SOM gm f 0
+        ks = lazyGridMap g (repeat 0)
+        
+instance (Serialize p) => Serialize (GeneticSOM p)
+instance (Genetic p) => Genetic (GeneticSOM p)
+instance (Diploid p) => Diploid (GeneticSOM p)
+
+instance Statistical (GeneticSOM p) where
+  stats (GeneticSOM (SOM gm f _) _) =
+    (iStat "IQ" iq):(iStat "edge size" . size $ gm):(stats f)
+    where iq = tileCount gm
+
+randomGeneticSOM
+  :: (Pattern p, Metric p ~ Double, RandomGen g)
+    => Word8 -> [p] -> Rand g (GeneticSOM p)
+randomGeneticSOM maxSize xs = do
   s <- getRandomR (1, maxSize)
   r0 <- getRandomR (0.001,1)
   rf <- getRandomR (0.001,r0)
   w0 <- getRandomR (0,fromIntegral s)
   wf <- getRandomR (0,w0)
   tf <- getRandom
-  return $ Params s r0 rf w0 wf tf
+  let f = DecayingGaussian r0 rf w0 wf tf
+  return $ buildGeneticSOM s f xs
 
-data GeneticSOM p =
-  GeneticSOM
-    {
-      sSOM :: SOM (LGridMap HexHexGrid) Label p,
-      sParams :: Params,
-      sCounters :: LGridMap HexHexGrid Int
-    }
-  deriving Generic
-
-instance Statistical (GeneticSOM p) where
-  stats s = (iStat "IQ" iq):(stats . sParams $ s)
-    where iq = tileCount . sSOM $ s
-
-randomGeneticSOM
-  :: (Pattern p, Metric p ~ UIDouble, RandomGen g)
-    => Word8 -> [p] -> Rand g (GeneticSOM p)
-randomGeneticSOM maxSize xs = do
-  params <- randomParams maxSize
-  return . buildGeneticSOM params $ xs
-
-learn :: Pattern p => p -> Label -> GeneticSOM p -> GeneticSOM p
+learn
+  :: (Pattern p, Metric p ~ Double)
+    => p -> Label -> GeneticSOM p -> GeneticSOM p
 learn p l s = s { sSOM=gm' }
   where gm = sSOM s
         f = makeSimilar p (currentLearningFunction gm 0)
-        gm' = adjust f l gm
+        gm' = GM.adjust f l gm
 
-justClassify :: (Pattern p, Ord (Metric p)) => GeneticSOM p -> p -> Label
+justClassify
+  :: (Pattern p, Ord (Metric p), Metric p ~ Double)
+    => GeneticSOM p -> p -> Label
 justClassify s = C.classify (sSOM s)
 
 reportAndTrain
-  :: (Pattern p, Ord (Metric p))
+  :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> p -> (Label, [(Label, Metric p)], GeneticSOM p)
 reportAndTrain s p = (bmu, diffs, s')
   where (bmu, diffs, som') = C.reportAndTrain (sSOM s) p
-        s' = s { sSOM=som', sCounters=adjust (+1) bmu (sCounters s)}
+        s' = s { sSOM=som', sCounters=GM.adjust (+1) bmu (sCounters s)}
         
-numModels :: (Pattern p, Ord (Metric p)) => GeneticSOM p -> Int
-numModels (GeneticSOM s _ _) = C.numModels s
+numModels
+  :: (Pattern p, Ord (Metric p), Metric p ~ Double)
+    => GeneticSOM p -> Int
+numModels (GeneticSOM s _) = C.numModels s
 
-models :: (Pattern p, Ord (Metric p)) => GeneticSOM p -> [p]
-models (GeneticSOM s _ _) = C.models s
+models
+  :: (Pattern p, Ord (Metric p), Metric p ~ Double)
+    => GeneticSOM p -> [p]
+models (GeneticSOM s _) = C.models s
 
-buildGeneticSOM
-  :: (Pattern p, Metric p ~ UIDouble)
-    => Params -> [p] -> GeneticSOM p
-buildGeneticSOM p@(Params s r0 rf w0 wf tf) xs = GeneticSOM som p ks
-  where g = hexHexGrid (fromIntegral s)
-        gm = lazyGridMap g xs
-        som = defaultSOM gm r0 rf (fromIntegral w0) (fromIntegral wf) (fromIntegral tf)
-        ks = lazyGridMap g (repeat 0)
-        
-instance (Eq p, Metric p ~ UIDouble)
-      => Eq (GeneticSOM p) where
-  (==) (GeneticSOM som1 params1 counts1) (GeneticSOM som2 params2 counts2) = 
-      (toGridMap som1 == toGridMap som2) && (counter som1 == counter som2)
-        && (params1 == params2) && (counts1 == counts2)
+setCounts
+  :: (Pattern p, Ord (Metric p), Metric p ~ Double)
+    => [Word16] -> GeneticSOM p -> GeneticSOM p
+setCounts ks (GeneticSOM s kMap) = GeneticSOM s' kMap'
+  where kMap' = lazyGridMap (GM.toGrid kMap) ks
+        s' = s { counter=(sum ks) }
 
-showSOM
-  :: (Show p)
-    => LGridMap HexHexGrid p -> Params -> Int -> String
-showSOM gm (Params _ r0 rf w0 wf tf) k = "setCounter " ++ show k
-  ++ " $ defaultSOM (" ++ show gm ++ ") " ++ show r0 ++ " " ++ show rf
-  ++ " " ++ show w0 ++ " " ++ show wf ++ " " ++ show tf
+patternCount :: Metric p ~ Double => GeneticSOM p -> Word16
+patternCount = sum . GM.elems . sCounters
 
-instance (Show p, Pattern p, Show (Metric p))
-         => Show (GeneticSOM p) where
-  show (GeneticSOM som params ns)
-    = "GeneticSOM (" ++ showSOM gm params k ++ ") (" ++ show params ++ ") ("
-        ++ show ns ++ ")"
-    where gm = toGridMap som
-          k = counter som
-  -- show (GeneticSOM som params ns)
-  --   = "(\\d -> d { sSOM=setCounter " ++ show (counter som)
-  --     ++ " (sSOM d) }) (buildGeneticSOM (" ++ show params ++ ") "
-  --     ++ show (C.models som) ++ show ns ++ ")"
-
-instance (Pattern p, Serialize [p], Metric p ~ UIDouble)
-         => Serialize (GeneticSOM p) where
-  put d = S.put (models d)
-          >> S.put (counter . sSOM $ d)
-          >> S.put (sParams d)
-  get = do
-    xs <- S.get
-    k <- S.get
-    params <- S.get
-    let d = buildGeneticSOM params xs
-    let som = setCounter k . sSOM $ d
-    return $ d { sSOM = som }
-
-instance (Genetic p, Pattern p, Metric p ~ UIDouble)
-  => Genetic (GeneticSOM p) where
-  put d = G.put (models d) >> G.put (sParams d)
-  get = do
-    xs <- G.get
-    if null (fromEither [] xs)
-      then return $ Left ["SOM has no initial models"]
-      else do
-        params <- G.get
-        case params of
-          Right p -> if pSize p == 0
-                     then return $ Left ["Null SOM"]
-                     else return $ buildGeneticSOM <$> params <*> xs
-          Left e -> return $ Left e
-
-instance (Diploid p, Pattern p, Metric p ~ UIDouble)
-  => Diploid (GeneticSOM p) where
-  express (GeneticSOM s1 p1 _) (GeneticSOM s2 p2 _) =
-    buildGeneticSOM (express p1 p2) (express (C.models s1) (C.models s2))
-
-patternCount :: GeneticSOM p -> Int
-patternCount = sum . elems . sCounters
-
-counts :: GeneticSOM p -> [Int]
-counts = elems . sCounters
+counts :: Metric p ~ Double => GeneticSOM p -> [Word16]
+counts = GM.elems . sCounters

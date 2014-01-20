@@ -19,16 +19,22 @@ module ALife.Creatur.Wain.ScenarioQC
 
 import ALife.Creatur.Wain.Scenario
 import ALife.Creatur.Wain.ConditionQC ()
-import ALife.Creatur.Wain.UnitIntervalQC ()
+import ALife.Creatur.Wain.Util (unitInterval)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity)
-import Control.Applicative
+  prop_genetic_round_trippable, prop_diploid_identity, arb8BitDouble)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
+sizedArbScenario :: Int -> Gen Scenario
+sizedArbScenario n = do
+  is <- vectorOf n (arb8BitDouble unitInterval)
+  os <- vectorOf n (arb8BitDouble unitInterval)
+  c <- arbitrary
+  return $ Scenario is os c
+  
 instance Arbitrary Scenario where
-  arbitrary = Scenario <$> arbitrary <*> arbitrary <*> arbitrary
+  arbitrary = sized sizedArbScenario
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ScenarioQC"

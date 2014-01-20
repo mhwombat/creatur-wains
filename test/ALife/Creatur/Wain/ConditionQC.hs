@@ -17,16 +17,18 @@ module ALife.Creatur.Wain.ConditionQC
   ) where
 
 import ALife.Creatur.Wain.Condition
+import ALife.Creatur.Wain.Util (unitInterval)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity)
-import ALife.Creatur.Wain.UnitIntervalQC ()
+  prop_genetic_round_trippable, prop_diploid_identity, arb8BitDouble)
 import Control.Applicative
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
 instance Arbitrary Condition where
-  arbitrary = Condition <$> arbitrary <*> arbitrary <*> arbitrary
+  arbitrary = Condition <$> arb8BitDouble unitInterval
+                <*> arb8BitDouble unitInterval
+                <*> arb8BitDouble unitInterval
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ConditionQC"

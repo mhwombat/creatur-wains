@@ -7,9 +7,11 @@
 -- Stability   :  experimental
 -- Portability :  portable
 --
--- Utility functions that don't fit anywhere else.
+-- Definitions that don't fit anywhere else.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE FlexibleInstances, TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.Util
   (
     unitInterval,
@@ -26,6 +28,8 @@ module ALife.Creatur.Wain.Util
   ) where
 
 import Data.Word (Word8, Word16)
+import Data.Datamining.Pattern (Pattern(..), Metric, adjustNum,
+  adjustVector)
 
 unitInterval :: Num a => (a, a)
 unitInterval = (0,1)
@@ -71,3 +75,17 @@ forceIntToWord16 = fromIntegral . min maxBound
 word16ToInt :: Word16 -> Int
 word16ToInt = fromIntegral
 
+instance Pattern Double where
+  type Metric Double = Double
+  difference a b = abs $ (-) a b
+  makeSimilar = adjustNum
+
+instance Pattern [Double] where
+  type Metric [Double] = Double
+  difference xs ys
+    | null xs && null ys = 0
+    | null xs || null ys = 1
+    | otherwise         = d / (fromIntegral $ length deltas)
+    where deltas = zipWith (-) xs ys
+          d = sum $ map (\z -> z*z) deltas
+  makeSimilar = adjustVector

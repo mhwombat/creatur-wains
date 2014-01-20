@@ -17,22 +17,26 @@ module ALife.Creatur.Wain.Scenario
     randomScenario
   ) where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
+import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get,
+  putRawWord8s, getRawWord8s)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Condition (Condition)
 import ALife.Creatur.Wain.Random (randomInitial)
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
+import ALife.Creatur.Wain.Util (forceIntToWord8, word8ToInt,
+  scaleToWord8, scaleFromWord8, unitInterval)
+import Control.Applicative
 import Control.Monad (replicateM)
 import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (Pattern, Metric, difference,
   makeSimilar)
 import Data.Serialize (Serialize)
+import Data.Word (Word8)
 import GHC.Generics (Generic)
 
 -- Weights to use when comparing possible courses of action.
 -- The values should add up to one.
 -- TODO: Make genetic
-scenarioWeights :: [UIDouble]
+scenarioWeights :: [Double]
 scenarioWeights =
   [
     0.5, -- direct object signature
@@ -45,10 +49,10 @@ data Scenario = Scenario
   {
     -- | The pattern probabilities identified by the classifier
     --   for the direct object of the action.
-    directObject :: [UIDouble],
+    directObject :: [Double],
     -- | The pattern probabilities identified by the classifier
     --   for the indirect object of the action.
-    indirectObject :: [UIDouble],
+    indirectObject :: [Double],
     -- | Current condition
     condition :: Condition
   } deriving (Eq, Show, Generic)
@@ -56,8 +60,8 @@ data Scenario = Scenario
 instance Serialize Scenario
 
 instance Pattern Scenario where
-  type Metric Scenario = UIDouble
-  difference x y = (sum . zipWith (*) scenarioWeights $ ds)/3
+  type Metric Scenario = Double
+  difference x y = (sum $ zipWith (*) scenarioWeights ds)/3
     where ds = [doDiff, ioDiff, cDiff]
           doDiff = difference (directObject x) (directObject y)
           ioDiff = difference (indirectObject x) (indirectObject y)
@@ -68,7 +72,40 @@ instance Pattern Scenario where
           cond = makeSimilar (condition target) r (condition x)
 
 -- | The initial sequences stored at birth are genetically determined.
-instance Genetic Scenario
+instance Genetic Scenario where
+  -- put (Scenario ds is c) = do
+  --   put $ map doubleToUI ds
+  --   put $ map doubleToUI is
+  --   put c
+  -- get = do
+  --   ds <- get :: Reader (Either [String] [UIDouble])
+  --   is <- get :: Reader (Either [String] [UIDouble])
+  --   c <- get
+  --   return $ Scenario <$> fmap (map uiToDouble) ds
+  --     <*> fmap (map uiToDouble) is <*> c
+  put (Scenario ds is c) = do
+    -- ds and is should have the same length
+    put . forceIntToWord8 $ length ds
+    putRawWord8s $ doublesToWord8s ds
+    putRawWord8s $ doublesToWord8s is
+    put c
+  get = do
+    n <- fmap (fmap word8ToInt) get
+    case n of
+      Left msgs -> return $ Left msgs
+      Right n' -> do
+        ds <- fmap (fmap word8sToDoubles) $ getRawWord8s n'
+        is <- fmap (fmap word8sToDoubles) $ getRawWord8s n'
+        c <- get
+        return $ Scenario <$> ds <*> is <*> c
+
+doublesToWord8s :: [Double] -> [Word8]
+doublesToWord8s = map (scaleToWord8 unitInterval)
+-- doublesToWord8s = map (round . (255*))
+
+word8sToDoubles :: [Word8] -> [Double]
+word8sToDoubles = map (scaleFromWord8 unitInterval)
+-- word8sToDoubles = map ((/255) . fromIntegral)
 
 instance Diploid Scenario
 

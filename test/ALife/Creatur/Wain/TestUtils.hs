@@ -14,7 +14,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.TestUtils
   (
-    TestPattern,
+    TestPattern(..),
     Inexact(..),
     arb8BitDouble,
     arb8BitInt,
@@ -30,7 +30,6 @@ import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Util (fromEither)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleWord8ToInt,
   forceToWord8)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import Control.Applicative ((<$>))
 import Data.Datamining.Pattern (Pattern(..), Metric, adjustNum)
 import Data.Serialize (Serialize, encode, decode)
@@ -52,7 +51,7 @@ arb8BitInt :: (Int, Int) -> Gen Int
 arb8BitInt interval = do 
   x <- arbitrary :: Gen Word8
   return $ scaleWord8ToInt interval x
-  
+
 prop_serialize_round_trippable :: (Eq a, Serialize a) => a -> Property
 prop_serialize_round_trippable x = property $ x' == Right x
   where bs = encode x
@@ -82,14 +81,14 @@ instance Arbitrary TestPattern where
   arbitrary = TestPattern <$> arbitrary
 
 instance Pattern TestPattern where
-  type Metric TestPattern = UIDouble
+  type Metric TestPattern = Double
   difference (TestPattern x) (TestPattern y)
     = abs (fromIntegral x - fromIntegral y) / 255
   makeSimilar (TestPattern target) r (TestPattern x)
     = TestPattern (forceToWord8 x'')
     where t' = fromIntegral target :: Double
           x' = fromIntegral x :: Double
-          x'' = adjustNum t' (uiToDouble r) x'
+          x'' = adjustNum t' r x'
 
 class Inexact a where
   equiv :: a -> a -> Bool

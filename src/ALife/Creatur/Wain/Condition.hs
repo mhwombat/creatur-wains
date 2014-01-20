@@ -25,7 +25,6 @@ module ALife.Creatur.Wain.Condition
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.Util (unitInterval, enforceRange,
   scaleFromWord8, scaleToWord8)
 import ALife.Creatur.Wain.Random (RandomInitial(..))
@@ -38,24 +37,24 @@ import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 
 -- TODO: Make these weights genetic
-energyWeight :: UIDouble
+energyWeight :: Double
 energyWeight = 1 - passionWeight - boredomWeight
 
-passionWeight :: UIDouble
+passionWeight :: Double
 passionWeight = 0.1
 
-boredomWeight :: UIDouble
+boredomWeight :: Double
 boredomWeight = 0.3
 
 -- | A model of a stimulus and the response to it
 data Condition = Condition
   {
     -- | Current energy level
-    cEnergy :: UIDouble,
+    cEnergy :: Double,
     -- | Current passion level
-    cPassion :: UIDouble,
+    cPassion :: Double,
     -- | Current boredom level
-    cBoredom :: UIDouble
+    cBoredom :: Double
   } deriving (Eq, Show, Generic)
 
 instance Serialize Condition
@@ -65,19 +64,19 @@ instance Serialize Condition
 -- determined, and they contain condition information.
 instance Genetic Condition where
   put (Condition e p b) = do
-    G.put . scaleToWord8 unitInterval $ e
-    G.put . scaleToWord8 unitInterval $ p
-    G.put . scaleToWord8 unitInterval $ b
+    G.put $ scaleToWord8 unitInterval e
+    G.put $ scaleToWord8 unitInterval p
+    G.put $ scaleToWord8 unitInterval b
   get = do
-    e <- fmap (fmap . scaleFromWord8 $ unitInterval) G.get
-    p <- fmap (fmap . scaleFromWord8 $ unitInterval) G.get
-    b <- fmap (fmap . scaleFromWord8 $ unitInterval) G.get
+    e <- fmap (fmap $ scaleFromWord8 unitInterval) G.get
+    p <- fmap (fmap $ scaleFromWord8 unitInterval) G.get
+    b <- fmap (fmap $ scaleFromWord8 unitInterval) G.get
     return $ Condition <$> e <*> p <*> b
 
 instance Diploid Condition
 
 instance Pattern Condition where
-  type Metric Condition = UIDouble
+  type Metric Condition = Double
   difference x y
     = sum [eDiff*energyWeight, pDiff*passionWeight,
             bDiff*boredomWeight]
@@ -106,7 +105,7 @@ instance RandomInitial Condition where
 initialCondition :: Condition
 initialCondition = Condition 1 0 0
 
-happiness :: Condition -> UIDouble
+happiness :: Condition -> Double
 happiness (Condition e b p)
   = e*energyWeight + (1 - p)*passionWeight
       + (1 - b)*boredomWeight
@@ -114,11 +113,11 @@ happiness (Condition e b p)
 alive :: Condition -> Bool
 alive c = cEnergy c > 0
 
-adjustEnergy :: UIDouble -> Condition -> Condition
+adjustEnergy :: Double -> Condition -> Condition
 adjustEnergy delta c = c {cEnergy=e}
   where e = enforceRange unitInterval (cEnergy c + delta)
 
-adjustPassion :: UIDouble -> Condition -> Condition
+adjustPassion :: Double -> Condition -> Condition
 adjustPassion delta c = c {cPassion=p}
   where p = enforceRange unitInterval (cPassion c + delta)
 

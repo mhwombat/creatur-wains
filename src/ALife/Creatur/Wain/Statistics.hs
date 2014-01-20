@@ -25,6 +25,7 @@ module ALife.Creatur.Wain.Statistics
   ) where
 
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
+import Data.Datamining.Clustering.SOM (DecayingGaussian(..))
 import Data.List (foldl1')
 
 data Statistic = DStatistic {sName :: String, sVal :: Double}
@@ -62,20 +63,10 @@ minStats = map (prefix "min ") . foldl1' (apply3 min)
 avgStats :: [[Statistic]] -> [Statistic]
 avgStats xs
   = (map (prefix "avg " . apply (/ n)) . foldl1' (apply3 (+))) xs
-    where n = fromIntegral . length $ xs
+    where n = fromIntegral $ length xs
 
 apply3 :: (Double -> Double -> Double) -> [Statistic] -> [Statistic] -> [Statistic]
 apply3 f = zipWith (apply2 f)
-
--- maxStat :: [Statistic] -> Statistic
--- maxStat = prefix "max " . foldl1' (apply2 max)
-
--- minStat :: [Statistic] -> Statistic
--- minStat = prefix "min " . foldl1' (apply2 min)
-
--- avgStat :: [Statistic] -> Statistic
--- avgStat xs = prefix "avg " . apply (/n) . foldl1' (apply2 (+)) $ xs
---   where n = fromIntegral . length $ xs
 
 prefix :: String -> Statistic -> Statistic
 prefix s x = x { sName = s ++ sName x }
@@ -88,3 +79,8 @@ apply2 f x y =
   if sName x == sName y
      then x { sVal = f (sVal x) (sVal y) }
      else DStatistic "???" 0
+
+instance Statistical (DecayingGaussian Double) where
+  stats (DecayingGaussian r0 rf w0 wf tf) = 
+    [ dStat "r0" r0, dStat "rf" rf, iStat "w0" $ round w0,
+      iStat "wf" $ round wf, iStat "tf" $ round tf ]

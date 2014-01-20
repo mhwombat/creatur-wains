@@ -23,14 +23,16 @@ import ALife.Creatur.Wain.GeneticSOMQC (equiv)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
 import Control.Applicative ((<$>))
+import Data.Word (Word16)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
-data Counter = Counter {getInt :: Int} deriving Show
+data Counter = Counter {getInt :: Word16} deriving Show
 
 sizedArbCounter :: Int -> Gen Counter
-sizedArbCounter n = Counter <$> oneof [choose (0,n*1000), return 0]
+sizedArbCounter n
+  = Counter <$> oneof [choose (0,fromIntegral n*1000), return 0]
 -- The small numbers help to avoid overflow, which shouldn't be a
 -- problem in the real application.
 -- Without the "return 0" part, we wouldn't be likely to get enough
@@ -39,8 +41,8 @@ sizedArbCounter n = Counter <$> oneof [choose (0,n*1000), return 0]
 instance Arbitrary Counter where
   arbitrary = sized sizedArbCounter
 
--- The < check ensures we don't overflow, which shouldn't happen in
--- the real application.
+-- The < check ensures we don't overflow, which shouldn't happen during
+-- normal use.
 prop_conflation'_within_bounds :: [Counter] -> Property
 prop_conflation'_within_bounds xs = property $ 0 <= y && y <= 1 + tad
   where y = conflation' xs'

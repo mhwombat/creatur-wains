@@ -14,7 +14,7 @@
 module ALife.Creatur.Wain.ResponseQC
   (
     test,
-    TestAction
+    TestAction(..)
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -22,10 +22,9 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Response
 import ALife.Creatur.Wain.ScenarioQC ()
 import ALife.Creatur.Wain.ConditionQC ()
-import ALife.Creatur.Wain.UnitIntervalQC ()
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity)
-import Control.Applicative
+  prop_genetic_round_trippable, prop_diploid_identity, arb8BitDouble)
+import ALife.Creatur.Wain.Util (unitInterval)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 import System.Random (Random, random, randomR)
@@ -46,8 +45,10 @@ type TestResponse = Response TestAction
 
 instance Arbitrary TestResponse where
   arbitrary = do
-    r <- arbitrary
-    Response <$> arbitrary <*> arbitrary <*> pure (Just r)
+    s <- arbitrary
+    a <- arbitrary
+    o <- arb8BitDouble unitInterval
+    return $ Response s a (Just o)
 
 -- | This is used for testing random SOM generation
 instance Random TestAction where

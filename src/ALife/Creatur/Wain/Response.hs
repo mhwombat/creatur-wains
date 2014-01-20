@@ -20,10 +20,11 @@ module ALife.Creatur.Wain.Response
     randomResponse
   ) where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
+import ALife.Creatur.Genetics.BRGCWord8 (Genetic, Reader, put, get)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Scenario (Scenario, randomScenario)
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
+  doubleToUI)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (Pattern, Metric, difference,
@@ -36,7 +37,7 @@ import System.Random (Random)
 -- Weights to use when comparing possible courses of action.
 -- The values should add up to one.
 -- TODO: Make genetic
-deciderWeights :: [UIDouble]
+deciderWeights :: [Double]
 deciderWeights =
   [
     0.3, -- scenario
@@ -54,17 +55,17 @@ data Response a = Response
     --   Response patterns stored in the decider will have a @Just@
     --   value; stimuli received from the outside will have a @Nothing@
     --   value.
-    outcome :: Maybe UIDouble
+    outcome :: Maybe Double
   } deriving (Eq, Show, Generic)
 
 instance (Serialize a) => Serialize (Response a)
 
 instance (Eq a) => Pattern (Response a) where
-  type Metric (Response a) = UIDouble
+  type Metric (Response a) = Double
   difference x y =
     if action x == action y
       then 0.0
-      else (sum . zipWith (*) deciderWeights $ ds)/2
+      else (sum $ zipWith (*) deciderWeights ds)/2
     where ds = [sDiff, rDiff]
           sDiff = difference (scenario x) (scenario y)
           rDiff = case outcome x of
@@ -76,17 +77,25 @@ instance (Eq a) => Pattern (Response a) where
   makeSimilar target r x = Response s a o
     where s = makeSimilar (scenario target) r (scenario x)
           a = action x
-          o = Just $ makeSimilar (fromMaybe 0.0 . outcome $ target) r (fromMaybe 0.0 . outcome $ x)
+          o = Just $ makeSimilar (fromMaybe 0.0 $ outcome target) r
+                (fromMaybe 0.0 $ outcome x)
 
 -- | The initial sequences stored at birth are genetically determined.
-instance (Genetic a) => Genetic (Response a)
+instance (Genetic a) => Genetic (Response a) where
+  put (Response s a o) = put s >> put a >> put (fmap doubleToUI o)
+  get = do
+    s <- get
+    a <- get
+    o <- get :: Reader (Either [String] (Maybe UIDouble))
+    return $ Response <$> s <*> a <*> fmap (fmap uiToDouble) o
 
 instance (Diploid a) => Diploid (Response a)
 
 randomResponse
   :: (RandomGen g, Random a)
     => Int -> Rand g (Response a)
-randomResponse n = Response <$> randomScenario n <*> getRandom <*> fmap Just getRandom
+randomResponse n
+  = Response <$> randomScenario n <*> getRandom <*> fmap Just getRandom
 
 possibleResponses :: (Enum a, Bounded a) => Scenario -> [Response a]
 possibleResponses s
@@ -95,7 +104,7 @@ possibleResponses s
 copyOutcomeTo :: Response a -> Response a -> Response a
 copyOutcomeTo source target = target { outcome=outcome source }
 
-setOutcome :: Response a -> UIDouble -> Response a
+setOutcome :: Response a -> Double -> Response a
 setOutcome r o = r { outcome=Just o }
 
 -- getOutcome :: Response s a -> Double
