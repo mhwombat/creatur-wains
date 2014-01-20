@@ -46,23 +46,6 @@ library
                     som ==7.*,
                     transformers ==0.3.*
 
-executable amy3
-  main-is:          amy3.hs
-  ghc-options:      -Wall -Werror -O2 -rtsopts -threaded
-  build-depends:
-                    base ==4.*,
-                    cereal ==0.3.* || ==0.4.*,
-                    creatur ==4.3.*,
-                    grid ==7.*,
-                    random ==1.0.*,
-                    MonadRandom ==0.1.*,
-                    som ==7.*,
-                    transformers ==0.3.*,
-                    test-framework ==0.8.*,
-                    test-framework-quickcheck2 ==0.3.*,
-                    QuickCheck ==2.6.*
-  hs-source-dirs:   ., src, test
-
 Test-suite wain-tests
   Type:             exitcode-stdio-1.0
   Main-is:          Main.hs
