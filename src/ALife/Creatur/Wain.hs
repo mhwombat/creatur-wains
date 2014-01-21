@@ -89,6 +89,7 @@ deriving instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), Show a, E
 instance (Pattern s, Metric s ~ Double) => Statistical (Wain s a) where
   stats w =
     iStat "age" (fromIntegral $ age w)
+      : iStat "maturity" (fromIntegral $ ageOfMaturity w)
       : iStat "total # of children" (fromIntegral $ numberOfChildren w)
       : iStat "current # of children" (if hasChild w then 1 else 0)
       : stats (brain w)

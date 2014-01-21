@@ -21,6 +21,7 @@ module ALife.Creatur.Wain.Statistics
     maxStats,
     minStats,
     avgStats,
+    sumStats,
     prefix
   ) where
 
@@ -55,15 +56,18 @@ class Statistical a where
   stats :: a -> [Statistic]
 
 maxStats :: [[Statistic]] -> [Statistic]
-maxStats = map (prefix "max ") . foldl1' (apply3 max)
+maxStats = foldl1' (apply3 max)
 
 minStats :: [[Statistic]] -> [Statistic]
-minStats = map (prefix "min ") . foldl1' (apply3 min)
+minStats = foldl1' (apply3 min)
 
 avgStats :: [[Statistic]] -> [Statistic]
 avgStats xs
-  = (map (prefix "avg " . apply (/ n)) . foldl1' (apply3 (+))) xs
+  = (map (apply (/ n)) . foldl1' (apply3 (+))) xs
     where n = fromIntegral $ length xs
+
+sumStats :: [[Statistic]] -> [Statistic]
+sumStats = foldl1' (apply3 (+))
 
 apply3 :: (Double -> Double -> Double) -> [Statistic] -> [Statistic] -> [Statistic]
 apply3 f = zipWith (apply2 f)

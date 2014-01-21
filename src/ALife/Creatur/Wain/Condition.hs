@@ -7,7 +7,7 @@
 -- Stability   :  experimental
 -- Portability :  portable
 --
--- ???
+-- Tracks an agent's state of health and happiness.
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric, TypeFamilies #-}
@@ -38,13 +38,10 @@ import GHC.Generics (Generic)
 
 -- TODO: Make these weights genetic
 energyWeight :: Double
-energyWeight = 1 - passionWeight - boredomWeight
+energyWeight = 1 - passionWeight
 
 passionWeight :: Double
 passionWeight = 0.1
-
-boredomWeight :: Double
-boredomWeight = 0.3
 
 -- | A model of a stimulus and the response to it
 data Condition = Condition
@@ -52,9 +49,7 @@ data Condition = Condition
     -- | Current energy level
     cEnergy :: Double,
     -- | Current passion level
-    cPassion :: Double,
-    -- | Current boredom level
-    cBoredom :: Double
+    cPassion :: Double
   } deriving (Eq, Show, Generic)
 
 instance Serialize Condition
@@ -63,34 +58,30 @@ instance Serialize Condition
 -- the initial response patterns stored at birth are genetically
 -- determined, and they contain condition information.
 instance Genetic Condition where
-  put (Condition e p b) = do
+  put (Condition e p) = do
     G.put $ scaleToWord8 unitInterval e
     G.put $ scaleToWord8 unitInterval p
-    G.put $ scaleToWord8 unitInterval b
   get = do
     e <- fmap (fmap $ scaleFromWord8 unitInterval) G.get
     p <- fmap (fmap $ scaleFromWord8 unitInterval) G.get
-    b <- fmap (fmap $ scaleFromWord8 unitInterval) G.get
-    return $ Condition <$> e <*> p <*> b
+    return $ Condition <$> e <*> p
 
 instance Diploid Condition
 
 instance Pattern Condition where
   type Metric Condition = Double
   difference x y
-    = sum [eDiff*energyWeight, pDiff*passionWeight,
-            bDiff*boredomWeight]
+    = sum [eDiff*energyWeight, pDiff*passionWeight]
     where eDiff = abs (cEnergy x - cEnergy y)
           pDiff = abs (cPassion x - cPassion y)
-          bDiff = abs (cBoredom x - cBoredom y)
-  makeSimilar target r x = Condition e p b
+  makeSimilar target r x = Condition e p
     where e = adjustNum (cEnergy target) r (cEnergy x)
           p = adjustNum (cPassion target) r (cPassion x)
-          b = adjustNum (cBoredom target) r (cBoredom x)
 
 instance Statistical Condition where
-  stats (Condition e p b) =
-    [dStat "energy" e, dStat "passion" p, dStat "boredom" b]
+  stats c@(Condition e p) =
+    [dStat "energy" e, dStat "passion" p,
+     dStat "happiness" (happiness c)]
 
 -- When wains are created, they have a predetermined initial condition.
 -- However, we still need to generate random conditions for use in
@@ -99,16 +90,14 @@ instance RandomInitial Condition where
   randomInitial = do
     e <- getRandom
     p <- getRandom
-    b <- getRandom
-    return $ Condition e p b
+    return $ Condition e p
 
 initialCondition :: Condition
-initialCondition = Condition 1 0 0
+initialCondition = Condition 1 0
 
 happiness :: Condition -> Double
-happiness (Condition e b p)
+happiness (Condition e p)
   = e*energyWeight + (1 - p)*passionWeight
-      + (1 - b)*boredomWeight
 
 alive :: Condition -> Bool
 alive c = cEnergy c > 0
