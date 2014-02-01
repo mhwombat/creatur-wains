@@ -34,7 +34,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as C
 import qualified ALife.Creatur.Wain.Decider as D
 import ALife.Creatur.Wain.Condition (Condition)
-import ALife.Creatur.Wain.GeneticSOM (Label, numModels)
+import ALife.Creatur.Wain.GeneticSOM (Label, numModels, learn)
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix)
@@ -131,7 +131,7 @@ recommendAction s (Brain c d _) = (action r, Brain c d (Just r))
   where r = D.recommendResponse d s
 
 learnLabel :: (Pattern p, Metric p ~ Double) => p -> Label -> Brain p a -> Brain p a
-learnLabel p l b = b { bClassifier=C.learn p l (bClassifier b) }
+learnLabel p l b = b { bClassifier=learn p l (bClassifier b) }
 
 learnAction :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
     => Scenario -> a -> Brain p a -> Brain p a
@@ -157,7 +157,7 @@ feedback deltaHappiness (Brain c d lr) =
 numberOfClassifierModels :: (Pattern p, Metric p ~ Double) => Brain p a -> Int
 numberOfClassifierModels = numModels . bClassifier
 
-numberOfDeciderModels :: (Pattern p, Metric p ~ Double, Eq a) => Brain p a -> Int
+numberOfDeciderModels :: Eq a => Brain p a -> Int
 numberOfDeciderModels = numModels . bDecider
 
 conflation :: Metric p ~ Double => Brain p a -> Double

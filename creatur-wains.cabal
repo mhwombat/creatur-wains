@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           3.2.1
+Version:           3.2.2
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -38,7 +38,8 @@ library
   Build-Depends:
                     base ==4.*,
                     cereal ==0.3.* || ==0.4.*,
-                    creatur ==4.3.*,
+                    creatur ==5.0.*,
+                    factory ==0.2.*,
                     grid ==7.*,
                     MonadRandom ==0.1.*,
                     mtl ==2.1.*,
@@ -54,12 +55,32 @@ Test-suite wain-tests
   Build-Depends:    
                     base ==4.*,
                     cereal ==0.3.* || ==0.4.*,
-                    creatur ==4.3.*,
+                    creatur ==5.0.*,
+                    creatur-wains,
+                    factory ==0.2.*,
+                    grid ==7.*,
+                    random ==1.0.*,
+                    MonadRandom ==0.1.*,
+                    som ==7.*,
+                    transformers ==0.3.*,
+                    test-framework ==0.8.*,
+                    test-framework-quickcheck2 ==0.3.*,
+                    QuickCheck ==2.6.*
+
+Benchmark wain-benchmark
+  Type:             exitcode-stdio-1.0
+  Main-is:          Benchmark.hs
+  Hs-source-dirs:   test
+  Build-Depends:    
+                    base ==4.*,
+                    cereal ==0.3.* || ==0.4.*,
+                    creatur ==5.0.*,
                     creatur-wains,
                     grid ==7.*,
                     random ==1.0.*,
                     MonadRandom ==0.1.*,
                     som ==7.*,
+                    time ==1.4.*,
                     transformers ==0.3.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,

@@ -15,16 +15,13 @@ module ALife.Creatur.Wain.Classifier
   (
     Classifier,
     classify,
-    learn,
-    numModels,
-    models,
     conflation,
     conflation', -- exported for testing
     randomClassifier
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label,
-  models, reportAndTrain, numModels, counts, randomGeneticSOM, learn)
+  reportAndTrain, counts, randomGeneticSOM)
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Datamining.Pattern (Pattern, Metric)
 import Data.Word (Word8, Word16)

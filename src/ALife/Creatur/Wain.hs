@@ -37,7 +37,6 @@ module ALife.Creatur.Wain
   ) where
 
 import ALife.Creatur (Agent, agentId, isAlive)
-import ALife.Creatur.AgentNamer (genName)
 import ALife.Creatur.Database (Record, key)
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, DiploidReader,
   Sequence, get, put, copy, copy2, consumed2, getAndExpress,
@@ -48,8 +47,7 @@ import ALife.Creatur.Genetics.Recombination (mutatePairedLists,
   repeatWithProbability, withProbability)
 import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Base,
   produceGamete, build, makeOffspring)
-import ALife.Creatur.Logger (writeToLog)
-import ALife.Creatur.Universe (SimpleUniverse)
+import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Condition as C
 import qualified ALife.Creatur.Wain.Brain as B
 import ALife.Creatur.Wain.GeneticSOM (Label)
@@ -67,26 +65,30 @@ import Data.Word (Word8, Word16)
 import GHC.Generics (Generic)
 import System.Random (Random)
 
-data Wain s a = Wain
+data Wain p a = Wain
   {
     name :: String,
-    appearance :: s,
-    brain :: B.Brain s a,
+    appearance :: p,
+    brain :: B.Brain p a,
     ageOfMaturity :: Word16,
     condition :: C.Condition,
     age :: Word16,
     numberOfChildren :: Word16,
-    child :: Maybe (Wain s a),
+    child :: Maybe (Wain p a),
     genome :: ([Word8],[Word8])
   } deriving (Eq, Generic)
 
-deriving instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), Show a, Eq a)
-      => Show (Wain p a)
+deriving instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), 
+  Show a, Eq a)
+    => Show (Wain p a)
  -- where
  --  show (Wain n a b c g) = "Wain " ++ n ++ " (" ++ show a ++ ") ("
  --    ++ show b ++ ") (" ++ show c ++ ") (" ++ show g ++ ")"
 
-instance (Pattern s, Metric s ~ Double) => Statistical (Wain s a) where
+instance Record (Wain p a) where
+  key = name
+
+instance (Pattern p, Metric p ~ Double) => Statistical (Wain p a) where
   stats w =
     iStat "age" (fromIntegral $ age w)
       : iStat "maturity" (fromIntegral $ ageOfMaturity w)
@@ -97,13 +99,13 @@ instance (Pattern s, Metric s ~ Double) => Statistical (Wain s a) where
       ++ [iStat "genome length" ( (length . fst $ genome w)
                                   + (length . snd $ genome w) )]
                                
-instance (Serialize s, Serialize a, Pattern s, Metric s ~ Double, Eq a)
-  => Serialize (Wain s a)
+instance (Serialize p, Serialize a, Pattern p, Metric p ~ Double, Eq a)
+  => Serialize (Wain p a)
 
 -- This implementation is useful for generating the genes in the
 -- initial population, and for testing
-instance (Genetic s, Genetic a, Pattern s, Metric s ~ Double, Eq a)
-      => Genetic (Wain s a) where
+instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
+      => Genetic (Wain p a) where
   put w = put (appearance w) >> put (brain w) >> put (ageOfMaturity w)
   get = do
     g <- copy
@@ -115,24 +117,22 @@ instance (Genetic s, Genetic a, Pattern s, Metric s ~ Double, Eq a)
       <*> pure 0 <*> pure 0 <*> pure Nothing <*> pure g2
 
 -- This implementation is useful for testing
-instance (Diploid s, Diploid a, Pattern s, Metric s ~ Double, Eq a)
-      => Diploid (Wain s a) where
+instance (Diploid p, Diploid a, Pattern p, Metric p ~ Double, Eq a)
+      => Diploid (Wain p a) where
   express x y = Wain "" a b m c 0 0 Nothing ([],[])
     where a = express (appearance x) (appearance y)
           b = express (brain x) (brain y)
           m = express (ageOfMaturity x) (ageOfMaturity y)
           c = C.initialCondition
           
-instance Agent (Wain s a) where
+instance Agent (Wain p a) where
   agentId = name
   isAlive = C.alive . condition
 
-instance Record (Wain s a) where key = agentId
-
-instance (Genetic s, Genetic a, Diploid s, Diploid a, Eq a, Pattern s,
-         Metric s ~ Double)
-         => Reproductive (Wain s a) where
-  type Base (Wain s a) = Sequence
+instance (Genetic p, Genetic a, Diploid p, Diploid a, Eq a, Pattern p,
+         Metric p ~ Double)
+         => Reproductive (Wain p a) where
+  type Base (Wain p a) = Sequence
   produceGamete a =
     repeatWithProbability 0.1 randomCrossover (genome a) >>=
     withProbability 0.01 randomCutAndSplice >>=
@@ -140,13 +140,13 @@ instance (Genetic s, Genetic a, Diploid s, Diploid a, Eq a, Pattern s,
     randomOneOfPair
   build n = runDiploidReader (buildWain False n)
 
-hasChild :: Wain s a -> Bool
+hasChild :: Wain p a -> Bool
 hasChild = isJust . child
 
 buildWain
-  :: (Genetic s, Genetic a, Diploid s, Diploid a, Eq a, Pattern s,
-    Metric s ~ Double)
-    => Bool -> String -> DiploidReader (Either [String] (Wain s a))
+  :: (Genetic p, Genetic a, Diploid p, Diploid a, Eq a, Pattern p,
+    Metric p ~ Double)
+    => Bool -> String -> DiploidReader (Either [String] (Wain p a))
 buildWain truncateGenome n = do
   a <- getAndExpress
   b <- getAndExpress
@@ -156,8 +156,9 @@ buildWain truncateGenome n = do
       <*> pure 0 <*> pure 0 <*> pure Nothing <*> pure g
 
 randomWain
-  :: (RandomGen g, Pattern p, Metric p ~ Double, Eq a, Random a, Genetic p, Genetic a)
-    => String -> p -> Word8 -> [p] -> Word8 -> Word16 -> Rand g (Wain p a)
+  :: (RandomGen g, Pattern p, Metric p ~ Double, Eq a, Random a,
+    Genetic p, Genetic a)
+      => String -> p -> Word8 -> [p] -> Word8 -> Word16 -> Rand g (Wain p a)
 randomWain n app maxClassifierSize ps maxDeciderSize maxAgeOfMaturity
   = do
     b <- B.randomBrain maxClassifierSize ps maxDeciderSize
@@ -167,16 +168,18 @@ randomWain n app maxClassifierSize ps maxDeciderSize maxAgeOfMaturity
     let g = write strawMan
     return $ Wain n app b m c 0 0 Nothing (g, g)
 
-adjustEnergy :: Double -> Wain s a -> Wain s a
-adjustEnergy delta a = a {condition = C.adjustEnergy delta (condition a)}
+adjustEnergy :: Double -> Wain p a -> Wain p a
+adjustEnergy delta a
+  = a {condition = C.adjustEnergy delta (condition a)}
 
-adjustPassion :: Double -> Wain s a -> Wain s a
-adjustPassion delta a = a {condition = C.adjustPassion delta (condition a)}
+adjustPassion :: Double -> Wain p a -> Wain p a
+adjustPassion delta a
+  = a {condition = C.adjustPassion delta (condition a)}
 
-coolPassion :: Wain s a -> Wain s a
+coolPassion :: Wain p a -> Wain p a
 coolPassion a = a {condition = C.coolPassion (condition a)}
 
-data Object s a = DObject s String | AObject (Wain s a)
+data Object p a = DObject p String | AObject (Wain p a)
 
 identity :: Object s a -> String
 identity (DObject _ s) = "Image " ++ s
@@ -187,46 +190,44 @@ appearanceOf (DObject img _) = img
 appearanceOf (AObject a) = appearance a
 
 tryMating
-  :: (Genetic s, Genetic a, Diploid s, Diploid a, Eq a, Pattern s,
-    Metric s ~ Double)
-    => Wain s a -> Wain s a -> Double -> Double
-    -> StateT (SimpleUniverse (Wain s a)) IO [Wain s a]
+  :: (Genetic p, Genetic a, Diploid p, Diploid a, U.Universe u, Eq a,
+    Pattern p, Metric p ~ Double)
+    => Wain p a -> Wain p a -> Double -> Double
+    -> StateT u IO [Wain p a]
 tryMating me other flirtingEnergyDelta matingEnergyDelta =
   flirt me' other matingEnergyDelta
   where me' = adjustEnergy flirtingEnergyDelta $ me
 
 flirt
-  :: (Genetic s, Genetic a, Diploid s, Diploid a, Eq a, Pattern s,
-    Metric s ~ Double)
-    => Wain s a -> Wain s a -> Double
-    -> StateT (SimpleUniverse (Wain s a)) IO [Wain s a]
+  :: (Genetic p, Genetic a, Diploid p, Diploid a, U.Universe u, Eq a,
+    Pattern p, Metric p ~ Double)
+    => Wain p a -> Wain p a -> Double -> StateT u IO [Wain p a]
 flirt me other matingEnergyDelta
   | hasChild me    = do
-      writeToLog $ agentId me ++ " is already rearing a child"
+      U.writeToLog $ agentId me ++ " is already rearing a child"
       return [me]
   | hasChild other = do
-      writeToLog $ agentId me ++ " is already rearing a child"
+      U.writeToLog $ agentId me ++ " is already rearing a child"
       return [me]
   | otherwise      = mate me other matingEnergyDelta
 
 mate
-  :: (Genetic s, Genetic a, Diploid s, Diploid a, Eq a, Pattern s,
-    Metric s ~ Double)
-    => Wain s a -> Wain s a -> Double
-    -> StateT (SimpleUniverse (Wain s a)) IO [Wain s a]
+  :: (Genetic p, Genetic a, Diploid p, Diploid a, U.Universe u, Eq a,
+    Pattern p, Metric p ~ Double)
+    => Wain p a -> Wain p a -> Double -> StateT u IO [Wain p a]
 mate me other matingEnergyDelta = do
-  writeToLog $ agentId me ++ " mates with " ++ agentId other
+  U.writeToLog $ agentId me ++ " mates with " ++ agentId other
   let me' = coolPassion $ adjustEnergy matingEnergyDelta me
   let other' = coolPassion $ adjustEnergy matingEnergyDelta other
-  babyName <- genName
+  babyName <- U.genName
   result <- liftIO $ evalRandIO (makeOffspring me other babyName)
   case result of
     Right baby -> do
-      writeToLog $ agentId me ++ " and " ++ agentId other ++ " produce "
+      U.writeToLog $ agentId me ++ " and " ++ agentId other ++ " produce "
         ++ babyName
       return [me' {child=Just baby}, other']
     Left msgs -> do
-      writeToLog $ "child of " ++ agentId me ++ " and " ++ agentId other
+      U.writeToLog $ "child of " ++ agentId me ++ " and " ++ agentId other
         ++ " not viable: " ++ show msgs
       return [me', other']
 
@@ -234,20 +235,22 @@ mate me other matingEnergyDelta = do
 -- functions below
 
 weanChildIfReady
-  :: Wain s a -> StateT (SimpleUniverse (Wain s a)) IO [Wain s a]
+  :: (Pattern p, Metric p ~ Double, U.Universe u)
+    => Wain p a -> StateT u IO [Wain p a]
 weanChildIfReady w =
   case (child w) of
     Just c  -> if age c >= ageOfMaturity c
                   then do
-                    writeToLog $ agentId c ++ " has been weaned"
+                    U.writeToLog $ agentId c ++ " has been weaned"
                     return [w {child=Nothing}, c]
                   else return [w]
     Nothing -> return [w]
 
 chooseAction
-  :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a, Show a)
+  :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
+    Bounded a, Show a)
     => p -> p -> Wain p a
-      -> StateT (SimpleUniverse (Wain p a)) IO (Label, a, Wain p a)
+      -> StateT u IO (Label, a, Wain p a)
 chooseAction p1 p2 w = do
   let (l, _, s, w2) = assessSituation p1 p2 w
   let (a, w3) = chooseAction' s w2
@@ -258,7 +261,8 @@ assessSituation
   :: (Pattern p, Metric p ~ Double)
     => p -> p -> Wain p a -> (Label, Label, S.Scenario, Wain p a)
 assessSituation p1 p2 w = (l1, l2, sc, w{brain=b})
-  where (l1, l2, sc, b) = B.assessSituation p1 p2 (condition w) (brain w)
+  where (l1, l2, sc, b)
+          = B.assessSituation p1 p2 (condition w) (brain w)
 
 chooseAction'
   :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
@@ -267,9 +271,10 @@ chooseAction' s w = (a, w{brain=b})
   where (a, b) = B.recommendAction s (brain w)
 
 teachActionToChild
-  :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a, Show a)
+  :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
+    Bounded a, Show a)
     => p -> p -> a -> Wain p a
-      -> StateT (SimpleUniverse (Wain p a)) IO (Wain p a)
+      -> StateT u IO (Wain p a)
 teachActionToChild p1 p2 a w = do
   case (child w) of
     Just c  -> do
@@ -278,20 +283,22 @@ teachActionToChild p1 p2 a w = do
     Nothing -> return w
 
 teachAction1
-  :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a, Show a)
-    => p -> p -> a -> Wain p a
-      -> StateT (SimpleUniverse (Wain p a)) IO (Wain p a)
+  :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
+    Bounded a, Show a)
+    => p -> p -> a -> Wain p a -> StateT u IO (Wain p a)
 teachAction1 p1 p2 a w = do
-  writeToLog $ agentId w ++ " learns the response " ++ show a
+  U.writeToLog $ agentId w ++ " learns the response " ++ show a
   let (_, _, s, w') = assessSituation p1 p2 w
   return $ w' { brain = B.learnAction s a (brain w) }
 
 incAge
-  :: Wain p a -> StateT (SimpleUniverse (Wain p a)) IO (Wain p a)
+  :: (Pattern p, Metric p ~ Double, U.Universe u)
+    => Wain p a -> StateT u IO (Wain p a)
 incAge w = incAge1 w >>= incChildsAge
 
 incChildsAge
-  :: Wain p a -> StateT (SimpleUniverse (Wain p a)) IO (Wain p a)
+  :: (Pattern p, Metric p ~ Double, U.Universe u)
+    => Wain p a -> StateT u IO (Wain p a)
 incChildsAge w = do
   case (child w) of
     Just c  -> do
@@ -300,27 +307,27 @@ incChildsAge w = do
     Nothing -> return w
   
 incAge1
-  :: Wain p a -> StateT (SimpleUniverse (Wain p a)) IO (Wain p a)
+  :: (Pattern p, Metric p ~ Double, U.Universe u)
+    => Wain p a -> StateT u IO (Wain p a)
 incAge1 w = do
   let w' = w { age=age w + 1 }
-  writeToLog $ agentId w ++ "'s age is now " ++ show (age w')
+  U.writeToLog $ agentId w ++ "'s age is now " ++ show (age w')
   return w'
   
-classify :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
+classify
+  :: (Pattern p, Metric p ~ Double)
     => p -> Wain p a -> (Label, Wain p a)
 classify p w = (l, w{brain=b})
   where (l, b) = B.classify p (brain w)
         
 teachLabel
-  :: (Pattern p, Metric p ~ Double)
-    => p -> Label -> Wain p a
-      -> StateT (SimpleUniverse (Wain p a)) IO (Wain p a)
+  :: (Pattern p, Metric p ~ Double, U.Universe u)
+    => p -> Label -> Wain p a -> StateT u IO (Wain p a)
 teachLabel p l w = teachLabel1 p l w >>= teachLabelToChild p l
 
 teachLabelToChild
-  :: (Pattern p, Metric p ~ Double)
-    => p -> Label -> Wain p a
-      -> StateT (SimpleUniverse (Wain p a)) IO (Wain p a)
+  :: (Pattern p, Metric p ~ Double, U.Universe u)
+    => p -> Label -> Wain p a -> StateT u IO (Wain p a)
 teachLabelToChild p l w = do
   case (child w) of
     Just c  -> do
@@ -329,11 +336,10 @@ teachLabelToChild p l w = do
     Nothing -> return w
   
 teachLabel1
-  :: (Pattern p, Metric p ~ Double)
-    => p -> Label -> Wain p a
-      -> StateT (SimpleUniverse (Wain p a)) IO (Wain p a)
+  :: (Pattern p, Metric p ~ Double, U.Universe u)
+    => p -> Label -> Wain p a -> StateT u IO (Wain p a)
 teachLabel1 p l w = do
-  writeToLog $ agentId w ++ " learns to label this " ++ show l
+  U.writeToLog $ agentId w ++ " learns to label this " ++ show l
   return $ w { brain=B.learnLabel p l (brain w) }
 
 feedback

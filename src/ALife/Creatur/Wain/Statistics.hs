@@ -7,31 +7,34 @@
 -- Stability   :  experimental
 -- Portability :  portable
 --
--- ???
+-- Statistical calculations
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveGeneric, FlexibleInstances #-}
 module ALife.Creatur.Wain.Statistics
   (
     Statistical,
     Statistic,
+    prefix,
+    apply,
+    stats,
     dStat,
     iStat,
-    stats,
-    maxStats,
-    minStats,
-    avgStats,
-    sumStats,
-    prefix
+    summarise
   ) where
 
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import Data.Datamining.Clustering.SOM (DecayingGaussian(..))
-import Data.List (foldl1')
+import Data.List (transpose, intercalate)
+import Data.Serialize (Serialize)
+import Factory.Math.Statistics (getMean, getStandardDeviation)
+import GHC.Generics
 
 data Statistic = DStatistic {sName :: String, sVal :: Double}
   | IStatistic {sName :: String, sVal :: Double}
-  deriving (Eq)
+  deriving (Eq, Generic)
+
+instance Serialize Statistic
 
 instance Show Statistic where
   show (DStatistic s x) = "dStat \"" ++ s ++ "\" " ++ show x
@@ -52,37 +55,40 @@ dStat s = DStatistic s . realToFrac
 iStat :: String -> Int -> Statistic
 iStat s v = IStatistic s (fromIntegral v)
 
-class Statistical a where
-  stats :: a -> [Statistic]
-
-maxStats :: [[Statistic]] -> [Statistic]
-maxStats = foldl1' (apply3 max)
-
-minStats :: [[Statistic]] -> [Statistic]
-minStats = foldl1' (apply3 min)
-
-avgStats :: [[Statistic]] -> [Statistic]
-avgStats xs
-  = (map (apply (/ n)) . foldl1' (apply3 (+))) xs
-    where n = fromIntegral $ length xs
-
-sumStats :: [[Statistic]] -> [Statistic]
-sumStats = foldl1' (apply3 (+))
-
-apply3 :: (Double -> Double -> Double) -> [Statistic] -> [Statistic] -> [Statistic]
-apply3 f = zipWith (apply2 f)
-
 prefix :: String -> Statistic -> Statistic
 prefix s x = x { sName = s ++ sName x }
 
 apply :: (Double -> Double) -> Statistic -> Statistic
 apply f x = x { sVal = f (sVal x) }
 
-apply2 :: (Double -> Double -> Double) -> Statistic -> Statistic -> Statistic
-apply2 f x y =
-  if sName x == sName y
-     then x { sVal = f (sVal x) (sVal y) }
-     else DStatistic "???" 0
+class Statistical a where
+  stats :: a -> [Statistic]
+
+summarise :: [[Statistic]] -> [String]
+summarise xss = [headers,maxima,minima,averages,stdDevs,sums]
+  where headers = "headings: "
+                    ++ (intercalate "," . map sName $ head xss)
+        yss = transpose xss
+        maxima = "max: " ++ (toCSV $ applyToColumns maximum yss)
+        minima = "min: " ++ (toCSV $ applyToColumns minimum yss)
+        averages = "avg: " ++ (toCSV $ applyToColumns getMean yss)
+        stdDevs = "std. dev.: "
+                    ++ (toCSV $ applyToColumns getStandardDeviation yss)
+        sums = "total: " ++ (toCSV $ applyToColumns sum yss)
+
+toCSV :: [Statistic] -> String
+toCSV = intercalate "," . map prettyVal
+
+applyToColumns :: ([Double] -> Double) -> [[Statistic]] -> [Statistic]
+applyToColumns f xss = map (applyToColumn f) xss
+
+applyToColumn :: ([Double] -> Double) -> [Statistic] -> Statistic
+applyToColumn f xs@(y:_) = y { sVal=f (map sVal xs) }
+applyToColumn _ [] = error "no data"
+
+prettyVal :: Statistic -> String
+prettyVal (DStatistic _ x) = pretty x
+prettyVal (IStatistic _ x) = pretty (round x :: Int)
 
 instance Statistical (DecayingGaussian Double) where
   stats (DecayingGaussian r0 rf w0 wf tf) = 
