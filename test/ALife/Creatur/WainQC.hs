@@ -33,15 +33,6 @@ equiv a1 a2 =
   appearance a1 == appearance a2
   && brain a1 `B.equiv` brain a2
 
-maybeGiveChild :: Wain TestPattern TestAction -> Gen (Wain TestPattern TestAction)
-maybeGiveChild w = do
-  addChild <- arbitrary
-  if addChild
-    then do
-      c <- arbWain
-      return $ w { child=Just c}
-    else return w
-
 strawMan :: Gen (Wain TestPattern TestAction)
 strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- appearance
@@ -50,7 +41,7 @@ strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- condition
                 <*> arbitrary     -- age
                 <*> arbitrary     -- total number of children
-                <*> pure Nothing  -- child
+                <*> pure []       -- child
                 <*> pure ([],[])  -- genome
 
 -- | Can't just generate an arbitrary genome and build an agent from
@@ -71,7 +62,9 @@ sizedArbWain :: Int -> Gen (Wain TestPattern TestAction)
 sizedArbWain n = do
   w <- arbWain
   if n < 1
-    then maybeGiveChild w
+    then do
+      cs <- listOf arbWain
+      return $ w { litter=cs}
     else return w
 
 instance Arbitrary (Wain TestPattern TestAction) where

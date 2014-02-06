@@ -15,6 +15,7 @@ module ALife.Creatur.Wain.Statistics
   (
     Statistical,
     Statistic,
+    name,
     prefix,
     apply,
     stats,
@@ -61,20 +62,26 @@ prefix s x = x { sName = s ++ sName x }
 apply :: (Double -> Double) -> Statistic -> Statistic
 apply f x = x { sVal = f (sVal x) }
 
+name :: Statistic -> String
+name = sName
+
 class Statistical a where
   stats :: a -> [Statistic]
 
 summarise :: [[Statistic]] -> [String]
-summarise xss = [headers,maxima,minima,averages,stdDevs,sums]
-  where headers = "headings: "
-                    ++ (intercalate "," . map sName $ head xss)
+summarise xss = [h,maxima,minima,averages,stdDevs,sums]
+  where h = header xss
         yss = transpose xss
-        maxima = "max: " ++ (toCSV $ applyToColumns maximum yss)
-        minima = "min: " ++ (toCSV $ applyToColumns minimum yss)
-        averages = "avg: " ++ (toCSV $ applyToColumns getMean yss)
-        stdDevs = "std. dev.: "
+        maxima = "max," ++ (toCSV $ applyToColumns maximum yss)
+        minima = "min," ++ (toCSV $ applyToColumns minimum yss)
+        averages = "avg," ++ (toCSV $ applyToColumns getMean yss)
+        stdDevs = "std. dev,"
                     ++ (toCSV $ applyToColumns getStandardDeviation yss)
-        sums = "total: " ++ (toCSV $ applyToColumns sum yss)
+        sums = "total," ++ (toCSV $ applyToColumns sum yss)
+
+header :: [[Statistic]] -> String
+header [] = "no data"
+header (a:_) = "headings," ++ (intercalate "," . map sName $ a)
 
 toCSV :: [Statistic] -> String
 toCSV = intercalate "," . map prettyVal
