@@ -86,11 +86,17 @@ instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
     c0 <- G.get
     let c = case c0 of
           (Left xs) -> Left ("Classifier:":xs)
-          (Right c1) -> Right c1
+          (Right c1) -> do
+            if numModels c1 == 0
+               then Left (["Classifier has no models"])
+               else Right c1
     d0 <- G.get
     let d = case d0 of
           (Left xs) -> Left ("Decider:":xs)
-          (Right d1) -> Right d1
+          (Right d1) -> do
+            if numModels d1 == 0
+               then Left (["Decider has no models"])
+               else Right d1
     return $ buildBrain <$> c <*> d
 
 randomBrain

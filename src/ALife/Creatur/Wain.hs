@@ -31,7 +31,9 @@ module ALife.Creatur.Wain
     numberOfClassifierModels,
     numberOfDeciderModels,
     conflation,
-    randomWain
+    randomWain,
+    tryMating,
+    weanMatureChildren
   ) where
 
 import ALife.Creatur (Agent, agentId, isAlive)
@@ -44,7 +46,7 @@ import ALife.Creatur.Genetics.Recombination (mutatePairedLists,
   randomCrossover, randomCutAndSplice, randomOneOfPair,
   repeatWithProbability, withProbability)
 import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Base,
-  produceGamete, build)
+  produceGamete, build, makeOffspring)
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Condition as C
 import qualified ALife.Creatur.Wain.Brain as B
@@ -52,9 +54,11 @@ import ALife.Creatur.Wain.GeneticSOM (Label)
 import qualified ALife.Creatur.Wain.Scenario as S
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat)
 import Control.Applicative ((<$>), (<*>), pure)
-import Control.Monad.Random (Rand, RandomGen, getRandomR)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Random (Rand, RandomGen, getRandomR, evalRandIO)
 import Control.Monad.State.Lazy (StateT)
 import Data.Datamining.Pattern (Pattern(..), Metric)
+import Data.List (partition)
 import Data.Serialize (Serialize)
 import Data.Word (Word8, Word16)
 import GHC.Generics (Generic)
@@ -296,3 +300,52 @@ numberOfDeciderModels = B.numberOfDeciderModels . brain
 
 conflation :: Metric p ~ Double => Wain p a -> Double
 conflation = B.conflation . brain
+
+tryMating
+  :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
+    Genetic p, Genetic a, Eq a)
+    => Wain p a -> Wain p a -> StateT u IO ([Wain p a], Bool)
+tryMating a b
+  | hasLitter a = do
+      U.writeToLog $ agentId a ++ " already has a litter"
+      return ([a], False)
+  | hasLitter b = do
+      U.writeToLog $ agentId b ++ " already has a litter"
+      return ([a], False)
+  | otherwise   = do
+      U.writeToLog $ agentId a ++ " mates with " ++ agentId b
+      as <- mate a b
+      return (as, True)
+
+mate
+  :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
+    Genetic p, Genetic a, Eq a)
+      => Wain p a -> Wain p a -> StateT u IO [Wain p a]
+mate a b = do
+  let a' = coolPassion a
+  let b' = coolPassion b
+  babyName <- U.genName
+  result <- liftIO $ evalRandIO (makeOffspring a b babyName)
+  case result of
+    Right baby -> do
+      U.writeToLog $ agentId a ++ " and " ++ agentId b ++ " produce "
+        ++ babyName
+      return [a' {litter=[baby]}, b']
+    Left msgs -> do
+      U.writeToLog $ "child of " ++ agentId a ++ " and " ++ agentId b
+        ++ " not viable: " ++ show msgs
+      return [a', b']
+
+weanMatureChildren
+  :: U.Universe u
+    => Wain p a -> StateT u IO [Wain p a]
+weanMatureChildren a =
+  if null (litter a)
+    then return [a]
+    else do
+      let (weanlings, babes) = partition mature (litter a)
+      mapM_ (\c -> U.writeToLog $ (agentId c) ++ " weaned") weanlings
+      return $ (a { litter=babes }):weanlings
+
+mature :: Wain p a -> Bool
+mature a = age a >= ageOfMaturity a
