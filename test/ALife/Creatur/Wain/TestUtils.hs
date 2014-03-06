@@ -15,13 +15,15 @@
 module ALife.Creatur.Wain.TestUtils
   (
     TestPattern(..),
-    Inexact(..),
     arb8BitDouble,
     arb8BitInt,
     prop_serialize_round_trippable,
     prop_genetic_round_trippable,
     prop_diploid_identity,
-    prop_show_read_round_trippable
+    prop_diploid_expressable,
+    prop_diploid_readable,
+    prop_show_read_round_trippable,
+    randomTestPattern
 --    test
   ) where
 
@@ -31,6 +33,7 @@ import ALife.Creatur.Util (fromEither)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleWord8ToInt,
   forceToWord8)
 import Control.Applicative ((<$>))
+import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (Pattern(..), Metric, adjustNum)
 import Data.Serialize (Serialize, encode, decode)
 import Data.Word (Word8)
@@ -70,6 +73,15 @@ prop_show_read_round_trippable :: (Read a, Show a) => (a -> a -> Bool) -> a -> P
 prop_show_read_round_trippable eq x
   = property $ (read . show $ x) `eq` x
 
+prop_diploid_expressable :: (Diploid g, W8.Genetic g) => g -> g -> Property
+prop_diploid_expressable a b = property $ seq (express a b) True
+
+prop_diploid_readable :: (Diploid g, W8.Genetic g) => g -> g -> Property
+prop_diploid_readable a b = property $ seq (c `asTypeOf` a) True
+  where ga = W8.write a
+        gb = W8.write b
+        (Right c) = W8.runDiploidReader W8.getAndExpress (ga, gb)
+
 data TestPattern = TestPattern Word8
   deriving (Show, Eq, Generic)
 
@@ -90,5 +102,5 @@ instance Pattern TestPattern where
           x' = fromIntegral x :: Double
           x'' = adjustNum t' r x'
 
-class Inexact a where
-  equiv :: a -> a -> Bool
+randomTestPattern :: RandomGen r => Rand r TestPattern
+randomTestPattern = fmap (TestPattern) getRandom

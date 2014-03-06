@@ -38,10 +38,10 @@ type Decider a = GeneticSOM (Response a)
 randomDecider
   :: (RandomGen g, Eq a, Random a)
     => Word8 -> Word8 -> Rand g (Decider a)
-randomDecider numClassifierModels maxDeciderSize = do
-  let k = numTiles $ fromIntegral maxDeciderSize
+randomDecider numClassifierModels deciderSize = do
+  let k = numTiles $ fromIntegral deciderSize
   xs <- replicateM k (randomResponse $ fromIntegral numClassifierModels)
-  randomGeneticSOM maxDeciderSize xs
+  randomGeneticSOM deciderSize xs
 
 numTiles :: Int -> Int
 numTiles s = 3*s*(s-1) + 1

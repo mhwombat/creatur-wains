@@ -32,17 +32,21 @@ equiv :: Wain TestPattern TestAction -> Wain TestPattern TestAction -> Bool
 equiv a1 a2 =
   appearance a1 == appearance a2
   && brain a1 `B.equiv` brain a2
+  && ageOfMaturity a1 == ageOfMaturity a2
+  && passionDelta a1 == passionDelta a2
 
 strawMan :: Gen (Wain TestPattern TestAction)
 strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- appearance
                 <*> arbitrary     -- brain
                 <*> arbitrary     -- age of maturity
+                <*> arbitrary     -- delta passion
                 <*> arbitrary     -- condition
                 <*> arbitrary     -- age
                 <*> arbitrary     -- total number of children
                 <*> pure []       -- child
                 <*> pure ([],[])  -- genome
+                <*> arbitrary     -- size
 
 -- | Can't just generate an arbitrary genome and build an agent from
 --   it, because random genomes tend to be invalid.

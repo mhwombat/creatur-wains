@@ -23,8 +23,7 @@ import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.DeciderQC as D
 import ALife.Creatur.Wain.GeneticSOMQC ()
 import ALife.Creatur.Wain.ResponseQC (TestAction)
-import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
+import ALife.Creatur.Wain.TestUtils
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -47,5 +46,9 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
     testProperty "prop_genetic_round_trippable - Brain"
       (prop_genetic_round_trippable equiv :: Brain TestPattern TestAction -> Property),
     testProperty "prop_diploid_identity - Brain"
-      (prop_diploid_identity equiv :: Brain TestPattern TestAction -> Property)
+      (prop_diploid_identity equiv :: Brain TestPattern TestAction -> Property),
+    testProperty "prop_diploid_expressable - Brain"
+      (prop_diploid_expressable :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Property),
+    testProperty "prop_diploid_readable - Brain"
+      (prop_diploid_readable :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Property)
   ]

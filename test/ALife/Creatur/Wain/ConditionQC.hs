@@ -18,8 +18,7 @@ module ALife.Creatur.Wain.ConditionQC
 
 import ALife.Creatur.Wain.Condition
 import ALife.Creatur.Wain.Util (unitInterval)
-import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity, arb8BitDouble)
+import ALife.Creatur.Wain.TestUtils
 import Control.Applicative
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -37,5 +36,9 @@ test = testGroup "ALife.Creatur.Wain.ConditionQC"
     testProperty "prop_genetic_round_trippable - Condition"
       (prop_genetic_round_trippable (==) :: Condition -> Property),
     testProperty "prop_diploid_identity - Condition"
-      (prop_diploid_identity (==) :: Condition -> Property)
+      (prop_diploid_identity (==) :: Condition -> Property),
+    testProperty "prop_diploid_expressable - Condition"
+      (prop_diploid_expressable :: Condition -> Condition -> Property),
+    testProperty "prop_diploid_readable - Condition"
+      (prop_diploid_readable :: Condition -> Condition -> Property)
   ]

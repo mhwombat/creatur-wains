@@ -20,8 +20,7 @@ module ALife.Creatur.Wain.ScenarioQC
 import ALife.Creatur.Wain.Scenario
 import ALife.Creatur.Wain.ConditionQC ()
 import ALife.Creatur.Wain.Util (unitInterval)
-import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity, arb8BitDouble)
+import ALife.Creatur.Wain.TestUtils
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -44,5 +43,9 @@ test = testGroup "ALife.Creatur.Wain.ScenarioQC"
     testProperty "prop_genetic_round_trippable - Scenario"
       (prop_genetic_round_trippable (==) :: Scenario -> Property),
     testProperty "prop_diploid_identity - Scenario"
-      (prop_diploid_identity (==) :: Scenario -> Property)
+      (prop_diploid_identity (==) :: Scenario -> Property),
+    testProperty "prop_diploid_expressable - Scenario"
+      (prop_diploid_expressable :: Scenario -> Scenario -> Property),
+    testProperty "prop_diploid_readable - Scenario"
+      (prop_diploid_readable :: Scenario -> Scenario -> Property)
   ]

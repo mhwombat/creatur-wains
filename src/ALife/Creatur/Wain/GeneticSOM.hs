@@ -144,8 +144,7 @@ instance Statistical (GeneticSOM p) where
 randomGeneticSOM
   :: (Pattern p, Metric p ~ Double, RandomGen g)
     => Word8 -> [p] -> Rand g (GeneticSOM p)
-randomGeneticSOM maxSize xs = do
-  s <- getRandomR (1, maxSize)
+randomGeneticSOM s xs = do
   r0 <- getRandomR (0.001,1)
   rf <- getRandomR (0.001,r0)
   w0 <- getRandomR (0,fromIntegral s)

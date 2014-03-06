@@ -21,8 +21,7 @@ module ALife.Creatur.Wain.DeciderQC
 import ALife.Creatur.Wain.Decider
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.GeneticSOMQC (equiv)
-import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity)
+import ALife.Creatur.Wain.TestUtils
 import Control.Monad.Random (evalRand)
 import Data.Word (Word8)
 import System.Random (mkStdGen)
@@ -47,6 +46,10 @@ test = testGroup "ALife.Creatur.Wain.DeciderQC"
       (prop_genetic_round_trippable equiv :: TestDecider -> Property),
     testProperty "prop_diploid_identity - Decider"
       (prop_diploid_identity equiv :: TestDecider -> Property),
+    testProperty "prop_diploid_expressable - Decider"
+      (prop_diploid_expressable :: TestDecider -> TestDecider -> Property),
+    testProperty "prop_diploid_readable - Decider"
+      (prop_diploid_readable :: TestDecider -> TestDecider -> Property),
     testProperty "prop_can_generate_random_decider"
       prop_can_generate_random_decider
   ]

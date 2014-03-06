@@ -20,8 +20,7 @@ module ALife.Creatur.Wain.ClassifierQC
 
 import ALife.Creatur.Wain.Classifier
 import ALife.Creatur.Wain.GeneticSOMQC (equiv)
-import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
+import ALife.Creatur.Wain.TestUtils
 import Control.Applicative ((<$>))
 import Data.Word (Word16)
 import Test.Framework (Test, testGroup)
@@ -62,6 +61,10 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
       (prop_genetic_round_trippable equiv :: Classifier TestPattern -> Property),
     testProperty "prop_diploid_identity - Classifier"
       (prop_diploid_identity equiv :: Classifier TestPattern -> Property),
+    testProperty "prop_diploid_expressable - Classifier"
+      (prop_diploid_expressable :: Classifier TestPattern -> Classifier TestPattern -> Property),
+    testProperty "prop_diploid_readable - Classifier"
+      (prop_diploid_readable :: Classifier TestPattern -> Classifier TestPattern -> Property),
     testProperty "prop_conflation'_within_bounds"
       prop_conflation'_within_bounds,
     testProperty "prop_conflation_within_bounds"

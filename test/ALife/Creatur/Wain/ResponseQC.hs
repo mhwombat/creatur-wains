@@ -22,8 +22,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Response
 import ALife.Creatur.Wain.ScenarioQC ()
 import ALife.Creatur.Wain.ConditionQC ()
-import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity, arb8BitDouble)
+import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Util (unitInterval)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
@@ -64,5 +63,9 @@ test = testGroup "ALife.Creatur.Wain.ResponseQC"
     testProperty "prop_genetic_round_trippable - Response"
       (prop_genetic_round_trippable (==) :: TestResponse -> Property),
     testProperty "prop_diploid_identity - Response"
-      (prop_diploid_identity (==) :: TestResponse -> Property)
+      (prop_diploid_identity (==) :: TestResponse -> Property),
+    testProperty "prop_diploid_expressable - Response"
+      (prop_diploid_expressable :: TestResponse -> TestResponse -> Property),
+    testProperty "prop_diploid_readable - Response"
+      (prop_diploid_readable :: TestResponse -> TestResponse -> Property)
   ]

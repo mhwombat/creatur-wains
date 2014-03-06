@@ -45,7 +45,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Genetics.Recombination (mutatePairedLists,
   randomCrossover, randomCutAndSplice, randomOneOfPair,
   repeatWithProbability, withProbability)
-import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Base,
+import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
   produceGamete, build, makeOffspring)
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Condition as C
@@ -57,9 +57,10 @@ import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR, evalRandIO)
 import Control.Monad.State.Lazy (StateT)
+import qualified Data.ByteString as BS
 import Data.Datamining.Pattern (Pattern(..), Metric)
 import Data.List (partition)
-import Data.Serialize (Serialize)
+import Data.Serialize (Serialize, encode)
 import Data.Word (Word8, Word16)
 import GHC.Generics (Generic)
 import System.Random (Random)
@@ -70,11 +71,13 @@ data Wain p a = Wain
     appearance :: p,
     brain :: B.Brain p a,
     ageOfMaturity :: Word16,
+    passionDelta :: Word8,
     condition :: C.Condition,
     age :: Word16,
     numberOfChildren :: Word16,
     litter :: [Wain p a],
-    genome :: ([Word8],[Word8])
+    genome :: ([Word8],[Word8]),
+    size :: Int
   } deriving (Eq, Generic)
 
 deriving instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), 
@@ -103,35 +106,37 @@ instance (Serialize p, Serialize a, Pattern p, Metric p ~ Double, Eq a)
 
 -- This implementation is useful for generating the genes in the
 -- initial population, and for testing
-instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
+instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a,
+  Serialize p, Serialize a)
       => Genetic (Wain p a) where
   put w = put (appearance w) >> put (brain w) >> put (ageOfMaturity w)
+    >> put (passionDelta w)
   get = do
     g <- copy
-    let g2 = (g, g) :: ([Word8],[Word8])
     a <- get
     b <- get
     m <- get
-    return $ Wain "" <$> a <*> b <*> m <*> pure C.initialCondition
-      <*> pure 0 <*> pure 0 <*> pure [] <*> pure g2
+    p <- get
+    return $ buildWain2 "" <$> a <*> b <*> m <*> p <*> pure (g, g)
 
 -- This implementation is useful for testing
-instance (Diploid p, Diploid a, Pattern p, Metric p ~ Double, Eq a)
+instance (Diploid p, Diploid a, Pattern p, Metric p ~ Double, Eq a,
+  Serialize p, Serialize a)
       => Diploid (Wain p a) where
-  express x y = Wain "" a b m c 0 0 [] ([],[])
+  express x y = buildWain2 "" a b m p ([],[])
     where a = express (appearance x) (appearance y)
           b = express (brain x) (brain y)
           m = express (ageOfMaturity x) (ageOfMaturity y)
-          c = C.initialCondition
+          p = express (passionDelta x) (passionDelta y)
           
 instance Agent (Wain p a) where
   agentId = name
   isAlive = C.alive . condition
 
 instance (Genetic p, Genetic a, Diploid p, Diploid a, Eq a, Pattern p,
-         Metric p ~ Double)
+         Metric p ~ Double, Serialize p, Serialize a)
          => Reproductive (Wain p a) where
-  type Base (Wain p a) = Sequence
+  type Strand (Wain p a) = Sequence
   produceGamete a =
     repeatWithProbability 0.1 randomCrossover (genome a) >>=
     withProbability 0.01 randomCutAndSplice >>=
@@ -144,36 +149,45 @@ hasLitter = not . null . litter
 
 buildWain
   :: (Genetic p, Genetic a, Diploid p, Diploid a, Eq a, Pattern p,
-    Metric p ~ Double)
+    Metric p ~ Double, Serialize p, Serialize a)
     => Bool -> String -> DiploidReader (Either [String] (Wain p a))
 buildWain truncateGenome n = do
   a <- getAndExpress
   b <- getAndExpress
   m <- getAndExpress
+  p <- getAndExpress
   g <- if truncateGenome then consumed2 else copy2
-  return $ Wain n <$> a <*> b <*> m <*> pure C.initialCondition
-      <*> pure 0 <*> pure 0 <*> pure [] <*> pure g
+  return $ buildWain2 n <$> a <*> b <*> m <*> p <*> pure g
 
+buildWain2
+  :: (Pattern p, Metric p ~ Double, Serialize a, Serialize p, Eq a)
+    => String -> p -> B.Brain p a -> Word16 -> Word8 -> (Sequence, Sequence)
+      -> Wain p a
+buildWain2 n a b m p g = w { size=s }
+  where  w = Wain n a b m p C.initialCondition 0 0 [] g 0
+         s = BS.length . encode $ w
+  
 randomWain
   :: (RandomGen g, Pattern p, Metric p ~ Double, Eq a, Random a,
-    Genetic p, Genetic a)
+    Genetic p, Genetic a, Serialize a, Serialize p)
       => String -> p -> Word8 -> [p] -> Word8 -> Word16 -> Rand g (Wain p a)
-randomWain n app maxClassifierSize ps maxDeciderSize maxAgeOfMaturity
+randomWain n app classifierSize ps deciderSize maxAgeOfMaturity
   = do
-    b <- B.randomBrain maxClassifierSize ps maxDeciderSize
+    b <- B.randomBrain classifierSize ps deciderSize
     m <- getRandomR (0,maxAgeOfMaturity)
-    let c = C.initialCondition
-    let strawMan = Wain n app b m c 0 0 [] ([], [])
+    p <- getRandomR (0,255)
+    let strawMan = buildWain2 n app b m p ([], [])
     let g = write strawMan
-    return $ Wain n app b m c 0 0 [] (g, g)
+    return $ strawMan { genome=(g,g) }
 
 adjustEnergy :: Double -> Wain p a -> Wain p a
 adjustEnergy delta a
   = a {condition = C.adjustEnergy delta (condition a)}
 
-adjustPassion :: Double -> Wain p a -> Wain p a
-adjustPassion delta a
+adjustPassion :: Wain p a -> Wain p a
+adjustPassion a
   = a {condition = C.adjustPassion delta (condition a)}
+  where delta = fromIntegral (passionDelta a) / 255
 
 coolPassion :: Wain p a -> Wain p a
 coolPassion a = a {condition = C.coolPassion (condition a)}
@@ -303,7 +317,7 @@ conflation = B.conflation . brain
 
 tryMating
   :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
-    Genetic p, Genetic a, Eq a)
+    Genetic p, Genetic a, Eq a, Serialize p, Serialize a)
     => Wain p a -> Wain p a -> StateT u IO ([Wain p a], Bool)
 tryMating a b
   | hasLitter a = do
@@ -319,7 +333,7 @@ tryMating a b
 
 mate
   :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
-    Genetic p, Genetic a, Eq a)
+    Genetic p, Genetic a, Eq a, Serialize p, Serialize a)
       => Wain p a -> Wain p a -> StateT u IO [Wain p a]
 mate a b = do
   let a' = coolPassion a

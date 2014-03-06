@@ -86,26 +86,26 @@ instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
     c0 <- G.get
     let c = case c0 of
           (Left xs) -> Left ("Classifier:":xs)
-          (Right c1) -> do
+          (Right c1) ->
             if numModels c1 == 0
-               then Left (["Classifier has no models"])
+               then Left ["Classifier has no models"]
                else Right c1
     d0 <- G.get
     let d = case d0 of
           (Left xs) -> Left ("Decider:":xs)
-          (Right d1) -> do
+          (Right d1) ->
             if numModels d1 == 0
-               then Left (["Decider has no models"])
+               then Left ["Decider has no models"]
                else Right d1
     return $ buildBrain <$> c <*> d
 
 randomBrain
   :: (RandomGen g, Pattern p, Metric p ~ Double, Eq a, Random a)
     => Word8 -> [p] -> Word8 -> Rand g (Brain p a)
-randomBrain maxClassifierSize ps maxDeciderSize = do
-  c <- C.randomClassifier maxClassifierSize ps
+randomBrain classifierSize ps deciderSize = do
+  c <- C.randomClassifier classifierSize ps
   let numClassifierModels = fromIntegral $ numModels c
-  d <- D.randomDecider numClassifierModels maxDeciderSize
+  d <- D.randomDecider numClassifierModels deciderSize
   return $ buildBrain c d
 
 assessSituation

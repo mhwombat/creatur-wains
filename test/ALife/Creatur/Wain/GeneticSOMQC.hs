@@ -20,9 +20,7 @@ module ALife.Creatur.Wain.GeneticSOMQC
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM
-import ALife.Creatur.Wain.TestUtils (TestPattern,
-  prop_serialize_round_trippable, prop_genetic_round_trippable,
-  prop_diploid_identity, arb8BitDouble)
+import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Util (unitInterval)
 import ALife.Creatur.Util (isqrt)
 import Control.Monad.Random (evalRand)
@@ -119,6 +117,10 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       (prop_genetic_round_trippable equiv :: GeneticSOM TestPattern -> Property),
     testProperty "prop_diploid_identity - GeneticSOM"
       (prop_diploid_identity equiv :: GeneticSOM TestPattern -> Property),
+    testProperty "prop_diploid_expressable - GeneticSOM"
+      (prop_diploid_expressable :: GeneticSOM TestPattern -> GeneticSOM TestPattern -> Property),
+    testProperty "prop_diploid_readable - GeneticSOM"
+      (prop_diploid_readable :: GeneticSOM TestPattern -> GeneticSOM TestPattern -> Property),
 
     testProperty "prop_can_generate_random_geneticSOM"
       prop_can_generate_random_geneticSOM,
