@@ -92,9 +92,11 @@ instance Record (Wain p a) where
 
 instance (Pattern p, Metric p ~ Double) => Statistical (Wain p a) where
   stats w =
-    iStat "age" (fromIntegral $ age w)
-      : iStat "maturity" (fromIntegral $ ageOfMaturity w)
-      : iStat "total # of children" (fromIntegral $ numberOfChildren w)
+    iStat "age" (age w)
+      : iStat "maturity" (ageOfMaturity w)
+      : iStat "Δp" (passionDelta w)
+      : iStat "size" (size w)
+      : iStat "total # of children" (numberOfChildren w)
       : iStat "current litter size" (length $ litter w)
       : stats (brain w)
       ++ stats (condition w)
