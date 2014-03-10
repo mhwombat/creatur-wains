@@ -90,6 +90,9 @@ prop_sum_counts_correct som ps = property $
   (sum . counts $ som') == (counter . sSOM $ som')
   where som' = foldr runSOM som ps
 
+prop_som_always_has_models :: GeneticSOM TestPattern -> Property
+prop_som_always_has_models som = property $ (not . null . models) som
+
 runSOM :: TestPattern -> GeneticSOM TestPattern -> GeneticSOM TestPattern
 runSOM p s = x
   where (_, _, x) = reportAndTrain s p
@@ -125,5 +128,7 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
     testProperty "prop_can_generate_random_geneticSOM"
       prop_can_generate_random_geneticSOM,
     testProperty "prop_sum_counts_correct"
-      prop_sum_counts_correct
+      prop_sum_counts_correct,
+    testProperty "prop_som_always_has_models"
+      prop_som_always_has_models
   ]
