@@ -344,9 +344,15 @@ mate a b = do
   result <- liftIO $ evalRandIO (makeOffspring a b babyName)
   case result of
     Right baby -> do
-      U.writeToLog $ agentId a ++ " and " ++ agentId b ++ " produce "
-        ++ babyName
-      return [a' {litter=[baby]}, b']
+      if (B.brainOK $ brain baby)
+        then do
+          U.writeToLog $ agentId a ++ " and " ++ agentId b ++ " produce "
+            ++ babyName
+          return [a' {litter=[baby]}, b']
+        else do
+          U.writeToLog $ "child of " ++ agentId a ++ " and " ++ agentId b
+            ++ " has an abnormal brain"
+          return [a', b']
     Left msgs -> do
       U.writeToLog $ "child of " ++ agentId a ++ " and " ++ agentId b
         ++ " not viable: " ++ show msgs

@@ -27,7 +27,8 @@ module ALife.Creatur.Wain.GeneticSOM
     justClassify,
     reportAndTrain,
     learn,
-    randomGeneticSOM
+    randomGeneticSOM,
+    somOK
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -49,7 +50,7 @@ import Data.Serialize (Serialize)
 import qualified Data.Serialize as S
 import Data.Word (Word8, Word16)
 import GHC.Generics (Generic)
-import Math.Geometry.Grid (tileCount, size)
+import qualified Math.Geometry.Grid as Grid
 import Math.Geometry.Grid.Hexagonal (hexHexGrid, HexHexGrid)
 import qualified Math.Geometry.GridMap as GM
 import Math.Geometry.GridMap.Lazy (LGridMap, lazyGridMap)
@@ -81,19 +82,19 @@ instance Genetic (DecayingGaussian Double) where
 instance (Diploid a) => Diploid (DecayingGaussian a)
 
 instance Serialize HexHexGrid where
-  put g = S.put (size g)
+  put g = S.put (Grid.size g)
   get = do
     n <- S.get
     return $ hexHexGrid n
 
 instance Genetic HexHexGrid where
-  put g = G.put . forceIntToWord8 $ size g
+  put g = G.put . forceIntToWord8 $ Grid.size g
   get = do
     n <- G.get :: G.Reader (Either [String] Word8)
     return $ hexHexGrid <$> fmap fromIntegral n
 
 instance Diploid HexHexGrid where
-  express g1 g2 = hexHexGrid $ express (size g1) (size g2)
+  express g1 g2 = hexHexGrid $ express (Grid.size g1) (Grid.size g2)
 
 instance (Serialize p) => Serialize (LGridMap HexHexGrid p)
 
@@ -123,6 +124,11 @@ data GeneticSOM p =
     }
   deriving (Eq, Show, Generic)
 
+somOK
+  :: (Pattern p, Ord (Metric p), Metric p ~ Double)
+    => GeneticSOM p -> Bool
+somOK = not . null . models
+
 buildGeneticSOM
   :: (Pattern p, Metric p ~ Double)
     => Word8 -> DecayingGaussian Double -> [p] -> GeneticSOM p
@@ -134,15 +140,27 @@ buildGeneticSOM s f xs =
         gm = lazyGridMap g xs
         som = SOM gm f 0
         ks = lazyGridMap g (repeat 0)
-        
+
 instance (Serialize p) => Serialize (GeneticSOM p)
+
 instance (Genetic p) => Genetic (GeneticSOM p)
+-- instance (Genetic p) => Genetic (GeneticSOM p) where
+--   put = G.put . sSOM
+--   get = do
+--     som <- G.get
+--     case som of
+--       Right s ->
+--         if (Grid.null . gridMap $ sSOM s)
+--           then return $ Left ["Genetic SOM has no models"]
+--           else return $ Right s
+--       Left ms -> return $ Left ms
+
 instance (Diploid p) => Diploid (GeneticSOM p)
 
 instance Statistical (GeneticSOM p) where
   stats (GeneticSOM (SOM gm f _) _) =
-    (iStat "IQ" iq):(iStat "edge size" . size $ gm):(stats f)
-    where iq = tileCount gm
+    (iStat "IQ" iq):(iStat "edge size" . Grid.size $ gm):(stats f)
+    where iq = Grid.tileCount gm
 
 randomGeneticSOM
   :: (Pattern p, Metric p ~ Double, RandomGen g)

@@ -25,7 +25,8 @@ module ALife.Creatur.Wain.Brain
     numberOfClassifierModels,
     numberOfDeciderModels,
     conflation,
-    randomBrain
+    randomBrain,
+    brainOK
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -74,6 +75,13 @@ instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), Show a, Eq a)
       => Show (Brain p a) where
   show (Brain c d lr) = "Brain (" ++ show c ++ ") (" ++ show d ++ ") ("
     ++ show lr ++ ")"
+
+brainOK
+  :: (Pattern p, Ord (Metric p), Metric p ~ Double, Eq a)
+    => Brain p a -> Bool
+brainOK b = classifierOK && deciderOK
+  where classifierOK = C.somOK $ bClassifier b
+        deciderOK = D.somOK $ bDecider b
 
 -- | Construct a brain
 buildBrain :: C.Classifier p -> D.Decider a -> Brain p a

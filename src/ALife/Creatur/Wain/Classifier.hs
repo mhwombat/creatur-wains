@@ -17,11 +17,12 @@ module ALife.Creatur.Wain.Classifier
     classify,
     conflation,
     conflation', -- exported for testing
-    randomClassifier
+    randomClassifier,
+    somOK
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label,
-  reportAndTrain, counts, randomGeneticSOM)
+  reportAndTrain, counts, randomGeneticSOM, somOK)
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Datamining.Pattern (Pattern, Metric)
 import Data.Word (Word8, Word16)

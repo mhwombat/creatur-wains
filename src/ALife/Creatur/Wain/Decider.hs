@@ -16,11 +16,12 @@ module ALife.Creatur.Wain.Decider
     Decider,
     recommendResponse,
     feedback,
-    randomDecider
+    randomDecider,
+    somOK
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, sSOM, justClassify,
-  reportAndTrain, randomGeneticSOM)
+  reportAndTrain, randomGeneticSOM, somOK)
 import ALife.Creatur.Wain.Response (Response, outcome, copyOutcomeTo,
   possibleResponses, randomResponse)
 import ALife.Creatur.Wain.Scenario (Scenario)
