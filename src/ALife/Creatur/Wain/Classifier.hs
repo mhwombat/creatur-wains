@@ -17,12 +17,14 @@ module ALife.Creatur.Wain.Classifier
     classify,
     conflation,
     conflation', -- exported for testing
+    discrimination,
+    counterList,
     randomClassifier,
     somOK
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label,
-  reportAndTrain, counts, randomGeneticSOM, somOK)
+import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label, numModels,
+  reportAndTrain, counts, counterList, randomGeneticSOM, somOK)
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Datamining.Pattern (Pattern, Metric)
 import Data.Word (Word8, Word16)
@@ -58,3 +60,10 @@ conflation' xs =
         expected = fromIntegral numVotes / fromIntegral (length xs)
         numVotes = sum $ map fromIntegral xs :: Int
         xs' = map fromIntegral xs
+
+discrimination
+  :: (Pattern s, Metric s ~ Double)
+    => Classifier s -> Int -> Double
+discrimination c maxCategories = (kMax - k) / kMax
+  where kMax = fromIntegral maxCategories
+        k = fromIntegral (numModels c)

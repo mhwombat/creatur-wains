@@ -23,6 +23,7 @@ module ALife.Creatur.Wain.GeneticSOM
     patternCount,
     setCounts,
     counts,
+    counterList,
     models,
     justClassify,
     reportAndTrain,
@@ -216,3 +217,6 @@ patternCount = sum . GM.elems . sCounters
 
 counts :: Metric p ~ Double => GeneticSOM p -> [Word16]
 counts = GM.elems . sCounters
+
+counterList :: Metric p ~ Double => GeneticSOM p -> [(Label, Word16)]
+counterList = GM.toList . sCounters

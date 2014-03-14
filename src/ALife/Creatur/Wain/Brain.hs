@@ -25,8 +25,10 @@ module ALife.Creatur.Wain.Brain
     numberOfClassifierModels,
     numberOfDeciderModels,
     conflation,
+    discrimination,
     randomBrain,
-    brainOK
+    brainOK,
+    counterList
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -43,7 +45,7 @@ import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Datamining.Pattern (Pattern, Metric)
 import Data.Serialize (Serialize)
-import Data.Word (Word8)
+import Data.Word (Word8, Word16)
 import GHC.Generics (Generic)
 import System.Random (Random)
 
@@ -176,3 +178,15 @@ numberOfDeciderModels = numModels . bDecider
 
 conflation :: Metric p ~ Double => Brain p a -> Double
 conflation = C.conflation . bClassifier
+
+discrimination
+  :: (Pattern p, Metric p ~ Double)
+     => Brain p a -> Int -> Double
+discrimination b maxCategories
+  = C.discrimination (bClassifier b) maxCategories
+
+counterList
+  :: (Pattern p, Metric p ~ Double)
+    => Brain p a -> ([(Label,Word16)], [(Label,Word16)])
+counterList b
+  = (C.counterList $ bClassifier b, D.counterList $ bDecider b)

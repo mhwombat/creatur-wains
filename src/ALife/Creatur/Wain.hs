@@ -20,6 +20,7 @@ module ALife.Creatur.Wain
     adjustEnergy,
     adjustPassion,
     coolPassion,
+    counterList,
     identity,
     appearanceOf,
     hasLitter,
@@ -31,6 +32,7 @@ module ALife.Creatur.Wain
     numberOfClassifierModels,
     numberOfDeciderModels,
     conflation,
+    discrimination,
     randomWain,
     tryMating,
     weanMatureChildren
@@ -317,6 +319,12 @@ numberOfDeciderModels = B.numberOfDeciderModels . brain
 conflation :: Metric p ~ Double => Wain p a -> Double
 conflation = B.conflation . brain
 
+discrimination
+  :: (Pattern p, Metric p ~ Double)
+    => Wain p a -> Int -> Double
+discrimination w maxCategories
+  = B.discrimination (brain w) maxCategories
+
 tryMating
   :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
     Genetic p, Genetic a, Eq a, Serialize p, Serialize a)
@@ -371,3 +379,8 @@ weanMatureChildren a =
 
 mature :: Wain p a -> Bool
 mature a = age a >= ageOfMaturity a
+
+counterList
+  :: (Pattern p, Metric p ~ Double)
+    => Wain p a -> ([(Label,Word16)], [(Label,Word16)])
+counterList = B.counterList . brain
