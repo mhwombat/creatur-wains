@@ -169,10 +169,11 @@ randomGeneticSOM
 randomGeneticSOM s xs = do
   r0 <- getRandomR (0.001,1)
   rf <- getRandomR (0.001,r0)
-  w0 <- getRandomR (0,fromIntegral s)
-  wf <- getRandomR (0,w0)
+  w0 <- getRandomR (0.001,fromIntegral s)
+  wf <- getRandomR (0.001,w0)
   tf <- getRandom
-  let f = DecayingGaussian r0 rf w0 wf tf
+  let tf' = abs tf + 1
+  let f = DecayingGaussian r0 rf w0 wf tf'
   return $ buildGeneticSOM s f xs
 
 learn
