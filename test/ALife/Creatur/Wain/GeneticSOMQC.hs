@@ -37,12 +37,22 @@ import Test.QuickCheck
 
 instance Arbitrary (DecayingGaussian Double) where
   arbitrary = do
-    r0 <- arb8BitDouble unitInterval
-    rf <- fmap (min r0) (arb8BitDouble unitInterval)
-    w0 <- arb8BitDouble (0,255) -- (0,s)
-    wf <- fmap (min w0) (arb8BitDouble (0,255))
-    tf <- arb8BitDouble (0,65535)
+    r0 <- choose unitInterval
+    rf <- fmap (max r0) (choose unitInterval)
+    w0 <- choose (1,255)
+    wf <- fmap (max w0) (choose (0,255))
+    tf <- arb8BitDouble (1,65535)
     return $ DecayingGaussian r0 rf w0 wf tf
+
+equivDecayingGaussian
+  :: DecayingGaussian Double -> DecayingGaussian Double -> Bool
+equivDecayingGaussian (DecayingGaussian r0a rfa w0a wfa tfa)
+                      (DecayingGaussian r0b rfb w0b wfb tfb)
+  = abs (r0a - r0b) < (1/256)
+    && abs (rfa - rfb) < (1/256)
+    && abs (w0a - w0b) < 1
+    && abs (wfa - wfb) < 1
+    && abs (tfa - tfb) < 256
 
 -- We want the number of tiles in a test grid to be O(n)
 sizedHexHexGrid :: Int -> Gen HexHexGrid
@@ -73,7 +83,7 @@ equiv
   :: (Eq p, Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> GeneticSOM p -> Bool
 equiv (GeneticSOM s1 _) (GeneticSOM s2 _) =
-  learningFunction s1 == learningFunction s2
+  learningFunction s1 `equivDecayingGaussian` learningFunction s2
     && C.numModels s1 == C.numModels s2
     && C.models s1 == C.models s2
 
@@ -108,7 +118,7 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
     testProperty "prop_serialize_round_trippable - DecayingGaussian"
       (prop_serialize_round_trippable :: DecayingGaussian Double -> Property),
     testProperty "prop_genetic_round_trippable - DecayingGaussian"
-      (prop_genetic_round_trippable (==) :: DecayingGaussian Double -> Property),
+      (prop_genetic_round_trippable equivDecayingGaussian :: DecayingGaussian Double -> Property),
     testProperty "prop_diploid_identity - DecayingGaussian"
       (prop_diploid_identity (==) :: DecayingGaussian Double -> Property),
 

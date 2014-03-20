@@ -32,10 +32,12 @@ import Test.QuickCheck
 type TestDecider = Decider TestAction
 
 prop_can_generate_random_decider :: Int -> Word8 -> Word8 -> Property
-prop_can_generate_random_decider seed numClassifierModels maxDeciderSize = property $
+prop_can_generate_random_decider seed a b = property $
   som `seq` True
   where g = mkStdGen seed
         som = evalRand (randomDecider numClassifierModels maxDeciderSize) g :: TestDecider
+        numClassifierModels = min 5 $ max 1 a
+        maxDeciderSize = min 5 $ max 1 b
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.DeciderQC"

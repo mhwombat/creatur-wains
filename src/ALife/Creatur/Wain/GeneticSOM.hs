@@ -133,10 +133,12 @@ somOK = not . null . models
 buildGeneticSOM
   :: (Pattern p, Metric p ~ Double)
     => Word8 -> DecayingGaussian Double -> [p] -> GeneticSOM p
-buildGeneticSOM s f xs =
-  if null xs
-    then error "SOM has no models"
-    else GeneticSOM som ks
+buildGeneticSOM s f@( DecayingGaussian r0 _ w0 _ tf) xs
+  | null xs   = error "SOM has no models"
+  | r0 == 0    = error "r0==0"
+  | w0 == 0    = error "w0==0"
+  | tf == 0    = error "tf==0"
+  | otherwise = GeneticSOM som ks
   where g = hexHexGrid $ fromIntegral s
         gm = lazyGridMap g xs
         som = SOM gm f 0
