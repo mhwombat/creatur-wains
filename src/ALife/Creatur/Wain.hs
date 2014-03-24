@@ -35,7 +35,8 @@ module ALife.Creatur.Wain
     discrimination,
     randomWain,
     tryMating,
-    weanMatureChildren
+    weanMatureChildren,
+    programVersion
   ) where
 
 import ALife.Creatur (Agent, agentId, isAlive)
@@ -54,7 +55,9 @@ import qualified ALife.Creatur.Wain.Condition as C
 import qualified ALife.Creatur.Wain.Brain as B
 import ALife.Creatur.Wain.GeneticSOM (Label)
 import qualified ALife.Creatur.Wain.Scenario as S
-import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat)
+import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
+import ALife.Creatur.Wain.Util (scaleToWord8, scaleFromWord8,
+  unitInterval)
 import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR, evalRandIO)
@@ -64,8 +67,13 @@ import Data.Datamining.Pattern (Pattern(..), Metric)
 import Data.List (partition)
 import Data.Serialize (Serialize, encode)
 import Data.Word (Word8, Word16)
+import Data.Version (showVersion)
 import GHC.Generics (Generic)
+import Paths_creatur_wains (version)
 import System.Random (Random)
+
+programVersion :: String
+programVersion = "creatur-wains-" ++ showVersion version
 
 data Wain p a = Wain
   {
@@ -73,7 +81,7 @@ data Wain p a = Wain
     appearance :: p,
     brain :: B.Brain p a,
     ageOfMaturity :: Word16,
-    passionDelta :: Word8,
+    passionDelta :: Double,
     condition :: C.Condition,
     age :: Word16,
     numberOfChildren :: Word16,
@@ -96,7 +104,7 @@ instance (Pattern p, Metric p ~ Double) => Statistical (Wain p a) where
   stats w =
     iStat "age" (age w)
       : iStat "maturity" (ageOfMaturity w)
-      : iStat "Δp" (passionDelta w)
+      : dStat "Δp" (passionDelta w)
       : iStat "size" (size w)
       : iStat "total # of children" (numberOfChildren w)
       : iStat "current litter size" (length $ litter w)
@@ -114,13 +122,13 @@ instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a,
   Serialize p, Serialize a)
       => Genetic (Wain p a) where
   put w = put (appearance w) >> put (brain w) >> put (ageOfMaturity w)
-    >> put (passionDelta w)
+    >> put (scaleToWord8 unitInterval $ passionDelta w)
   get = do
     g <- copy
     a <- get
     b <- get
     m <- get
-    p <- get
+    p <- fmap (fmap (scaleFromWord8 unitInterval)) get
     return $ buildWain2 "" <$> a <*> b <*> m <*> p <*> pure (g, g)
 
 -- This implementation is useful for testing
@@ -160,12 +168,13 @@ buildWain truncateGenome n = do
   b <- getAndExpress
   m <- getAndExpress
   p <- getAndExpress
+  let p' = fmap (scaleFromWord8 unitInterval) p
   g <- if truncateGenome then consumed2 else copy2
-  return $ buildWain2 n <$> a <*> b <*> m <*> p <*> pure g
+  return $ buildWain2 n <$> a <*> b <*> m <*> p' <*> pure g
 
 buildWain2
   :: (Pattern p, Metric p ~ Double, Serialize a, Serialize p, Eq a)
-    => String -> p -> B.Brain p a -> Word16 -> Word8 -> (Sequence, Sequence)
+    => String -> p -> B.Brain p a -> Word16 -> Double -> (Sequence, Sequence)
       -> Wain p a
 buildWain2 n a b m p g = w { size=s }
   where  w = Wain n a b m p C.initialCondition 0 0 [] g 0
@@ -179,7 +188,7 @@ randomWain n app classifierSize ps deciderSize maxAgeOfMaturity
   = do
     b <- B.randomBrain classifierSize ps deciderSize
     m <- getRandomR (0,maxAgeOfMaturity)
-    p <- getRandomR (0,255)
+    p <- getRandomR unitInterval
     let strawMan = buildWain2 n app b m p ([], [])
     let g = write strawMan
     return $ strawMan { genome=(g,g) }
@@ -191,7 +200,7 @@ adjustEnergy delta a
 adjustPassion :: Wain p a -> Wain p a
 adjustPassion a
   = a {condition = C.adjustPassion delta (condition a)}
-  where delta = fromIntegral (passionDelta a) / 255
+  where delta = passionDelta a
 
 coolPassion :: Wain p a -> Wain p a
 coolPassion a = a {condition = C.coolPassion (condition a)}

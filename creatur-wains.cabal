@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           3.2.9
+Version:           3.3.2
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      3.2.8
+  tag:      3.3.0
 
 library
   GHC-Options:      -Wall -Werror
@@ -45,6 +45,7 @@ library
                     ALife.Creatur.Wain.Statistics,
                     ALife.Creatur.Wain.UnitInterval,
                     ALife.Creatur.Wain.Util
+  Other-modules:    Paths_creatur_wains
   Build-Depends:
                     base ==4.*,
                     bytestring ==0.10.*,

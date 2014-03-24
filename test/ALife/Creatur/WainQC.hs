@@ -34,6 +34,8 @@ equiv a1 a2 =
   && brain a1 `B.equiv` brain a2
   && ageOfMaturity a1 == ageOfMaturity a2
   && passionDelta a1 == passionDelta a2
+--  && genome a1 == genome a2
+--  && size a1 == size a2
 
 strawMan :: Gen (Wain TestPattern TestAction)
 strawMan = Wain <$> pure ""       -- name
