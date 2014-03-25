@@ -26,6 +26,8 @@ module ALife.Creatur.Wain.Brain
     numberOfDeciderModels,
     conflation,
     discrimination,
+    classifierMap,
+    deciderMap,
     randomBrain,
     brainOK,
     counterList
@@ -37,7 +39,6 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as C
 import qualified ALife.Creatur.Wain.Decider as D
 import ALife.Creatur.Wain.Condition (Condition)
-import ALife.Creatur.Wain.GeneticSOM (Label, numModels, learn)
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix)
@@ -47,6 +48,8 @@ import Data.Datamining.Pattern (Pattern, Metric)
 import Data.Serialize (Serialize)
 import Data.Word (Word8, Word16)
 import GHC.Generics (Generic)
+import Math.Geometry.Grid.Hexagonal (HexHexGrid)
+import Math.Geometry.GridMap.Lazy (LGridMap)
 import System.Random (Random)
 
 data Brain p a = Brain
@@ -97,14 +100,14 @@ instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
     let c = case c0 of
           (Left xs) -> Left ("Classifier:":xs)
           (Right c1) ->
-            if numModels c1 == 0
+            if C.numModels c1 == 0
                then Left ["Classifier has no models"]
                else Right c1
     d0 <- G.get
     let d = case d0 of
           (Left xs) -> Left ("Decider:":xs)
           (Right d1) ->
-            if numModels d1 == 0
+            if D.numModels d1 == 0
                then Left ["Decider has no models"]
                else Right d1
     return $ buildBrain <$> c <*> d
@@ -114,13 +117,13 @@ randomBrain
     => Word8 -> [p] -> Word8 -> Rand g (Brain p a)
 randomBrain classifierSize ps deciderSize = do
   c <- C.randomClassifier classifierSize ps
-  let numClassifierModels = fromIntegral $ numModels c
+  let numClassifierModels = fromIntegral $ C.numModels c
   d <- D.randomDecider numClassifierModels deciderSize
   return $ buildBrain c d
 
 assessSituation
   :: (Pattern p, Metric p ~ Double)
-    => p -> p -> Condition -> Brain p a -> (Label, Label, Scenario, Brain p a)
+    => p -> p -> Condition -> Brain p a -> (C.Label, C.Label, Scenario, Brain p a)
 assessSituation p1 p2 cond b = (l1, l2, sc, b2)
   where (l1, sig1, b1) = classify' p1 b
         (l2, sig2, b2) = classify' p2 b1
@@ -129,13 +132,13 @@ assessSituation p1 p2 cond b = (l1, l2, sc, b2)
 -- | Find out how similar the input is to the models in the classifier.
 classify
   :: (Pattern p, Metric p ~ Double)
-    => p -> Brain p a -> (Label, Brain p a)
+    => p -> Brain p a -> (C.Label, Brain p a)
 classify p b = (label, b')
   where (label, _, b') = classify' p b
 
 classify'
   :: (Pattern p, Metric p ~ Double)
-    => p -> Brain p a -> (Label, [Metric p], Brain p a)
+    => p -> Brain p a -> (C.Label, [Metric p], Brain p a)
 classify' s b = (label, sig, b')
   where (label, sig, c') = C.classify (bClassifier b) s
         b' = b { bClassifier = c' }
@@ -146,8 +149,8 @@ recommendAction
 recommendAction s (Brain c d _) = (action r, Brain c d (Just r))
   where r = D.recommendResponse d s
 
-learnLabel :: (Pattern p, Metric p ~ Double) => p -> Label -> Brain p a -> Brain p a
-learnLabel p l b = b { bClassifier=learn p l (bClassifier b) }
+learnLabel :: (Pattern p, Metric p ~ Double) => p -> C.Label -> Brain p a -> Brain p a
+learnLabel p l b = b { bClassifier=C.learn p l (bClassifier b) }
 
 learnAction :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
     => Scenario -> a -> Brain p a -> Brain p a
@@ -171,10 +174,10 @@ feedback deltaHappiness (Brain c d lr) =
 -- teach b r = b { bDecider = D.feedback (bDecider b) r } 
 
 numberOfClassifierModels :: (Pattern p, Metric p ~ Double) => Brain p a -> Int
-numberOfClassifierModels = numModels . bClassifier
+numberOfClassifierModels = C.numModels . bClassifier
 
 numberOfDeciderModels :: Eq a => Brain p a -> Int
-numberOfDeciderModels = numModels . bDecider
+numberOfDeciderModels = D.numModels . bDecider
 
 conflation :: Metric p ~ Double => Brain p a -> Double
 conflation = C.conflation . bClassifier
@@ -187,6 +190,16 @@ discrimination b maxCategories
 
 counterList
   :: (Pattern p, Metric p ~ Double)
-    => Brain p a -> ([(Label,Word16)], [(Label,Word16)])
+    => Brain p a -> ([(C.Label,Word16)], [(D.Label,Word16)])
 counterList b
   = (C.counterList $ bClassifier b, D.counterList $ bDecider b)
+
+classifierMap
+  :: (Pattern p, Metric p ~ Double)
+    => Brain p a -> LGridMap HexHexGrid p
+classifierMap = C.mindMap . bClassifier
+
+deciderMap
+  :: Eq a
+    => Brain p a -> LGridMap HexHexGrid (Response a)
+deciderMap = D.mindMap . bDecider

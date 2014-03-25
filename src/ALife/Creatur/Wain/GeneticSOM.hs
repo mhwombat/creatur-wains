@@ -25,6 +25,7 @@ module ALife.Creatur.Wain.GeneticSOM
     counts,
     counterList,
     models,
+    mindMap,
     justClassify,
     reportAndTrain,
     learn,
@@ -43,7 +44,8 @@ import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
 import Data.Datamining.Pattern (Pattern, Metric, makeSimilar)
 import qualified Data.Datamining.Clustering.Classifier as C
-import Data.Datamining.Clustering.SOM (SOM(..), DecayingGaussian(..))
+import Data.Datamining.Clustering.SOM (SOM(..), DecayingGaussian(..),
+  toGridMap)
 -- TODO: Either move currentLearningFunction or "learn" to
 -- Data.Datamining.Clustering.SOM
 import Data.Datamining.Clustering.SOMInternal (currentLearningFunction)
@@ -207,6 +209,11 @@ models
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> [p]
 models (GeneticSOM s _) = C.models s
+
+mindMap 
+  :: (Pattern p, Ord (Metric p), Metric p ~ Double)
+    => GeneticSOM p -> LGridMap HexHexGrid p
+mindMap = toGridMap . sSOM
 
 setCounts
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)

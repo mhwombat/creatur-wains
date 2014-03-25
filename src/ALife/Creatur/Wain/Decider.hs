@@ -13,16 +13,20 @@
 {-# LANGUAGE TypeFamilies, FlexibleContexts #-}
 module ALife.Creatur.Wain.Decider
   (
+    Label,
     Decider,
     recommendResponse,
     feedback,
+    numModels,
+    mindMap,
     randomDecider,
     somOK,
     counterList
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, sSOM, justClassify,
-  reportAndTrain, randomGeneticSOM, somOK, counterList)
+import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, sSOM,
+  justClassify, reportAndTrain, randomGeneticSOM, somOK, counterList,
+  numModels, mindMap)
 import ALife.Creatur.Wain.Response (Response, outcome, copyOutcomeTo,
   possibleResponses, randomResponse)
 import ALife.Creatur.Wain.Scenario (Scenario)
