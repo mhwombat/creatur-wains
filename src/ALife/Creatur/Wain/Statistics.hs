@@ -21,6 +21,7 @@ module ALife.Creatur.Wain.Statistics
     stats,
     dStat,
     iStat,
+    uiStat,
     summarise
   ) where
 
@@ -30,19 +31,23 @@ import Data.List (transpose, intercalate)
 import Data.Serialize (Serialize)
 import Factory.Math.Statistics (getMean, getStandardDeviation)
 import GHC.Generics
+import Text.Printf (printf)
 
 data Statistic = DStatistic {sName :: String, sVal :: Double}
   | IStatistic {sName :: String, sVal :: Double}
+  | UIStatistic {sName :: String, sVal :: Double}
   deriving (Eq, Generic)
 
 instance Serialize Statistic
 
 instance Show Statistic where
   show (DStatistic s x) = "dStat \"" ++ s ++ "\" " ++ show x
+  show (UIStatistic s x) = "dStat \"" ++ s ++ "\" " ++ show x
   show (IStatistic s x) = "iStat \"" ++ s ++ "\" " ++ show (round x :: Int)
 
 instance Pretty Statistic where
   pretty (DStatistic s x) = s ++ "=" ++ pretty x
+  pretty (UIStatistic s x) = s ++ "=" ++  printf "%.3f" x
   pretty (IStatistic s x) = s ++ "=" ++ pretty (round x :: Int)
 
 instance Pretty [Statistic] where
@@ -52,6 +57,9 @@ instance Pretty [Statistic] where
 
 dStat :: Real a => String -> a -> Statistic
 dStat s = DStatistic s . realToFrac
+
+uiStat :: Real a => String -> a -> Statistic
+uiStat s = UIStatistic s . realToFrac
 
 iStat :: Integral a => String -> a -> Statistic
 iStat s v = IStatistic s (fromIntegral v)

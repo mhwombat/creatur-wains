@@ -38,9 +38,9 @@ import Test.QuickCheck
 instance Arbitrary (DecayingGaussian Double) where
   arbitrary = do
     r0 <- choose unitInterval
-    rf <- fmap (max r0) (choose unitInterval)
+    rf <- fmap (min r0) (choose unitInterval)
     w0 <- choose (1,255)
-    wf <- fmap (max w0) (choose (0,255))
+    wf <- fmap (min w0) (choose (0,255))
     tf <- arb8BitDouble (1,65535)
     return $ DecayingGaussian r0 rf w0 wf tf
 
