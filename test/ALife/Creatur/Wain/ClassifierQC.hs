@@ -21,36 +21,9 @@ module ALife.Creatur.Wain.ClassifierQC
 import ALife.Creatur.Wain.Classifier
 import ALife.Creatur.Wain.GeneticSOMQC (equiv)
 import ALife.Creatur.Wain.TestUtils
-import Control.Applicative ((<$>))
-import Data.Word (Word16)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
-
-data Counter = Counter {getInt :: Word16} deriving Show
-
-sizedArbCounter :: Int -> Gen Counter
-sizedArbCounter n
-  = Counter <$> oneof [choose (0,fromIntegral n*1000), return 0]
--- The small numbers help to avoid overflow, which shouldn't be a
--- problem in the real application.
--- Without the "return 0" part, we wouldn't be likely to get enough
--- zeros for a proper test (e.g., where all of the counters are zero).
-
-instance Arbitrary Counter where
-  arbitrary = sized sizedArbCounter
-
--- The < check ensures we don't overflow, which shouldn't happen during
--- normal use.
-prop_conflation'_within_bounds :: [Counter] -> Property
-prop_conflation'_within_bounds xs = property $ 0 <= y && y <= 1 + tad
-  where y = conflation' xs'
-        xs' = map getInt xs
-        tad = 1e-12
-
-prop_conflation_within_bounds :: Classifier TestPattern -> Property
-prop_conflation_within_bounds c = property $ 0 <= cf && cf <= 1
-  where cf = conflation c
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ClassifierQC"
@@ -64,9 +37,5 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
     testProperty "prop_diploid_expressable - Classifier"
       (prop_diploid_expressable :: Classifier TestPattern -> Classifier TestPattern -> Property),
     testProperty "prop_diploid_readable - Classifier"
-      (prop_diploid_readable :: Classifier TestPattern -> Classifier TestPattern -> Property),
-    testProperty "prop_conflation'_within_bounds"
-      prop_conflation'_within_bounds,
-    testProperty "prop_conflation_within_bounds"
-      prop_conflation_within_bounds
+      (prop_diploid_readable :: Classifier TestPattern -> Classifier TestPattern -> Property)
   ]

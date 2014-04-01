@@ -22,15 +22,8 @@ module ALife.Creatur.Wain.Brain
     learnLabel,
     learnAction,
     feedback,
-    numberOfClassifierModels,
-    numberOfDeciderModels,
-    conflation,
-    discrimination,
-    classifierMap,
-    deciderMap,
     randomBrain,
-    brainOK,
-    counterList
+    brainOK
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -46,20 +39,18 @@ import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Datamining.Pattern (Pattern, Metric)
 import Data.Serialize (Serialize)
-import Data.Word (Word8, Word16)
+import Data.Word (Word8)
 import GHC.Generics (Generic)
-import Math.Geometry.Grid.Hexagonal (HexHexGrid)
-import Math.Geometry.GridMap.Lazy (LGridMap)
 import System.Random (Random)
 
 data Brain p a = Brain
   {
     -- | Component that categorises and identifies patterns
-    bClassifier :: C.Classifier p,
+    classifier :: C.Classifier p,
     -- | Component that makes decisions
-    bDecider :: D.Decider a,
+    decider :: D.Decider a,
     -- | The last situation the agent was in, and the agent's response
-    bLastResponse :: Maybe (Response a)
+    lastResponse :: Maybe (Response a)
   } deriving (Generic)
 
 deriving instance (Eq p, Eq a, Pattern p, Metric p ~ Double) 
@@ -85,8 +76,8 @@ brainOK
   :: (Pattern p, Ord (Metric p), Metric p ~ Double, Eq a)
     => Brain p a -> Bool
 brainOK b = classifierOK && deciderOK
-  where classifierOK = C.somOK $ bClassifier b
-        deciderOK = D.somOK $ bDecider b
+  where classifierOK = C.somOK $ classifier b
+        deciderOK = D.somOK $ decider b
 
 -- | Construct a brain
 buildBrain :: C.Classifier p -> D.Decider a -> Brain p a
@@ -140,8 +131,8 @@ classify'
   :: (Pattern p, Metric p ~ Double)
     => p -> Brain p a -> (C.Label, [Metric p], Brain p a)
 classify' s b = (label, sig, b')
-  where (label, sig, c') = C.classify (bClassifier b) s
-        b' = b { bClassifier = c' }
+  where (label, sig, c') = C.classify (classifier b) s
+        b' = b { classifier = c' }
 
 recommendAction
   :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
@@ -150,15 +141,15 @@ recommendAction s (Brain c d _) = (action r, Brain c d (Just r))
   where r = D.recommendResponse d s
 
 learnLabel :: (Pattern p, Metric p ~ Double) => p -> C.Label -> Brain p a -> Brain p a
-learnLabel p l b = b { bClassifier=C.learn p l (bClassifier b) }
+learnLabel p l b = b { classifier=C.learn p l (classifier b) }
 
 learnAction :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
     => Scenario -> a -> Brain p a -> Brain p a
-learnAction s a b = b { bLastResponse = Just r }
+learnAction s a b = b { lastResponse = Just r }
   where r = Response s a Nothing
   
 -- lastResponse : Brain p a -> Maybe (Response a)
--- lastResponse = bLastResponse
+-- lastResponse = lastResponse
 
 feedback
   :: (Pattern p, Metric p ~ Double, Eq a)
@@ -169,37 +160,3 @@ feedback deltaHappiness (Brain c d lr) =
     Just r  -> Brain c d' (Just r')
                 where r' = r `setOutcome` deltaHappiness
                       d' = D.feedback d r'
-
--- teach :: Brain p a -> Response a -> Brain p a
--- teach b r = b { bDecider = D.feedback (bDecider b) r } 
-
-numberOfClassifierModels :: (Pattern p, Metric p ~ Double) => Brain p a -> Int
-numberOfClassifierModels = C.numModels . bClassifier
-
-numberOfDeciderModels :: Eq a => Brain p a -> Int
-numberOfDeciderModels = D.numModels . bDecider
-
-conflation :: Metric p ~ Double => Brain p a -> Double
-conflation = C.conflation . bClassifier
-
-discrimination
-  :: (Pattern p, Metric p ~ Double)
-     => Brain p a -> Int -> Double
-discrimination b maxCategories
-  = C.discrimination (bClassifier b) maxCategories
-
-counterList
-  :: (Pattern p, Metric p ~ Double)
-    => Brain p a -> ([(C.Label,Word16)], [(D.Label,Word16)])
-counterList b
-  = (C.counterList $ bClassifier b, D.counterList $ bDecider b)
-
-classifierMap
-  :: (Pattern p, Metric p ~ Double)
-    => Brain p a -> LGridMap HexHexGrid p
-classifierMap = C.mindMap . bClassifier
-
-deciderMap
-  :: Eq a
-    => Brain p a -> LGridMap HexHexGrid (Response a)
-deciderMap = D.mindMap . bDecider

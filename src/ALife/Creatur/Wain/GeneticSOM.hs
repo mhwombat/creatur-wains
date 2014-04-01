@@ -18,14 +18,7 @@ module ALife.Creatur.Wain.GeneticSOM
     GeneticSOM(..),
     Label,
     buildGeneticSOM,
-    validTimeRange,
     numModels,
-    patternCount,
-    setCounts,
-    counts,
-    counterList,
-    models,
-    mindMap,
     justClassify,
     reportAndTrain,
     learn,
@@ -44,8 +37,7 @@ import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
 import Data.Datamining.Pattern (Pattern, Metric, makeSimilar)
 import qualified Data.Datamining.Clustering.Classifier as C
-import Data.Datamining.Clustering.SOM (SOM(..), DecayingGaussian(..),
-  toGridMap)
+import Data.Datamining.Clustering.SOM (SOM(..), DecayingGaussian(..))
 -- TODO: Either move currentLearningFunction or "learn" to
 -- Data.Datamining.Clustering.SOM
 import Data.Datamining.Clustering.SOMInternal (currentLearningFunction)
@@ -57,9 +49,6 @@ import qualified Math.Geometry.Grid as Grid
 import Math.Geometry.Grid.Hexagonal (hexHexGrid, HexHexGrid)
 import qualified Math.Geometry.GridMap as GM
 import Math.Geometry.GridMap.Lazy (LGridMap, lazyGridMap)
-
-validTimeRange :: (Int, Int)
-validTimeRange = (0,100000)
 
 type Label = (Int, Int)
 
@@ -122,8 +111,8 @@ instance (Diploid f, Diploid t, Diploid p) =>
 data GeneticSOM p =
   GeneticSOM
     {
-      sSOM :: (SOM (DecayingGaussian Double) Word16 (LGridMap HexHexGrid) Label p),
-      sCounters :: (LGridMap HexHexGrid Word16)
+      patternMap :: (SOM (DecayingGaussian Double) Word16 (LGridMap HexHexGrid) Label p),
+      counterMap :: (LGridMap HexHexGrid Word16)
     }
   deriving (Eq, Show, Generic)
 
@@ -150,12 +139,12 @@ instance (Serialize p) => Serialize (GeneticSOM p)
 
 instance (Genetic p) => Genetic (GeneticSOM p)
 -- instance (Genetic p) => Genetic (GeneticSOM p) where
---   put = G.put . sSOM
+--   put = G.put . patternMap
 --   get = do
 --     som <- G.get
 --     case som of
 --       Right s ->
---         if (Grid.null . gridMap $ sSOM s)
+--         if (Grid.null . gridMap $ patternMap s)
 --           then return $ Left ["Genetic SOM has no models"]
 --           else return $ Right s
 --       Left ms -> return $ Left ms
@@ -183,22 +172,22 @@ randomGeneticSOM s xs = do
 learn
   :: (Pattern p, Metric p ~ Double)
     => p -> Label -> GeneticSOM p -> GeneticSOM p
-learn p l s = s { sSOM=gm' }
-  where gm = sSOM s
+learn p l s = s { patternMap=gm' }
+  where gm = patternMap s
         f = makeSimilar p (currentLearningFunction gm 0)
         gm' = GM.adjust f l gm
 
 justClassify
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> p -> Label
-justClassify s = C.classify (sSOM s)
+justClassify s = C.classify (patternMap s)
 
 reportAndTrain
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> p -> (Label, [(Label, Metric p)], GeneticSOM p)
 reportAndTrain s p = (bmu, diffs, s')
-  where (bmu, diffs, som') = C.reportAndTrain (sSOM s) p
-        s' = s { sSOM=som', sCounters=GM.adjust (+1) bmu (sCounters s)}
+  where (bmu, diffs, som') = C.reportAndTrain (patternMap s) p
+        s' = s { patternMap=som', counterMap=GM.adjust (+1) bmu (counterMap s)}
         
 numModels
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
@@ -209,24 +198,3 @@ models
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> [p]
 models (GeneticSOM s _) = C.models s
-
-mindMap 
-  :: (Pattern p, Ord (Metric p), Metric p ~ Double)
-    => GeneticSOM p -> LGridMap HexHexGrid p
-mindMap = toGridMap . sSOM
-
-setCounts
-  :: (Pattern p, Ord (Metric p), Metric p ~ Double)
-    => [Word16] -> GeneticSOM p -> GeneticSOM p
-setCounts ks (GeneticSOM s kMap) = GeneticSOM s' kMap'
-  where kMap' = lazyGridMap (GM.toGrid kMap) ks
-        s' = s { counter=(sum ks) }
-
-patternCount :: Metric p ~ Double => GeneticSOM p -> Word16
-patternCount = sum . GM.elems . sCounters
-
-counts :: Metric p ~ Double => GeneticSOM p -> [Word16]
-counts = GM.elems . sCounters
-
-counterList :: Metric p ~ Double => GeneticSOM p -> [(Label, Word16)]
-counterList = GM.toList . sCounters

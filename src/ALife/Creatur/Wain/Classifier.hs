@@ -17,22 +17,22 @@ module ALife.Creatur.Wain.Classifier
     Classifier,
     classify,
     learn,
-    conflation,
-    conflation', -- exported for testing
-    discrimination,
+    -- conflation,
+    -- conflation', -- exported for testing
+    -- discrimination,
     numModels,
-    mindMap,
-    counterList,
+    patternMap,
+    counterMap,
     randomClassifier,
     somOK
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label, numModels,
-  reportAndTrain, counts, counterList, randomGeneticSOM, somOK,
-  learn, mindMap)
+  reportAndTrain, randomGeneticSOM, somOK, learn, patternMap,
+  counterMap)
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Datamining.Pattern (Pattern, Metric)
-import Data.Word (Word8, Word16)
+import Data.Word (Word8)
 
 type Classifier = GeneticSOM
 
@@ -50,25 +50,25 @@ classify c p = (bmu, sig, c')
   where (bmu, diffs, c') = reportAndTrain c p
         sig = map snd diffs
 
-conflation :: Metric s ~ Double => Classifier s -> Double
-conflation c = conflation' $ counts c
+-- conflation :: Metric s ~ Double => Classifier s -> Double
+-- conflation c = conflation' $ counts c
 
-conflation' :: [Word16] -> Double
-conflation' [] = 0
-conflation' (_:[]) = 0
-conflation' xs =
-  if numVotes == 0
-     then 0
-     else chiSquared / chiSquaredMax
-  where chiSquared = sum $ map (\x -> (x - expected)*(x - expected)/expected) xs'
-        chiSquaredMax = fromIntegral numVotes * fromIntegral (length xs - 1)
-        expected = fromIntegral numVotes / fromIntegral (length xs)
-        numVotes = sum $ map fromIntegral xs :: Int
-        xs' = map fromIntegral xs
+-- conflation' :: [Word16] -> Double
+-- conflation' [] = 0
+-- conflation' (_:[]) = 0
+-- conflation' xs =
+--   if numVotes == 0
+--      then 0
+--      else chiSquared / chiSquaredMax
+--   where chiSquared = sum $ map (\x -> (x - expected)*(x - expected)/expected) xs'
+--         chiSquaredMax = fromIntegral numVotes * fromIntegral (length xs - 1)
+--         expected = fromIntegral numVotes / fromIntegral (length xs)
+--         numVotes = sum $ map fromIntegral xs :: Int
+--         xs' = map fromIntegral xs
 
-discrimination
-  :: (Pattern s, Metric s ~ Double)
-    => Classifier s -> Int -> Double
-discrimination c maxCategories = (kMax - k) / kMax
-  where kMax = fromIntegral maxCategories
-        k = fromIntegral (numModels c)
+-- discrimination
+--   :: (Pattern s, Metric s ~ Double)
+--     => Classifier s -> Int -> Double
+-- discrimination c maxCategories = (kMax - k) / kMax
+--   where kMax = fromIntegral maxCategories
+--         k = fromIntegral (numModels c)

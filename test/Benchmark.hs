@@ -15,6 +15,7 @@ import ALife.Creatur.Wain.Scenario
 import ALife.Creatur.Wain.TestUtils
 import Control.Monad (replicateM)
 import Control.Monad.Random (evalRandIO)
+import qualified Data.Datamining.Clustering.Classifier as C
 import Data.Datamining.Clustering.SOM
 import Data.Version (showVersion)
 import Data.Word (Word8)
@@ -34,10 +35,10 @@ makeDecider gridSize patternLength
 
 deciderBenchmark :: Decider TestAction -> IO ()
 deciderBenchmark d = do
-  putStrLn $ "grid size=" ++ show (size . toGrid $ sSOM d)
-  putStrLn $ "tile count=" ++ show (tileCount $ sSOM d)
+  putStrLn $ "grid size=" ++ show (size . toGrid $ patternMap d)
+  putStrLn $ "tile count=" ++ show (tileCount $ patternMap d)
   putStrLn $ "object length="
-    ++ show (length . directObject . scenario . head $ models d)
+    ++ show (length . directObject . scenario . head . C.models $ patternMap d)
   let x = W8.write d
   let d' = fromEither (error "read returned Nothing") . W8.read $ x
   putStrLn $ "passed=" ++ show (d' == d)

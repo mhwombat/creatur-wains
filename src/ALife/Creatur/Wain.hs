@@ -20,7 +20,6 @@ module ALife.Creatur.Wain
     adjustEnergy,
     adjustPassion,
     coolPassion,
-    counterList,
     energy,
     passion,
     identity,
@@ -31,12 +30,6 @@ module ALife.Creatur.Wain
     classify,
     teachLabel,
     feedback,
-    numberOfClassifierModels,
-    numberOfDeciderModels,
-    conflation,
-    discrimination,
-    classifierMap,
-    deciderMap,
     randomWain,
     tryMating,
     weanMatureChildren,
@@ -58,7 +51,6 @@ import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Condition as C
 import qualified ALife.Creatur.Wain.Brain as B
 import ALife.Creatur.Wain.GeneticSOM (Label)
-import ALife.Creatur.Wain.Response (Response)
 import qualified ALife.Creatur.Wain.Scenario as S
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.Util (scaleToWord8, scaleFromWord8,
@@ -74,8 +66,6 @@ import Data.Serialize (Serialize, encode)
 import Data.Word (Word8, Word16)
 import Data.Version (showVersion)
 import GHC.Generics (Generic)
-import Math.Geometry.Grid.Hexagonal (HexHexGrid)
-import Math.Geometry.GridMap.Lazy (LGridMap)
 import Paths_creatur_wains (version)
 import System.Random (Random)
 
@@ -322,25 +312,6 @@ feedback1
 feedback1 deltaHappiness w
   = w { brain=B.feedback deltaHappiness (brain w) }
 
-numberOfClassifierModels
-  :: (Pattern p, Metric p ~ Double)
-    => Wain p a -> Int
-numberOfClassifierModels = B.numberOfClassifierModels . brain
-
-numberOfDeciderModels
-  :: (Pattern p, Metric p ~ Double, Eq a)
-    => Wain p a -> Int
-numberOfDeciderModels = B.numberOfDeciderModels . brain
-
-conflation :: Metric p ~ Double => Wain p a -> Double
-conflation = B.conflation . brain
-
-discrimination
-  :: (Pattern p, Metric p ~ Double)
-    => Wain p a -> Int -> Double
-discrimination w maxCategories
-  = B.discrimination (brain w) maxCategories
-
 tryMating
   :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
     Genetic p, Genetic a, Eq a, Serialize p, Serialize a)
@@ -396,23 +367,8 @@ weanMatureChildren a =
 mature :: Wain p a -> Bool
 mature a = age a >= ageOfMaturity a
 
-counterList
-  :: (Pattern p, Metric p ~ Double)
-    => Wain p a -> ([(Label,Word16)], [(Label,Word16)])
-counterList = B.counterList . brain
-
 energy :: Wain p a -> Double
 energy = C.cEnergy . condition
 
 passion :: Wain p a -> Double
 passion = C.cPassion . condition
-
-classifierMap
-  :: (Pattern p, Metric p ~ Double)
-    => Wain p a -> LGridMap HexHexGrid p
-classifierMap = B.classifierMap . brain
-
-deciderMap
-  :: Eq a
-    => Wain p a -> LGridMap HexHexGrid (Response a)
-deciderMap = B.deciderMap . brain

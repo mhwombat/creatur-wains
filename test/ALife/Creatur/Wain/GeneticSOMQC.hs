@@ -28,8 +28,11 @@ import qualified Data.Datamining.Clustering.Classifier as C
 import Data.Datamining.Pattern (Pattern, Metric)
 import Data.Datamining.Clustering.SOM (counter, DecayingGaussian(..),
   learningFunction)
+import Data.Word (Word16)
 import Math.Geometry.Grid (tileCount)
 import Math.Geometry.Grid.Hexagonal (HexHexGrid, hexHexGrid)
+import qualified Math.Geometry.GridMap as GM
+import Math.Geometry.GridMap.Lazy (lazyGridMap)
 import System.Random (mkStdGen)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -62,6 +65,13 @@ sizedHexHexGrid n = do
 
 instance Arbitrary HexHexGrid where
   arbitrary = sized sizedHexHexGrid
+
+setCounts
+  :: (Pattern p, Ord (Metric p), Metric p ~ Double)
+    => [Word16] -> GeneticSOM p -> GeneticSOM p
+setCounts ks (GeneticSOM s kMap) = GeneticSOM s' kMap'
+  where kMap' = lazyGridMap (GM.toGrid kMap) ks
+        s' = s { counter=(sum ks) }
 
 sizedArbGeneticSOM
   :: (Arbitrary p, Pattern p, Metric p ~ Double)
@@ -97,16 +107,8 @@ prop_can_generate_random_geneticSOM seed = property $
 prop_sum_counts_correct
   :: GeneticSOM TestPattern -> [TestPattern] -> Property
 prop_sum_counts_correct som ps = property $
-  (sum . counts $ som') == (counter . sSOM $ som')
+  (sum . GM.elems . counterMap $ som') == (counter . patternMap $ som')
   where som' = foldr runSOM som ps
-
--- prop_new_som_has_models :: [Word8] -> [Word8] -> Property
--- prop_new_som_has_models ga gb = property $
---   case c of
---     Right som -> not . null $ models som
---     Left _    -> True
---   where c = W8.runDiploidReader W8.getAndExpress (ga, gb)
---               :: Either [String] (GeneticSOM TestPattern)
 
 runSOM :: TestPattern -> GeneticSOM TestPattern -> GeneticSOM TestPattern
 runSOM p s = x

@@ -18,15 +18,12 @@ module ALife.Creatur.Wain.Decider
     recommendResponse,
     feedback,
     numModels,
-    mindMap,
     randomDecider,
-    somOK,
-    counterList
+    somOK
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, sSOM,
-  justClassify, reportAndTrain, randomGeneticSOM, somOK, counterList,
-  numModels, mindMap)
+import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, patternMap,
+  justClassify, reportAndTrain, randomGeneticSOM, somOK, numModels)
 import ALife.Creatur.Wain.Response (Response, outcome, copyOutcomeTo,
   possibleResponses, randomResponse)
 import ALife.Creatur.Wain.Scenario (Scenario)
@@ -62,7 +59,7 @@ recommendResponse d s = maximumBy comp responses
 predictResult :: (Eq a) => Decider a -> Response a -> Response a
 predictResult d r = a `copyOutcomeTo` r
   where k = justClassify d r
-        a = sSOM d ! k
+        a = patternMap d ! k
 
 feedback :: (Eq a) => Decider a -> Response a -> Decider a
 feedback d r = d'

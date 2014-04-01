@@ -35,8 +35,8 @@ instance Arbitrary (Brain TestPattern TestAction) where
     return $ buildBrain c d
     
 equiv :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Bool
-equiv b1 b2 = bClassifier b1 `C.equiv` bClassifier b2
-  && bDecider b1 `D.equiv` bDecider b2
+equiv b1 b2 = classifier b1 `C.equiv` classifier b2
+  && decider b1 `D.equiv` decider b2
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"
