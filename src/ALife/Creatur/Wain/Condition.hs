@@ -104,7 +104,8 @@ alive c = cEnergy c > 0
 
 adjustEnergy :: Double -> Condition -> Condition
 adjustEnergy delta c = c {cEnergy=e}
-  where e = enforceRange unitInterval (cEnergy c + delta)
+  -- where e = enforceRange unitInterval (cEnergy c + delta)
+  where e = min 1 (cEnergy c + delta)
 
 adjustPassion :: Double -> Condition -> Condition
 adjustPassion delta c = c {cPassion=p}
