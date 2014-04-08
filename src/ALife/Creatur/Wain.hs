@@ -50,7 +50,9 @@ import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Condition as C
 import qualified ALife.Creatur.Wain.Brain as B
-import ALife.Creatur.Wain.GeneticSOM (Label)
+import ALife.Creatur.Wain.GeneticSOM (Label, toList)
+import ALife.Creatur.Wain.Pretty (pretty)
+import qualified ALife.Creatur.Wain.Response as R
 import qualified ALife.Creatur.Wain.Scenario as S
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.Util (scaleToWord8, scaleFromWord8,
@@ -61,7 +63,9 @@ import Control.Monad.Random (Rand, RandomGen, getRandomR, evalRandIO)
 import Control.Monad.State.Lazy (StateT)
 import qualified Data.ByteString as BS
 import Data.Datamining.Pattern (Pattern(..), Metric)
-import Data.List (partition)
+import Data.List (partition, maximumBy)
+import Data.Maybe (fromMaybe)
+import Data.Ord (comparing)
 import Data.Serialize (Serialize, encode)
 import Data.Word (Word8, Word16)
 import Data.Version (showVersion)
@@ -222,9 +226,33 @@ chooseAction
       -> StateT u IO (Label, a, Wain p a)
 chooseAction p1 p2 w = do
   let (l, _, s, w2) = assessSituation p1 p2 w
-  let (a, w3) = chooseAction' s w2
-  w4 <- teachActionToLitter p1 p2 a w3
-  return (l, a, w4)
+  U.writeToLog $ "Assessment=[" ++ pretty s ++ "]"
+  let ms = toList . B.decider $ brain w2
+  mapM_ (U.writeToLog . describeModel ) ms
+  let outcomes = predictOutcomes w2 s
+  mapM_ (U.writeToLog . describeOutcome) outcomes
+  let a = R.action $ bestOutcome outcomes
+  w3 <- teachActionToLitter p1 p2 a w2
+  return (l, a, w3)
+
+describeModel :: Show a => (Label, R.Response a) -> String
+describeModel (l, r) = "Model" ++ show l ++ "=[" ++ pretty r ++ "]"
+
+describeOutcome :: Show a => R.Response a -> String
+describeOutcome r 
+  = "Predicted outcome of " ++ show (R.action r) ++ " is "
+      ++ show (R.outcome r)
+
+predictOutcomes
+  :: (Bounded a, Enum a, Eq a)
+     => Wain p a -> S.Scenario -> [R.Response a]
+predictOutcomes w s = map (B.predict $ brain w) $ R.possibleResponses s
+
+bestOutcome
+  :: (Eq a, Enum a, Bounded a)
+    => [R.Response a] -> R.Response a
+bestOutcome = maximumBy comp
+  where comp = comparing (fromMaybe 0 . R.outcome)
 
 assessSituation
   :: (Pattern p, Metric p ~ Double)
@@ -232,12 +260,6 @@ assessSituation
 assessSituation p1 p2 w = (l1, l2, sc, w{brain=b})
   where (l1, l2, sc, b)
           = B.assessSituation p1 p2 (condition w) (brain w)
-
-chooseAction'
-  :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
-    => S.Scenario -> Wain p a -> (a, Wain p a)
-chooseAction' s w = (a, w{brain=b})
-  where (a, b) = B.recommendAction s (brain w)
 
 teachActionToLitter
   :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
@@ -253,7 +275,7 @@ teachAction1
     Bounded a, Show a)
     => p -> p -> a -> Wain p a -> StateT u IO (Wain p a)
 teachAction1 p1 p2 a w = do
-  U.writeToLog $ agentId w ++ " learns the response " ++ show a
+  U.writeToLog $ agentId w ++ " observes the response " ++ show a
   let (_, _, s, w') = assessSituation p1 p2 w
   return $ w' { brain = B.learnAction s a (brain w) }
 

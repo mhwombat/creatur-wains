@@ -21,6 +21,7 @@ import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get,
   putRawWord8s, getRawWord8s)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Condition (Condition)
+import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Random (randomInitial)
 import ALife.Creatur.Wain.Util (forceIntToWord8, word8ToInt,
   scaleToWord8, scaleFromWord8, unitInterval)
@@ -115,3 +116,8 @@ randomScenario n = do
   is <- replicateM n getRandom
   c <- randomInitial
   return $ Scenario ds is c
+
+instance Pretty Scenario where
+  pretty (Scenario d i c)
+    = "DO=" ++ pretty d ++ ", IO=" ++ pretty i
+      ++ ", Cond.=[" ++ pretty c ++ "]"

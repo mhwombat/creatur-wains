@@ -36,3 +36,13 @@ instance Pretty Word8 where
 
 instance Pretty Word16 where
   pretty = flip showHex ""
+
+instance (Pretty a) => Pretty [a] where
+  pretty [] = ""
+  pretty [x] = pretty x
+  pretty (x:xs) = pretty x ++ ',' : pretty xs
+
+instance (Pretty a) => Pretty (Maybe a) where
+  pretty (Just x) = pretty x
+  pretty _ = "ø"
+

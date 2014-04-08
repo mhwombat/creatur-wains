@@ -25,6 +25,7 @@ module ALife.Creatur.Wain.Condition
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
+import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Util (unitInterval, enforceRange,
   scaleFromWord8, scaleToWord8)
 import ALife.Creatur.Wain.Random (RandomInitial(..))
@@ -113,3 +114,7 @@ adjustPassion delta c = c {cPassion=p}
 
 coolPassion :: Condition -> Condition
 coolPassion c = c {cPassion=0}
+
+instance Pretty Condition where
+  pretty (Condition e p)
+    = "energy=" ++ pretty e ++ " passion=" ++ pretty p

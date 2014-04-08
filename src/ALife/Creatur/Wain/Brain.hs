@@ -18,7 +18,7 @@ module ALife.Creatur.Wain.Brain
     buildBrain,
     assessSituation,
     classify,
-    recommendAction,
+    predict,
     learnLabel,
     learnAction,
     feedback,
@@ -134,11 +134,8 @@ classify' s b = (label, sig, b')
   where (label, sig, c') = C.classify (classifier b) s
         b' = b { classifier = c' }
 
-recommendAction
-  :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
-    => Scenario -> Brain p a -> (a, Brain p a)
-recommendAction s (Brain c d _) = (action r, Brain c d (Just r))
-  where r = D.recommendResponse d s
+predict :: (Eq a) => Brain p a -> Response a -> Response a
+predict b r = D.predict (decider b) r
 
 learnLabel :: (Pattern p, Metric p ~ Double) => p -> C.Label -> Brain p a -> Brain p a
 learnLabel p l b = b { classifier=C.learn p l (classifier b) }

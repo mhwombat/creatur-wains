@@ -50,11 +50,6 @@ instance Pretty Statistic where
   pretty (UIStatistic s x) = s ++ "=" ++  printf "%.3f" x
   pretty (IStatistic s x) = s ++ "=" ++ pretty (round x :: Int)
 
-instance Pretty [Statistic] where
-  pretty [] = ""
-  pretty [x] = pretty x
-  pretty (x:xs) = pretty x ++ ',' : pretty xs
-
 dStat :: Real a => String -> a -> Statistic
 dStat s = DStatistic s . realToFrac
 

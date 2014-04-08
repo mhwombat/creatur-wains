@@ -19,6 +19,8 @@ module ALife.Creatur.Wain.GeneticSOM
     Label,
     buildGeneticSOM,
     numModels,
+    models,
+    toList,
     justClassify,
     reportAndTrain,
     learn,
@@ -198,3 +200,6 @@ models
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> [p]
 models (GeneticSOM s _) = C.models s
+
+toList :: (Pattern p, Metric p ~ Double) => GeneticSOM p -> [(Label, p)]
+toList (GeneticSOM s _) = C.toList s

@@ -22,6 +22,7 @@ module ALife.Creatur.Wain.Response
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, Reader, put, get)
 import ALife.Creatur.Genetics.Diploid (Diploid)
+import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Scenario (Scenario, randomScenario)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI)
@@ -57,7 +58,7 @@ data Response a = Response
     --   value.
     outcome :: Maybe Double
   } deriving (Eq, Show, Generic)
-
+  
 instance (Serialize a) => Serialize (Response a)
 
 instance (Eq a) => Pattern (Response a) where
@@ -90,6 +91,11 @@ instance (Genetic a) => Genetic (Response a) where
     return $ Response <$> s <*> a <*> fmap (fmap uiToDouble) o
 
 instance (Diploid a) => Diploid (Response a)
+
+instance (Show a) => Pretty (Response a) where
+  pretty (Response s a o)
+    = "scenario=" ++ pretty s ++ ", action=" ++ show a
+      ++ ", outcome=" ++ pretty o
 
 randomResponse
   :: (RandomGen g, Random a)

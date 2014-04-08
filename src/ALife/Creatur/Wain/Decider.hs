@@ -15,23 +15,20 @@ module ALife.Creatur.Wain.Decider
   (
     Label,
     Decider,
-    recommendResponse,
+    predict,
     feedback,
     numModels,
+    toList,
     randomDecider,
     somOK
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, patternMap,
-  justClassify, reportAndTrain, randomGeneticSOM, somOK, numModels)
-import ALife.Creatur.Wain.Response (Response, outcome, copyOutcomeTo,
-  possibleResponses, randomResponse)
-import ALife.Creatur.Wain.Scenario (Scenario)
+  justClassify, reportAndTrain, randomGeneticSOM, somOK, numModels, toList)
+import ALife.Creatur.Wain.Response (Response, copyOutcomeTo,
+  randomResponse)
 import Control.Monad (replicateM)
 import Control.Monad.Random (Rand, RandomGen)
-import Data.List (maximumBy)
-import Data.Maybe (fromMaybe)
-import Data.Ord (comparing)
 import Data.Word (Word8)
 import Math.Geometry.GridMap ((!))
 import System.Random (Random)
@@ -49,15 +46,8 @@ randomDecider numClassifierModels deciderSize = do
 numTiles :: Int -> Int
 numTiles s = 3*s*(s-1) + 1
 
-recommendResponse
-  :: (Eq a, Enum a, Bounded a)
-    => Decider a -> Scenario -> Response a
-recommendResponse d s = maximumBy comp responses
-  where responses = map (predictResult d) $ possibleResponses s
-        comp = comparing (fromMaybe 0 . outcome)
-
-predictResult :: (Eq a) => Decider a -> Response a -> Response a
-predictResult d r = a `copyOutcomeTo` r
+predict :: (Eq a) => Decider a -> Response a -> Response a
+predict d r = a `copyOutcomeTo` r
   where k = justClassify d r
         a = patternMap d ! k
 
