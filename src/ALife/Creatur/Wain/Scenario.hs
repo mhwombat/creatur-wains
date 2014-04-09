@@ -24,7 +24,7 @@ import ALife.Creatur.Wain.Condition (Condition)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Random (randomInitial)
 import ALife.Creatur.Wain.Util (forceIntToWord8, word8ToInt,
-  scaleToWord8, scaleFromWord8, unitInterval)
+  scaleToWord8, scaleFromWord8, unitInterval, doublesTo8BitHex)
 import Control.Applicative
 import Control.Monad (replicateM)
 import Control.Monad.Random (Rand, RandomGen, getRandom)
@@ -119,5 +119,6 @@ randomScenario n = do
 
 instance Pretty Scenario where
   pretty (Scenario d i c)
-    = "DO=" ++ pretty d ++ ", IO=" ++ pretty i
-      ++ ", Cond.=[" ++ pretty c ++ "]"
+    = doublesTo8BitHex d ++ '|':doublesTo8BitHex i
+      ++ '|':pretty c
+

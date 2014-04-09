@@ -27,12 +27,16 @@ module ALife.Creatur.Wain.Util
     forceIntToWord8,
     word8ToInt,
     forceIntToWord16,
-    word16ToInt
+    word16ToInt,
+    doubleTo8BitHex,
+    doublesTo8BitHex
   ) where
 
 import Data.Word (Word8, Word16)
 import Data.Datamining.Pattern (Pattern(..), Metric, adjustNum,
   adjustVector)
+import Data.List (foldl')
+import Numeric (showHex)
 
 unitInterval :: Num a => (a, a)
 unitInterval = (0,1)
@@ -111,3 +115,9 @@ instance Pattern [Double] where
     where deltas = zipWith (-) xs ys
           d = sum $ map (\z -> z*z) deltas
   makeSimilar = adjustVector
+
+doublesTo8BitHex :: [Double] -> String
+doublesTo8BitHex = foldl' (flip doubleTo8BitHex) ""
+
+doubleTo8BitHex :: Double -> ShowS
+doubleTo8BitHex = showHex . scaleToWord8 unitInterval

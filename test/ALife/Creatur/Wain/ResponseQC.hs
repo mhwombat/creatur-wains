@@ -23,7 +23,6 @@ import ALife.Creatur.Wain.Response
 import ALife.Creatur.Wain.ScenarioQC ()
 import ALife.Creatur.Wain.ConditionQC ()
 import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.Util (unitInterval)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 import System.Random (Random, random, randomR)
@@ -46,7 +45,7 @@ instance Arbitrary TestResponse where
   arbitrary = do
     s <- arbitrary
     a <- arbitrary
-    o <- arb8BitDouble unitInterval
+    o <- arb8BitDouble (-1.0,1.0)
     return $ Response s a (Just o)
 
 -- | This is used for testing random SOM generation

@@ -27,7 +27,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Util (unitInterval, enforceRange,
-  scaleFromWord8, scaleToWord8)
+  scaleFromWord8, scaleToWord8, doubleTo8BitHex)
 import ALife.Creatur.Wain.Random (RandomInitial(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, dStat)
 import Control.Applicative ((<$>), (<*>))
@@ -117,4 +117,4 @@ coolPassion c = c {cPassion=0}
 
 instance Pretty Condition where
   pretty (Condition e p)
-    = "energy=" ++ pretty e ++ " passion=" ++ pretty p
+    = doubleTo8BitHex e $ doubleTo8BitHex p ""

@@ -24,16 +24,19 @@ import ALife.Creatur.Genetics.BRGCWord8 (Genetic, Reader, put, get)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Scenario (Scenario, randomScenario)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
-  doubleToUI)
+import ALife.Creatur.Wain.Util (scaleFromWord8, scaleToWord8)
 import Control.Applicative ((<$>), (<*>))
-import Control.Monad.Random (Rand, RandomGen, getRandom)
+import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
 import Data.Datamining.Pattern (Pattern, Metric, difference,
   makeSimilar)
 import Data.Maybe (fromMaybe)
 import Data.Serialize (Serialize)
+import Data.Word (Word8)
 import GHC.Generics (Generic)
 import System.Random (Random)
+
+outcomeInterval :: (Double, Double)
+outcomeInterval = (-1.0,1.0)
 
 -- Weights to use when comparing possible courses of action.
 -- The values should add up to one.
@@ -83,12 +86,13 @@ instance (Eq a) => Pattern (Response a) where
 
 -- | The initial sequences stored at birth are genetically determined.
 instance (Genetic a) => Genetic (Response a) where
-  put (Response s a o) = put s >> put a >> put (fmap doubleToUI o)
+  put (Response s a o)
+    = put s >> put a >> put (fmap (scaleToWord8 outcomeInterval) o)
   get = do
     s <- get
     a <- get
-    o <- get :: Reader (Either [String] (Maybe UIDouble))
-    return $ Response <$> s <*> a <*> fmap (fmap uiToDouble) o
+    o <- get :: Reader (Either [String] (Maybe Word8))
+    return $ Response <$> s <*> a <*> fmap (fmap $ scaleFromWord8 outcomeInterval) o
 
 instance (Diploid a) => Diploid (Response a)
 
@@ -101,7 +105,7 @@ randomResponse
   :: (RandomGen g, Random a)
     => Int -> Rand g (Response a)
 randomResponse n
-  = Response <$> randomScenario n <*> getRandom <*> fmap Just getRandom
+  = Response <$> randomScenario n <*> getRandom <*> fmap Just (getRandomR outcomeInterval)
 
 possibleResponses :: (Enum a, Bounded a) => Scenario -> [Response a]
 possibleResponses s
