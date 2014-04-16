@@ -37,7 +37,8 @@ module ALife.Creatur.Wain
   ) where
 
 import ALife.Creatur (Agent, agentId, isAlive)
-import ALife.Creatur.Database (Record, key)
+import ALife.Creatur.Database (Record, SizedRecord, key)
+import qualified ALife.Creatur.Database (size)
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, DiploidReader,
   Sequence, get, put, copy, copy2, consumed2, getAndExpress,
   runDiploidReader, write)
@@ -100,6 +101,9 @@ deriving instance (Pattern p, Show p, Show (Metric p), Ord (Metric p),
 
 instance Record (Wain p a) where
   key = name
+
+instance SizedRecord (Wain p a) where
+  size = ALife.Creatur.Database.size
 
 instance (Pattern p, Metric p ~ Double) => Statistical (Wain p a) where
   stats w =
