@@ -35,8 +35,7 @@ module ALife.Creatur.Wain.Util
 import Data.Word (Word8, Word16)
 import Data.Datamining.Pattern (Pattern(..), Metric, adjustNum,
   adjustVector)
-import Data.List (foldl')
-import Numeric (showHex)
+import Text.Printf (printf)
 
 unitInterval :: Num a => (a, a)
 unitInterval = (0,1)
@@ -117,7 +116,7 @@ instance Pattern [Double] where
   makeSimilar = adjustVector
 
 doublesTo8BitHex :: [Double] -> String
-doublesTo8BitHex = foldl' (flip doubleTo8BitHex) ""
+doublesTo8BitHex = concatMap doubleTo8BitHex
 
-doubleTo8BitHex :: Double -> ShowS
-doubleTo8BitHex = showHex . scaleToWord8 unitInterval
+doubleTo8BitHex :: Double -> String
+doubleTo8BitHex = printf "%.2X" . scaleToWord8 unitInterval

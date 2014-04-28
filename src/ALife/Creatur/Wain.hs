@@ -89,7 +89,7 @@ data Wain p a = Wain
     numberOfChildren :: Word16,
     litter :: [Wain p a],
     genome :: ([Word8],[Word8]),
-    size :: Int
+    wainSize :: Int
   } deriving (Eq, Generic)
 
 deriving instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), 
@@ -103,14 +103,14 @@ instance Record (Wain p a) where
   key = name
 
 instance SizedRecord (Wain p a) where
-  size = ALife.Creatur.Database.size
+  size = wainSize
 
 instance (Pattern p, Metric p ~ Double) => Statistical (Wain p a) where
   stats w =
     iStat "age" (age w)
       : iStat "maturity" (ageOfMaturity w)
       : dStat "Δp" (passionDelta w)
-      : iStat "size" (size w)
+      : iStat "size" (wainSize w)
       : iStat "total # of children" (numberOfChildren w)
       : iStat "current litter size" (length $ litter w)
       : stats (brain w)
@@ -181,7 +181,7 @@ buildWain2
   :: (Pattern p, Metric p ~ Double, Serialize a, Serialize p, Eq a)
     => String -> p -> B.Brain p a -> Word16 -> Double -> (Sequence, Sequence)
       -> Wain p a
-buildWain2 n a b m p g = w { size=s }
+buildWain2 n a b m p g = w { wainSize=s }
   where  w = Wain n a b m p C.initialCondition 0 0 [] g 0
          s = BS.length . encode $ w
   
@@ -345,10 +345,10 @@ tryMating
 tryMating a b
   | hasLitter a = do
       U.writeToLog $ agentId a ++ " already has a litter"
-      return ([a], False)
+      return ([a, b], False)
   | hasLitter b = do
       U.writeToLog $ agentId b ++ " already has a litter"
-      return ([a], False)
+      return ([a, b], False)
   | otherwise   = do
       U.writeToLog $ agentId a ++ " mates with " ++ agentId b
       as <- mate a b

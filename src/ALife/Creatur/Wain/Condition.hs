@@ -117,4 +117,4 @@ coolPassion c = c {cPassion=0}
 
 instance Pretty Condition where
   pretty (Condition e p)
-    = doubleTo8BitHex e $ doubleTo8BitHex p ""
+    = doubleTo8BitHex e ++ doubleTo8BitHex p
