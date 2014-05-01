@@ -59,6 +59,10 @@ uiStat s = UIStatistic s . realToFrac
 iStat :: Integral a => String -> a -> Statistic
 iStat s v = IStatistic s (fromIntegral v)
 
+toDStat :: Statistic -> Statistic
+toDStat (IStatistic s x) = DStatistic s x
+toDStat x = x
+
 prefix :: String -> Statistic -> Statistic
 prefix s x = x { sName = s ++ sName x }
 
@@ -76,8 +80,9 @@ summarise xss = [maxima,minima,averages,stdDevs,sums]
   where yss = transpose xss
         maxima   = compile "max. " maximum yss
         minima   = compile "min. " minimum yss
-        averages = compile "avg. " getMean yss
-        stdDevs  = compile "std. dev. " getStandardDeviation yss
+        averages = compile "avg. " getMean $ map (map toDStat) yss
+        stdDevs  = compile "std. dev. " getStandardDeviation $
+                     map (map toDStat) yss
         sums     = compile "total " sum yss
 -- summarise xss = [h,maxima,minima,averages,stdDevs,sums]
 --   where h = header xss
