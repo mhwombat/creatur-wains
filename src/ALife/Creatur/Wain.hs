@@ -238,6 +238,7 @@ chooseAction p1 p2 w = do
   let outcomes = predictOutcomes w2 s
   mapM_ (U.writeToLog . describeOutcome n) outcomes
   let a = R.action $ bestOutcome outcomes
+  U.writeToLog $ n ++ " decides to " ++ show a
   w3 <- rememberAction p1 p2 a w2
   return (l, a, w3)
 
@@ -289,7 +290,7 @@ teachAction1
     Bounded a, Show a)
     => p -> p -> a -> Wain p a -> StateT u IO (Wain p a)
 teachAction1 p1 p2 a w = do
-  U.writeToLog $ agentId w ++ " remembers the response " ++ show a
+  U.writeToLog $ agentId w ++ " makes a note of the response " ++ show a
   let (_, _, s, w') = assessSituation p1 p2 w
   return $ w' { brain = B.observeAction s a (brain w) }
 
@@ -340,7 +341,7 @@ reflect
     => Wain p a -> StateT u IO (Wain p a)
 reflect w = do
   w' <- reflect1 w
-  litter' <- mapM reflect1 (litter w)
+  litter' <- mapM imprint (litter w)
   return $ w' { litter=litter' }
 
 reflect1
@@ -349,6 +350,13 @@ reflect1
 reflect1 w = do
   U.writeToLog $ agentId w ++ " reflects on last action"
   return $ w { brain=B.reflect (condition w) (brain w) }
+
+imprint
+  :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
+    => Wain p a -> StateT u IO (Wain p a)
+imprint w = do
+  U.writeToLog $ agentId w ++ " assumes that was a good thing to do"
+  return $ w { brain=B.imprint (brain w) }
 
 tryMating
   :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,

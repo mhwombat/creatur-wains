@@ -22,6 +22,7 @@ module ALife.Creatur.Wain.Brain
     learnLabel,
     observeAction,
     reflect,
+    imprint,
     randomBrain,
     brainOK
   ) where
@@ -160,3 +161,13 @@ reflect cAfter (Brain c d lr) =
                       hBefore = happiness . condition $ scenario r
                       hAfter = happiness cAfter
                       deltaH = hAfter - hBefore
+
+imprint
+  :: (Pattern p, Metric p ~ Double, Eq a)
+    => Brain p a -> Brain p a
+imprint (Brain c d lr) =
+  case lr of
+    Nothing -> Brain c d Nothing
+    Just r  -> Brain c d' (Just r')
+                where r' = r `setOutcome` 1.0
+                      d' = D.feedback d r'
