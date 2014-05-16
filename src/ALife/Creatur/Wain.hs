@@ -289,7 +289,7 @@ teachAction1
     Bounded a, Show a)
     => p -> p -> a -> Wain p a -> StateT u IO (Wain p a)
 teachAction1 p1 p2 a w = do
-  U.writeToLog $ agentId w ++ " observes the response " ++ show a
+  U.writeToLog $ agentId w ++ " remembers the response " ++ show a
   let (_, _, s, w') = assessSituation p1 p2 w
   return $ w' { brain = B.observeAction s a (brain w) }
 
