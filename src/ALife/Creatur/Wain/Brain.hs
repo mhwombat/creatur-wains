@@ -20,8 +20,8 @@ module ALife.Creatur.Wain.Brain
     classify,
     predict,
     learnLabel,
-    learnAction,
-    feedback,
+    observeAction,
+    reflect,
     randomBrain,
     brainOK
   ) where
@@ -31,7 +31,7 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as C
 import qualified ALife.Creatur.Wain.Decider as D
-import ALife.Creatur.Wain.Condition (Condition)
+import ALife.Creatur.Wain.Condition (Condition, happiness)
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix)
@@ -140,20 +140,23 @@ predict b r = D.predict (decider b) r
 learnLabel :: (Pattern p, Metric p ~ Double) => p -> C.Label -> Brain p a -> Brain p a
 learnLabel p l b = b { classifier=C.learn p l (classifier b) }
 
-learnAction :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
+observeAction :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
     => Scenario -> a -> Brain p a -> Brain p a
-learnAction s a b = b { lastResponse = Just r }
+observeAction s a b = b { lastResponse = Just r }
   where r = Response s a Nothing
   
 -- lastResponse : Brain p a -> Maybe (Response a)
 -- lastResponse = lastResponse
 
-feedback
+reflect
   :: (Pattern p, Metric p ~ Double, Eq a)
-    => Double -> Brain p a -> Brain p a
-feedback deltaHappiness (Brain c d lr) =
+    => Condition -> Brain p a -> Brain p a
+reflect cAfter (Brain c d lr) =
   case lr of
     Nothing -> Brain c d Nothing
     Just r  -> Brain c d' (Just r')
-                where r' = r `setOutcome` deltaHappiness
+                where r' = r `setOutcome` deltaH
                       d' = D.feedback d r'
+                      hBefore = happiness . condition $ scenario r
+                      hAfter = happiness cAfter
+                      deltaH = hAfter - hBefore

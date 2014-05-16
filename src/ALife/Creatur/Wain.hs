@@ -22,6 +22,7 @@ module ALife.Creatur.Wain
     coolPassion,
     energy,
     passion,
+    happiness,
     identity,
     appearanceOf,
     hasLitter,
@@ -29,7 +30,7 @@ module ALife.Creatur.Wain
     chooseAction,
     classify,
     teachLabel,
-    feedback,
+    reflect,
     randomWain,
     tryMating,
     weanMatureChildren,
@@ -237,7 +238,7 @@ chooseAction p1 p2 w = do
   let outcomes = predictOutcomes w2 s
   mapM_ (U.writeToLog . describeOutcome n) outcomes
   let a = R.action $ bestOutcome outcomes
-  w3 <- teachActionToLitter p1 p2 a w2
+  w3 <- rememberAction p1 p2 a w2
   return (l, a, w3)
 
 describeModel :: Show a => String -> (Label, R.Response a) -> String
@@ -267,6 +268,13 @@ assessSituation p1 p2 w = (l1, l2, sc, w{brain=b})
   where (l1, l2, sc, b)
           = B.assessSituation p1 p2 (condition w) (brain w)
 
+rememberAction
+  :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
+    Bounded a, Show a)
+    => p -> p -> a -> Wain p a -> StateT u IO (Wain p a)
+rememberAction p1 p2 a w =
+  teachAction1 p1 p2 a w >>= teachActionToLitter p1 p2 a
+  
 teachActionToLitter
   :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
     Bounded a, Show a)
@@ -283,7 +291,7 @@ teachAction1
 teachAction1 p1 p2 a w = do
   U.writeToLog $ agentId w ++ " observes the response " ++ show a
   let (_, _, s, w') = assessSituation p1 p2 w
-  return $ w' { brain = B.learnAction s a (brain w) }
+  return $ w' { brain = B.observeAction s a (brain w) }
 
 incAge
   :: (Pattern p, Metric p ~ Double, U.Universe u)
@@ -327,20 +335,20 @@ teachLabel1 p l w = do
   U.writeToLog $ agentId w ++ " learns to (maybe) label this " ++ show l
   return $ w { brain=B.learnLabel p l (brain w) }
 
-feedback
+reflect
   :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
-    => Double -> Wain p a -> StateT u IO (Wain p a)
-feedback deltaHappiness w = do
-  w' <- feedback1 deltaHappiness w
-  litter' <- mapM (feedback1 deltaHappiness) (litter w)
+    => Wain p a -> StateT u IO (Wain p a)
+reflect w = do
+  w' <- reflect1 w
+  litter' <- mapM reflect1 (litter w)
   return $ w' { litter=litter' }
 
-feedback1
+reflect1
   :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
-    => Double -> Wain p a -> StateT u IO (Wain p a)
-feedback1 deltaHappiness w = do
-  U.writeToLog $ agentId w ++ " observes  Δh=" ++ show deltaHappiness
-  return $ w { brain=B.feedback deltaHappiness (brain w) }
+    => Wain p a -> StateT u IO (Wain p a)
+reflect1 w = do
+  U.writeToLog $ agentId w ++ " reflects on last action"
+  return $ w { brain=B.reflect (condition w) (brain w) }
 
 tryMating
   :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
@@ -404,3 +412,6 @@ energy = C.cEnergy . condition
 
 passion :: Wain p a -> Double
 passion = C.cPassion . condition
+
+happiness :: Wain p a -> Double
+happiness = C.happiness . condition
