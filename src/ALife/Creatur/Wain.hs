@@ -229,22 +229,24 @@ chooseAction
     => p -> p -> Wain p a
       -> StateT u IO (Label, a, Wain p a)
 chooseAction p1 p2 w = do
+  let n = agentId w
   let (l, _, s, w2) = assessSituation p1 p2 w
-  U.writeToLog $ "Assessment=[" ++ pretty s ++ "]"
+  U.writeToLog $ n ++ "'s assessment=[" ++ pretty s ++ "]"
   let ms = toList . B.decider $ brain w2
-  mapM_ (U.writeToLog . describeModel ) ms
+  mapM_ (U.writeToLog . describeModel n) ms
   let outcomes = predictOutcomes w2 s
-  mapM_ (U.writeToLog . describeOutcome) outcomes
+  mapM_ (U.writeToLog . describeOutcome n) outcomes
   let a = R.action $ bestOutcome outcomes
   w3 <- teachActionToLitter p1 p2 a w2
   return (l, a, w3)
 
-describeModel :: Show a => (Label, R.Response a) -> String
-describeModel (l, r) = "Model" ++ show l ++ "=[" ++ pretty r ++ "]"
+describeModel :: Show a => String -> (Label, R.Response a) -> String
+describeModel n (l, r)
+  = n ++ "'s model" ++ show l ++ "=[" ++ pretty r ++ "]"
 
-describeOutcome :: Show a => R.Response a -> String
-describeOutcome r 
-  = "Predicted outcome of " ++ show (R.action r) ++ " is "
+describeOutcome :: Show a => String -> R.Response a -> String
+describeOutcome n r 
+  = n ++ "'s predicted outcome of " ++ show (R.action r) ++ " is "
       ++ show (R.outcome r)
 
 predictOutcomes
@@ -326,17 +328,19 @@ teachLabel1 p l w = do
   return $ w { brain=B.learnLabel p l (brain w) }
 
 feedback
-  :: (Pattern p, Metric p ~ Double, Eq a)
-    => Double -> Wain p a -> Wain p a
-feedback deltaHappiness w = w' { litter=litter' }
-  where w' = feedback1 deltaHappiness w
-        litter' = map (feedback1 deltaHappiness) (litter w)
+  :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
+    => Double -> Wain p a -> StateT u IO (Wain p a)
+feedback deltaHappiness w = do
+  w' <- feedback1 deltaHappiness w
+  litter' <- mapM (feedback1 deltaHappiness) (litter w)
+  return $ w' { litter=litter' }
 
 feedback1
-  :: (Pattern p, Metric p ~ Double, Eq a)
-    => Double -> Wain p a -> Wain p a
-feedback1 deltaHappiness w
-  = w { brain=B.feedback deltaHappiness (brain w) }
+  :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
+    => Double -> Wain p a -> StateT u IO (Wain p a)
+feedback1 deltaHappiness w = do
+  U.writeToLog $ agentId w ++ " observes  Δh=" ++ show deltaHappiness
+  return $ w { brain=B.feedback deltaHappiness (brain w) }
 
 tryMating
   :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
@@ -387,7 +391,9 @@ weanMatureChildren a =
     then return [a]
     else do
       let (weanlings, babes) = partition mature (litter a)
-      mapM_ (\c -> U.writeToLog $ (agentId c) ++ " weaned") weanlings
+      mapM_ (\c -> U.writeToLog $
+                    (agentId c) ++ " weaned from " ++ agentId a)
+                      weanlings
       return $ (a { litter=babes }):weanlings
 
 mature :: Wain p a -> Bool
