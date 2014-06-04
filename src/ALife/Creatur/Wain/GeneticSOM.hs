@@ -165,7 +165,7 @@ randomGeneticSOM
 randomGeneticSOM s xs = do
   r0 <- getRandomR (0.001,1)
   rf <- getRandomR (0.001,r0)
-  w0 <- getRandomR (0.001,1 + fromIntegral s)
+  w0 <- getRandomR (1,1 + fromIntegral s)
   wf <- getRandomR (0.001,w0)
   tf <- getRandom
   let tf' = abs tf + 1
