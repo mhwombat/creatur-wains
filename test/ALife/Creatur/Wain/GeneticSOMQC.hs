@@ -24,10 +24,8 @@ import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Util (unitInterval)
 import ALife.Creatur.Util (isqrt)
 import Control.Monad.Random (evalRand)
-import qualified Data.Datamining.Clustering.Classifier as C
 import Data.Datamining.Pattern (Pattern, Metric)
-import Data.Datamining.Clustering.SOM (counter, DecayingGaussian(..),
-  learningFunction)
+import Data.Datamining.Clustering.SOM (counter, DecayingGaussian(..))
 import Data.Word (Word16)
 import Math.Geometry.Grid (tileCount)
 import Math.Geometry.Grid.Hexagonal (HexHexGrid, hexHexGrid)
@@ -55,7 +53,7 @@ equivDecayingGaussian (DecayingGaussian r0a rfa w0a wfa tfa)
     && abs (rfa - rfb) < (1/256)
     && abs (w0a - w0b) < 1
     && abs (wfa - wfb) < 1
-    && abs (tfa - tfb) < 256
+    && abs (tfa - tfb) < 1
 
 -- We want the number of tiles in a test grid to be O(n)
 sizedHexHexGrid :: Int -> Gen HexHexGrid
@@ -92,10 +90,10 @@ instance (Arbitrary p, Pattern p, Metric p ~ Double)
 equiv
   :: (Eq p, Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> GeneticSOM p -> Bool
-equiv (GeneticSOM s1 _) (GeneticSOM s2 _) =
-  learningFunction s1 `equivDecayingGaussian` learningFunction s2
-    && C.numModels s1 == C.numModels s2
-    && C.models s1 == C.models s2
+equiv gs1 gs2 =
+  learningFunction gs1 `equivDecayingGaussian` learningFunction gs2
+    && numModels gs1 == numModels gs2
+    && models gs1 == models gs2
 
 prop_can_generate_random_geneticSOM :: Int -> Property
 prop_can_generate_random_geneticSOM seed = property $
