@@ -16,7 +16,6 @@ module ALife.Creatur.Wain.Response
     Response(..),
     copyOutcomeTo,
     setOutcome,
-    possibleResponses,
     randomResponse
   ) where
 
@@ -78,7 +77,10 @@ instance (Eq a) => Pattern (Response a) where
                         (Just ry) -> abs (rx - ry)
                         Nothing -> 1
                     Nothing -> 1
-  makeSimilar target r x = Response s a o
+  makeSimilar target r x =
+    if action target == action x
+       then Response s a o
+       else x
     where s = makeSimilar (scenario target) r (scenario x)
           a = action x
           o = Just $ makeSimilar (fromMaybe 0.0 $ outcome target) r
@@ -106,10 +108,6 @@ randomResponse
     => Int -> Rand g (Response a)
 randomResponse n
   = Response <$> randomScenario n <*> getRandom <*> fmap Just (getRandomR outcomeInterval)
-
-possibleResponses :: (Enum a, Bounded a) => Scenario -> [Response a]
-possibleResponses s
-  = map (\a -> Response s a Nothing) [minBound..maxBound]
 
 copyOutcomeTo :: Response a -> Response a -> Response a
 copyOutcomeTo source target = target { outcome=outcome source }

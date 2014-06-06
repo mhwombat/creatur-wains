@@ -163,10 +163,10 @@ randomGeneticSOM
   :: (Pattern p, Metric p ~ Double, RandomGen g)
     => Word8 -> [p] -> Rand g (GeneticSOM p)
 randomGeneticSOM s xs = do
-  r0 <- getRandomR (0.001,1)
-  rf <- getRandomR (0.001,r0)
-  w0 <- getRandomR (0.001,1 + fromIntegral s)
-  wf <- getRandomR (0.001,w0)
+  r0 <- getRandomR (1/255,1)
+  rf <- getRandomR (0,r0)
+  w0 <- getRandomR (1,1 + fromIntegral s)
+  wf <- getRandomR (1,w0)
   tf <- getRandom
   let tf' = abs tf + 1
   let f = SOM.DecayingGaussian r0 rf w0 wf tf'

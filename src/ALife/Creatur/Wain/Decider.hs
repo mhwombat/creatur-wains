@@ -19,16 +19,20 @@ module ALife.Creatur.Wain.Decider
     feedback,
     numModels,
     toList,
+    possibleResponses,
     randomDecider,
     somOK
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, patternMap,
-  justClassify, reportAndTrain, randomGeneticSOM, somOK, numModels, toList)
-import ALife.Creatur.Wain.Response (Response, copyOutcomeTo,
-  randomResponse)
+  justClassify, reportAndTrain, randomGeneticSOM, somOK, numModels,
+  toList, models)
+import ALife.Creatur.Wain.Response (Response(..), copyOutcomeTo,
+  randomResponse, action)
+import ALife.Creatur.Wain.Scenario (Scenario)
 import Control.Monad (replicateM)
 import Control.Monad.Random (Rand, RandomGen)
+import Data.List (nub)
 import Data.Word (Word8)
 import Math.Geometry.GridMap ((!))
 import System.Random (Random)
@@ -54,3 +58,10 @@ predict d r = a `copyOutcomeTo` r
 feedback :: (Eq a) => Decider a -> Response a -> Decider a
 feedback d r = d'
   where (_, _, d') = reportAndTrain d r
+
+possibleResponses :: (Eq a) => Decider a -> Scenario -> [Response a]
+possibleResponses d s
+  = map (\a -> Response s a Nothing) $ possibleActions d
+
+possibleActions :: (Eq a) => Decider a -> [a]
+possibleActions = nub . map action . models 

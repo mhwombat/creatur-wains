@@ -254,7 +254,8 @@ describeOutcome n r
 predictOutcomes
   :: (Bounded a, Enum a, Eq a)
      => Wain p a -> S.Scenario -> [R.Response a]
-predictOutcomes w s = map (B.predict $ brain w) $ R.possibleResponses s
+predictOutcomes w s = map (B.predict b) $ B.possibleResponses b s
+  where b = brain w
 
 bestOutcome
   :: (Eq a, Enum a, Bounded a)

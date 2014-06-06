@@ -18,6 +18,7 @@ module ALife.Creatur.Wain.Brain
     buildBrain,
     assessSituation,
     classify,
+    possibleResponses,
     predict,
     learnLabel,
     observeAction,
@@ -134,6 +135,9 @@ classify'
 classify' s b = (label, sig, b')
   where (label, sig, c') = C.classify (classifier b) s
         b' = b { classifier = c' }
+
+possibleResponses :: (Eq a) => Brain p a -> Scenario -> [Response a]
+possibleResponses b s = D.possibleResponses (decider b) s
 
 predict :: (Eq a) => Brain p a -> Response a -> Response a
 predict b r = D.predict (decider b) r
