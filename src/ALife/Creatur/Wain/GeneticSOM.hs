@@ -37,7 +37,7 @@ import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
 import ALife.Creatur.Wain.Util (forceIntToWord8, forceIntToWord16)
 import Control.Applicative ((<$>), (<*>))
-import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
+import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Data.Datamining.Pattern (Pattern, Metric, makeSimilar)
 import qualified Data.Datamining.Clustering.Classifier as C
 import qualified Data.Datamining.Clustering.SOM as SOM
@@ -167,9 +167,9 @@ randomGeneticSOM s xs = do
   rf <- getRandomR (0,r0)
   w0 <- getRandomR (1,1 + fromIntegral s)
   wf <- getRandomR (1,w0)
-  tf <- getRandom
-  let tf' = abs tf + 1
-  let f = SOM.DecayingGaussian r0 rf w0 wf tf'
+  let tMax = maxBound :: Word16
+  tf <- getRandomR (1,fromIntegral tMax)
+  let f = SOM.DecayingGaussian r0 rf w0 wf tf
   return $ buildGeneticSOM s f xs
 
 learn

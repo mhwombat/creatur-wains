@@ -275,22 +275,22 @@ rememberAction
     Bounded a, Show a)
     => p -> p -> a -> Wain p a -> StateT u IO (Wain p a)
 rememberAction p1 p2 a w =
-  teachAction1 p1 p2 a w >>= teachActionToLitter p1 p2 a
+  rememberAction1 p1 p2 a w >>= showActionToLitter p1 p2 a
   
-teachActionToLitter
+showActionToLitter
   :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
     Bounded a, Show a)
     => p -> p -> a -> Wain p a
       -> StateT u IO (Wain p a)
-teachActionToLitter p1 p2 a w = do
-  litter' <- mapM (teachAction1 p1 p2 a) (litter w)
+showActionToLitter p1 p2 a w = do
+  litter' <- mapM (rememberAction1 p1 p2 a) (litter w)
   return $ w { litter=litter' }
 
-teachAction1
+rememberAction1
   :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
     Bounded a, Show a)
     => p -> p -> a -> Wain p a -> StateT u IO (Wain p a)
-teachAction1 p1 p2 a w = do
+rememberAction1 p1 p2 a w = do
   U.writeToLog $ agentId w ++ " makes a note of the response " ++ show a
   let (_, _, s, w') = assessSituation p1 p2 w
   return $ w' { brain = B.observeAction s a (brain w) }
