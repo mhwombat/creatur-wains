@@ -20,9 +20,8 @@ module ALife.Creatur.Wain.Scenario
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get,
   putRawWord8s, getRawWord8s)
 import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.Condition (Condition)
+import ALife.Creatur.Wain.Condition (Condition, randomCondition)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.Random (randomInitial)
 import ALife.Creatur.Wain.Util (forceIntToWord8, word8ToInt,
   scaleToWord8, scaleFromWord8, unitInterval, doublesTo8BitHex)
 import Control.Applicative
@@ -71,7 +70,7 @@ instance Pattern Scenario where
     where dObj = makeSimilar (directObject target) r (directObject x)
           iObj = makeSimilar (indirectObject target) r (indirectObject x)
           cond = makeSimilar (condition target) r (condition x)
-
+    
 -- | The initial sequences stored at birth are genetically determined.
 instance Genetic Scenario where
   -- put (Scenario ds is c) = do
@@ -110,11 +109,14 @@ word8sToDoubles = map (scaleFromWord8 unitInterval)
 
 instance Diploid Scenario
 
+-- | Returns a random scenario for a decider that operates with a
+--   classifier containing the specified number of models.
+--   This is useful for generating random responses.
 randomScenario :: RandomGen g => Int -> Rand g Scenario
 randomScenario n = do
   ds <- replicateM n getRandom
   is <- replicateM n getRandom
-  c <- randomInitial
+  c <- randomCondition
   return $ Scenario ds is c
 
 instance Pretty Scenario where

@@ -26,7 +26,7 @@ import Test.QuickCheck
 
 instance Arbitrary Condition where
   arbitrary = Condition <$> arb8BitDouble unitInterval
-                <*> arb8BitDouble unitInterval
+                <*> arb8BitDouble unitInterval <*> arbitrary
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ConditionQC"

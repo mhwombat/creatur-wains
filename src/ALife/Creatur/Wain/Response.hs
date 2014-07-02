@@ -16,7 +16,8 @@ module ALife.Creatur.Wain.Response
     Response(..),
     copyOutcomeTo,
     setOutcome,
-    randomResponse
+    randomResponse,
+    diffIgnoringOutcome
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, Reader, put, get)
@@ -33,6 +34,7 @@ import Data.Serialize (Serialize)
 import Data.Word (Word8)
 import GHC.Generics (Generic)
 import System.Random (Random)
+import Text.Printf (printf)
 
 outcomeInterval :: (Double, Double)
 outcomeInterval = (-1.0,1.0)
@@ -47,7 +49,7 @@ deciderWeights =
     0.1  -- result
   ]
 
--- | A model of a situation and the response to it
+-- | A model of a situation that a wain might encounter.
 data Response a = Response
   {
     -- | The situation to be responded to
@@ -67,16 +69,12 @@ instance (Eq a) => Pattern (Response a) where
   type Metric (Response a) = Double
   difference x y =
     if action x == action y
-      then 0.0
-      else (sum $ zipWith (*) deciderWeights ds)/2
+      then (sum $ zipWith (*) deciderWeights ds)/2
+      else 1.0
     where ds = [sDiff, rDiff]
           sDiff = difference (scenario x) (scenario y)
-          rDiff = case outcome x of
-                    (Just rx) ->
-                      case outcome y of
-                        (Just ry) -> abs (rx - ry)
-                        Nothing -> 1
-                    Nothing -> 1
+          rDiff = diffOutcome (fromMaybe 0 $ outcome x)
+                    (fromMaybe 0 $ outcome x)
   makeSimilar target r x =
     if action target == action x
        then Response s a o
@@ -85,6 +83,17 @@ instance (Eq a) => Pattern (Response a) where
           a = action x
           o = Just $ makeSimilar (fromMaybe 0.0 $ outcome target) r
                 (fromMaybe 0.0 $ outcome x)
+
+diffOutcome :: Double -> Double -> Double
+diffOutcome a b = (abs (a-b))/2
+  -- a and b are in the interval [-1,1]. We want the difference to be
+  -- in the interval [0,1]
+
+diffIgnoringOutcome :: Eq a => Response a -> Response a -> Double
+diffIgnoringOutcome x y = difference x' y'
+  where x' = x {outcome=Nothing}
+        y' = y {outcome=Nothing}
+
 
 -- | The initial sequences stored at birth are genetically determined.
 instance (Genetic a) => Genetic (Response a) where
@@ -100,18 +109,24 @@ instance (Diploid a) => Diploid (Response a)
 
 instance (Show a) => Pretty (Response a) where
   pretty (Response s a o)
-    = "scenario=" ++ pretty s ++ ", action=" ++ show a
-      ++ ", outcome=" ++ pretty o
+    = pretty s ++ '|':show a ++ '|':format o
+    where format (Just x) = printf "%.3f" x
+          format _ = "ø"
 
+-- | Returns a random response model for a decider that operates with a
+--   classifier containing the specified number of models.
+--   This is useful for generating random deciders.
 randomResponse
   :: (RandomGen g, Random a)
     => Int -> Rand g (Response a)
 randomResponse n
   = Response <$> randomScenario n <*> getRandom <*> fmap Just (getRandomR outcomeInterval)
 
+-- | Updates the outcome in the second response to match the first.
 copyOutcomeTo :: Response a -> Response a -> Response a
 copyOutcomeTo source target = target { outcome=outcome source }
 
+-- | Updates the outcome in a response model.
 setOutcome :: Response a -> Double -> Response a
 setOutcome r o = r { outcome=Just o }
 

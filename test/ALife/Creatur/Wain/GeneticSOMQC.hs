@@ -95,12 +95,38 @@ equiv gs1 gs2 =
     && numModels gs1 == numModels gs2
     && models gs1 == models gs2
 
-prop_can_generate_random_geneticSOM :: Int -> Property
-prop_can_generate_random_geneticSOM seed = property $
-  som `seq` True
+instance Arbitrary RandomDecayingGaussianParams where
+  arbitrary = do
+    r0start <- choose (0,1)
+    r0stop <- choose (0,1)
+    rfstart <- choose (0,1)
+    rfstop <- choose (0,1)
+    w0start <- choose (0,1)
+    w0stop <- choose (0,1)
+    wfstart <- choose (0,1)
+    wfstop <- choose (0,1)
+    tfstart <- choose (0,100000000)
+    tfstop <- choose (0,100000000)
+    s <- arbitrary
+    return $ RandomDecayingGaussianParams (r0start,r0stop)
+      (rfstart,rfstop) (w0start,w0stop) (wfstart,wfstop)
+      (tfstart,tfstop) s
+
+prop_random_decayingGaussian_rf_le_r0
+  :: Int -> RandomDecayingGaussianParams -> Property
+prop_random_decayingGaussian_rf_le_r0 seed params = property $ rf <= r0
   where g = mkStdGen seed
-        xs = [1..]
-        som = evalRand (randomGeneticSOM 5 xs) g :: GeneticSOM Double
+        (DecayingGaussian r0 rf _ _ _)
+           = evalRand (randomDecayingGaussian params) g
+               :: DecayingGaussian Double
+
+prop_random_decayingGaussian_wf_le_w0
+  :: Int -> RandomDecayingGaussianParams -> Property
+prop_random_decayingGaussian_wf_le_w0 seed params = property $ wf <= w0
+  where g = mkStdGen seed
+        (DecayingGaussian _ _ w0 wf _)
+           = evalRand (randomDecayingGaussian params) g
+               :: DecayingGaussian Double
 
 prop_sum_counts_correct
   :: GeneticSOM TestPattern -> [TestPattern] -> Property
@@ -140,8 +166,10 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
     testProperty "prop_diploid_readable - GeneticSOM"
       (prop_diploid_readable :: GeneticSOM TestPattern -> GeneticSOM TestPattern -> Property),
 
-    testProperty "prop_can_generate_random_geneticSOM"
-      prop_can_generate_random_geneticSOM,
+    testProperty "prop_random_decayingGaussian_rf_le_r0"
+      prop_random_decayingGaussian_rf_le_r0,
+    testProperty "prop_random_decayingGaussian_wf_le_w0"
+      prop_random_decayingGaussian_wf_le_w0,
     testProperty "prop_sum_counts_correct"
       prop_sum_counts_correct
     -- testProperty "prop_new_som_has_models"

@@ -37,12 +37,17 @@ import Data.Datamining.Pattern (Pattern(..), Metric, adjustNum,
   adjustVector)
 import Text.Printf (printf)
 
+-- | The range [0,1], endpoints included.
 unitInterval :: Num a => (a, a)
 unitInterval = (0,1)
 
+-- | Returns @True@ if the value is in the specified range, endpoints
+--   included; returns @False@ otherwise.
 inRange :: Ord c => (c, c) -> c -> Bool
 inRange (a,b) c = c >= a && c <= b
 
+-- | If the value is outside the specified range, endpoints included,
+--   return the nearest endpoint; otherwise, return the value.
 enforceRange :: Ord c => (c, c) -> c -> c
 enforceRange (a,b) = max a . min b
 
@@ -88,15 +93,21 @@ scaleIntToWord8 (a, b) x = round (255*(x'-a')/(b'-a'))
 scaleWord8ToInt :: (Int, Int) -> Word8 -> Int
 scaleWord8ToInt (a, b) x = a + (fromIntegral x)*(b-a) `div` 255
 
+-- | @'forceIntToWord8' x@ returns 255 or @x@, whichever is smaller.
+--   TODO: How should negative values be handled?
 forceIntToWord8 :: Int -> Word8
 forceIntToWord8 = fromIntegral . min maxBound
 
+-- | Converts a @Word8@ to an @Int@.
 word8ToInt :: Word8 -> Int
 word8ToInt = fromIntegral
 
+-- | @'forceIntToWord8' x@ returns 65535 or @x@, whichever is smaller.
+--   TODO: How should negative values be handled?
 forceIntToWord16 :: Int -> Word16
 forceIntToWord16 = fromIntegral . min maxBound
 
+-- | Converts a @Word16@ to an @Int@.
 word16ToInt :: Word16 -> Int
 word16ToInt = fromIntegral
 
@@ -115,8 +126,12 @@ instance Pattern [Double] where
           d = sum $ map (\z -> z*z) deltas
   makeSimilar = adjustVector
 
+-- | Given a sequence of numbers on the unit interval], scales them
+--   to the interval [0,255] and returns a hexadecimal representation.
 doublesTo8BitHex :: [Double] -> String
 doublesTo8BitHex = concatMap doubleTo8BitHex
 
+-- | Given a number on the unit interval, scales it to the interval
+--   [0,255] and returns a hexadecimal representation.
 doubleTo8BitHex :: Double -> String
 doubleTo8BitHex = printf "%.2X" . scaleToWord8 unitInterval

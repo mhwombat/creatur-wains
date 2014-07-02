@@ -21,6 +21,7 @@ import Text.Printf (printf)
 import Numeric (showHex)
 
 class Pretty a where
+  -- Formats a value to make it easier for humans to read.
   pretty :: a -> String
 
   default pretty :: (Show a) => a -> String

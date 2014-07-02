@@ -23,26 +23,27 @@ module ALife.Creatur.Wain.Classifier
     numModels,
     patternMap,
     counterMap,
-    randomClassifier,
+    -- randomClassifier,
     somOK
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label, numModels,
-  reportAndTrain, randomGeneticSOM, somOK, learn, patternMap,
-  counterMap)
-import Control.Monad.Random (Rand, RandomGen)
+  reportAndTrain, somOK, learn, patternMap, counterMap)
 import Data.Datamining.Pattern (Pattern, Metric)
-import Data.Word (Word8)
 
 type Classifier = GeneticSOM
 
-randomClassifier
-  :: (Pattern p, Metric p ~ Double, RandomGen g)
-    => Word8 -> [p] -> Rand g (Classifier p)
-randomClassifier = randomGeneticSOM
+-- randomClassifier
+--   :: (Pattern p, Metric p ~ Double, RandomGen g)
+--     => Word8 -> [p] -> Rand g (Classifier p)
+-- randomClassifier = randomGeneticSOM
 
--- | Find out how similar the stimulus (input) is to the current
---   classifier models.
+-- | Updates the classifier models based on the stimulus (input).
+--   Returns the index (grid location) of the model that most closely
+--   matches the input pattern,
+--   the differences between the input pattern and each model in the
+--   classifier,
+--   and the updated classifier.
 classify
   :: (Pattern s, Ord (Metric s), Metric s ~ Double)
     => Classifier s -> s -> (Label, [Metric s], Classifier s)

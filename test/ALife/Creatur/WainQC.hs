@@ -43,10 +43,11 @@ strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- brain
                 <*> arbitrary     -- age of maturity
                 <*> arbitrary     -- delta passion
-                <*> arbitrary     -- condition
+                <*> arbitrary     -- energy
+                <*> arbitrary     -- passion
                 <*> arbitrary     -- age
-                <*> arbitrary     -- total number of children
                 <*> pure []       -- child
+                <*> arbitrary     -- total number of children
                 <*> pure ([],[])  -- genome
                 <*> arbitrary     -- size
 
@@ -59,7 +60,7 @@ arbWain = do
   a2 <- strawMan
   let g1 = write a1
   let g2 = write a2
-  let r = runDiploidReader (buildWain False n) (g1, g2)
+  let r = runDiploidReader (buildWainFromGenome False n) (g1, g2)
   case r of
     (Left s)   -> error . show $ s
     (Right r') -> return r'

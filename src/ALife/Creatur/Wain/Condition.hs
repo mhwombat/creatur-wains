@@ -7,42 +7,42 @@
 -- Stability   :  experimental
 -- Portability :  portable
 --
--- Tracks an agent's state of health and happiness.
+-- A wain's "condition" includes anything it needs to know about its
+-- current status in order to make good decisions.
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric, TypeFamilies #-}
 module ALife.Creatur.Wain.Condition
   (
     Condition(..),
-    initialCondition,
-    alive,
-    happiness,
-    adjustEnergy,
-    adjustPassion,
-    coolPassion
+    randomCondition,
+    happiness
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.Util (unitInterval, enforceRange,
-  scaleFromWord8, scaleToWord8, doubleTo8BitHex)
-import ALife.Creatur.Wain.Random (RandomInitial(..))
-import ALife.Creatur.Wain.Statistics (Statistical, stats, dStat)
+import ALife.Creatur.Wain.Util (unitInterval, scaleFromWord8,
+  scaleToWord8, doubleTo8BitHex)
 import Control.Applicative ((<$>), (<*>))
-import Control.Monad.Random (getRandom)
+import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (Pattern, Metric, adjustNum,
   difference, makeSimilar)
 import Data.Serialize (Serialize)
+import Data.Word (Word8)
 import GHC.Generics (Generic)
+import Text.Printf (printf)
 
 -- TODO: Make these weights genetic
 energyWeight :: Double
-energyWeight = 1 - passionWeight
+energyWeight = 1 - passionWeight - litterWeight
 
 passionWeight :: Double
 passionWeight = 0.1
+
+litterWeight :: Double
+litterWeight = 0.1
 
 -- | A model of a stimulus and the response to it
 data Condition = Condition
@@ -50,7 +50,9 @@ data Condition = Condition
     -- | Current energy level
     cEnergy :: Double,
     -- | Current passion level
-    cPassion :: Double
+    cPassion :: Double,
+    -- | Is the wain currently rearing a litter?
+    cLitterSize :: Word8
   } deriving (Eq, Show, Generic)
 
 instance Serialize Condition
@@ -59,62 +61,53 @@ instance Serialize Condition
 -- the initial response patterns stored at birth are genetically
 -- determined, and they contain condition information.
 instance Genetic Condition where
-  put (Condition e p) = do
+  put (Condition e p l) = do
     G.put $ scaleToWord8 unitInterval e
     G.put $ scaleToWord8 unitInterval p
+    G.put l
   get = do
     e <- fmap (fmap $ scaleFromWord8 unitInterval) G.get
     p <- fmap (fmap $ scaleFromWord8 unitInterval) G.get
-    return $ Condition <$> e <*> p
+    l <- G.get
+    return $ Condition <$> e <*> p <*> l
 
 instance Diploid Condition
 
 instance Pattern Condition where
   type Metric Condition = Double
   difference x y
-    = sum [eDiff*energyWeight, pDiff*passionWeight]
+    = sum [eDiff*energyWeight, pDiff*passionWeight, lDiff*litterWeight]
     where eDiff = abs (cEnergy x - cEnergy y)
           pDiff = abs (cPassion x - cPassion y)
-  makeSimilar target r x = Condition e p
+          lDiff = if cLitterSize x == cLitterSize y then 0 else 1
+  makeSimilar target r x = Condition e p l
     where e = adjustNum (cEnergy target) r (cEnergy x)
           p = adjustNum (cPassion target) r (cPassion x)
+          l = round $ adjustNum lTarget r lX
+          lTarget = fromIntegral $ cLitterSize target :: Double
+          lX = fromIntegral $ cLitterSize x :: Double
 
-instance Statistical Condition where
-  stats c@(Condition e p) =
-    [dStat "energy" e, dStat "passion" p,
-     dStat "happiness" (happiness c)]
+-- instance Statistical Condition where
+--   stats c@(Condition e p l) =
+--     [dStat "energy" e, dStat "passion" p,
+--      dStat "happiness" (happiness c)]
 
--- When wains are created, they have a predetermined initial condition.
--- However, we still need to generate random conditions for use in
--- response models.
-instance RandomInitial Condition where
-  randomInitial = do
+-- | Returns a random condition.
+--   This is useful for generating random response models.
+randomCondition :: RandomGen g => Rand g Condition
+randomCondition = do
     e <- getRandom
     p <- getRandom
-    return $ Condition e p
+    l <- getRandom
+    return $ Condition e p l
 
-initialCondition :: Condition
-initialCondition = Condition 1 0
-
+-- | Wains seek to maximise their happiness, which is a function
+--   their current condition.
+--   TODO: Should the litter size affect happiness?
 happiness :: Condition -> Double
-happiness (Condition e p)
+happiness (Condition e p _)
   = e*energyWeight + (1 - p)*passionWeight
 
-alive :: Condition -> Bool
-alive c = cEnergy c > 0
-
-adjustEnergy :: Double -> Condition -> Condition
-adjustEnergy delta c = c {cEnergy=e}
-  -- where e = enforceRange unitInterval (cEnergy c + delta)
-  where e = min 1 (cEnergy c + delta)
-
-adjustPassion :: Double -> Condition -> Condition
-adjustPassion delta c = c {cPassion=p}
-  where p = enforceRange unitInterval (cPassion c + delta)
-
-coolPassion :: Condition -> Condition
-coolPassion c = c {cPassion=0}
-
 instance Pretty Condition where
-  pretty (Condition e p)
-    = doubleTo8BitHex e ++ doubleTo8BitHex p
+  pretty (Condition e p l)
+    = doubleTo8BitHex e ++ doubleTo8BitHex p ++ printf "%.2X" l

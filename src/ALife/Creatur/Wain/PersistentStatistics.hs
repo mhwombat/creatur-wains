@@ -30,14 +30,17 @@ import System.FilePath (dropFileName)
 --import Text.Read (readEither)
 import qualified Data.ByteString as BS
 
+-- | Updates the stored statistics.
 updateStats :: Universe u => [Stats.Statistic] -> FilePath -> StateT u IO ()
 updateStats x f = do
   xs <- readStats f
   writeStats f (x:xs)
 
+-- | Clears the stored statistics.
 clearStats :: Universe u => FilePath -> StateT u IO ()
 clearStats f = writeStats f []
 
+-- | Returns the stored statistics.
 readStats :: Universe u => FilePath -> StateT u IO [[Stats.Statistic]]
 readStats f = do
   fExists <- liftIO $ doesFileExist f
@@ -67,6 +70,7 @@ writeStats f xs = do
   liftIO $ createDirectoryIfMissing True (dropFileName f)
   liftIO $ BS.writeFile f (DS.encode xs)
 
+-- | Summarises the stored statistics and writes them to the log.
 summarise :: Universe u => [[Stats.Statistic]] -> StateT u IO ()
 summarise xss = mapM_ f $ Stats.summarise xss
   where f s = writeToLog $ "Summary - " ++ s

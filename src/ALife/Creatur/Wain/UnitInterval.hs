@@ -39,9 +39,14 @@ import System.Random (Random(..), randomR)
 newtype UIDouble = UIDouble Double
   deriving (Eq, Ord, Generic, Enum, Num, Fractional, Floating, RealFrac)
 
+-- | Extract the value from a @UIDouble@.
+--   Note that this value can be outside the unit interval; see
+--   @UIDouble@ for more information.
 uiToDouble :: UIDouble -> Double
 uiToDouble (UIDouble a) = a
 
+-- | Convert a value to a @UIDouble@. The value will be capped to the
+--   unit interval.
 doubleToUI :: Double -> UIDouble
 doubleToUI = UIDouble . enforceRange unitInterval
 

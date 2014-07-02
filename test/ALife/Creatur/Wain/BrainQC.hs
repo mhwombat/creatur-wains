@@ -18,7 +18,8 @@ module ALife.Creatur.Wain.BrainQC
     equiv
   ) where
 
-import ALife.Creatur.Wain.Brain
+import ALife.Creatur.Wain.BrainInternal
+import ALife.Creatur.Wain.Condition
 import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.DeciderQC as D
 import ALife.Creatur.Wain.GeneticSOMQC ()
@@ -34,9 +35,19 @@ instance Arbitrary (Brain TestPattern TestAction) where
     d <- arbitrary
     return $ buildBrain c d
     
-equiv :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Bool
+equiv
+  :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Bool
 equiv b1 b2 = classifier b1 `C.equiv` classifier b2
   && decider b1 `D.equiv` decider b2
+
+prop_feedback_makes_predictions_more_accurate
+  :: TestPattern -> TestPattern -> (Condition, Condition)
+    -> Brain TestPattern TestAction ->  Property
+prop_feedback_makes_predictions_more_accurate p1 p2 cPair b =
+  property $ errAfter <= errBefore
+  where (b2, errBefore) = reflect p1 p2 cPair a b
+        (_, errAfter) = reflect p1 p2 cPair a b2
+        a = head . knownActions $ b
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"
@@ -50,5 +61,7 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
     testProperty "prop_diploid_expressable - Brain"
       (prop_diploid_expressable :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Property),
     testProperty "prop_diploid_readable - Brain"
-      (prop_diploid_readable :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Property)
+      (prop_diploid_readable :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Property),
+    testProperty "prop_feedback_makes_predictions_more_accurate"
+      prop_feedback_makes_predictions_more_accurate
   ]

@@ -5,20 +5,23 @@ import Data.Time.Clock
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Util
 import ALife.Creatur.Wain hiding (size)
-import ALife.Creatur.Wain.GeneticSOM
+import ALife.Creatur.Wain.Brain
 import ALife.Creatur.Wain.Condition
 import ALife.Creatur.Wain.Decider
 import ALife.Creatur.Wain.DeciderQC ()
+import ALife.Creatur.Wain.GeneticSOM hiding (size)
 import ALife.Creatur.Wain.Response
 import ALife.Creatur.Wain.ResponseQC
 import ALife.Creatur.Wain.Scenario
 import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.Util (unitInterval)
 import Control.Monad (replicateM)
-import Control.Monad.Random (evalRandIO)
+import Control.Monad.Random (Rand, Random, RandomGen, evalRandIO,
+  getRandomR)
 import qualified Data.Datamining.Clustering.Classifier as C
 import Data.Datamining.Clustering.SOM
 import Data.Version (showVersion)
-import Data.Word (Word8)
+import Data.Word (Word8, Word16)
 import Math.Geometry.Grid
 import Math.Geometry.GridMap
 import Paths_creatur_wains (version)
@@ -29,7 +32,7 @@ makeDecider gridSize patternLength
   = buildGeneticSOM (fromIntegral gridSize) f (repeat modelResponse)
   where modelResponse = Response modelScenario Smile (Just 0)
         modelScenario = Scenario xs xs modelCondition
-        modelCondition = Condition 1 0
+        modelCondition = Condition 1 0 0
         xs = replicate patternLength 0
         f = DecayingGaussian 1 0 (fromIntegral gridSize) 0 100
 
@@ -43,12 +46,27 @@ deciderBenchmark d = do
   let d' = fromEither (error "read returned Nothing") . W8.read $ x
   putStrLn $ "passed=" ++ show (d' == d)
 
+randomWain
+  :: (RandomGen g)
+    => String -> Word8 -> Word8 -> Word16 -> Rand g (Wain TestPattern TestAction)
+randomWain n classifierSize deciderSize maxAgeOfMaturity = do
+  (app:ps) <- sequence . repeat $ randomTestPattern
+  fc <- randomDecayingGaussian
+         (randomDecayingGaussianParams classifierSize)
+  let c = buildGeneticSOM classifierSize fc ps
+  fd <- randomDecayingGaussian
+         (randomDecayingGaussianParams deciderSize)
+  xs <- sequence . repeat $ randomResponse (numModels c) 
+  let d = buildGeneticSOM deciderSize fd xs
+  let b = buildBrain c d
+  m <- getRandomR (0,maxAgeOfMaturity)
+  p <- getRandomR unitInterval
+  return $ buildWainAndGenerateGenome n app b m p
+
 wainBenchmark :: Word8 -> Word8 -> FilePath -> IO ()
 wainBenchmark classifierSize deciderSize dir = do
-  let n = fromIntegral (3*classifierSize*classifierSize)
-  (app:ps) <- evalRandIO (replicateM n $ randomTestPattern)
   w <- evalRandIO
-        (randomWain "fred" app classifierSize ps deciderSize 100)
+        (randomWain "fred" classifierSize deciderSize 100)
           :: IO (Wain TestPattern TestAction)
   let filename = dir ++ "/pattern"
   writeFile filename $ show w
