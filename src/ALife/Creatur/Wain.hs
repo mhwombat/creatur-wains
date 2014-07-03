@@ -103,8 +103,10 @@ data Wain p a = Wain
     age :: Word16,
     -- | The children this wain is currently rearing.
     litter :: [Wain p a],
-    -- | The number of children this wain has born.
-    birthCount :: Word16,
+    -- | The number of children this wain has borne.
+    childrenBorneLifetime :: Word16,
+    -- | The number of children this wain has reared to maturity.
+    childrenWeanedLifetime :: Word16,
     -- | The wain's genes.
     genome :: ([Word8],[Word8]),
     -- The size of this wain. Useful for determining a metabolism rate.
@@ -115,9 +117,17 @@ buildWain
   :: (Pattern p, Metric p ~ Double, Serialize a, Serialize p, Eq a)
     => String -> p -> B.Brain p a -> Word16 -> Double -> (Sequence, Sequence)
       -> Wain p a
-buildWain n a b m p g = w { wainSize=s }
-  where  w = Wain n a b m p 1 0 0 [] 0 g 0
-         s = BS.length . encode $ w
+buildWain n a b m p g = w { wainSize = s }
+  -- We first set the size to 0, then figure out what the size really
+  -- is.
+  where w = Wain
+              {
+                name = n, appearance = a, brain = b, ageOfMaturity = m,
+                passionDelta = p, energy = 1, passion = 0, age = 0,
+                litter = [], childrenBorneLifetime = 0,
+                childrenWeanedLifetime = 0, genome = g, wainSize = 0
+              }
+        s = BS.length . encode $ w
 
 buildWainAndGenerateGenome
   :: (Pattern p, Metric p ~ Double, Serialize a, Serialize p, Genetic p,
@@ -146,7 +156,8 @@ instance (Pattern p, Metric p ~ Double) => Statistical (Wain p a) where
       : iStat "maturity" (ageOfMaturity w)
       : dStat "Δp" (passionDelta w)
       : iStat "size" (wainSize w)
-      : iStat "total # of children" (birthCount w)
+      : iStat "children borne (lifetime)" (childrenBorneLifetime w)
+      : iStat "children reared (lifetime)" (childrenWeanedLifetime w)
       : dStat "energy" (energy w)
       : dStat "passion" (passion w)
       : iStat "current litter size" (length $ litter w)
@@ -467,5 +478,9 @@ weanMatureChildren a =
       mapM_ (\c -> U.writeToLog $
                     (agentId c) ++ " weaned from " ++ agentId a)
                       weanlings
-      return $ (a { litter=babes }):weanlings
+      let a' = a { litter = babes,
+                   childrenWeanedLifetime =
+                     childrenWeanedLifetime a +
+                       fromIntegral (length weanlings) }
+      return $ a':weanlings
 
