@@ -444,7 +444,9 @@ mate a b = do
         then do
           U.writeToLog $ name a ++ " and " ++ name b ++ " produce "
             ++ babyName
-          return [a' {litter=[baby]}, b']
+          return
+            [a' {litter=[baby],
+                 childrenBorneLifetime=childrenBorneLifetime a + 1}, b']
         else do
           U.writeToLog $ "child of " ++ name a ++ " and " ++ name b
             ++ " has an abnormal brain"
