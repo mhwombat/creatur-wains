@@ -10,7 +10,8 @@
 -- ???
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE NoMonomorphismRestriction, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE NoMonomorphismRestriction, TypeFamilies,
+    FlexibleContexts #-}
 
 import ALife.Creatur.Wain.Util.Diagram
 import Diagrams.Backend.SVG.CmdLine

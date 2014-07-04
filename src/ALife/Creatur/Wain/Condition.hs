@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------ 
 -- |
 -- Module      :  ALife.Creatur.Wain.Condition
--- Copyright   :  (c) Amy de Buitléir 2013
+-- Copyright   :  (c) Amy de Buitléir 2013-2014
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -34,15 +34,23 @@ import Data.Word (Word8)
 import GHC.Generics (Generic)
 import Text.Printf (printf)
 
+-- Weights used for calculating the similarity between two conditions
+energySimWeight :: Double
+energySimWeight = 1 - passionSimWeight - litterSimWeight
+
+passionSimWeight :: Double
+passionSimWeight = 0.1
+
+litterSimWeight :: Double
+litterSimWeight = 0.1
+
+-- Weights used for calculating happiness
 -- TODO: Make these weights genetic
-energyWeight :: Double
-energyWeight = 1 - passionWeight - litterWeight
+energyHapWeight :: Double
+energyHapWeight = 1 - passionHapWeight
 
-passionWeight :: Double
-passionWeight = 0.1
-
-litterWeight :: Double
-litterWeight = 0.1
+passionHapWeight :: Double
+passionHapWeight = 0.3
 
 -- | A model of a stimulus and the response to it
 data Condition = Condition
@@ -76,7 +84,7 @@ instance Diploid Condition
 instance Pattern Condition where
   type Metric Condition = Double
   difference x y
-    = sum [eDiff*energyWeight, pDiff*passionWeight, lDiff*litterWeight]
+    = sum [eDiff*energySimWeight, pDiff*passionSimWeight, lDiff*litterSimWeight]
     where eDiff = abs (cEnergy x - cEnergy y)
           pDiff = abs (cPassion x - cPassion y)
           lDiff = if cLitterSize x == cLitterSize y then 0 else 1
@@ -106,7 +114,7 @@ randomCondition = do
 --   TODO: Should the litter size affect happiness?
 happiness :: Condition -> Double
 happiness (Condition e p _)
-  = e*energyWeight + (1 - p)*passionWeight
+  = e*energyHapWeight + (1 - p)*passionHapWeight
 
 instance Pretty Condition where
   pretty (Condition e p l)

@@ -245,7 +245,7 @@ data Object p a = DObject p String | AObject (Wain p a)
 --   The wain should not have access to this information.
 identity :: Object s a -> String
 identity (DObject _ s) = "Image " ++ s
-identity (AObject a) = agentId a
+identity (AObject a) = name a
 
 -- | Returns the appearance of an object that might be shown to a wain.
 appearanceOf :: Object s a -> s
@@ -262,24 +262,15 @@ chooseAction
   :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
     Bounded a, Show a)
     => p -> p -> Wain p a
-      -> StateT u IO a
+      -> StateT u IO (R.Response a, Label, Wain p a)
 chooseAction p1 p2 w = do
-  let n = agentId w
-  let (a, s, os) = B.chooseAction p1 p2 (condition w) (brain w)
-  U.writeToLog $ n ++ "'s assessment=" ++ pretty s
+  let n = name w
+  let (r, k, b', xs) = B.chooseAction (brain w) p1 p2 (condition w)
+  U.writeToLog $ n ++ "'s assessment=" ++ pretty (R.scenario r)
   describeModels w
-  describeOutcomes w os
-  U.writeToLog $ n ++ " decides to " ++ show a
-  return a
-  -- Note: We don't need to return the updated wain at this point.
-  -- We'll do that later, when reflect is called.
-  
--- assessSituation
---   :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
---     Bounded a, Show a)
---       => p -> p -> Wain p a -> (C.Label, C.Label, Scenario, Wain p a)
--- assessSituation p1 p2 w = (l1, l2, s, w { brain=b' })
---   where (l1, l2, sc, b') = B.assessSituation p1 p2 cond b
+  describeOutcomes w xs
+  U.writeToLog $ n ++ " decides to " ++ show (R.action r)
+  return (r, k, w {brain=b'})
 
 describeModels :: (U.Universe u, Show a, Eq a) => Wain p a -> StateT u IO ()
 describeModels w = mapM_ (U.writeToLog . f) ms
@@ -290,7 +281,7 @@ describeModels w = mapM_ (U.writeToLog . f) ms
 describeOutcomes
   :: (U.Universe u, Show a)
     => Wain p a -> [(R.Response a, Label)] -> StateT u IO ()
-describeOutcomes w os = mapM_ (U.writeToLog . f) os
+describeOutcomes w xs = mapM_ (U.writeToLog . f) xs
   where f (r, l) = name w ++ "'s predicted outcome of "
                      ++ show (R.action r) ++ " is "
                      ++ (printf "%.3f" . fromJust . R.outcome $ r)
@@ -379,7 +370,7 @@ teachLabel1
   :: (Pattern p, Metric p ~ Double, U.Universe u)
     => p -> Label -> Wain p a -> StateT u IO (Wain p a)
 teachLabel1 p l w = do
-  U.writeToLog $ agentId w ++ " learns to (maybe) label this " ++ show l
+  U.writeToLog $ name w ++ " learns to (maybe) label this " ++ show l
   return $ w { brain=B.learnLabel p l (brain w) }
 
 -- | Causes a wain to considers whether it is happier or not as a
@@ -392,30 +383,30 @@ teachLabel1 p l w = do
 --   TODO: Do something more realistic.
 reflect
   :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
-    => p -> p -> C.Condition -> a -> Wain p a
+    => p -> p -> R.Response a -> Label -> Wain p a
       -> StateT u IO (Wain p a, Double)
-reflect p1 p2 cBefore a w = do
-  (w', err) <- reflect1 p1 p2 cBefore a w
+reflect p1 p2 r k w = do
+  (w', err) <- reflect1 r k w
+  let a = R.action r
   litter' <- mapM (imprint p1 p2 a) (litter w)
   return (w' { litter=litter' }, err)
 
 reflect1
   :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
-    => p -> p -> C.Condition -> a -> Wain p a
-      -> StateT u IO (Wain p a, Double)
-reflect1 p1 p2 cBefore a w = do
-  let (b', err) = B.reflect p1 p2 (cBefore, condition w) a (brain w)
+    => R.Response a -> Label -> Wain p a -> StateT u IO (Wain p a, Double)
+reflect1 r k w = do
+  U.writeToLog $ name w ++ " is reflecting on the outcome"
+  let (b', err) = B.reflect (brain w) r k (condition w)
   return (w { brain=b'}, err)
 
 -- | Teaches the wain that the last action taken was a good one.
 --   This can be used to help children learn by observing their parents.
 imprint
   :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
-    => p -> p -> a -> Wain p a
-      -> StateT u IO (Wain p a)
+    => p -> p -> a -> Wain p a -> StateT u IO (Wain p a)
 imprint p1 p2 a w = do
-  U.writeToLog $ agentId w ++ " assumes that was a good thing to do"
-  return $ w { brain=B.imprint p1 p2 a (brain w) }
+  U.writeToLog $ name w ++ " learns this action"
+  return $ w { brain=B.imprint (brain w) p1 p2 a }
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.
@@ -429,13 +420,13 @@ tryMating
     => Wain p a -> Wain p a -> StateT u IO ([Wain p a], Bool)
 tryMating a b
   | hasLitter a = do
-      U.writeToLog $ agentId a ++ " already has a litter"
+      U.writeToLog $ name a ++ " already has a litter"
       return ([a, b], False)
   | hasLitter b = do
-      U.writeToLog $ agentId b ++ " already has a litter"
+      U.writeToLog $ name b ++ " already has a litter"
       return ([a, b], False)
   | otherwise   = do
-      U.writeToLog $ agentId a ++ " mates with " ++ agentId b
+      U.writeToLog $ name a ++ " mates with " ++ name b
       as <- mate a b
       return (as, True)
 
@@ -452,15 +443,15 @@ mate a b = do
     Right baby -> do
       if (B.brainOK $ brain baby)
         then do
-          U.writeToLog $ agentId a ++ " and " ++ agentId b ++ " produce "
+          U.writeToLog $ name a ++ " and " ++ name b ++ " produce "
             ++ babyName
           return [a' {litter=[baby]}, b']
         else do
-          U.writeToLog $ "child of " ++ agentId a ++ " and " ++ agentId b
+          U.writeToLog $ "child of " ++ name a ++ " and " ++ name b
             ++ " has an abnormal brain"
           return [a', b']
     Left msgs -> do
-      U.writeToLog $ "child of " ++ agentId a ++ " and " ++ agentId b
+      U.writeToLog $ "child of " ++ name a ++ " and " ++ name b
         ++ " not viable: " ++ show msgs
       return [a', b']
 
@@ -476,7 +467,7 @@ weanMatureChildren a =
     else do
       let (weanlings, babes) = partition mature (litter a)
       mapM_ (\c -> U.writeToLog $
-                    (agentId c) ++ " weaned from " ++ agentId a)
+                    (name c) ++ " weaned from " ++ name a)
                       weanlings
       let a' = a { litter = babes,
                    childrenWeanedLifetime =

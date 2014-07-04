@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Decider
--- Copyright   :  (c) Amy de Buitléir 2013
+-- Copyright   :  (c) Amy de Buitléir 2013-2014
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -17,9 +17,9 @@ module ALife.Creatur.Wain.Decider
     Decider,
     predict,
     feedback,
+    justClassify,
     numModels,
     toList,
-    possibleResponses,
     possibleActions, -- exported for testing
     -- randomDecider,
     somOK
@@ -28,7 +28,7 @@ module ALife.Creatur.Wain.Decider
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, patternMap,
   justClassify, reportAndTrain, somOK, numModels, toList, models)
 import ALife.Creatur.Wain.Response (Response(..), action,
-  diffIgnoringOutcome)
+  similarityIgnoringOutcome, setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import Data.List (nub)
 import Data.Maybe (fromJust)
@@ -46,25 +46,27 @@ type Decider a = GeneticSOM (Response a)
 
 -- | Predicts the outcome of a response based on the decider models,
 --   and updates the outcome field in that response.
-predict :: (Eq a) => Decider a -> Response a -> (Response a, Label)
-predict d r = (r { outcome=adjustedOutcome }, k)
-  where k = justClassify d r
-        a = patternMap d ! k
-        rawOutcome = fromJust . outcome $ a
-        adjustedOutcome = Just $ (1 - diffIgnoringOutcome a r)*rawOutcome
+predict
+  :: (Eq a)
+    => Decider a -> Scenario -> a -> (Response a, Label)
+predict d s a = (r3, k)
+  where r = Response s a Nothing
+        k = justClassify d r
+        model = patternMap d ! k
+        rawOutcome = fromJust . outcome $ model
+        adjustedOutcome
+          = Just $ (similarityIgnoringOutcome model r)*rawOutcome
+        r3 = r { outcome=adjustedOutcome }
 
 -- | Updates the decider models based on the outcome of the response
 --   provided. The response should contain an outcome value.
-feedback :: (Eq a) => Decider a -> Response a -> Decider a
-feedback d r = d'
-  where (_, _, d') = reportAndTrain d r
-
--- | Returns the list of possible responses to the given scenario.
---   The outcome field in each response will be @Nothing@;
---   use @predict@ to calculate the outcome.
-possibleResponses :: (Eq a) => Decider a -> Scenario -> [Response a]
-possibleResponses d s
-  = map (\a -> Response s a Nothing) $ possibleActions d
+feedback :: (Eq a) => Decider a -> Response a -> Label -> Double -> Decider a
+feedback d r _ o = d'
+  where (_, _, d') = reportAndTrain d r'
+        r' = r `setOutcome` o
+        -- model = patternMap d ! k
+        -- rawOutcome = o / (similarityIgnoringOutcome model r)
+        -- newModel = model `setOutcome` rawOutcome
 
 -- | Returns the list of actions that this decider "knows".
 possibleActions :: (Eq a) => Decider a -> [a]

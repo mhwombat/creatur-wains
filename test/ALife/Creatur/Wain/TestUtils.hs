@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.TestUtils
--- Copyright   :  (c) Amy de Buitléir 2013
+-- Copyright   :  (c) Amy de Buitléir 2013-2014
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -69,7 +69,8 @@ prop_genetic_round_trippable eq g = property $ g' `eq` g
 prop_diploid_identity :: Diploid g => (g -> g -> Bool) -> g -> Property
 prop_diploid_identity eq g = property $ express g g `eq` g
 
-prop_show_read_round_trippable :: (Read a, Show a) => (a -> a -> Bool) -> a -> Property
+prop_show_read_round_trippable
+  :: (Read a, Show a) => (a -> a -> Bool) -> a -> Property
 prop_show_read_round_trippable eq x
   = property $ (read . show $ x) `eq` x
 

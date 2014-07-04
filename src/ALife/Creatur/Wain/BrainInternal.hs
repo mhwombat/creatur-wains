@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.BrainInternal
--- Copyright   :  (c) Amy de Buitléir 2012-2013
+-- Copyright   :  (c) Amy de Buitléir 2012-2014
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -23,7 +23,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as C
 import qualified ALife.Creatur.Wain.Decider as D
 import ALife.Creatur.Wain.Condition (Condition(..), happiness)
-import ALife.Creatur.Wain.Response (Response(..), setOutcome)
+import ALife.Creatur.Wain.Response (Response(..))
 import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix)
 import Control.Applicative ((<$>), (<*>))
@@ -100,30 +100,25 @@ instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
 chooseAction
   :: (Pattern p, Metric p ~ Double, Eq a, Enum a,
     Bounded a, Show a)
-      => p -> p -> Condition -> Brain p a
-        -> (a, Scenario, [(Response a, D.Label)])
-chooseAction p1 p2 c b = (action r, s, consideredResponses)
-  where (_, _, s, _) = assessSituation p1 p2 c b
-        consideredResponses = map (predict b) $ possibleResponses b s
-        r = bestResponse . map fst $ consideredResponses
-        -- Note: We don't need to return the updated brain. We'll do
-        -- that later, when reflect is called.
-
-bestResponse :: (Eq a, Enum a, Bounded a) => [Response a] -> Response a
-bestResponse = maximumBy comp
-  where comp = comparing (fromMaybe 0 . outcome)
+      => Brain p a -> p -> p -> Condition
+        -> (Response a, D.Label, Brain p a, [(Response a, D.Label)])
+chooseAction b p1 p2 c = (r, k, b', consideredResponses)
+  where (_, _, s, b') = assessSituation b p1 p2 c
+        consideredResponses = map (predict b s) $ knownActions b
+        (r, k) = maximumBy f consideredResponses
+        f = comparing (fromMaybe 0 . outcome . fst)
 
 -- | Returns a scenario, based on the two input patterns
 --   (direct object and indirect object) and the current condition.
 --   See @Scenario@ for more information.
 assessSituation
   :: (Pattern p, Metric p ~ Double)
-    => p -> p -> Condition -> Brain p a
+    => Brain p a -> p -> p -> Condition
       -> (C.Label, C.Label, Scenario, Brain p a)
-assessSituation p1 p2 cond b = (l1, l2, sc, b2)
+assessSituation b p1 p2 c = (l1, l2, s, b2)
   where (l1, sig1, b1) = classify' p1 b
         (l2, sig2, b2) = classify' p2 b1
-        sc = Scenario sig1 sig2 cond
+        s = Scenario sig1 sig2 c
 
 -- | Updates the brain's classifier models based on the stimulus
 --   (input).
@@ -149,16 +144,10 @@ classify' s b = (label, sig, b')
 knownActions :: (Eq a) => Brain p a -> [a]
 knownActions b = D.possibleActions $ decider b
 
--- | Returns the list of possible responses to the given scenario.
---   The outcome field in each response will be @Nothing@;
---   use @predict@ to calculate the outcome.
-possibleResponses :: (Eq a) => Brain p a -> Scenario -> [Response a]
-possibleResponses b s = D.possibleResponses (decider b) s
-
 -- | Predicts the outcome of a response based on the brain's decider
 --   models, and updates the outcome field in that response.
-predict :: (Eq a) => Brain p a -> Response a -> (Response a, D.Label)
-predict b r = D.predict (decider b) r
+predict :: (Eq a) => Brain p a -> Scenario -> a -> (Response a, D.Label)
+predict b s a = D.predict (decider b) s a
 
 -- | Teaches a pattern + label to the brain.
 learnLabel
@@ -172,32 +161,22 @@ learnLabel p l b = b { classifier=C.learn p l (classifier b) }
 --   prediction of the outcome.
 reflect
   :: (Pattern p, Metric p ~ Double, Eq a)
-    => p -> p -> (Condition, Condition) -> a -> Brain p a
-      -> (Brain p a, Double)
-reflect p1 p2 (cBefore, cAfter) a b
-  = reflect1 p1 p2 cBefore a deltaH b
-  where deltaH = happiness cAfter - happiness cBefore
-
--- | Considers whether the wain is happier or not as a result of the
---   last action it took, and modifies the decision models accordingly.
-reflect1
-  :: (Pattern p, Metric p ~ Double, Eq a)
-    => p -> p -> Condition -> a -> Double -> Brain p a -> (Brain p a, Double)
-reflect1 p1 p2 cBefore a deltaH b = (b' {decider=d'}, err)
-  where (_, _, s, b') = assessSituation p1 p2 cBefore b
-        (r, _) = predict b $ Response s a Nothing
+    => Brain p a -> Response a -> D.Label -> Condition -> (Brain p a, Double)
+reflect b r k cAfter = (b {decider=d'}, err)
+  where deltaH = happiness cAfter - happiness (condition . scenario $ r)
         predictedDeltaH = fromJust . outcome $ r
-        r' = r `setOutcome` deltaH
-        d' = D.feedback (decider b) r'
+        d' = D.feedback (decider b) r k deltaH
         err = abs (deltaH - predictedDeltaH)
-
 
 -- | Teaches the brain that the last action taken was a perfect one.
 --   This can be used to help children learn by observing their parents.
 --   It can also be used to allow wains to learn from others.
 imprint
   :: (Pattern p, Metric p ~ Double, Eq a)
-    => p -> p -> a -> Brain p a -> Brain p a
-imprint p1 p2 a b = b'
-  where (b', _) = reflect1 p1 p2 c a 1.0 b
+    => Brain p a -> p -> p -> a -> Brain p a
+imprint b p1 p2 a = b' {decider=d'}
+  where (_, _, s, b') = assessSituation b p1 p2 c
+        r = Response s a (Just 1.0)
+        k = D.justClassify (decider b') r
+        d' = D.feedback (decider b) r k 1.0
         c = Condition 0.5 0.5 0 -- neutral condition

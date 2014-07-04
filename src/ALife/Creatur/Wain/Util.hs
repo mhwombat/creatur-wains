@@ -29,7 +29,8 @@ module ALife.Creatur.Wain.Util
     forceIntToWord16,
     word16ToInt,
     doubleTo8BitHex,
-    doublesTo8BitHex
+    doublesTo8BitHex,
+    intersection
   ) where
 
 import Data.Word (Word8, Word16)
@@ -135,3 +136,16 @@ doublesTo8BitHex = concatMap doubleTo8BitHex
 --   [0,255] and returns a hexadecimal representation.
 doubleTo8BitHex :: Double -> String
 doubleTo8BitHex = printf "%.2X" . scaleToWord8 unitInterval
+
+proper :: Ord a => (a, a) -> (a, a)
+proper (x, y) = if x <= y then (x, y) else (x, y)
+
+-- | Returns the largest interval that satisfies both of the supplied
+--   intervals. If the supplied intervals do not overlap, the result is
+--   unspecified.
+intersection :: Ord a => (a, a) -> (a, a) -> (a, a)
+intersection (a, b) (c, d)
+  | b' <= c'   = (b', b')
+  | otherwise = (max a' c', min b' d')
+  where (a', b') = proper (a, b)
+        (c', d') = proper (c, d)

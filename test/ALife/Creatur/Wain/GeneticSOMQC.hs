@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.SOMQC
--- Copyright   :  (c) Amy de Buitléir 2013
+-- Copyright   :  (c) Amy de Buitléir 2013-2014
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -142,11 +142,14 @@ test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
   [
     testProperty "prop_serialize_round_trippable - DecayingGaussian"
-      (prop_serialize_round_trippable :: DecayingGaussian Double -> Property),
+      (prop_serialize_round_trippable
+        :: DecayingGaussian Double -> Property),
     testProperty "prop_genetic_round_trippable - DecayingGaussian"
-      (prop_genetic_round_trippable equivDecayingGaussian :: DecayingGaussian Double -> Property),
+      (prop_genetic_round_trippable equivDecayingGaussian
+        :: DecayingGaussian Double -> Property),
     testProperty "prop_diploid_identity - DecayingGaussian"
-      (prop_diploid_identity (==) :: DecayingGaussian Double -> Property),
+      (prop_diploid_identity (==)
+        :: DecayingGaussian Double -> Property),
 
     testProperty "prop_serialize_round_trippable - HexHexGrid"
       (prop_serialize_round_trippable :: HexHexGrid -> Property),
@@ -156,15 +159,20 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       (prop_diploid_identity (==) :: HexHexGrid -> Property),
 
     testProperty "prop_serialize_round_trippable - GeneticSOM"
-      (prop_serialize_round_trippable :: GeneticSOM TestPattern -> Property),
+      (prop_serialize_round_trippable
+        :: GeneticSOM TestPattern -> Property),
     testProperty "prop_genetic_round_trippable - GeneticSOM"
-      (prop_genetic_round_trippable equiv :: GeneticSOM TestPattern -> Property),
+      (prop_genetic_round_trippable equiv
+        :: GeneticSOM TestPattern -> Property),
     testProperty "prop_diploid_identity - GeneticSOM"
-      (prop_diploid_identity equiv :: GeneticSOM TestPattern -> Property),
+      (prop_diploid_identity equiv
+        :: GeneticSOM TestPattern -> Property),
     testProperty "prop_diploid_expressable - GeneticSOM"
-      (prop_diploid_expressable :: GeneticSOM TestPattern -> GeneticSOM TestPattern -> Property),
+      (prop_diploid_expressable
+        :: GeneticSOM TestPattern -> GeneticSOM TestPattern -> Property),
     testProperty "prop_diploid_readable - GeneticSOM"
-      (prop_diploid_readable :: GeneticSOM TestPattern -> GeneticSOM TestPattern -> Property),
+      (prop_diploid_readable
+        :: GeneticSOM TestPattern -> GeneticSOM TestPattern -> Property),
 
     testProperty "prop_random_decayingGaussian_rf_le_r0"
       prop_random_decayingGaussian_rf_le_r0,

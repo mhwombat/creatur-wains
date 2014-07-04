@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.GeneticSOM
--- Copyright   :  (c) Amy de Buitléir 2013
+-- Copyright   :  (c) Amy de Buitléir 2013-2014
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -38,7 +38,8 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Wain.Statistics (Statistical, iStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
-import ALife.Creatur.Wain.Util (forceIntToWord8, forceIntToWord16)
+import ALife.Creatur.Wain.Util (forceIntToWord8, forceIntToWord16,
+  intersection)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Data.Datamining.Pattern (Pattern, Metric, makeSimilar)
@@ -78,16 +79,6 @@ instance Genetic (SOM.DecayingGaussian Double) where
       <*> fmap fromIntegral wf <*> fmap fromIntegral tf
 
 instance (Diploid a) => Diploid (SOM.DecayingGaussian a)
-
-proper :: Ord a => (a, a) -> (a, a)
-proper (x, y) = if x <= y then (x, y) else (x, y)
-
-intersection :: Ord a => (a, a) -> (a, a) -> (a, a)
-intersection (a, b) (c, d)
-  | b' <= c'   = (b', b')
-  | otherwise = (max a' c', min b' d')
-  where (a', b') = proper (a, b)
-        (c', d') = proper (c, d)
 
 data RandomDecayingGaussianParams = RandomDecayingGaussianParams
   {

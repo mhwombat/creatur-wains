@@ -42,6 +42,7 @@ library
                     ALife.Creatur.Wain.PersistentStatistics,
                     ALife.Creatur.Wain.Pretty,
                     ALife.Creatur.Wain.Response,
+                    ALife.Creatur.Wain.ResponseInternal,
                     ALife.Creatur.Wain.Scenario,
                     ALife.Creatur.Wain.Statistics,
                     ALife.Creatur.Wain.UnitInterval,
@@ -101,29 +102,29 @@ Executable wain-benchmark
                     test-framework-quickcheck2 ==0.3.*,
                     QuickCheck ==2.6.* || ==2.7.*
 
-Executable plot
-  Main-Is:          ALife/Creatur/Wain/Util/Plot.hs
-  GHC-Options:      -Wall -rtsopts
-  Hs-source-dirs:   src
-  build-depends:
-                    base ==4.*,
-                    base-unicode-symbols ==0.2.*,
-                    cereal ==0.3.* || == 0.4.*,
-                    Chart ==1.2.*,
-                    Chart-cairo ==1.2.*,
-                    colour ==2.3.*,
-                    creatur ==5.5.*,
-                    creatur-wains ==3.4.*,
-                    data-default-class ==0.0.*,
-                    directory ==1.2.*,
-                    grid ==7.* && >7.1,
-                    lens ==4.1.* || ==4.2.*,
-                    MonadRandom ==0.1.*,
-                    mtl ==2.1.*,
-                    random ==1.0.*,
-                    som ==7.*,
-                    split ==0.2.*,
-                    transformers ==0.3.* || ==0.4.*
+-- Executable plot
+--   Main-Is:          ALife/Creatur/Wain/Util/Plot.hs
+--   GHC-Options:      -Wall -rtsopts
+--   Hs-source-dirs:   src
+--   build-depends:
+--                     base ==4.*,
+--                     base-unicode-symbols ==0.2.*,
+--                     cereal ==0.3.* || == 0.4.*,
+--                     Chart ==1.2.*,
+--                     Chart-cairo ==1.2.*,
+--                     colour ==2.3.*,
+--                     creatur ==5.5.*,
+--                     creatur-wains ==3.4.*,
+--                     data-default-class ==0.0.*,
+--                     directory ==1.2.*,
+--                     grid ==7.* && >7.1,
+--                     lens ==4.1.* || ==4.2.*,
+--                     MonadRandom ==0.1.*,
+--                     mtl ==2.1.*,
+--                     random ==1.0.*,
+--                     som ==7.*,
+--                     split ==0.2.*,
+--                     transformers ==0.3.* || ==0.4.*
 
 Executable batchAvg
   Main-Is:          ALife/Creatur/Wain/Util/BatchAverage.hs

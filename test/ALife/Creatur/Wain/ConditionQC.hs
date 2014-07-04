@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.ConditionQC
--- Copyright   :  (c) Amy de Buitléir 2013
+-- Copyright   :  (c) Amy de Buitléir 2013-2014
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -28,6 +28,10 @@ instance Arbitrary Condition where
   arbitrary = Condition <$> arb8BitDouble unitInterval
                 <*> arb8BitDouble unitInterval <*> arbitrary
 
+prop_happiness_in_range :: Condition -> Property
+prop_happiness_in_range c = property $ 0 <= x && x <= 1
+  where x = happiness c
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ConditionQC"
   [
@@ -40,5 +44,6 @@ test = testGroup "ALife.Creatur.Wain.ConditionQC"
     testProperty "prop_diploid_expressable - Condition"
       (prop_diploid_expressable :: Condition -> Condition -> Property),
     testProperty "prop_diploid_readable - Condition"
-      (prop_diploid_readable :: Condition -> Condition -> Property)
+      (prop_diploid_readable :: Condition -> Condition -> Property),
+    testProperty "prop_happiness_in_range" prop_happiness_in_range
   ]
