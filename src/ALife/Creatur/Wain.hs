@@ -262,15 +262,15 @@ chooseAction
   :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
     Bounded a, Show a)
     => p -> p -> Wain p a
-      -> StateT u IO (R.Response a, Label, Wain p a)
+      -> StateT u IO (R.Response a, Wain p a)
 chooseAction p1 p2 w = do
   let n = name w
-  let (r, k, b', xs) = B.chooseAction (brain w) p1 p2 (condition w)
+  let (r, b', xs) = B.chooseAction (brain w) p1 p2 (condition w)
   U.writeToLog $ n ++ "'s assessment=" ++ pretty (R.scenario r)
   describeModels w
   describeOutcomes w xs
   U.writeToLog $ n ++ " decides to " ++ show (R.action r)
-  return (r, k, w {brain=b'})
+  return (r, w {brain=b'})
 
 describeModels :: (U.Universe u, Show a, Eq a) => Wain p a -> StateT u IO ()
 describeModels w = mapM_ (U.writeToLog . f) ms
@@ -383,20 +383,19 @@ teachLabel1 p l w = do
 --   TODO: Do something more realistic.
 reflect
   :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
-    => p -> p -> R.Response a -> Label -> Wain p a
-      -> StateT u IO (Wain p a, Double)
-reflect p1 p2 r k w = do
-  (w', err) <- reflect1 r k w
+    => p -> p -> R.Response a -> Wain p a -> StateT u IO (Wain p a, Double)
+reflect p1 p2 r w = do
+  (w', err) <- reflect1 r w
   let a = R.action r
   litter' <- mapM (imprint p1 p2 a) (litter w)
   return (w' { litter=litter' }, err)
 
 reflect1
   :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
-    => R.Response a -> Label -> Wain p a -> StateT u IO (Wain p a, Double)
-reflect1 r k w = do
+    => R.Response a -> Wain p a -> StateT u IO (Wain p a, Double)
+reflect1 r w = do
   U.writeToLog $ name w ++ " is reflecting on the outcome"
-  let (b', err) = B.reflect (brain w) r k (condition w)
+  let (b', err) = B.reflect (brain w) r (condition w)
   return (w { brain=b'}, err)
 
 -- | Teaches the wain that the last action taken was a good one.

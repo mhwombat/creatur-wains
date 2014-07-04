@@ -15,28 +15,14 @@ module ALife.Creatur.Wain.Classifier
   (
     Label,
     Classifier,
-    classify,
-    learn,
-    -- conflation,
-    -- conflation', -- exported for testing
-    -- discrimination,
-    numModels,
-    patternMap,
-    counterMap,
-    -- randomClassifier,
-    somOK
+    classify
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label, numModels,
-  reportAndTrain, somOK, learn, patternMap, counterMap)
+import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label,
+  reportAndTrain)
 import Data.Datamining.Pattern (Pattern, Metric)
 
 type Classifier = GeneticSOM
-
--- randomClassifier
---   :: (Pattern p, Metric p ~ Double, RandomGen g)
---     => Word8 -> [p] -> Rand g (Classifier p)
--- randomClassifier = randomGeneticSOM
 
 -- | Updates the classifier models based on the stimulus (input).
 --   Returns the index (grid location) of the model that most closely

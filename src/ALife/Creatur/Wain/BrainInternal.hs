@@ -22,8 +22,9 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as C
 import qualified ALife.Creatur.Wain.Decider as D
+import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
 import ALife.Creatur.Wain.Condition (Condition(..), happiness)
-import ALife.Creatur.Wain.Response (Response(..))
+import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix)
 import Control.Applicative ((<$>), (<*>))
@@ -66,8 +67,8 @@ brainOK
   :: (Pattern p, Ord (Metric p), Metric p ~ Double, Eq a)
     => Brain p a -> Bool
 brainOK b = classifierOK && deciderOK
-  where classifierOK = C.somOK $ classifier b
-        deciderOK = D.somOK $ decider b
+  where classifierOK = GSOM.somOK $ classifier b
+        deciderOK = GSOM.somOK $ decider b
 
 -- | Constructs a new brain.
 buildBrain :: C.Classifier p -> D.Decider a -> Brain p a
@@ -81,14 +82,14 @@ instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
     let c = case c0 of
           (Left xs) -> Left ("Classifier:":xs)
           (Right c1) ->
-            if C.numModels c1 == 0
+            if GSOM.numModels c1 == 0
                then Left ["Classifier has no models"]
                else Right c1
     d0 <- G.get
     let d = case d0 of
           (Left xs) -> Left ("Decider:":xs)
           (Right d1) ->
-            if D.numModels d1 == 0
+            if GSOM.numModels d1 == 0
                then Left ["Decider has no models"]
                else Right d1
     return $ buildBrain <$> c <*> d
@@ -101,12 +102,12 @@ chooseAction
   :: (Pattern p, Metric p ~ Double, Eq a, Enum a,
     Bounded a, Show a)
       => Brain p a -> p -> p -> Condition
-        -> (Response a, D.Label, Brain p a, [(Response a, D.Label)])
-chooseAction b p1 p2 c = (r, k, b', consideredResponses)
+        -> (Response a, Brain p a, [(Response a, D.Label)])
+chooseAction b p1 p2 c = (r, b', consideredResponses)
   where (_, _, s, b') = assessSituation b p1 p2 c
         consideredResponses = map (predict b s) $ knownActions b
-        (r, k) = maximumBy f consideredResponses
-        f = comparing (fromMaybe 0 . outcome . fst)
+        r = maximumBy f $ map fst consideredResponses
+        f = comparing (fromMaybe 0 . outcome)
 
 -- | Returns a scenario, based on the two input patterns
 --   (direct object and indirect object) and the current condition.
@@ -153,7 +154,7 @@ predict b s a = D.predict (decider b) s a
 learnLabel
   :: (Pattern p, Metric p ~ Double)
     => p -> C.Label -> Brain p a -> Brain p a
-learnLabel p l b = b { classifier=C.learn p l (classifier b) }
+learnLabel p l b = b { classifier=GSOM.learn p l (classifier b) }
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
@@ -161,11 +162,12 @@ learnLabel p l b = b { classifier=C.learn p l (classifier b) }
 --   prediction of the outcome.
 reflect
   :: (Pattern p, Metric p ~ Double, Eq a)
-    => Brain p a -> Response a -> D.Label -> Condition -> (Brain p a, Double)
-reflect b r k cAfter = (b {decider=d'}, err)
+    => Brain p a -> Response a -> Condition -> (Brain p a, Double)
+reflect b r cAfter = (b {decider=d'}, err)
   where deltaH = happiness cAfter - happiness (condition . scenario $ r)
         predictedDeltaH = fromJust . outcome $ r
-        d' = D.feedback (decider b) r k deltaH
+        (_, _, d') =
+          GSOM.reportAndTrain (decider b) (r `setOutcome` deltaH)
         err = abs (deltaH - predictedDeltaH)
 
 -- | Teaches the brain that the last action taken was a perfect one.
@@ -177,6 +179,5 @@ imprint
 imprint b p1 p2 a = b' {decider=d'}
   where (_, _, s, b') = assessSituation b p1 p2 c
         r = Response s a (Just 1.0)
-        k = D.justClassify (decider b') r
-        d' = D.feedback (decider b) r k 1.0
+        (_, _, d') = GSOM.reportAndTrain (decider b) r
         c = Condition 0.5 0.5 0 -- neutral condition
