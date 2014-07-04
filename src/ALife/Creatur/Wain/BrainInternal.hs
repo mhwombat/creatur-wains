@@ -7,7 +7,6 @@
 -- Stability   :  experimental
 -- Portability :  portable
 --
--- Internal implementation details
 -- A module containing private Brain internals.
 -- Most developers should use Brain instead.
 -- This module is subject to change without notice.
