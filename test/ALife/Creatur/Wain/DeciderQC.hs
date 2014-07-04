@@ -25,6 +25,8 @@ import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
+import ALife.Creatur.Wain.UnitIntervalQC ()
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -42,6 +44,14 @@ prop_training_makes_predictions_more_accurate d s a o =
         (Just predictionAfter) = outcome . fst $ predict d' s a
         errAfter = abs (o - predictionAfter)
 
+prop_prediction_error_in_range
+  :: TestDecider -> Scenario -> TestAction -> UIDouble -> Property
+prop_prediction_error_in_range d s a (UIDouble o) =
+  a `elem` (possibleActions d) ==> -2 <= e && e <= 2
+  where (r, _) = predict d s a
+        (Just prediction) = outcome r
+        e = abs (o - prediction)
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.DeciderQC"
   [
@@ -56,5 +66,7 @@ test = testGroup "ALife.Creatur.Wain.DeciderQC"
     testProperty "prop_diploid_readable - Decider"
       (prop_diploid_readable :: TestDecider -> TestDecider -> Property),
     testProperty "prop_training_makes_predictions_more_accurate"
-      prop_training_makes_predictions_more_accurate
+      prop_training_makes_predictions_more_accurate,
+    testProperty "prop_prediction_error_in_range"
+      prop_prediction_error_in_range
   ]

@@ -20,9 +20,8 @@ module ALife.Creatur.Wain.UnitIntervalQC
 
 import ALife.Creatur.Wain.UnitInterval
 import ALife.Creatur.Wain.Util (unitInterval)
-import ALife.Creatur.Wain.TestUtils (arb8BitDouble,
-  prop_serialize_round_trippable, prop_genetic_round_trippable,
-  prop_diploid_identity)
+import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
+  prop_genetic_round_trippable, prop_diploid_identity)
 import Control.Applicative ((<$>))
 import Data.Datamining.Pattern (difference)
 import Test.Framework (Test, testGroup)
@@ -30,13 +29,14 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
 instance Arbitrary UIDouble where
-  arbitrary = doubleToUI <$> arb8BitDouble unitInterval
+  arbitrary = doubleToUI <$> choose unitInterval
 
 equiv :: UIDouble -> UIDouble -> Bool
-equiv x y = abs (uiToDouble x - uiToDouble y) < 1e-12
+equiv x y = abs (uiToDouble x - uiToDouble y) < (1/255)
 
 equiv2 :: [UIDouble] -> [UIDouble] -> Bool
-equiv2 x y = difference x y < 1e-12
+equiv2 x y = difference x y < (1/255)
+
 
 prop_vector_difference_in_range :: [UIDouble] -> [UIDouble] -> Property
 prop_vector_difference_in_range x y = property $ 0 <= diff && diff <= 1

@@ -73,16 +73,6 @@ instance Pattern Scenario where
     
 -- | The initial sequences stored at birth are genetically determined.
 instance Genetic Scenario where
-  -- put (Scenario ds is c) = do
-  --   put $ map doubleToUI ds
-  --   put $ map doubleToUI is
-  --   put c
-  -- get = do
-  --   ds <- get :: Reader (Either [String] [UIDouble])
-  --   is <- get :: Reader (Either [String] [UIDouble])
-  --   c <- get
-  --   return $ Scenario <$> fmap (map uiToDouble) ds
-  --     <*> fmap (map uiToDouble) is <*> c
   put (Scenario ds is c) = do
     -- ds and is should have the same length
     put . forceIntToWord8 $ length ds
