@@ -25,7 +25,8 @@ import ALife.Creatur.Wain.Util (unitInterval)
 import ALife.Creatur.Util (isqrt)
 import Control.Monad.Random (evalRand)
 import Data.Datamining.Pattern (Pattern, Metric)
-import Data.Datamining.Clustering.SOM (counter, DecayingGaussian(..))
+import Data.Datamining.Clustering.SOMInternal (counter,
+  DecayingGaussian(..), rate)
 import Data.Word (Word16)
 import Math.Geometry.Grid (tileCount)
 import Math.Geometry.Grid.Hexagonal (HexHexGrid, hexHexGrid)
@@ -97,20 +98,69 @@ equiv gs1 gs2 =
 
 instance Arbitrary RandomDecayingGaussianParams where
   arbitrary = do
-    r0start <- choose (0,1)
-    r0stop <- choose (0,1)
-    rfstart <- choose (0,1)
-    rfstop <- choose (0,1)
-    w0start <- choose (0,1)
-    w0stop <- choose (0,1)
-    wfstart <- choose (0,1)
-    wfstop <- choose (0,1)
-    tfstart <- choose (0,100000000)
-    tfstop <- choose (0,100000000)
+    r0start <- arbitrary
+    r0stop <- arbitrary
+    rfstart <- arbitrary
+    rfstop <- arbitrary
+    w0start <- arbitrary
+    w0stop <- arbitrary
+    wfstart <- arbitrary
+    wfstop <- arbitrary
+    tfstart <- arbitrary
+    tfstop <- arbitrary
     s <- arbitrary
     return $ RandomDecayingGaussianParams (r0start,r0stop)
       (rfstart,rfstop) (w0start,w0stop) (wfstart,wfstop)
       (tfstart,tfstop) s
+
+-- instance Arbitrary RandomDecayingGaussianParams where
+--   arbitrary = do
+--     r0start <- choose (0,1)
+--     r0stop <- choose (0,1)
+--     rfstart <- choose (0,1)
+--     rfstop <- choose (0,1)
+--     w0start <- choose (0,1)
+--     w0stop <- choose (0,1)
+--     wfstart <- choose (0,1)
+--     wfstop <- choose (0,1)
+--     tfstart <- choose (0,100000000)
+--     tfstop <- choose (0,100000000)
+--     s <- arbitrary
+--     return $ RandomDecayingGaussianParams (r0start,r0stop)
+--       (rfstart,rfstop) (w0start,w0stop) (wfstart,wfstop)
+--       (tfstart,tfstop) s
+
+prop_random_decayingGaussian_r0_nonzero
+  :: Int -> RandomDecayingGaussianParams -> Property
+prop_random_decayingGaussian_r0_nonzero seed params = property $ r0 > 0
+  where g = mkStdGen seed
+        (DecayingGaussian r0 _ _ _ _)
+           = evalRand (randomDecayingGaussian params) g
+               :: DecayingGaussian Double
+
+-- prop_random_decayingGaussian_rf_nonzero
+--   :: Int -> RandomDecayingGaussianParams -> Property
+-- prop_random_decayingGaussian_rf_nonzero seed params = property $ rf > 0
+--   where g = mkStdGen seed
+--         (DecayingGaussian _ rf _ _ _)
+--            = evalRand (randomDecayingGaussian params) g
+--                :: DecayingGaussian Double
+
+prop_random_decayingGaussian_w0_nonzero
+  :: Int -> RandomDecayingGaussianParams -> Property
+prop_random_decayingGaussian_w0_nonzero seed params = property $ w0 > 0
+  where g = mkStdGen seed
+        (DecayingGaussian _ _ w0 _ _)
+           = evalRand (randomDecayingGaussian params) g
+               :: DecayingGaussian Double
+
+prop_random_decayingGaussian_wf_nonzero
+  :: Int -> RandomDecayingGaussianParams -> Property
+prop_random_decayingGaussian_wf_nonzero seed params = property $ wf > 0
+  where g = mkStdGen seed
+        (DecayingGaussian _ _ _ wf _)
+           = evalRand (randomDecayingGaussian params) g
+               :: DecayingGaussian Double
 
 prop_random_decayingGaussian_rf_le_r0
   :: Int -> RandomDecayingGaussianParams -> Property
@@ -127,6 +177,14 @@ prop_random_decayingGaussian_wf_le_w0 seed params = property $ wf <= w0
         (DecayingGaussian _ _ w0 wf _)
            = evalRand (randomDecayingGaussian params) g
                :: DecayingGaussian Double
+
+prop_random_decayingGaussian_in_range
+  :: Int -> RandomDecayingGaussianParams -> Double -> Double -> Property
+prop_random_decayingGaussian_in_range seed params t d =
+  t >= 0 && d >= 0 ==> 0 <= r && r <= 1
+  where g = mkStdGen seed
+        f = evalRand (randomDecayingGaussian params) g
+        r = rate f t d
 
 prop_sum_counts_correct
   :: GeneticSOM TestPattern -> [TestPattern] -> Property
@@ -174,10 +232,20 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       (prop_diploid_readable
         :: GeneticSOM TestPattern -> GeneticSOM TestPattern -> Property),
 
+    testProperty "prop_random_decayingGaussian_r0_nonzero"
+      prop_random_decayingGaussian_r0_nonzero,
+    -- testProperty "prop_random_decayingGaussian_rf_nonzero"
+    --   prop_random_decayingGaussian_rf_nonzero,
+    testProperty "prop_random_decayingGaussian_w0_nonzero"
+      prop_random_decayingGaussian_w0_nonzero,
+    testProperty "prop_random_decayingGaussian_wf_nonzero"
+      prop_random_decayingGaussian_wf_nonzero,
     testProperty "prop_random_decayingGaussian_rf_le_r0"
       prop_random_decayingGaussian_rf_le_r0,
     testProperty "prop_random_decayingGaussian_wf_le_w0"
       prop_random_decayingGaussian_wf_le_w0,
+    testProperty "prop_random_decayingGaussian_in_range"
+      prop_random_decayingGaussian_in_range,
     testProperty "prop_sum_counts_correct"
       prop_sum_counts_correct
     -- testProperty "prop_new_som_has_models"
