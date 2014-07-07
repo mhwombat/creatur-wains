@@ -60,8 +60,8 @@ instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), Show a, Eq a)
       => Show (Brain p a) where
   show (Brain c d) = "Brain (" ++ show c ++ ") (" ++ show d ++ ")"
 
--- | Returns @True@ if both the classifier and decider have
---   at least one model each; returns @False@ otherwise.
+-- | Returns @True@ if both the classifier and decider are valid
+--   according to @somOK@; returns @False@ otherwise.
 brainOK
   :: (Pattern p, Ord (Metric p), Metric p ~ Double, Eq a)
     => Brain p a -> Bool

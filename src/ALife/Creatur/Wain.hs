@@ -449,7 +449,7 @@ mate a b = do
                  childrenBorneLifetime=childrenBorneLifetime a + 1}, b']
         else do
           U.writeToLog $ "child of " ++ name a ++ " and " ++ name b
-            ++ " has an abnormal brain"
+            ++ " would have had an abnormal brain"
           return [a', b']
     Left msgs -> do
       U.writeToLog $ "child of " ++ name a ++ " and " ++ name b

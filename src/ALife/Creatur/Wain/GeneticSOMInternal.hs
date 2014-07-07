@@ -50,18 +50,18 @@ instance Genetic (SOM.DecayingGaussian Double) where
   put (SOM.DecayingGaussian r0 rf w0 wf tf) = do
     G.put $ doubleToUI r0
     G.put $ doubleToUI rf
-    G.put . forceIntToWord8 $ round w0
-    G.put . forceIntToWord8 $ round wf
+    G.put . forceIntToWord16 . round $ w0*256
+    G.put . forceIntToWord16 . round $ wf*256
     G.put . forceIntToWord16 $ round tf
   get = do
     r0 <- G.get :: G.Reader (Either [String] UIDouble)
     rf <- G.get :: G.Reader (Either [String] UIDouble)
-    w0 <- G.get :: G.Reader (Either [String] Word8)
-    wf <- G.get :: G.Reader (Either [String] Word8)
+    w0 <- G.get :: G.Reader (Either [String] Word16)
+    wf <- G.get :: G.Reader (Either [String] Word16)
     tf <- G.get :: G.Reader (Either [String] Word16)
     return $ SOM.DecayingGaussian <$> fmap uiToDouble r0
-      <*> fmap uiToDouble rf <*> fmap fromIntegral w0
-      <*> fmap fromIntegral wf <*> fmap fromIntegral tf
+      <*> fmap uiToDouble rf <*> fmap (\x -> fromIntegral x/256) w0
+      <*> fmap (\x -> fromIntegral x/256) wf <*> fmap fromIntegral tf
 
 instance (Diploid a) => Diploid (SOM.DecayingGaussian a)
 
@@ -127,6 +127,14 @@ randomDecayingGaussian p = do
   tf <- getRandomR $ intersection (tfRangeLimits) (tfRange p)
   return $ SOM.DecayingGaussian r0 rf w0 wf tf
 
+validGaussian :: SOM.DecayingGaussian Double -> Bool
+validGaussian (SOM.DecayingGaussian r0 rf w0 wf tf) =
+  0 < r0 && r0 <= 1
+    && 0 <= rf && rf <= 1 && rf <= r0
+    && 0 < w0
+    && 0 < wf && wf <= w0
+    && 0 < tf
+
 instance Serialize HexHexGrid where
   put g = S.put (Grid.size g)
   get = do
@@ -170,12 +178,13 @@ data GeneticSOM p =
     }
   deriving (Eq, Show, Generic)
 
--- | Returns @True@ if the SOM has at least one model; returns @False@
---   otherwise.
+-- | Returns @True@ if the SOM has a valid Gaussian and at least one
+--   model; returns @False@ otherwise.
 somOK
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> Bool
-somOK = not . null . models
+somOK s
+  = (not . null . models $ s) && (validGaussian . learningFunction $ s)
 
 -- | @'buildGeneticSOM' s f ps@ returns a genetic SOM based on a 
 --   hexagonal grid with sides of length @s@, using the learning

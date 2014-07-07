@@ -18,12 +18,16 @@ module ALife.Creatur.WainQC
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (runDiploidReader, write)
+import ALife.Creatur.Genetics.Reproduction.Sexual (makeOffspring)
 import ALife.Creatur.Wain
-import qualified ALife.Creatur.Wain.BrainQC as B
+import ALife.Creatur.Wain.Brain (brainOK)
+import qualified ALife.Creatur.Wain.BrainQC as BQC
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
 import Control.Applicative ((<$>), (<*>), pure)
+import Control.Monad.Random (evalRand)
+import System.Random (mkStdGen)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -31,7 +35,7 @@ import Test.QuickCheck
 equiv :: Wain TestPattern TestAction -> Wain TestPattern TestAction -> Bool
 equiv a1 a2 =
   appearance a1 == appearance a2
-  && brain a1 `B.equiv` brain a2
+  && brain a1 `BQC.equiv` brain a2
   && ageOfMaturity a1 == ageOfMaturity a2
   && passionDelta a1 == passionDelta a2
 --  && genome a1 == genome a2
@@ -78,6 +82,12 @@ sizedArbWain n = do
 instance Arbitrary (Wain TestPattern TestAction) where
   arbitrary = sized sizedArbWain
     
+prop_offspring_are_valid
+  :: Wain TestPattern TestAction -> Wain TestPattern TestAction -> Int
+     -> Property
+prop_offspring_are_valid a b seed = property . brainOK . brain $ c
+  where g = mkStdGen seed
+        Right c = evalRand (makeOffspring a b "fred") g
 
 test :: Test
 test = testGroup "ALife.Creatur.WainQC"
@@ -87,5 +97,6 @@ test = testGroup "ALife.Creatur.WainQC"
     testProperty "prop_genetic_round_trippable - Wain"
       (prop_genetic_round_trippable (equiv) :: Wain TestPattern TestAction -> Property),
     testProperty "prop_diploid_identity - Wain"
-      (prop_diploid_identity (equiv) :: Wain TestPattern TestAction -> Property)
+      (prop_diploid_identity (equiv) :: Wain TestPattern TestAction -> Property),
+    testProperty "prop_offspring_are_valid" prop_offspring_are_valid
   ]

@@ -16,9 +16,11 @@ module ALife.Creatur.Wain.GeneticSOMQC
   (
     test,
     equiv,
-    sizedArbGeneticSOM
+    sizedArbGeneticSOM,
+    validGaussian
   ) where
 
+import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (express)
 import ALife.Creatur.Wain.GeneticSOMInternal
 import ALife.Creatur.Wain.TestUtils
@@ -51,13 +53,14 @@ instance Arbitrary (DecayingGaussian Double) where
 
 equivDecayingGaussian
   :: DecayingGaussian Double -> DecayingGaussian Double -> Bool
-equivDecayingGaussian (DecayingGaussian r0a rfa w0a wfa tfa)
-                      (DecayingGaussian r0b rfb w0b wfb tfb)
+equivDecayingGaussian a@(DecayingGaussian r0a rfa w0a wfa tfa)
+                      b@(DecayingGaussian r0b rfb w0b wfb tfb)
   = abs (r0a - r0b) < (1/256)
     && abs (rfa - rfb) < (1/256)
-    && abs (w0a - w0b) < 1
-    && abs (wfa - wfb) < 1
+    && abs (w0a - w0b) < 0.5
+    && abs (wfa - wfb) < 0.5
     && abs (tfa - tfb) < 1
+    && validGaussian a == validGaussian b
 
 -- We want the number of tiles in a test grid to be O(n)
 sizedHexHexGrid :: Int -> Gen HexHexGrid
@@ -116,31 +119,6 @@ instance Arbitrary RandomDecayingGaussianParams where
       (rfstart,rfstop) (w0start,w0stop) (wfstart,wfstop)
       (tfstart,tfstop) s
 
--- instance Arbitrary RandomDecayingGaussianParams where
---   arbitrary = do
---     r0start <- choose (0,1)
---     r0stop <- choose (0,1)
---     rfstart <- choose (0,1)
---     rfstop <- choose (0,1)
---     w0start <- choose (0,1)
---     w0stop <- choose (0,1)
---     wfstart <- choose (0,1)
---     wfstop <- choose (0,1)
---     tfstart <- choose (0,100000000)
---     tfstop <- choose (0,100000000)
---     s <- arbitrary
---     return $ RandomDecayingGaussianParams (r0start,r0stop)
---       (rfstart,rfstop) (w0start,w0stop) (wfstart,wfstop)
---       (tfstart,tfstop) s
-
-validGaussian :: DecayingGaussian Double -> Bool
-validGaussian (DecayingGaussian r0 rf w0 wf tf) =
-  0 < r0 && r0 <= 1
-    && 0 <= rf && rf <= 1 && rf <= r0
-    && 0 < w0
-    && 0 < wf && wf <= w0
-    && 0 < tf
-
 prop_decayingGaussian_valid :: DecayingGaussian Double -> Property
 prop_decayingGaussian_valid f = property $ validGaussian f
 
@@ -157,18 +135,25 @@ prop_random_learning_rate_always_in_range f t d =
   t >= 0 && d >= 0 ==> 0 <= r && r <= 1
   where r = rate f t d
 
-prop_diploid_decayingGaussian_valid
+prop_express_decayingGaussian_valid
   :: DecayingGaussian Double -> DecayingGaussian Double -> Property
-prop_diploid_decayingGaussian_valid a b
+prop_express_decayingGaussian_valid a b
   = property . validGaussian $ express a b
 
-prop_random_diploid_decayingGaussian_valid
+prop_random_express_decayingGaussian_valid
   :: Int -> RandomDecayingGaussianParams -> RandomDecayingGaussianParams -> Property
-prop_random_diploid_decayingGaussian_valid seed p1 p2
+prop_random_express_decayingGaussian_valid seed p1 p2
   = property . validGaussian $ express a b
   where g = mkStdGen seed
         (a, g') = runRand (randomDecayingGaussian p1) g
         b = evalRand (randomDecayingGaussian p2) g'
+
+prop_diploid_decayingGaussian_valid
+  :: DecayingGaussian Double -> DecayingGaussian Double -> Property
+prop_diploid_decayingGaussian_valid a b = property . validGaussian $ c
+  where g1 = W8.write a
+        g2 = W8.write b
+        Right c = W8.runDiploidReader W8.getAndExpress (g1, g2)
 
 prop_sum_counts_correct
   :: GeneticSOM TestPattern -> [TestPattern] -> Property
@@ -222,10 +207,12 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       prop_random_decayingGaussian_valid,
     testProperty "prop_random_learning_rate_always_in_range"
       prop_random_learning_rate_always_in_range,
+    testProperty "prop_express_decayingGaussian_valid"
+      prop_express_decayingGaussian_valid,
+    testProperty "prop_random_express_decayingGaussian_valid"
+      prop_random_express_decayingGaussian_valid,
     testProperty "prop_diploid_decayingGaussian_valid"
       prop_diploid_decayingGaussian_valid,
-    testProperty "prop_random_diploid_decayingGaussian_valid"
-      prop_random_diploid_decayingGaussian_valid,
     testProperty "prop_sum_counts_correct"
       prop_sum_counts_correct
     -- testProperty "prop_new_som_has_models"
