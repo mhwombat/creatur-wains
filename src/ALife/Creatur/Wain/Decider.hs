@@ -42,6 +42,18 @@ predict d s a = (r3, k)
           = Just $ (similarityIgnoringOutcome model r)*rawOutcome
         r3 = r { outcome=adjustedOutcome }
 
+-- -- | Predicts the outcome of a response based on the decider models,
+-- --   and updates the outcome field in that response.
+-- predict :: (Eq a) => Decider a -> Scenario -> a -> Response a
+-- predict d s a = r { outcome=Just o }
+--   where r = Response s a Nothing
+--         applicableModels = filter (\x -> action x == a) $ models d
+--         similarities
+--           = map (similarityIgnoringOutcome r) applicableModels
+--         rawOutcomes = map (fromJust . outcome) applicableModels
+--         adjustedOutcomes = zipWith (*) similarities rawOutcomes
+--         o = (sum adjustedOutcomes)/(sum similarities)
+
 -- | Returns the list of actions that this decider "knows".
 possibleActions :: (Eq a) => Decider a -> [a]
 possibleActions = nub . map action . models 
