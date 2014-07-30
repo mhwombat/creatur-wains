@@ -258,16 +258,16 @@ justClassify s = C.classify (patternMap s)
 
 -- | Updates the SOM based on the input pattern.
 --   Returns the index (grid location) of the model that most closely
---   matches the input pattern,
---   the differences between the input pattern and each model in the
---   SOM,
---   and the updated SOM.
+--   matches the input pattern, the differences between the input
+--   pattern and each model in the SOM, and the updated SOM (the counter
+--   for the closest model is incremented).
 reportAndTrain
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> p -> (Label, [(Label, Metric p)], GeneticSOM p)
 reportAndTrain s p = (bmu, diffs, s')
   where (bmu, diffs, som') = C.reportAndTrain (patternMap s) p
-        s' = s { patternMap=som', counterMap=GM.adjust (+1) bmu (counterMap s)}
+        s' = s { patternMap=som',
+                 counterMap=GM.adjust (+1) bmu (counterMap s)}
 
 -- | Returns the number of models in the SOM.
 numModels

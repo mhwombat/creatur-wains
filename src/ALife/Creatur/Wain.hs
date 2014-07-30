@@ -123,7 +123,7 @@ buildWain n a b m p g = w { wainSize = s }
   where w = Wain
               {
                 name = n, appearance = a, brain = b, ageOfMaturity = m,
-                passionDelta = p, energy = 0.5, passion = 0, age = 0,
+                passionDelta = p, energy = 1.0, passion = 0, age = 0,
                 litter = [], childrenBorneLifetime = 0,
                 childrenWeanedLifetime = 0, genome = g, wainSize = 0
               }

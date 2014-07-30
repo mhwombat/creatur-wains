@@ -26,10 +26,9 @@ type Classifier = GeneticSOM
 
 -- | Updates the classifier models based on the stimulus (input).
 --   Returns the index (grid location) of the model that most closely
---   matches the input pattern,
---   the differences between the input pattern and each model in the
---   classifier,
---   and the updated classifier.
+--   matches the input pattern, the differences between the input
+--   pattern and each model in the classifier, and the updated
+--   classifier (the counter for the closest model is incremented).
 classify
   :: (Pattern s, Ord (Metric s), Metric s ~ Double)
     => Classifier s -> s -> (Label, [Metric s], Classifier s)

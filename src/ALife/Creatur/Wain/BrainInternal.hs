@@ -123,10 +123,9 @@ assessSituation b p1 p2 c = (l1, l2, s, b2)
 -- | Updates the brain's classifier models based on the stimulus
 --   (input).
 --   Returns the index (grid location) of the model that most closely
---   matches the input pattern,
---   the differences between the input pattern and each model in the
---   classifier,
---   and the updated brain.
+--   matches the input pattern, the differences between the input
+--   pattern and each model in the classifier, and the updated brain
+--   (the counter for the closest model is incremented).
 classify
   :: (Pattern p, Metric p ~ Double)
     => p -> Brain p a -> (C.Label, Brain p a)
