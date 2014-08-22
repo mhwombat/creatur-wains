@@ -36,6 +36,7 @@ equiv :: Wain TestPattern TestAction -> Wain TestPattern TestAction -> Bool
 equiv a1 a2 =
   appearance a1 == appearance a2
   && brain a1 `BQC.equiv` brain a2
+  && devotion a1 == devotion a2
   && ageOfMaturity a1 == ageOfMaturity a2
   && passionDelta a1 == passionDelta a2
 --  && genome a1 == genome a2
@@ -45,6 +46,7 @@ strawMan :: Gen (Wain TestPattern TestAction)
 strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- appearance
                 <*> arbitrary     -- brain
+                <*> arbitrary     -- devotion
                 <*> arbitrary     -- age of maturity
                 <*> arbitrary     -- delta passion
                 <*> arbitrary     -- energy

@@ -89,6 +89,9 @@ data Wain p a = Wain
     -- | The wain's brain, which recognises patterns and makes
     --   decisions.
     brain :: B.Brain p a,
+    -- | The amount of energy the wain will give to offspring at birth.
+    --   This is a number between 0 and 1, inclusive.
+    devotion :: Double,
     -- | The age at which this wain will/has left its parent.
     ageOfMaturity :: Word16,
     -- | The amount that a wain's passion increases at each CPU turn.
@@ -116,26 +119,27 @@ data Wain p a = Wain
 
 buildWain
   :: (Pattern p, Metric p ~ Double, Serialize a, Serialize p, Eq a)
-    => String -> p -> B.Brain p a -> Word16 -> Double -> (Sequence, Sequence)
+    => String -> p -> B.Brain p a -> Double -> Word16 -> Double -> (Sequence, Sequence)
       -> Wain p a
-buildWain n a b m p g = w { wainSize = s }
+buildWain n a b d m p g = w { wainSize = s }
   -- We first set the size to 0, then figure out what the size really
   -- is.
   where w = Wain
               {
-                name = n, appearance = a, brain = b, ageOfMaturity = m,
-                passionDelta = p, energy = 0, passion = 0, age = 0,
-                litter = [], childrenBorneLifetime = 0,
-                childrenWeanedLifetime = 0, genome = g, wainSize = 0
+                name = n, appearance = a, brain = b, devotion = d,
+                ageOfMaturity = m, passionDelta = p, energy = 0,
+                passion = 0, age = 0, litter = [],
+                childrenBorneLifetime = 0, childrenWeanedLifetime = 0,
+                genome = g, wainSize = 0
               }
         s = BS.length . encode $ w
 
 buildWainAndGenerateGenome
   :: (Pattern p, Metric p ~ Double, Serialize a, Serialize p, Genetic p,
       Genetic a, Eq a)
-        => String -> p -> B.Brain p a -> Word16 -> Double -> Wain p a
-buildWainAndGenerateGenome n a b m p = strawMan { genome=(g,g) }
-  where strawMan = buildWain n a b m p ([], [])
+        => String -> p -> B.Brain p a -> Double -> Word16 -> Double -> Wain p a
+buildWainAndGenerateGenome n a b d m p = strawMan { genome=(g,g) }
+  where strawMan = buildWain n a b d m p ([], [])
         g = write strawMan
 
 deriving instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), 
@@ -175,23 +179,28 @@ instance (Serialize p, Serialize a, Pattern p, Metric p ~ Double, Eq a)
 instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a,
   Serialize p, Serialize a)
       => Genetic (Wain p a) where
-  put w = put (appearance w) >> put (brain w) >> put (ageOfMaturity w)
-    >> put (scaleToWord8 unitInterval $ passionDelta w)
+  put w = put (appearance w)
+            >> put (brain w)
+            >> put (scaleToWord8 unitInterval $ devotion w)
+            >> put (ageOfMaturity w)
+            >> put (scaleToWord8 unitInterval $ passionDelta w)
   get = do
     g <- copy
     a <- get
     b <- get
+    d <- fmap (fmap (scaleFromWord8 unitInterval)) get
     m <- get
     p <- fmap (fmap (scaleFromWord8 unitInterval)) get
-    return $ buildWain "" <$> a <*> b <*> m <*> p <*> pure (g, g)
+    return $ buildWain "" <$> a <*> b <*> d <*> m <*> p <*> pure (g, g)
 
 -- This implementation is useful for testing
 instance (Diploid p, Diploid a, Pattern p, Metric p ~ Double, Eq a,
   Serialize p, Serialize a)
       => Diploid (Wain p a) where
-  express x y = buildWain "" a b m p ([],[])
+  express x y = buildWain "" a b d m p ([],[])
     where a = express (appearance x) (appearance y)
           b = express (brain x) (brain y)
+          d = express (devotion x) (devotion y)
           m = express (ageOfMaturity x) (ageOfMaturity y)
           p = express (passionDelta x) (passionDelta y)
           
@@ -217,11 +226,13 @@ buildWainFromGenome
 buildWainFromGenome truncateGenome n = do
   a <- getAndExpress
   b <- getAndExpress
+  d <- getAndExpress
   m <- getAndExpress
   p <- getAndExpress
+  let d' = fmap (scaleFromWord8 unitInterval) d
   let p' = fmap (scaleFromWord8 unitInterval) p
   g <- if truncateGenome then consumed2 else copy2
-  return $ buildWain n <$> a <*> b <*> m <*> p' <*> pure g
+  return $ buildWain n <$> a <*> b <*> d' <*> m <*> p' <*> pure g
 
 -- randomWain
 --   :: (RandomGen g, Pattern p, Metric p ~ Double, Genetic p, Random p,
@@ -435,8 +446,8 @@ mate
     Genetic p, Genetic a, Eq a, Serialize p, Serialize a)
       => Wain p a -> Wain p a -> StateT u IO [Wain p a]
 mate a b = do
-  let a' = coolPassion a
-  let b' = coolPassion b
+  let a2 = coolPassion a
+  let b2 = coolPassion b
   babyName <- U.genName
   result <- liftIO $ evalRandIO (makeOffspring a b babyName)
   case result of
@@ -445,17 +456,22 @@ mate a b = do
         then do
           U.writeToLog $ name a ++ " and " ++ name b ++ " produce "
             ++ babyName
+          let aContribution = min (devotion a) (energy a)
+          let bContribution = min (devotion b) (energy b)
+          let a3 = adjustEnergy (-aContribution) a2
+          let b3 = adjustEnergy (-bContribution) b2
+          let baby3 = adjustEnergy (aContribution + bContribution) baby  
           return
-            [a' {litter=[baby],
-                 childrenBorneLifetime=childrenBorneLifetime a + 1}, b']
+            [a3 {litter=[baby3],
+                 childrenBorneLifetime=childrenBorneLifetime a + 1}, b3]
         else do
           U.writeToLog $ "child of " ++ name a ++ " and " ++ name b
             ++ " would have had an abnormal brain"
-          return [a', b']
+          return [a2, b2]
     Left msgs -> do
       U.writeToLog $ "child of " ++ name a ++ " and " ++ name b
         ++ " not viable: " ++ show msgs
-      return [a', b']
+      return [a2, b2]
 
 -- | Removes any mature children from the wain's litter.
 --   Returns a list containing the (possibly modified) wain, together

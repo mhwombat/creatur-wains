@@ -59,9 +59,10 @@ randomWain n classifierSize deciderSize maxAgeOfMaturity = do
   xs <- sequence . repeat $ randomResponse (numModels c) 
   let d = buildGeneticSOM deciderSize fd xs
   let b = buildBrain c d
+  d <- getRandomR unitInterval
   m <- getRandomR (0,maxAgeOfMaturity)
   p <- getRandomR unitInterval
-  return $ buildWainAndGenerateGenome n app b m p
+  return $ buildWainAndGenerateGenome n app b d m p
 
 wainBenchmark :: Word8 -> Word8 -> FilePath -> IO ()
 wainBenchmark classifierSize deciderSize dir = do
