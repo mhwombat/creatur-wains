@@ -158,6 +158,7 @@ instance SizedRecord (Wain p a) where
 instance (Pattern p, Metric p ~ Double) => Statistical (Wain p a) where
   stats w =
     iStat "age" (age w)
+      : dStat "devotion" (devotion w)
       : iStat "maturity" (ageOfMaturity w)
       : dStat "Δp" (passionDelta w)
       : iStat "size" (wainSize w)
