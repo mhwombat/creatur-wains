@@ -164,13 +164,17 @@ instance (Pattern p, Metric p ~ Double) => Statistical (Wain p a) where
       : iStat "size" (wainSize w)
       : iStat "children borne (lifetime)" (childrenBorneLifetime w)
       : iStat "children reared (lifetime)" (childrenWeanedLifetime w)
-      : dStat "energy" (energy w)
+      : dStat "adult energy" adultEnergy
+      : dStat "child energy" childEnergy
+      : dStat "energy" (adultEnergy + childEnergy)
       : dStat "passion" (passion w)
       : iStat "current litter size" (length $ litter w)
       : dStat "happiness" (happiness w)
       : stats (brain w)
       ++ [iStat "genome length" ( (length . fst $ genome w)
                                   + (length . snd $ genome w) )]
+    where adultEnergy = energy w
+          childEnergy = sum . map energy $ litter w
                                
 instance (Serialize p, Serialize a, Pattern p, Metric p ~ Double, Eq a)
   => Serialize (Wain p a)
