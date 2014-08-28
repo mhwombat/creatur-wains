@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           3.7.1
+Version:           3.7.3
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      3.7.1
+  tag:      3.7.3
 
 library
   GHC-Options:      -Wall -Werror
@@ -128,22 +128,22 @@ Executable wain-benchmark
 --                     split ==0.2.*,
 --                     transformers ==0.3.* || ==0.4.*
 
-Executable batchAvg
-  Main-Is:          ALife/Creatur/Wain/Util/BatchAverage.hs
-  GHC-Options:      -Wall -rtsopts
-  Hs-source-dirs:   src
-  build-depends:
-                    base ==4.*,
-                    factory ==0.2.*,
-                    split ==0.2.*
+-- Executable batchAvg
+--   Main-Is:          ALife/Creatur/Wain/Util/BatchAverage.hs
+--   GHC-Options:      -Wall -rtsopts
+--   Hs-source-dirs:   src
+--   build-depends:
+--                     base ==4.*,
+--                     factory ==0.2.*,
+--                     split ==0.2.*
 
-Executable condense
-  Main-Is:          ALife/Creatur/Wain/Util/Condense.hs
-  GHC-Options:      -Wall -rtsopts
-  Hs-source-dirs:   src
-  build-depends:
-                    base ==4.*,
-                    split ==0.2.*
+-- Executable condense
+--   Main-Is:          ALife/Creatur/Wain/Util/Condense.hs
+--   GHC-Options:      -Wall -rtsopts
+--   Hs-source-dirs:   src
+--   build-depends:
+--                     base ==4.*,
+--                     split ==0.2.*
 
 
 Executable assessment-diagram

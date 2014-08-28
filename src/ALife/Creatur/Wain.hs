@@ -27,6 +27,7 @@ module ALife.Creatur.Wain
     identity,
     appearanceOf,
     hasLitter,
+    litterSize,
     incAge,
     condition,
     chooseAction,
@@ -35,7 +36,6 @@ module ALife.Creatur.Wain
     reflect,
     tryMating,
     weanMatureChildren,
-    removeDeadChildren,
     programVersion
   ) where
 
@@ -305,6 +305,10 @@ describeOutcomes w xs = mapM_ (U.writeToLog . f) xs
 hasLitter :: Wain p a -> Bool
 hasLitter = not . null . litter
 
+-- | Returns the number of children that a wain is currently raising.
+litterSize :: Wain p a -> Int
+litterSize = length . litter
+
 -- | Returns @True@ if the wain is mature; returns @False@ otherwise.
 mature :: Wain p a -> Bool
 mature a = age a >= ageOfMaturity a
@@ -457,8 +461,8 @@ mate a b = do
         then do
           U.writeToLog $ name a ++ " and " ++ name b ++ " produce "
             ++ babyName
-          let aContribution = min (devotion a) (energy a)
-          let bContribution = min (devotion b) (energy b)
+          let aContribution = (devotion a)*(energy a)
+          let bContribution = (devotion b)*(energy b)
           let a3 = adjustEnergy (-aContribution) a2
           let b3 = adjustEnergy (-bContribution) b2
           let baby3 = adjustEnergy (aContribution + bContribution) baby  
@@ -493,16 +497,3 @@ weanMatureChildren a =
                      childrenWeanedLifetime a +
                        fromIntegral (length weanlings) }
       return $ a':weanlings
-
-removeDeadChildren
-  :: U.Universe u
-    => Wain p a -> StateT u IO (Wain p a)
-removeDeadChildren a =
-  if null (litter a)
-    then return a
-    else do
-      let (babes, dead) = partition isAlive (litter a)
-      mapM_ (\c -> U.writeToLog $
-                    (name c) ++ ", child of " ++ name a ++ " died")
-                      dead
-      return a { litter = babes }
