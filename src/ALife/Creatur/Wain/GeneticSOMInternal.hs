@@ -184,7 +184,8 @@ somOK
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> Bool
 somOK s
-  = (not . null . models $ s) && (validGaussian . learningFunction $ s)
+  = (not . null . models $ s) && (size s > 1)
+      && (validGaussian . learningFunction $ s)
 
 -- | @'buildGeneticSOM' s f ps@ returns a genetic SOM based on a 
 --   hexagonal grid with sides of length @s@, using the learning
