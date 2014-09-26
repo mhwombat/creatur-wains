@@ -40,7 +40,7 @@ prop_training_makes_predictions_more_accurate d s a o =
   where (r, _) = predict d s a
         (Just predictionBefore) = outcome r
         errBefore = abs (o - predictionBefore)
-        (_, _, d') = reportAndTrain d (r `setOutcome` o)
+        (_, _, _, _, d') = reportAndTrain d (r `setOutcome` o)
         (Just predictionAfter) = outcome . fst $ predict d' s a
         errAfter = abs (o - predictionAfter)
 

@@ -101,9 +101,12 @@ chooseAction
   :: (Pattern p, Metric p ~ Double, Eq a, Enum a,
     Bounded a, Show a)
       => Brain p a -> p -> p -> Condition
-        -> (Response a, Brain p a, [(Response a, D.Label)])
-chooseAction b p1 p2 c = (r, b', consideredResponses)
-  where (_, _, s, b') = assessSituation b p1 p2 c
+        -> (C.Label, Double, Int, C.Label, Double, Int, Response a,
+            Brain p a, [(Response a, D.Label)])
+chooseAction b p1 p2 c
+  = (l1, nov1, novAdj1, l2, nov2, novAdj2, r, b', consideredResponses)
+  where (l1, nov1, novAdj1, l2, nov2, novAdj2, s, b')
+            = assessSituation b p1 p2 c
         consideredResponses = map (predict b s) $ knownActions b
         r = maximumBy f $ map fst consideredResponses
         f = comparing (fromMaybe 0 . outcome)
@@ -114,29 +117,30 @@ chooseAction b p1 p2 c = (r, b', consideredResponses)
 assessSituation
   :: (Pattern p, Metric p ~ Double)
     => Brain p a -> p -> p -> Condition
-      -> (C.Label, C.Label, Scenario, Brain p a)
-assessSituation b p1 p2 c = (l1, l2, s, b2)
-  where (l1, sig1, b1) = classify' p1 b
-        (l2, sig2, b2) = classify' p2 b1
+      -> (C.Label, Double, Int, C.Label, Double, Int, Scenario, Brain p a)
+assessSituation b p1 p2 c
+  = (l1, nov1, novAdj1, l2, nov2, novAdj2, s, b2)
+  where (l1, sig1, nov1, novAdj1, b1) = classify' p1 b
+        (l2, sig2, nov2, novAdj2, b2) = classify' p2 b1
         s = Scenario sig1 sig2 c
 
 -- | Updates the brain's classifier models based on the stimulus
 --   (input).
 --   Returns the index (grid location) of the model that most closely
---   matches the input pattern, the differences between the input
---   pattern and each model in the classifier, and the updated brain
---   (the counter for the closest model is incremented).
+--   matches the input pattern, the novelty of the input pattern,
+--   the adjusted novelty, and the updated brain (which has learned
+--   from the classification experience).
 classify
   :: (Pattern p, Metric p ~ Double)
-    => p -> Brain p a -> (C.Label, Brain p a)
-classify p b = (label, b')
-  where (label, _, b') = classify' p b
+    => p -> Brain p a -> (C.Label, Double, Int, Brain p a)
+classify p b = (label, nov, novAdj, b')
+  where (label, _, nov, novAdj, b') = classify' p b
 
 classify'
   :: (Pattern p, Metric p ~ Double)
-    => p -> Brain p a -> (C.Label, [Metric p], Brain p a)
-classify' s b = (label, sig, b')
-  where (label, sig, c') = C.classify (classifier b) s
+    => p -> Brain p a -> (C.Label, [Metric p], Double, Int, Brain p a)
+classify' s b = (label, sig, nov, novAdj, b')
+  where (label, sig, nov, novAdj, c') = C.classify (classifier b) s
         b' = b { classifier = c' }
 
 -- | Returns the list of actions that this brain "knows".
@@ -164,7 +168,7 @@ reflect
 reflect b r cAfter = (b {decider=d'}, err)
   where deltaH = happiness cAfter - happiness (condition . scenario $ r)
         predictedDeltaH = fromJust . outcome $ r
-        (_, _, d') =
+        (_, _, _, _, d') =
           GSOM.reportAndTrain (decider b) (r `setOutcome` deltaH)
         err = abs (deltaH - predictedDeltaH)
 
@@ -175,7 +179,7 @@ imprint
   :: (Pattern p, Metric p ~ Double, Eq a)
     => Brain p a -> p -> p -> a -> Brain p a
 imprint b p1 p2 a = b' {decider=d'}
-  where (_, _, s, b') = assessSituation b p1 p2 c
+  where (_, _, _, _, _, _, s, b') = assessSituation b p1 p2 c
         r = Response s a (Just 1.0)
-        (_, _, d') = GSOM.reportAndTrain (decider b) r
+        (_, _, _, _, d') = GSOM.reportAndTrain (decider b) r
         c = Condition 0.5 0.5 0 -- neutral condition

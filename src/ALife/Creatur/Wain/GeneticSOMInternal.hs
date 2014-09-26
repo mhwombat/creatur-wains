@@ -20,6 +20,7 @@ module ALife.Creatur.Wain.GeneticSOMInternal where
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
+import ALife.Creatur.Wain.ClassificationMetrics (novelty)
 import ALife.Creatur.Wain.Statistics (Statistical, iStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
@@ -260,15 +261,19 @@ justClassify s = C.classify (patternMap s)
 -- | Updates the SOM based on the input pattern.
 --   Returns the index (grid location) of the model that most closely
 --   matches the input pattern, the differences between the input
---   pattern and each model in the SOM, and the updated SOM (the counter
+--   pattern and each model in the SOM, the novelty of the input
+--   pattern, the adjusted novelty, and the updated SOM (the counter
 --   for the closest model is incremented).
 reportAndTrain
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
-    => GeneticSOM p -> p -> (Label, [(Label, Metric p)], GeneticSOM p)
-reportAndTrain s p = (bmu, diffs, s')
+    => GeneticSOM p -> p
+      -> (Label, [(Label, Metric p)], Double, Int, GeneticSOM p)
+reportAndTrain s p = (bmu, diffs, nov, adjNov, s')
   where (bmu, diffs, som') = C.reportAndTrain (patternMap s) p
-        s' = s { patternMap=som',
-                 counterMap=GM.adjust (+1) bmu (counterMap s)}
+        cMap = GM.adjust (+1) bmu (counterMap s)
+        s' = s { patternMap=som', counterMap=cMap}
+        nov = novelty bmu (GM.toList cMap)
+        adjNov = round $ nov * (fromIntegral $ SOM.counter som')
 
 -- | Returns the number of models in the SOM.
 numModels

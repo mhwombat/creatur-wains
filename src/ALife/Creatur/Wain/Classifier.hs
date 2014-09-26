@@ -31,9 +31,9 @@ type Classifier = GeneticSOM
 --   classifier (the counter for the closest model is incremented).
 classify
   :: (Pattern s, Ord (Metric s), Metric s ~ Double)
-    => Classifier s -> s -> (Label, [Metric s], Classifier s)
-classify c p = (bmu, sig, c')
-  where (bmu, diffs, c') = reportAndTrain c p
+    => Classifier s -> s -> (Label, [Metric s], Double, Int, Classifier s)
+classify c p = (bmu, sig, nov, adjNov, c')
+  where (bmu, diffs, nov, adjNov, c') = reportAndTrain c p
         sig = map snd diffs
 
 -- conflation :: Metric s ~ Double => Classifier s -> Double

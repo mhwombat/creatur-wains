@@ -163,7 +163,7 @@ prop_sum_counts_correct som ps = property $
 
 runSOM :: TestPattern -> GeneticSOM TestPattern -> GeneticSOM TestPattern
 runSOM p s = x
-  where (_, _, x) = reportAndTrain s p
+  where (_, _, _, _, x) = reportAndTrain s p
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"

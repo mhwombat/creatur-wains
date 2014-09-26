@@ -279,15 +279,17 @@ chooseAction
   :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
     Bounded a, Show a)
     => p -> p -> Wain p a
-      -> StateT u IO (R.Response a, Wain p a)
+      -> StateT u IO (Label, Double, Int, Label, Double, Int,
+                       R.Response a, Wain p a)
 chooseAction p1 p2 w = do
   let n = name w
-  let (r, b', xs) = B.chooseAction (brain w) p1 p2 (condition w)
+  let (l1, nov1, novAdj1, l2, nov2, novAdj2, r, b', xs)
+         = B.chooseAction (brain w) p1 p2 (condition w)
   U.writeToLog $ n ++ "'s assessment=" ++ pretty (R.scenario r)
   describeModels w
   describeOutcomes w xs
   U.writeToLog $ n ++ " decides to " ++ show (R.action r)
-  return (r, w {brain=b'})
+  return (l1, nov1, novAdj1, l2, nov2, novAdj2, r, w {brain=b'})
 
 describeModels :: (U.Universe u, Show a, Eq a) => Wain p a -> StateT u IO ()
 describeModels w = mapM_ (U.writeToLog . f) ms
@@ -366,13 +368,13 @@ incAge1 w = return w { age=age w + 1 }
   
 -- | Presents a stimulus to a wain.
 --   Returns the index (grid location) of the model that most closely
---   matches the input pattern,
---   and the updated wain.
+--   matches the input pattern, the novelty of the pattern,
+--   the adjusted novelty, and the updated wain.
 classify
   :: (Pattern p, Metric p ~ Double)
-    => p -> Wain p a -> (Label, Wain p a)
-classify p w = (l, w{brain=b})
-  where (l, b) = B.classify p (brain w)
+    => p -> Wain p a -> (Label, Double, Int, Wain p a)
+classify p w = (l, nov, novAdj, w{brain=b})
+  where (l, nov, novAdj, b) = B.classify p (brain w)
 
 -- | Teaches a pattern + label to a wain, and its litter (if any).
 teachLabel
