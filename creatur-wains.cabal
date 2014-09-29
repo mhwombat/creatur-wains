@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           3.8.0
+Version:           3.8.1
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      3.8.0
+  tag:      3.8.1
 
 library
   GHC-Options:      -Wall -Werror
@@ -54,17 +54,17 @@ library
   Build-Depends:
                     base ==4.*,
                     bytestring ==0.10.*,
-                    cereal ==0.3.* || ==0.4.*,
+                    cereal ==0.4.*,
                     creatur ==5.6.*,
                     directory ==1.2.*,
                     factory ==0.2.*,
                     filepath ==1.3.*,
                     grid ==7.*,
-                    MonadRandom ==0.1.*,
-                    mtl ==2.1.*,
-                    random ==1.0.*,
+                    MonadRandom ==0.3.*,
+                    mtl ==2.2.*,
+                    random ==1.1.*,
                     som ==7.*,
-                    transformers ==0.3.*
+                    transformers ==0.4.*
 
 Test-suite wain-tests
   Type:             exitcode-stdio-1.0
@@ -73,79 +73,37 @@ Test-suite wain-tests
   Hs-source-dirs:   test
   Build-Depends:    
                     base ==4.*,
-                    cereal ==0.3.* || ==0.4.*,
+                    cereal ==0.4.*,
                     creatur ==5.6.*,
                     creatur-wains,
                     factory ==0.2.*,
                     grid ==7.*,
-                    random ==1.0.*,
-                    MonadRandom ==0.1.*,
+                    random ==1.1.*,
+                    MonadRandom ==0.3.*,
                     som ==7.*,
-                    transformers ==0.3.*,
+                    transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
-                    QuickCheck ==2.6.* || ==2.7.*
+                    QuickCheck ==2.7.*
 
 Executable wain-benchmark
   Main-is:          Benchmark.hs
   Hs-source-dirs:   test
   Build-Depends:    
                     base ==4.*,
-                    cereal ==0.3.* || ==0.4.*,
+                    cereal ==0.4.*,
                     creatur ==5.6.*,
                     creatur-wains,
                     grid ==7.*,
-                    random ==1.0.*,
-                    MonadRandom ==0.1.*,
+                    random ==1.1.*,
+                    MonadRandom ==0.3.*,
                     som ==7.*,
                     temporary ==1.1.*,
                     time ==1.4.*,
-                    transformers ==0.3.*,
+                    transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
-                    QuickCheck ==2.6.* || ==2.7.*
-
--- Executable plot
---   Main-Is:          ALife/Creatur/Wain/Util/Plot.hs
---   GHC-Options:      -Wall -rtsopts
---   Hs-source-dirs:   src
---   build-depends:
---                     base ==4.*,
---                     base-unicode-symbols ==0.2.*,
---                     cereal ==0.3.* || == 0.4.*,
---                     Chart ==1.2.*,
---                     Chart-cairo ==1.2.*,
---                     colour ==2.3.*,
---                     creatur ==5.6.*,
---                     creatur-wains ==3.4.*,
---                     data-default-class ==0.0.*,
---                     directory ==1.2.*,
---                     grid ==7.* && >7.1,
---                     lens ==4.1.* || ==4.2.*,
---                     MonadRandom ==0.1.*,
---                     mtl ==2.1.*,
---                     random ==1.0.*,
---                     som ==7.*,
---                     split ==0.2.*,
---                     transformers ==0.3.* || ==0.4.*
-
--- Executable batchAvg
---   Main-Is:          ALife/Creatur/Wain/Util/BatchAverage.hs
---   GHC-Options:      -Wall -rtsopts
---   Hs-source-dirs:   src
---   build-depends:
---                     base ==4.*,
---                     factory ==0.2.*,
---                     split ==0.2.*
-
--- Executable condense
---   Main-Is:          ALife/Creatur/Wain/Util/Condense.hs
---   GHC-Options:      -Wall -rtsopts
---   Hs-source-dirs:   src
---   build-depends:
---                     base ==4.*,
---                     split ==0.2.*
-
+                    QuickCheck ==2.7.*
 
 Executable assessment-diagram
   Main-Is:          ALife/Creatur/Wain/Util/AssessmentDiagram.hs
@@ -154,7 +112,7 @@ Executable assessment-diagram
   build-depends:
                     base ==4.*,
                     colour ==2.3.*,
-                    diagrams ==1.2.*,
+                    -- diagrams ==1.2.*,
                     diagrams-lib ==1.2.*,
                     diagrams-svg ==1.*,
                     split ==0.2.*
@@ -166,7 +124,7 @@ Executable decider-diagram
   build-depends:
                     base ==4.*,
                     colour ==2.3.*,
-                    diagrams ==1.2.*,
+                    -- diagrams ==1.2.*,
                     diagrams-lib ==1.2.*,
                     diagrams-svg ==1.*,
                     split ==0.2.*
