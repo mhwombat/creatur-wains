@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           3.8.1
+Version:           3.8.2
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -14,7 +14,7 @@ Synopsis:          Artificial agent specialised for for pattern
                    discovery.
 License:           BSD3
 License-file:      LICENSE
-Copyright:         (c) Amy de Buitléir 2010-2012
+Copyright:         (c) Amy de Buitléir 2010-2014
 Author:            Amy de Buitléir
 Maintainer:        amy@nualeargais.ie
 Build-Type:        Simple
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      3.8.1
+  tag:      3.8.2
 
 library
   GHC-Options:      -Wall -Werror
