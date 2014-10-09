@@ -22,9 +22,11 @@ module ALife.Creatur.Wain.Statistics
     dStat,
     iStat,
     uiStat,
-    summarise
+    summarise,
+    lookup
   ) where
 
+import Prelude hiding (lookup)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Raw (Raw, raw)
 import Data.Datamining.Clustering.SOM (DecayingGaussian(..))
@@ -135,3 +137,9 @@ instance Statistical (DecayingGaussian Double) where
   stats (DecayingGaussian r0 rf w0 wf tf) = 
     [ dStat "r0" r0, dStat "rf" rf, dStat "w0" w0, dStat "wf" wf,
       iStat "tf" (round tf :: Int) ]
+
+lookup :: String -> [Statistic] -> Maybe Double
+lookup _ [] = Nothing
+lookup key (x:xs) = if key == sName x
+                      then Just (sVal x)
+                      else lookup key xs
