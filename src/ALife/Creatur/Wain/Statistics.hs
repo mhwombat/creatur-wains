@@ -30,7 +30,7 @@ import Prelude hiding (lookup)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Raw (Raw, raw)
 import Data.Datamining.Clustering.SOM (DecayingGaussian(..))
-import Data.List (transpose, intercalate)
+import Data.List (transpose)
 import Data.Serialize (Serialize)
 import Factory.Math.Statistics (getMean, getStandardDeviation)
 import GHC.Generics
@@ -93,7 +93,7 @@ class Statistical a where
   stats :: a -> [Statistic]
 
 -- | Given a 2-dimensional table of values, reports some statistics.
-summarise :: [[Statistic]] -> [String]
+summarise :: [[Statistic]] -> [[Statistic]]
 summarise xss = [maxima,minima,averages,stdDevs,sums]
   where yss = transpose xss
         maxima   = compile "max. " maximum yss
@@ -112,8 +112,8 @@ summarise xss = [maxima,minima,averages,stdDevs,sums]
 --                     ++ (toCSV $ applyToColumns getStandardDeviation yss)
 --         sums = "total," ++ (toCSV $ applyToColumns sum yss)
 
-compile :: String -> ([Double] -> Double) -> [[Statistic]] -> String
-compile s f yss = intercalate "," . map (pretty . prefix s) $ applyToColumns f yss
+compile :: String -> ([Double] -> Double) -> [[Statistic]] -> [Statistic]
+compile s f yss = map (prefix s) $ applyToColumns f yss
 
 -- header :: [[Statistic]] -> String
 -- header [] = "no data"

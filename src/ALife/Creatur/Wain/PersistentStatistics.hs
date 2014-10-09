@@ -15,8 +15,7 @@ module ALife.Creatur.Wain.PersistentStatistics
   (
     updateStats,
     readStats,
-    clearStats,
-    summarise
+    clearStats
   ) where
 
 import ALife.Creatur.Universe (Universe, writeToLog)
@@ -70,7 +69,8 @@ writeStats f xs = do
   liftIO $ createDirectoryIfMissing True (dropFileName f)
   liftIO $ BS.writeFile f (DS.encode xs)
 
--- | Summarises the stored statistics and writes them to the log.
-summarise :: Universe u => [[Stats.Statistic]] -> StateT u IO ()
-summarise xss = mapM_ f $ Stats.summarise xss
-  where f s = writeToLog $ "Summary - " ++ s
+-- -- | Summarises the stored statistics and writes them to the log.
+-- summarise :: Universe u => [[Stats.Statistic]] -> StateT u IO ()
+-- summarise xss = mapM_ f $ summarise' xss
+--   where f s = writeToLog $ "Summary - " ++ s
+--         summarise' xs = intercalate "," $ map pretty xs
