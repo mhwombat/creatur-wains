@@ -55,6 +55,7 @@ strawMan = Wain <$> pure ""       -- name
                 <*> pure []       -- litter
                 <*> arbitrary     -- children borne during lifetime
                 <*> arbitrary     -- children weanded during lifetime
+                <*> arbitrary     -- # of wins
                 <*> pure ([],[])  -- genome
                 <*> arbitrary     -- size
 

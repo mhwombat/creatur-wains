@@ -25,6 +25,12 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
+-- prop_classification_is_consistent
+--   :: Classifier TestPattern -> TestPattern -> Property
+-- prop_classification_is_consistent c p = property $ bmu == bmu'
+--   where (bmu, _, _, _, c') = classify c p
+--         (bmu', _, _, _, _) = classify c' p
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ClassifierQC"
   [
@@ -43,4 +49,6 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
     testProperty "prop_diploid_readable - Classifier"
       (prop_diploid_readable
         :: Classifier TestPattern -> Classifier TestPattern -> Property)
+    -- testProperty "prop_classification_is_consistent"
+    --   prop_classification_is_consistent
   ]

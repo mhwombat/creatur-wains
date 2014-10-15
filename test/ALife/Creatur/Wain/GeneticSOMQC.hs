@@ -165,6 +165,14 @@ runSOM :: TestPattern -> GeneticSOM TestPattern -> GeneticSOM TestPattern
 runSOM p s = x
   where (_, _, _, _, x) = reportAndTrain s p
 
+-- -- | WARNING: This can fail when two nodes are close enough in
+-- --   value so that after training they become identical.
+-- prop_classification_is_consistent
+--   :: GeneticSOM TestPattern -> TestPattern -> Property
+-- prop_classification_is_consistent s p = property $ bmu == bmu'
+--   where (bmu, _, _, _, s') = reportAndTrain s p
+--         (bmu', _, _, _, _) = reportAndTrain s' p
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
   [
@@ -217,4 +225,6 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       prop_sum_counts_correct
     -- testProperty "prop_new_som_has_models"
     --   prop_new_som_has_models
+    -- testProperty "prop_classification_is_consistent"
+    --   prop_classification_is_consistent
   ]

@@ -29,6 +29,7 @@ module ALife.Creatur.Wain
     hasLitter,
     litterSize,
     incAge,
+    incSwagger,
     condition,
     chooseAction,
     classify,
@@ -111,6 +112,9 @@ data Wain p a = Wain
     childrenBorneLifetime :: Word16,
     -- | The number of children this wain has reared to maturity.
     childrenWeanedLifetime :: Word16,
+    -- | The number of classifications agreed upon during a wain's
+    --   lifetime.
+    swagger :: Word16,
     -- | The wain's genes.
     genome :: ([Word8],[Word8]),
     -- The size of this wain. Useful for determining a metabolism rate.
@@ -130,7 +134,7 @@ buildWain n a b d m p g = w { wainSize = s }
                 ageOfMaturity = m, passionDelta = p, energy = 0,
                 passion = 0, age = 0, litter = [],
                 childrenBorneLifetime = 0, childrenWeanedLifetime = 0,
-                genome = g, wainSize = 0
+                swagger = 0, genome = g, wainSize = 0
               }
         s = BS.length . encode $ w
 
@@ -365,7 +369,14 @@ incAge1
   :: (Pattern p, Metric p ~ Double, U.Universe u)
     => Wain p a -> StateT u IO (Wain p a)
 incAge1 w = return w { age=age w + 1 }
-  
+
+-- | Increments a wain's swagger count
+incSwagger
+  :: (Pattern p, Metric p ~ Double, U.Universe u)
+    => Wain p a -> StateT u IO (Wain p a)
+incSwagger w = return w { swagger=swagger w + 1 }
+
+
 -- | Presents a stimulus to a wain.
 --   Returns the index (grid location) of the model that most closely
 --   matches the input pattern, the novelty of the pattern,
