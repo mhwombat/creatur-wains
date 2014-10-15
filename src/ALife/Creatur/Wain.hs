@@ -174,6 +174,7 @@ instance (Pattern p, Metric p ~ Double) => Statistical (Wain p a) where
       : dStat "passion" (passion w)
       : iStat "current litter size" (length $ litter w)
       : dStat "happiness" (happiness w)
+      : iStat "swagger" (swagger w)
       : stats (brain w)
       ++ [iStat "genome length" ( (length . fst $ genome w)
                                   + (length . snd $ genome w) )]
@@ -375,7 +376,6 @@ incSwagger
   :: (Pattern p, Metric p ~ Double, U.Universe u)
     => Wain p a -> StateT u IO (Wain p a)
 incSwagger w = return w { swagger=swagger w + 1 }
-
 
 -- | Presents a stimulus to a wain.
 --   Returns the index (grid location) of the model that most closely
