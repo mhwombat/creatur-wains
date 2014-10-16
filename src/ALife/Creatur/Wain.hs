@@ -284,17 +284,18 @@ chooseAction
   :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
     Bounded a, Show a)
     => p -> p -> Wain p a
-      -> StateT u IO (Label, Double, Int, Label, Double, Int,
-                       R.Response a, Wain p a)
+      -> StateT u IO (Label, Double, Double, Int, Label, Double, Double,
+                      Int, R.Response a, Wain p a)
 chooseAction p1 p2 w = do
   let n = name w
-  let (l1, nov1, novAdj1, l2, nov2, novAdj2, r, b', xs)
+  let (l1, diff1, nov1, novAdj1, l2, diff2, nov2, novAdj2, r, b', xs)
          = B.chooseAction (brain w) p1 p2 (condition w)
   U.writeToLog $ n ++ "'s assessment=" ++ pretty (R.scenario r)
   describeModels w
   describeOutcomes w xs
   U.writeToLog $ n ++ " decides to " ++ show (R.action r)
-  return (l1, nov1, novAdj1, l2, nov2, novAdj2, r, w {brain=b'})
+  return $ (l1, diff1, nov1, novAdj1, l2, diff2, nov2, novAdj2, r,
+             w {brain=b'})
 
 describeModels :: (U.Universe u, Show a, Eq a) => Wain p a -> StateT u IO ()
 describeModels w = mapM_ (U.writeToLog . f) ms
@@ -383,9 +384,9 @@ incSwagger w = return w { swagger=swagger w + 1 }
 --   the adjusted novelty, and the updated wain.
 classify
   :: (Pattern p, Metric p ~ Double)
-    => p -> Wain p a -> (Label, Double, Int, Wain p a)
-classify p w = (l, nov, novAdj, w{brain=b})
-  where (l, nov, novAdj, b) = B.classify p (brain w)
+    => p -> Wain p a -> (Label, Double, Double, Int, Wain p a)
+classify p w = (l, diff, nov, novAdj, w{brain=b})
+  where (l, diff, nov, novAdj, b) = B.classify p (brain w)
 
 -- | Teaches a pattern + label to a wain, and its litter (if any).
 teachLabel
