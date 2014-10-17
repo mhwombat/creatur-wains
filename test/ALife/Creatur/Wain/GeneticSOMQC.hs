@@ -24,70 +24,61 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (express)
 import ALife.Creatur.Wain.GeneticSOMInternal
 import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Util (isqrt)
 import Control.Monad.Random (evalRand, runRand)
 import Data.Datamining.Pattern (Pattern, Metric)
-import Data.Datamining.Clustering.SOMInternal (counter,
-  DecayingGaussian(..), rate)
+import Data.Datamining.Clustering.SSOMInternal (counter,
+  Gaussian(..), rate)
+import qualified Data.Map.Strict as M
 import Data.Word (Word16)
-import Math.Geometry.Grid (tileCount)
-import Math.Geometry.Grid.Hexagonal (HexHexGrid, hexHexGrid)
-import qualified Math.Geometry.GridMap as GM
-import Math.Geometry.GridMap.Lazy (lazyGridMap)
 import System.Random (mkStdGen)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 import Test.QuickCheck.Gen (Gen(MkGen))
 
-instance Arbitrary (DecayingGaussian Double) where
+instance Arbitrary (Gaussian Double) where
   arbitrary = do
     p <- arbitrary
-    MkGen (\r _ -> let (x,_) = runRand (randomDecayingGaussian p) r in x)
+    MkGen (\r _ -> let (x,_) = runRand (randomGaussian p) r in x)
     -- r0 <- choose r0RangeLimits
     -- rf <- choose rfRangeLimits
-    -- w0 <- choose (1,255)
-    -- wf <- fmap (min w0) (choose (0,255))
     -- tf <- arb8BitDouble (1,65535)
-    -- return $ DecayingGaussian r0 rf w0 wf tf
+    -- return $ Gaussian r0 rf tf
 
-equivDecayingGaussian
-  :: DecayingGaussian Double -> DecayingGaussian Double -> Bool
-equivDecayingGaussian a@(DecayingGaussian r0a rfa w0a wfa tfa)
-                      b@(DecayingGaussian r0b rfb w0b wfb tfb)
+equivGaussian
+  :: Gaussian Double -> Gaussian Double -> Bool
+equivGaussian a@(Gaussian r0a rfa tfa)
+                      b@(Gaussian r0b rfb tfb)
   = abs (r0a - r0b) < (1/256)
     && abs (rfa - rfb) < (1/256)
-    && abs (w0a - w0b) < 0.5
-    && abs (wfa - wfb) < 0.5
     && abs (tfa - tfb) < 1
     && validGaussian a == validGaussian b
 
--- We want the number of tiles in a test grid to be O(n)
-sizedHexHexGrid :: Int -> Gen HexHexGrid
-sizedHexHexGrid n = do
-  let s = isqrt (n `div` 3)
-  return $ hexHexGrid s
+-- -- We want the number of tiles in a test grid to be O(n)
+-- sizedHexHexGrid :: Int -> Gen HexHexGrid
+-- sizedHexHexGrid n = do
+--   let s = isqrt (n `div` 3)
+--   return $ hexHexGrid s
 
-instance Arbitrary HexHexGrid where
-  arbitrary = sized sizedHexHexGrid
+-- instance Arbitrary HexHexGrid where
+--   arbitrary = sized sizedHexHexGrid
 
 setCounts
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => [Word16] -> GeneticSOM p -> GeneticSOM p
 setCounts ks (GeneticSOM s kMap) = GeneticSOM s' kMap'
-  where kMap' = lazyGridMap (GM.toGrid kMap) ks
+  where kMap' = M.fromList . zip (M.keys kMap) $ ks
         s' = s { counter=(sum ks) }
 
 sizedArbGeneticSOM
   :: (Arbitrary p, Pattern p, Metric p ~ Double)
     => Int -> Gen (GeneticSOM p)
 sizedArbGeneticSOM n = do
-  let s = n `div` 30 + 1
+  let s = n + 1
   f <- arbitrary
-  let numPatterns = tileCount $ hexHexGrid s
-  xs <- vectorOf numPatterns (resize n arbitrary)
-  let d = buildGeneticSOM (fromIntegral s) f xs
-  ns <- vectorOf numPatterns (choose (0,25))
+  xs <- vectorOf s (resize n arbitrary)
+  let d = buildGeneticSOM f xs
+  ns <- vectorOf s (choose (0,25))
   return $ setCounts ns d
 
 instance (Arbitrary p, Pattern p, Metric p ~ Double)
@@ -98,58 +89,52 @@ equiv
   :: (Eq p, Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> GeneticSOM p -> Bool
 equiv gs1 gs2 =
-  learningFunction gs1 `equivDecayingGaussian` learningFunction gs2
+  learningFunction gs1 `equivGaussian` learningFunction gs2
     && numModels gs1 == numModels gs2
     && models gs1 == models gs2
 
-instance Arbitrary RandomDecayingGaussianParams where
+instance Arbitrary RandomGaussianParams where
   arbitrary = do
     r0start <- arbitrary
     r0stop <- arbitrary
     rfstart <- arbitrary
     rfstop <- arbitrary
-    w0start <- arbitrary
-    w0stop <- arbitrary
-    wfstart <- arbitrary
-    wfstop <- arbitrary
     tfstart <- arbitrary
     tfstop <- arbitrary
-    s <- arbitrary
-    return $ RandomDecayingGaussianParams (r0start,r0stop)
-      (rfstart,rfstop) (w0start,w0stop) (wfstart,wfstop)
-      (tfstart,tfstop) s
+    return $ RandomGaussianParams (r0start,r0stop) (rfstart,rfstop)
+               (tfstart,tfstop)
 
-prop_decayingGaussian_valid :: DecayingGaussian Double -> Property
+prop_decayingGaussian_valid :: Gaussian Double -> Property
 prop_decayingGaussian_valid f = property $ validGaussian f
 
 prop_random_decayingGaussian_valid
-  :: Int -> RandomDecayingGaussianParams -> Property
+  :: Int -> RandomGaussianParams -> Property
 prop_random_decayingGaussian_valid seed params
   = property $ validGaussian f
   where g = mkStdGen seed
-        f = evalRand (randomDecayingGaussian params) g
+        f = evalRand (randomGaussian params) g
 
 prop_random_learning_rate_always_in_range
-  :: DecayingGaussian Double -> Double -> Double -> Property
-prop_random_learning_rate_always_in_range f t d =
-  t >= 0 && d >= 0 ==> 0 <= r && r <= 1
-  where r = rate f t d
+  :: Gaussian Double -> Double -> Property
+prop_random_learning_rate_always_in_range f t =
+  t >= 0 ==> 0 <= r && r <= 1
+  where r = rate f t
 
 prop_express_decayingGaussian_valid
-  :: DecayingGaussian Double -> DecayingGaussian Double -> Property
+  :: Gaussian Double -> Gaussian Double -> Property
 prop_express_decayingGaussian_valid a b
   = property . validGaussian $ express a b
 
 prop_random_express_decayingGaussian_valid
-  :: Int -> RandomDecayingGaussianParams -> RandomDecayingGaussianParams -> Property
+  :: Int -> RandomGaussianParams -> RandomGaussianParams -> Property
 prop_random_express_decayingGaussian_valid seed p1 p2
   = property . validGaussian $ express a b
   where g = mkStdGen seed
-        (a, g') = runRand (randomDecayingGaussian p1) g
-        b = evalRand (randomDecayingGaussian p2) g'
+        (a, g') = runRand (randomGaussian p1) g
+        b = evalRand (randomGaussian p2) g'
 
 prop_diploid_decayingGaussian_valid
-  :: DecayingGaussian Double -> DecayingGaussian Double -> Property
+  :: Gaussian Double -> Gaussian Double -> Property
 prop_diploid_decayingGaussian_valid a b = property . validGaussian $ c
   where g1 = W8.write a
         g2 = W8.write b
@@ -158,7 +143,7 @@ prop_diploid_decayingGaussian_valid a b = property . validGaussian $ c
 prop_sum_counts_correct
   :: GeneticSOM TestPattern -> [TestPattern] -> Property
 prop_sum_counts_correct som ps = property $
-  (sum . GM.elems . counterMap $ som') == (counter . patternMap $ som')
+  (sum . M.elems . counterMap $ som') == (counter . patternMap $ som')
   where som' = foldr runSOM som ps
 
 runSOM :: TestPattern -> GeneticSOM TestPattern -> GeneticSOM TestPattern
@@ -176,22 +161,15 @@ runSOM p s = x
 test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
   [
-    testProperty "prop_serialize_round_trippable - DecayingGaussian"
+    testProperty "prop_serialize_round_trippable - Gaussian"
       (prop_serialize_round_trippable
-        :: DecayingGaussian Double -> Property),
-    testProperty "prop_genetic_round_trippable - DecayingGaussian"
-      (prop_genetic_round_trippable equivDecayingGaussian
-        :: DecayingGaussian Double -> Property),
-    testProperty "prop_diploid_identity - DecayingGaussian"
+        :: Gaussian Double -> Property),
+    testProperty "prop_genetic_round_trippable - Gaussian"
+      (prop_genetic_round_trippable equivGaussian
+        :: Gaussian Double -> Property),
+    testProperty "prop_diploid_identity - Gaussian"
       (prop_diploid_identity (==)
-        :: DecayingGaussian Double -> Property),
-
-    testProperty "prop_serialize_round_trippable - HexHexGrid"
-      (prop_serialize_round_trippable :: HexHexGrid -> Property),
-    testProperty "prop_genetic_round_trippable - HexHexGrid"
-      (prop_genetic_round_trippable (==) :: HexHexGrid -> Property),
-    testProperty "prop_diploid_identity - HexHexGrid"
-      (prop_diploid_identity (==) :: HexHexGrid -> Property),
+        :: Gaussian Double -> Property),
 
     testProperty "prop_serialize_round_trippable - GeneticSOM"
       (prop_serialize_round_trippable

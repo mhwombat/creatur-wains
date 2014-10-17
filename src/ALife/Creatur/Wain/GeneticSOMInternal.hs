@@ -24,56 +24,40 @@ import ALife.Creatur.Wain.ClassificationMetrics (novelty)
 import ALife.Creatur.Wain.Statistics (Statistical, iStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
-import ALife.Creatur.Wain.Util (forceIntToWord8, forceIntToWord16,
-  intersection)
+import ALife.Creatur.Wain.Util (forceIntToWord16, intersection)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
-import Data.Datamining.Pattern (Pattern, Metric, makeSimilar)
+import Data.Datamining.Pattern (Pattern, Metric)
 import qualified Data.Datamining.Clustering.Classifier as C
-import qualified Data.Datamining.Clustering.SOM as SOM
--- TODO: Either move currentLearningFunction or "learn" to
--- Data.Datamining.Clustering.SOM
-import Data.Datamining.Clustering.SOMInternal (currentLearningFunction)
-import Data.Serialize (Serialize)
+import qualified Data.Datamining.Clustering.SSOM as SOM
+import qualified Data.Map.Strict as M
 import qualified Data.Serialize as S
-import Data.Word (Word8, Word16)
+import Data.Word (Word16)
 import GHC.Generics (Generic)
-import qualified Math.Geometry.Grid as Grid
-import Math.Geometry.Grid.Hexagonal (hexHexGrid, HexHexGrid)
-import qualified Math.Geometry.GridMap as GM
-import Math.Geometry.GridMap.Lazy (LGridMap, lazyGridMap)
 
-type Label = (Int, Int)
+type Label = Word16
 
-instance Serialize (SOM.DecayingGaussian Double)
+instance S.Serialize (SOM.Gaussian Double)
 
-instance Genetic (SOM.DecayingGaussian Double) where
-  put (SOM.DecayingGaussian r0 rf w0 wf tf) = do
+instance Genetic (SOM.Gaussian Double) where
+  put (SOM.Gaussian r0 rf tf) = do
     G.put $ doubleToUI r0
     G.put $ doubleToUI rf
-    G.put . forceIntToWord16 . round $ w0*256
-    G.put . forceIntToWord16 . round $ wf*256
     G.put . forceIntToWord16 $ round tf
   get = do
     r0 <- G.get :: G.Reader (Either [String] UIDouble)
     rf <- G.get :: G.Reader (Either [String] UIDouble)
-    w0 <- G.get :: G.Reader (Either [String] Word16)
-    wf <- G.get :: G.Reader (Either [String] Word16)
     tf <- G.get :: G.Reader (Either [String] Word16)
-    return $ SOM.DecayingGaussian <$> fmap uiToDouble r0
-      <*> fmap uiToDouble rf <*> fmap (\x -> fromIntegral x/256) w0
-      <*> fmap (\x -> fromIntegral x/256) wf <*> fmap fromIntegral tf
+    return $ SOM.Gaussian <$> fmap uiToDouble r0
+      <*> fmap uiToDouble rf <*> fmap fromIntegral tf
 
-instance (Diploid a) => Diploid (SOM.DecayingGaussian a)
+instance (Diploid a) => Diploid (SOM.Gaussian a)
 
-data RandomDecayingGaussianParams = RandomDecayingGaussianParams
+data RandomGaussianParams = RandomGaussianParams
   {
     r0Range :: (Double, Double),
     rfRange :: (Double, Double),
-    w0Range :: (Double, Double),
-    wfRange :: (Double, Double),
-    tfRange :: (Double, Double),
-    sideLength :: Word8
+    tfRange :: (Double, Double)
   } deriving Show
 
 r0RangeLimits :: (Double, Double)
@@ -82,12 +66,6 @@ r0RangeLimits = (1/255, 1)
 rfRangeLimits :: Double -> (Double, Double)
 rfRangeLimits r0 = (0, r0)
 
-w0RangeLimits :: Word8 -> (Double, Double)
-w0RangeLimits s = (1/255, 1 + fromIntegral s)
-
-wfRangeLimits :: Double -> (Double, Double)
-wfRangeLimits w0 = (1/255, w0)
-
 tfRangeLimits :: (Double, Double)
 tfRangeLimits = (1,fromIntegral tMax)
   where tMax = maxBound :: Word16
@@ -95,87 +73,76 @@ tfRangeLimits = (1,fromIntegral tMax)
 -- | Returns a set of parameters which will permit the broadest possible
 --   set of random decaying gaussian functions for a SOM that uses a
 --   hexagonal grid of size @s@.
-randomDecayingGaussianParams :: Word8 -> RandomDecayingGaussianParams
-randomDecayingGaussianParams s = 
-  RandomDecayingGaussianParams
+randomGaussianParams :: RandomGaussianParams
+randomGaussianParams = 
+  RandomGaussianParams
     {
       r0Range = r0RangeLimits,
       rfRange = r0RangeLimits,
-      w0Range = w0RangeLimits s,
-      wfRange = w0RangeLimits s,
-      tfRange = tfRangeLimits,
-      sideLength = s
+      tfRange = tfRangeLimits
     }
 
--- | @'randomDecayingGaussian' r0Range rfRange w0Range wfRange tMaxRange s@
+-- | @'randomGaussian' r0Range rfRange tMaxRange s@
 --   returns a random decaying gaussian that can be used as the
 --   learning function for a SOM that uses a hexagonal grid of size @s@.
 --   The parameters of the gaussian will be chosen such that:
 --
 --   * r0 is in the /intersection/ of the range r0Range and (1/255, 1)
 --   * rf is in the /intersection/ of the range rfRange and (0, r0)
---   * w0 is in the /intersection/ of the range w0Range and (1, 1+s)
---   * wf is in the /intersection/ of the range wfRange and (1/255, 1)
-randomDecayingGaussian
+randomGaussian
   :: RandomGen g
-    => RandomDecayingGaussianParams
-      -> Rand g (SOM.DecayingGaussian Double)
-randomDecayingGaussian p = do
+    => RandomGaussianParams
+      -> Rand g (SOM.Gaussian Double)
+randomGaussian p = do
   r0 <- getRandomR $ intersection r0RangeLimits (r0Range p)
   rf <- getRandomR $ intersection (rfRangeLimits r0) (rfRange p)
-  w0 <- getRandomR $ intersection (w0RangeLimits $ sideLength p) (w0Range p)
-  wf <- getRandomR $ intersection (wfRangeLimits w0) (wfRange p)
   tf <- getRandomR $ intersection (tfRangeLimits) (tfRange p)
-  return $ SOM.DecayingGaussian r0 rf w0 wf tf
+  return $ SOM.Gaussian r0 rf tf
 
-validGaussian :: SOM.DecayingGaussian Double -> Bool
-validGaussian (SOM.DecayingGaussian r0 rf w0 wf tf) =
+validGaussian :: SOM.Gaussian Double -> Bool
+validGaussian (SOM.Gaussian r0 rf tf) =
   0 < r0 && r0 <= 1
     && 0 <= rf && rf <= 1 && rf <= r0
-    && 0 < w0
-    && 0 < wf && wf <= w0
     && 0 < tf
 
-instance Serialize HexHexGrid where
-  put g = S.put (Grid.size g)
+-- instance Serialize HexHexGrid where
+--   put g = S.put (Grid.size g)
+--   get = do
+--     n <- S.get
+--     return $ hexHexGrid n
+
+-- instance Genetic HexHexGrid where
+--   put g = G.put . forceIntToWord8 $ Grid.size g
+--   get = do
+--     n <- G.get :: G.Reader (Either [String] Word8)
+--     return $ hexHexGrid <$> fmap fromIntegral n
+
+-- instance Diploid HexHexGrid where
+--   express g1 g2 = hexHexGrid $ express (Grid.size g1) (Grid.size g2)
+
+instance (Genetic k, Ord k, Genetic p) => Genetic (M.Map k p) where
+  put gm = G.put (M.toList gm)
   get = do
-    n <- S.get
-    return $ hexHexGrid n
+    xs <- G.get
+    return $ M.fromList <$> xs
+instance (Ord k, Diploid p) => Diploid (M.Map k p) where
+  express gm1 gm2 = M.fromList . zip ks $ vs
+    where ks = M.keys gm1
+          vs = express (M.elems gm1) (M.elems gm2)
 
-instance Genetic HexHexGrid where
-  put g = G.put . forceIntToWord8 $ Grid.size g
-  get = do
-    n <- G.get :: G.Reader (Either [String] Word8)
-    return $ hexHexGrid <$> fmap fromIntegral n
-
-instance Diploid HexHexGrid where
-  express g1 g2 = hexHexGrid $ express (Grid.size g1) (Grid.size g2)
-
-instance (Serialize p) => Serialize (LGridMap HexHexGrid p)
-
-instance (Genetic p) => Genetic (LGridMap HexHexGrid p) where
-  put gm = G.put (GM.toGrid gm) >> G.put (GM.elems gm)
-  get = do
-    g <- G.get
-    ps <- G.get
-    return $ lazyGridMap <$> g <*> ps
-instance (Diploid p) => Diploid (LGridMap HexHexGrid p) where
-  express gm1 gm2 = lazyGridMap g ps
-    where g = express (GM.toGrid gm1) (GM.toGrid gm2)
-          ps = express (GM.elems gm1) (GM.elems gm2)
-
-instance (Serialize f, Serialize t, Serialize p) =>
-  Serialize (SOM.SOM f t (LGridMap HexHexGrid) Label p)
-instance (Genetic f, Genetic t, Genetic p) =>
-  Genetic (SOM.SOM f t (LGridMap HexHexGrid) Label p)
-instance (Diploid f, Diploid t, Diploid p) =>
-  Diploid (SOM.SOM f t (LGridMap HexHexGrid) Label p)
+instance
+  (S.Serialize f, S.Serialize t, S.Serialize k, Ord k, S.Serialize p) =>
+    S.Serialize (SOM.SSOM f t k p)
+instance (Genetic f, Genetic t, Genetic k, Ord k, Genetic p) =>
+  Genetic (SOM.SSOM f t k p)
+instance (Diploid f, Diploid t, Diploid k, Ord k, Diploid p) =>
+  Diploid (SOM.SSOM f t k p)
 
 data GeneticSOM p =
   GeneticSOM
     {
-      patternMap :: (SOM.SOM (SOM.DecayingGaussian Double) Word16 (LGridMap HexHexGrid) Label p),
-      counterMap :: (LGridMap HexHexGrid Word16)
+      patternMap :: (SOM.SSOM (SOM.Gaussian Double) Word16 Label p),
+      counterMap :: (M.Map Label Word16)
     }
   deriving (Eq, Show, Generic)
 
@@ -185,7 +152,7 @@ somOK
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> Bool
 somOK s
-  = (not . null . models $ s) && (size s > 1)
+  = (not . null . models $ s) && (numModels s > 1)
       && (validGaussian . learningFunction $ s)
 
 -- | @'buildGeneticSOM' s f ps@ returns a genetic SOM based on a 
@@ -193,19 +160,18 @@ somOK s
 --   function @f@, and initialised with the models @ps@.
 buildGeneticSOM
   :: (Pattern p, Metric p ~ Double)
-    => Word8 -> SOM.DecayingGaussian Double -> [p] -> GeneticSOM p
-buildGeneticSOM s f@( SOM.DecayingGaussian r0 _ w0 _ tf) xs
+    => SOM.Gaussian Double -> [p] -> GeneticSOM p
+buildGeneticSOM f@( SOM.Gaussian r0 _ tf) xs
   | null xs   = error "SOM has no models"
   | r0 == 0    = error "r0==0"
-  | w0 == 0    = error "w0==0"
   | tf == 0    = error "tf==0"
   | otherwise = GeneticSOM som ks
-  where g = hexHexGrid $ fromIntegral s
-        gm = lazyGridMap g xs
-        som = SOM.SOM gm f 0
-        ks = lazyGridMap g (repeat 0)
+  where gm = M.fromList . zip [0..] $ xs
+        zeros = map (const 0) xs
+        som = SOM.SSOM gm f 0
+        ks = M.fromList . zip [0..] $ zeros
 
-instance (Serialize p) => Serialize (GeneticSOM p)
+instance (S.Serialize p) => S.Serialize (GeneticSOM p)
 
 instance (Genetic p) => Genetic (GeneticSOM p)
 -- instance (Genetic p) => Genetic (GeneticSOM p) where
@@ -221,10 +187,10 @@ instance (Genetic p) => Genetic (GeneticSOM p)
 
 instance (Diploid p) => Diploid (GeneticSOM p)
 
-instance Statistical (GeneticSOM p) where
-  stats (GeneticSOM (SOM.SOM gm f _) _) =
-    (iStat "IQ" iq):(iStat "edge size" . Grid.size $ gm):(stats f)
-    where iq = Grid.tileCount gm
+instance (Pattern p, Metric p ~ Double) => Statistical (GeneticSOM p) where
+  stats s =
+    (iStat "num models" . numModels $ s)
+      :(stats . SOM.learningFunction . patternMap $ s)
 
 -- randomGeneticSOM
 --   :: (Pattern p, Metric p ~ Double, RandomGen g)
@@ -232,11 +198,9 @@ instance Statistical (GeneticSOM p) where
 -- randomGeneticSOM s xs = do
 --   r0 <- getRandomR (1/255,1)
 --   rf <- getRandomR (0,r0)
---   w0 <- getRandomR (1,1 + fromIntegral s)
---   wf <- getRandomR (1,w0)
 --   let tMax = maxBound :: Word16
 --   tf <- getRandomR (1,fromIntegral tMax)
---   let f = SOM.DecayingGaussian r0 rf w0 wf tf
+--   let f = SOM.Gaussian r0 rf tf
 --   return $ buildGeneticSOM s f xs
 
 -- | Adjusts the model at the index (grid location) specified.
@@ -248,8 +212,7 @@ learn
     => p -> Label -> GeneticSOM p -> GeneticSOM p
 learn p l s = s { patternMap=gm' }
   where gm = patternMap s
-        f = makeSimilar p (currentLearningFunction gm 0)
-        gm' = GM.adjust f l gm
+        gm' = SOM.trainNode gm l p
 
 -- | Returns the index (grid location) of the model that most closely
 --   matches the input pattern. The SOM is not updated.
@@ -270,9 +233,9 @@ reportAndTrain
       -> (Label, [(Label, Metric p)], Double, Int, GeneticSOM p)
 reportAndTrain s p = (bmu, diffs, nov, adjNov, s')
   where (bmu, diffs, som') = C.reportAndTrain (patternMap s) p
-        cMap = GM.adjust (+1) bmu (counterMap s)
+        cMap = M.adjust (+1) bmu (counterMap s)
         s' = s { patternMap=som', counterMap=cMap}
-        nov = novelty bmu (GM.toList cMap)
+        nov = novelty bmu (M.toList cMap)
         adjNov = round $ nov * (fromIntegral $ SOM.counter som')
 
 -- | Returns the number of models in the SOM.
@@ -287,13 +250,13 @@ models
     => GeneticSOM p -> [p]
 models (GeneticSOM s _) = C.models s
 
+modelAt :: GeneticSOM p -> Label -> p
+modelAt s k = (SOM.toMap . patternMap $ s) M.! k
+
 -- | Returns a list containing each index (grid location) in the SOM,
 --   paired with the model at that index.
 toList :: (Pattern p, Metric p ~ Double) => GeneticSOM p -> [(Label, p)]
 toList (GeneticSOM s _) = C.toList s
 
-learningFunction :: GeneticSOM p -> SOM.DecayingGaussian Double
+learningFunction :: GeneticSOM p -> SOM.Gaussian Double
 learningFunction (GeneticSOM s _) = SOM.learningFunction s
-
-size :: GeneticSOM p -> Int
-size (GeneticSOM _ c) = Grid.size c

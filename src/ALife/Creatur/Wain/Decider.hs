@@ -19,14 +19,13 @@ module ALife.Creatur.Wain.Decider
     possibleActions
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, patternMap,
-  justClassify, models)
+import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, justClassify,
+  models, modelAt)
 import ALife.Creatur.Wain.Response (Response(..), action,
   similarityIgnoringOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import Data.List (nub)
 import Data.Maybe (fromJust)
-import Math.Geometry.GridMap ((!))
 
 type Decider a = GeneticSOM (Response a)
 
@@ -36,7 +35,7 @@ predict :: (Eq a) => Decider a -> Scenario -> a -> (Response a, Label)
 predict d s a = (r3, k)
   where r = Response s a Nothing
         k = justClassify d r
-        model = patternMap d ! k
+        model = d `modelAt` k
         rawOutcome = fromJust . outcome $ model
         adjustedOutcome
           = Just $ (similarityIgnoringOutcome model r)*rawOutcome

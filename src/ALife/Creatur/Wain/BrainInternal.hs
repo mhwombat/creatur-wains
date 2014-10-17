@@ -51,7 +51,7 @@ instance (Serialize p, Serialize a, Pattern p, Eq a, Metric p ~ Double)
 instance (Diploid p, Diploid a, Pattern p, Eq a, Metric p ~ Double)
     => Diploid (Brain p a)
 
-instance (Pattern p, Metric p ~ Double)
+instance (Pattern p, Metric p ~ Double, Eq a)
       => Statistical (Brain p a) where
   stats (Brain c d) = map (prefix "classifier ") (stats c)
     ++ map (prefix "decider ") (stats d)

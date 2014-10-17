@@ -17,16 +17,16 @@ module ALife.Creatur.Wain.GeneticSOM
     buildGeneticSOM,
     numModels,
     models,
+    modelAt,
     toList,
     justClassify,
     reportAndTrain,
     learn,
-    RandomDecayingGaussianParams(..),
-    randomDecayingGaussianParams,
-    randomDecayingGaussian,
+    RandomGaussianParams(..),
+    randomGaussianParams,
+    randomGaussian,
     somOK,
-    learningFunction,
-    size
+    learningFunction
   ) where
 
 import ALife.Creatur.Wain.GeneticSOMInternal

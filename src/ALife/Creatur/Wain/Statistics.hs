@@ -29,7 +29,7 @@ module ALife.Creatur.Wain.Statistics
 import Prelude hiding (lookup)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Raw (Raw, raw)
-import Data.Datamining.Clustering.SOM (DecayingGaussian(..))
+import Data.Datamining.Clustering.SSOM (Gaussian(..))
 import Data.List (transpose)
 import Data.Serialize (Serialize)
 import Factory.Math.Statistics (getMean, getStandardDeviation)
@@ -133,10 +133,9 @@ applyToColumn _ [] = error "no data"
 -- prettyVal (DStatistic _ x) = pretty x
 -- prettyVal (IStatistic _ x) = pretty (round x :: Int)
 
-instance Statistical (DecayingGaussian Double) where
-  stats (DecayingGaussian r0 rf w0 wf tf) = 
-    [ dStat "r0" r0, dStat "rf" rf, dStat "w0" w0, dStat "wf" wf,
-      iStat "tf" (round tf :: Int) ]
+instance Statistical (Gaussian Double) where
+  stats (Gaussian r0 rf tf) = 
+    [ dStat "r0" r0, dStat "rf" rf, iStat "tf" (round tf :: Int) ]
 
 lookup :: String -> [Statistic] -> Maybe Double
 lookup _ [] = Nothing
