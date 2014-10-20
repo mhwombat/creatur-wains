@@ -63,7 +63,7 @@ library
                     MonadRandom ==0.3.*,
                     mtl ==2.2.*,
                     random ==1.1.*,
-                    som ==7.4.*,
+                    som ==7.4.* && >=7.4.1,
                     transformers ==0.4.*
 
 Test-suite wain-tests
@@ -80,7 +80,7 @@ Test-suite wain-tests
                     factory ==0.2.*,
                     random ==1.1.*,
                     MonadRandom ==0.3.*,
-                    som ==7.4.*,
+                    som ==7.4.* && >=7.4.1,
                     transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
@@ -97,7 +97,7 @@ Executable wain-benchmark
                     creatur-wains,
                     random ==1.1.*,
                     MonadRandom ==0.3.*,
-                    som ==7.4.*,
+                    som ==7.4.* && >=7.4.1,
                     temporary ==1.1.*,
                     time ==1.4.*,
                     transformers ==0.4.*,

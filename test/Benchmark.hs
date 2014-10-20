@@ -32,7 +32,7 @@ makeDecider n patternLength
         modelScenario = Scenario xs xs modelCondition
         modelCondition = Condition 1 0 0
         xs = replicate patternLength 0
-        f = Exponential 1 0 100
+        f = Exponential 1 1
 
 deciderBenchmark :: Decider TestAction -> IO ()
 deciderBenchmark d = do

@@ -134,8 +134,8 @@ applyToColumn _ [] = error "no data"
 -- prettyVal (IStatistic _ x) = pretty (round x :: Int)
 
 instance Statistical (Exponential Double) where
-  stats (Exponential r0 rf tf) = 
-    [ dStat "r0" r0, dStat "rf" rf, iStat "tf" (round tf :: Int) ]
+  stats (Exponential r0 d) = 
+    [ uiStat "r0" r0, uiStat "d" d ]
 
 lookup :: String -> [Statistic] -> Maybe Double
 lookup _ [] = Nothing

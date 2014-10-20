@@ -41,27 +41,16 @@ instance Arbitrary (Exponential Double) where
     p <- arbitrary
     MkGen (\r _ -> let (x,_) = runRand (randomExponential p) r in x)
     -- r0 <- choose r0RangeLimits
-    -- rf <- choose rfRangeLimits
-    -- tf <- arb8BitDouble (1,65535)
-    -- return $ Exponential r0 rf tf
+    -- d <- choose dRangeLimits
+    -- return $ Exponential r0 d
 
 equivExponential
   :: Exponential Double -> Exponential Double -> Bool
-equivExponential a@(Exponential r0a rfa tfa)
-                      b@(Exponential r0b rfb tfb)
+equivExponential a@(Exponential r0a da)
+                      b@(Exponential r0b db)
   = abs (r0a - r0b) < (1/256)
-    && abs (rfa - rfb) < (1/256)
-    && abs (tfa - tfb) < 1
+    && abs (da - db) < (1/256)
     && validExponential a == validExponential b
-
--- -- We want the number of tiles in a test grid to be O(n)
--- sizedHexHexGrid :: Int -> Gen HexHexGrid
--- sizedHexHexGrid n = do
---   let s = isqrt (n `div` 3)
---   return $ hexHexGrid s
-
--- instance Arbitrary HexHexGrid where
---   arbitrary = sized sizedHexHexGrid
 
 setCounts
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
@@ -97,12 +86,9 @@ instance Arbitrary RandomExponentialParams where
   arbitrary = do
     r0start <- arbitrary
     r0stop <- arbitrary
-    rfstart <- arbitrary
-    rfstop <- arbitrary
-    tfstart <- arbitrary
-    tfstop <- arbitrary
-    return $ RandomExponentialParams (r0start,r0stop) (rfstart,rfstop)
-               (tfstart,tfstop)
+    dstart <- arbitrary
+    dstop <- arbitrary
+    return $ RandomExponentialParams (r0start,r0stop) (dstart,dstop)
 
 prop_decayingExponential_valid :: Exponential Double -> Property
 prop_decayingExponential_valid f = property $ validExponential f

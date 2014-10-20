@@ -24,7 +24,7 @@ import ALife.Creatur.Wain.ClassificationMetrics (novelty)
 import ALife.Creatur.Wain.Statistics (Statistical, iStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
-import ALife.Creatur.Wain.Util (forceIntToWord16, intersection)
+import ALife.Creatur.Wain.Util (intersection)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Data.Datamining.Pattern (Pattern, Metric)
@@ -40,85 +40,57 @@ type Label = Word16
 instance S.Serialize (SOM.Exponential Double)
 
 instance Genetic (SOM.Exponential Double) where
-  put (SOM.Exponential r0 rf tf) = do
+  put (SOM.Exponential r0 d) = do
     G.put $ doubleToUI r0
-    G.put $ doubleToUI rf
-    G.put . forceIntToWord16 $ round tf
+    G.put $ doubleToUI d
   get = do
     r0 <- G.get :: G.Reader (Either [String] UIDouble)
-    rf <- G.get :: G.Reader (Either [String] UIDouble)
-    tf <- G.get :: G.Reader (Either [String] Word16)
+    d <- G.get :: G.Reader (Either [String] UIDouble)
     return $ SOM.Exponential <$> fmap uiToDouble r0
-      <*> fmap uiToDouble rf <*> fmap fromIntegral tf
+      <*> fmap uiToDouble d
 
 instance (Diploid a) => Diploid (SOM.Exponential a)
 
 data RandomExponentialParams = RandomExponentialParams
   {
     r0Range :: (Double, Double),
-    rfRange :: (Double, Double),
-    tfRange :: (Double, Double)
+    dRange :: (Double, Double)
   } deriving Show
 
 r0RangeLimits :: (Double, Double)
 r0RangeLimits = (1/255, 1)
 
-rfRangeLimits :: Double -> (Double, Double)
-rfRangeLimits r0 = (0, r0)
-
-tfRangeLimits :: (Double, Double)
-tfRangeLimits = (1,fromIntegral tMax)
-  where tMax = maxBound :: Word16
+dRangeLimits :: (Double, Double)
+dRangeLimits = (1/255, 1)
 
 -- | Returns a set of parameters which will permit the broadest possible
---   set of random decaying gaussian functions for a SOM that uses a
---   hexagonal grid of size @s@.
+--   set of random decaying gaussian functions for a SOM.
 randomExponentialParams :: RandomExponentialParams
 randomExponentialParams = 
   RandomExponentialParams
     {
       r0Range = r0RangeLimits,
-      rfRange = r0RangeLimits,
-      tfRange = tfRangeLimits
+      dRange = dRangeLimits
     }
 
--- | @'randomExponential' r0Range rfRange tMaxRange s@
---   returns a random decaying gaussian that can be used as the
---   learning function for a SOM that uses a hexagonal grid of size @s@.
+-- | @'randomExponential' r0Range dRange@ returns a random decaying
+--   exponential that can be used as the learning function for a SOM.
 --   The parameters of the gaussian will be chosen such that:
 --
 --   * r0 is in the /intersection/ of the range r0Range and (1/255, 1)
---   * rf is in the /intersection/ of the range rfRange and (0, r0)
+--   * d is in the /intersection/ of the range dRange and (1/255, 1)
 randomExponential
   :: RandomGen g
     => RandomExponentialParams
       -> Rand g (SOM.Exponential Double)
 randomExponential p = do
   r0 <- getRandomR $ intersection r0RangeLimits (r0Range p)
-  rf <- getRandomR $ intersection (rfRangeLimits r0) (rfRange p)
-  tf <- getRandomR $ intersection (tfRangeLimits) (tfRange p)
-  return $ SOM.Exponential r0 rf tf
+  d <- getRandomR $ intersection dRangeLimits (dRange p)
+  return $ SOM.Exponential r0 d
 
 validExponential :: SOM.Exponential Double -> Bool
-validExponential (SOM.Exponential r0 rf tf) =
-  0 < r0 && r0 <= 1
-    && 0 <= rf && rf <= 1 && rf <= r0
-    && 0 < tf
-
--- instance Serialize HexHexGrid where
---   put g = S.put (Grid.size g)
---   get = do
---     n <- S.get
---     return $ hexHexGrid n
-
--- instance Genetic HexHexGrid where
---   put g = G.put . forceIntToWord8 $ Grid.size g
---   get = do
---     n <- G.get :: G.Reader (Either [String] Word8)
---     return $ hexHexGrid <$> fmap fromIntegral n
-
--- instance Diploid HexHexGrid where
---   express g1 g2 = hexHexGrid $ express (Grid.size g1) (Grid.size g2)
+validExponential (SOM.Exponential r0 d) = 0 < r0 && r0 <= 1
+                                            && 0 < d && d <= 1
 
 instance (Genetic k, Ord k, Genetic p) => Genetic (M.Map k p) where
   put gm = G.put (M.toList gm)
@@ -155,16 +127,15 @@ somOK s
   = (not . null . models $ s) && (numModels s > 1)
       && (validExponential . learningFunction $ s)
 
--- | @'buildGeneticSOM' s f ps@ returns a genetic SOM based on a 
---   hexagonal grid with sides of length @s@, using the learning
+-- | @'buildGeneticSOM' f ps@ returns a genetic SOM, using the learning
 --   function @f@, and initialised with the models @ps@.
 buildGeneticSOM
   :: (Pattern p, Metric p ~ Double)
     => SOM.Exponential Double -> [p] -> GeneticSOM p
-buildGeneticSOM f@( SOM.Exponential r0 _ tf) xs
+buildGeneticSOM f@( SOM.Exponential r0 d) xs
   | null xs   = error "SOM has no models"
   | r0 == 0    = error "r0==0"
-  | tf == 0    = error "tf==0"
+  | d == 0     = error "d==0"
   | otherwise = GeneticSOM som ks
   where gm = M.fromList . zip [0..] $ xs
         zeros = map (const 0) xs
@@ -191,17 +162,6 @@ instance (Pattern p, Metric p ~ Double) => Statistical (GeneticSOM p) where
   stats s =
     (iStat "num models" . numModels $ s)
       :(stats . SOM.learningFunction . patternMap $ s)
-
--- randomGeneticSOM
---   :: (Pattern p, Metric p ~ Double, RandomGen g)
---     => Word8 -> [p] -> Rand g (GeneticSOM p)
--- randomGeneticSOM s xs = do
---   r0 <- getRandomR (1/255,1)
---   rf <- getRandomR (0,r0)
---   let tMax = maxBound :: Word16
---   tf <- getRandomR (1,fromIntegral tMax)
---   let f = SOM.Exponential r0 rf tf
---   return $ buildGeneticSOM s f xs
 
 -- | Adjusts the model at the index (grid location) specified.
 --   Only the one model is changed. This is useful for allowing wains
