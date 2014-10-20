@@ -77,8 +77,8 @@ randomExponentialParams =
 --   exponential that can be used as the learning function for a SOM.
 --   The parameters of the gaussian will be chosen such that:
 --
---   * r0 is in the /intersection/ of the range r0Range and (1/255, 1)
---   * d is in the /intersection/ of the range dRange and (1/255, 1)
+--   * r0 is in the /intersection/ of the range r0Range and (0, 1)
+--   * d is in the /intersection/ of the range dRange and (0, 1)
 randomExponential
   :: RandomGen g
     => RandomExponentialParams
@@ -89,8 +89,8 @@ randomExponential p = do
   return $ SOM.Exponential r0 d
 
 validExponential :: SOM.Exponential Double -> Bool
-validExponential (SOM.Exponential r0 d) = 0 < r0 && r0 <= 1
-                                            && 0 < d && d <= 1
+validExponential (SOM.Exponential r0 d) = 0 <= r0 && r0 <= 1
+                                            && 0 <= d && d <= 1
 
 instance (Genetic k, Ord k, Genetic p) => Genetic (M.Map k p) where
   put gm = G.put (M.toList gm)
