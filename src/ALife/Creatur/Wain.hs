@@ -248,12 +248,12 @@ buildWainFromGenome truncateGenome n = do
 -- randomWain
 --   :: (RandomGen g, Pattern p, Metric p ~ Double, Genetic p, Random p,
 --       Serialize p, Random a, Genetic a, Serialize a, Eq a)
---     => String -> p -> [p] -> RandomGaussianParams
---       -> RandomGaussianParams -> Word16 -> Rand g (Wain p a)
+--     => String -> p -> [p] -> RandomExponentialParams
+--       -> RandomExponentialParams -> Word16 -> Rand g (Wain p a)
 -- randomWain n app ps classifierParams deciderParams maxAgeOfMaturity = do
---     fc <- randomGaussian classifierParams
+--     fc <- randomExponential classifierParams
 --     let c = buildGeneticSOM (sideLength classifierParams) fc ps
---     fd <- randomGaussian deciderParams
+--     fd <- randomExponential deciderParams
 --     xs <- sequence . repeat $ R.randomResponse (numModels c) 
 --     let d = buildGeneticSOM (sideLength deciderParams) fd xs
 --     let b = B.buildBrain c d

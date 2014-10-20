@@ -36,7 +36,7 @@
 
 ln = 25
 ts = linspace ln (0,1)
-rs = randomVector 0 Gaussian ln
+rs = randomVector 0 Exponential ln
  
 ss = sin (15*2*pi*ts)
 ds = 0.25*rs + ss

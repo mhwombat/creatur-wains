@@ -37,10 +37,10 @@ import GHC.Generics (Generic)
 
 type Label = Word16
 
-instance S.Serialize (SOM.Gaussian Double)
+instance S.Serialize (SOM.Exponential Double)
 
-instance Genetic (SOM.Gaussian Double) where
-  put (SOM.Gaussian r0 rf tf) = do
+instance Genetic (SOM.Exponential Double) where
+  put (SOM.Exponential r0 rf tf) = do
     G.put $ doubleToUI r0
     G.put $ doubleToUI rf
     G.put . forceIntToWord16 $ round tf
@@ -48,12 +48,12 @@ instance Genetic (SOM.Gaussian Double) where
     r0 <- G.get :: G.Reader (Either [String] UIDouble)
     rf <- G.get :: G.Reader (Either [String] UIDouble)
     tf <- G.get :: G.Reader (Either [String] Word16)
-    return $ SOM.Gaussian <$> fmap uiToDouble r0
+    return $ SOM.Exponential <$> fmap uiToDouble r0
       <*> fmap uiToDouble rf <*> fmap fromIntegral tf
 
-instance (Diploid a) => Diploid (SOM.Gaussian a)
+instance (Diploid a) => Diploid (SOM.Exponential a)
 
-data RandomGaussianParams = RandomGaussianParams
+data RandomExponentialParams = RandomExponentialParams
   {
     r0Range :: (Double, Double),
     rfRange :: (Double, Double),
@@ -73,34 +73,34 @@ tfRangeLimits = (1,fromIntegral tMax)
 -- | Returns a set of parameters which will permit the broadest possible
 --   set of random decaying gaussian functions for a SOM that uses a
 --   hexagonal grid of size @s@.
-randomGaussianParams :: RandomGaussianParams
-randomGaussianParams = 
-  RandomGaussianParams
+randomExponentialParams :: RandomExponentialParams
+randomExponentialParams = 
+  RandomExponentialParams
     {
       r0Range = r0RangeLimits,
       rfRange = r0RangeLimits,
       tfRange = tfRangeLimits
     }
 
--- | @'randomGaussian' r0Range rfRange tMaxRange s@
+-- | @'randomExponential' r0Range rfRange tMaxRange s@
 --   returns a random decaying gaussian that can be used as the
 --   learning function for a SOM that uses a hexagonal grid of size @s@.
 --   The parameters of the gaussian will be chosen such that:
 --
 --   * r0 is in the /intersection/ of the range r0Range and (1/255, 1)
 --   * rf is in the /intersection/ of the range rfRange and (0, r0)
-randomGaussian
+randomExponential
   :: RandomGen g
-    => RandomGaussianParams
-      -> Rand g (SOM.Gaussian Double)
-randomGaussian p = do
+    => RandomExponentialParams
+      -> Rand g (SOM.Exponential Double)
+randomExponential p = do
   r0 <- getRandomR $ intersection r0RangeLimits (r0Range p)
   rf <- getRandomR $ intersection (rfRangeLimits r0) (rfRange p)
   tf <- getRandomR $ intersection (tfRangeLimits) (tfRange p)
-  return $ SOM.Gaussian r0 rf tf
+  return $ SOM.Exponential r0 rf tf
 
-validGaussian :: SOM.Gaussian Double -> Bool
-validGaussian (SOM.Gaussian r0 rf tf) =
+validExponential :: SOM.Exponential Double -> Bool
+validExponential (SOM.Exponential r0 rf tf) =
   0 < r0 && r0 <= 1
     && 0 <= rf && rf <= 1 && rf <= r0
     && 0 < tf
@@ -141,27 +141,27 @@ instance (Diploid f, Diploid t, Diploid k, Ord k, Diploid p) =>
 data GeneticSOM p =
   GeneticSOM
     {
-      patternMap :: (SOM.SSOM (SOM.Gaussian Double) Word16 Label p),
+      patternMap :: (SOM.SSOM (SOM.Exponential Double) Word16 Label p),
       counterMap :: (M.Map Label Word16)
     }
   deriving (Eq, Show, Generic)
 
--- | Returns @True@ if the SOM has a valid Gaussian and at least one
+-- | Returns @True@ if the SOM has a valid Exponential and at least one
 --   model; returns @False@ otherwise.
 somOK
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> Bool
 somOK s
   = (not . null . models $ s) && (numModels s > 1)
-      && (validGaussian . learningFunction $ s)
+      && (validExponential . learningFunction $ s)
 
 -- | @'buildGeneticSOM' s f ps@ returns a genetic SOM based on a 
 --   hexagonal grid with sides of length @s@, using the learning
 --   function @f@, and initialised with the models @ps@.
 buildGeneticSOM
   :: (Pattern p, Metric p ~ Double)
-    => SOM.Gaussian Double -> [p] -> GeneticSOM p
-buildGeneticSOM f@( SOM.Gaussian r0 _ tf) xs
+    => SOM.Exponential Double -> [p] -> GeneticSOM p
+buildGeneticSOM f@( SOM.Exponential r0 _ tf) xs
   | null xs   = error "SOM has no models"
   | r0 == 0    = error "r0==0"
   | tf == 0    = error "tf==0"
@@ -200,7 +200,7 @@ instance (Pattern p, Metric p ~ Double) => Statistical (GeneticSOM p) where
 --   rf <- getRandomR (0,r0)
 --   let tMax = maxBound :: Word16
 --   tf <- getRandomR (1,fromIntegral tMax)
---   let f = SOM.Gaussian r0 rf tf
+--   let f = SOM.Exponential r0 rf tf
 --   return $ buildGeneticSOM s f xs
 
 -- | Adjusts the model at the index (grid location) specified.
@@ -258,5 +258,5 @@ modelAt s k = (SOM.toMap . patternMap $ s) M.! k
 toList :: (Pattern p, Metric p ~ Double) => GeneticSOM p -> [(Label, p)]
 toList (GeneticSOM s _) = C.toList s
 
-learningFunction :: GeneticSOM p -> SOM.Gaussian Double
+learningFunction :: GeneticSOM p -> SOM.Exponential Double
 learningFunction (GeneticSOM s _) = SOM.learningFunction s

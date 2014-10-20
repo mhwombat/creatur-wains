@@ -32,7 +32,7 @@ makeDecider n patternLength
         modelScenario = Scenario xs xs modelCondition
         modelCondition = Condition 1 0 0
         xs = replicate patternLength 0
-        f = Gaussian 1 0 100
+        f = Exponential 1 0 100
 
 deciderBenchmark :: Decider TestAction -> IO ()
 deciderBenchmark d = do
@@ -48,9 +48,9 @@ randomWain
     => String -> Int -> Int -> Word16 -> Rand g (Wain TestPattern TestAction)
 randomWain n classifierSize deciderSize maxAgeOfMaturity = do
   (app:ps) <- sequence . replicate classifierSize $ randomTestPattern
-  fc <- randomGaussian randomGaussianParams
+  fc <- randomExponential randomExponentialParams
   let c = buildGeneticSOM fc ps
-  fd <- randomGaussian randomGaussianParams
+  fd <- randomExponential randomExponentialParams
   xs <- sequence . replicate deciderSize $ randomResponse (numModels c) 
   let d = buildGeneticSOM fd xs
   let b = buildBrain c d

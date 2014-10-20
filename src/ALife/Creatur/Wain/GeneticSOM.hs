@@ -22,9 +22,9 @@ module ALife.Creatur.Wain.GeneticSOM
     justClassify,
     reportAndTrain,
     learn,
-    RandomGaussianParams(..),
-    randomGaussianParams,
-    randomGaussian,
+    RandomExponentialParams(..),
+    randomExponentialParams,
+    randomExponential,
     somOK,
     learningFunction
   ) where
