@@ -134,8 +134,8 @@ buildGeneticSOM
     => SOM.Exponential Double -> [p] -> GeneticSOM p
 buildGeneticSOM f@( SOM.Exponential r0 d) xs
   | null xs   = error "SOM has no models"
-  | r0 == 0    = error "r0==0"
-  | d == 0     = error "d==0"
+  | r0 < 0    = error "r0<0"
+  | d < 0     = error "d<0"
   | otherwise = GeneticSOM som ks
   where gm = M.fromList . zip [0..] $ xs
         zeros = map (const 0) xs
