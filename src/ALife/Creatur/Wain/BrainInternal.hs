@@ -65,9 +65,8 @@ instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), Show a, Eq a)
 brainOK
   :: (Pattern p, Ord (Metric p), Metric p ~ Double, Eq a)
     => Brain p a -> Bool
-brainOK b = classifierOK && deciderOK
-  where classifierOK = GSOM.somOK $ classifier b
-        deciderOK = GSOM.somOK $ decider b
+brainOK b = (C.classifierOK . classifier $ b)
+              && (D.deciderOK . decider $ b)
 
 -- | Constructs a new brain.
 buildBrain :: C.Classifier p -> D.Decider a -> Brain p a

@@ -15,14 +15,22 @@ module ALife.Creatur.Wain.Classifier
   (
     Label,
     Classifier,
-    classify
+    classify,
+    classifierOK
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label,
-  reportAndTrain)
+  reportAndTrain, somOK)
 import Data.Datamining.Pattern (Pattern, Metric)
 
 type Classifier = GeneticSOM
+
+-- | Returns @True@ if the SOM has a valid Exponential and at least one
+--   model; returns @False@ otherwise.
+classifierOK
+  :: (Pattern s, Ord (Metric s), Metric s ~ Double)
+    => Classifier s -> Bool
+classifierOK = somOK
 
 -- | Updates the classifier models based on the stimulus (input).
 --   Returns the index (grid location) of the model that most closely
