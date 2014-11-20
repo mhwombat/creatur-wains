@@ -58,4 +58,6 @@ enforce xs c@(Check start key lim) = do
   case lookup key xs of
     Just x -> when (t >= start && x `fails` lim) $ requestShutdown 
                ("failed check " ++ show c ++ " " ++ key ++ "=" ++ show x)
-    Nothing -> requestShutdown $ "Cannot find statistic: " ++ key
+    Nothing -> if null xs
+                then return () -- ignore missing stats file
+                else requestShutdown $ "Cannot find statistic: " ++ key
