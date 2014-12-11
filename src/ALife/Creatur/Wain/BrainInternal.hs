@@ -121,8 +121,8 @@ assessSituation
           Int, Scenario, Brain p a)
 assessSituation b p1 p2 c
   = (l1, diff1, nov1, novAdj1, l2, diff2, nov2, novAdj2, s, b2)
-  where (l1, diff1, sig1, nov1, novAdj1, b1) = classify' p1 b
-        (l2, diff2, sig2, nov2, novAdj2, b2) = classify' p2 b1
+  where (l1, diff1, sig1, nov1, novAdj1, b1) = classify p1 b
+        (l2, diff2, sig2, nov2, novAdj2, b2) = classify p2 b1
         s = Scenario sig1 sig2 c
 
 -- | Updates the brain's classifier models based on the stimulus
@@ -133,15 +133,9 @@ assessSituation b p1 p2 c
 --   from the classification experience).
 classify
   :: (Pattern p, Metric p ~ Double)
-    => p -> Brain p a -> (C.Label, Double, Double, Int, Brain p a)
-classify p b = (label, diff, nov, novAdj, b')
-  where (label, diff, _, nov, novAdj, b') = classify' p b
-
-classify'
-  :: (Pattern p, Metric p ~ Double)
     => p -> Brain p a
       -> (C.Label, Metric p, [Metric p], Double, Int, Brain p a)
-classify' s b = (label, diff, sig, nov, novAdj, b')
+classify s b = (label, diff, sig, nov, novAdj, b')
   where (label, diff, sig, nov, novAdj, c')
           = C.classify (classifier b) s
         b' = b { classifier = c' }

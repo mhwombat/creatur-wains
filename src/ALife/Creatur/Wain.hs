@@ -385,9 +385,9 @@ incSwagger w = return w { swagger=swagger w + 1 }
 --   the adjusted novelty, and the updated wain.
 classify
   :: (Pattern p, Metric p ~ Double)
-    => p -> Wain p a -> (Label, Double, Double, Int, Wain p a)
-classify p w = (l, diff, nov, novAdj, w{brain=b})
-  where (l, diff, nov, novAdj, b) = B.classify p (brain w)
+    => p -> Wain p a -> (Label, Double, [Double], Double, Int, Wain p a)
+classify p w = (l, diff, sig, nov, novAdj, w{brain=b})
+  where (l, diff, sig, nov, novAdj, b) = B.classify p (brain w)
 
 -- | Teaches a pattern + label to a wain, and its litter (if any).
 teachLabel
