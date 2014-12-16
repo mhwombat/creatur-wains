@@ -55,8 +55,8 @@ enforce
     => [Statistic] -> Checkpoint -> StateT u IO ()
 enforce xs c@(Check start key lim) = do
   t <- currentTime
-  writeToLog $ "DEBUG: checkpoint=" ++ show c ++ " t=" ++ show t
-    ++ " val=" ++ show (lookup key xs)
+  -- writeToLog $ "DEBUG: checkpoint=" ++ show c ++ " t=" ++ show t
+  --   ++ " val=" ++ show (lookup key xs)
   case lookup key xs of
     Just x -> when (t >= start && x `fails` lim) $ requestShutdown 
                ("failed check " ++ show c ++ " " ++ key ++ "=" ++ show x)
