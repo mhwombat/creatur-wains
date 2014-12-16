@@ -19,7 +19,7 @@ module ALife.Creatur.Wain.Checkpoint
 
 import Prelude hiding (lookup)
 import ALife.Creatur.Task (requestShutdown)
-import ALife.Creatur.Universe (Universe, currentTime, writeToLog)
+import ALife.Creatur.Universe (Universe, currentTime)
 import ALife.Creatur.Wain.Statistics (Statistic, lookup)
 import Control.Monad.State.Lazy (StateT)
 import Control.Monad (when)
