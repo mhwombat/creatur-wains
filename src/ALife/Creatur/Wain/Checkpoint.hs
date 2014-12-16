@@ -19,7 +19,7 @@ module ALife.Creatur.Wain.Checkpoint
 
 import Prelude hiding (lookup)
 import ALife.Creatur.Task (requestShutdown)
-import ALife.Creatur.Universe (Universe, currentTime)
+import ALife.Creatur.Universe (Universe, currentTime, writeToLog)
 import ALife.Creatur.Wain.Statistics (Statistic, lookup)
 import Control.Monad.State.Lazy (StateT)
 import Control.Monad (when)
@@ -55,6 +55,8 @@ enforce
     => [Statistic] -> Checkpoint -> StateT u IO ()
 enforce xs c@(Check start key lim) = do
   t <- currentTime
+  writeToLog $ "DEBUG: checkpoint=" ++ show c ++ " t=" ++ show t
+    ++ " val=" ++ show (lookup key xs)
   case lookup key xs of
     Just x -> when (t >= start && x `fails` lim) $ requestShutdown 
                ("failed check " ++ show c ++ " " ++ key ++ "=" ++ show x)
