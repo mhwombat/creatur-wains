@@ -312,7 +312,6 @@ chooseAction p1 p2 w = do
   U.writeToLog $ n ++ "'s assessment=" ++ pretty (R.scenario r)
   describeModels w
   describeOutcomes w xs
-  U.writeToLog $ n ++ " decides to " ++ show (R.action r)
   return (l1, diff1, nov1, novAdj1, l2, diff2, nov2, novAdj2, r,
              w {brain=b'})
 
@@ -390,8 +389,10 @@ adjustEnergy1
     => String -> Double -> Wain p a -> StateT u IO (Wain p a, Double, Double)
 adjustEnergy1 reason delta w = do
   U.writeToLog $ "Adjusting energy of " ++ name w ++ " because of "
-    ++ reason ++ ": " ++ show eBefore ++ " + " ++ show delta
-    ++ " = " ++ show eAfter ++ " with " ++ show leftover ++ " left over"
+    ++ reason ++ ": " ++ printf "%.3f" eBefore
+    ++ " + " ++ printf "%.3f" delta
+    ++ " = " ++ printf "%.3f" eAfter
+    ++ " with " ++ printf "%.3f" leftover ++ " left over"
   return (wAfter, delta', leftover)
   where eBefore = energy w
         eAfter = max 0 . min 1 $ energy w + delta
@@ -511,7 +512,7 @@ mate a b = do
           let a4 = a3 { litter=[baby3],
                         childrenBorneLifetime
                           =childrenBorneLifetime a + 1}
-          return ([a4, b3], -aContribution, -bContribution)
+          return ([a4, b3], aContribution, bContribution)
         else do
           U.writeToLog $ "child of " ++ name a ++ " and " ++ name b
             ++ " would have had an abnormal brain"

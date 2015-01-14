@@ -57,7 +57,7 @@ data Scenario = Scenario
     indirectObject :: [Double],
     -- | Current condition
     condition :: Condition
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show, Generic, Ord)
 
 instance Serialize Scenario
 

@@ -62,7 +62,7 @@ data Condition = Condition
     cPassion :: Double,
     -- | Is the wain currently rearing a litter?
     cLitterSize :: Word8
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show, Generic, Ord)
 
 instance Serialize Condition
 

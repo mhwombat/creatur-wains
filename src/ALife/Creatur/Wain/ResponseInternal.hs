@@ -58,7 +58,7 @@ data Response a = Response
     --   value; stimuli received from the outside will have a @Nothing@
     --   value.
     outcome :: Maybe Double
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show, Generic, Ord)
   
 instance (Serialize a) => Serialize (Response a)
 
