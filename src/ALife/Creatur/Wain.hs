@@ -561,7 +561,7 @@ pruneDeadChildren a =
   if null (litter a)
     then return [a]
     else do
-      let (deadChildren, aliveChildren) = partition isAlive (litter a)
+      let (aliveChildren, deadChildren) = partition isAlive (litter a)
       mapM_ (\c -> U.writeToLog $
                     name c ++ ", child of " ++ name a ++ ", died")
                       deadChildren
