@@ -274,13 +274,13 @@ condition w = C.Condition (energy w) (passion w)
 happiness :: Wain p a -> Double
 happiness = C.happiness . condition
 
-ageFactor :: Wain p a -> Double
-ageFactor w
-  = if mature w
-      then 1
-      else fromIntegral (age w) / fromIntegral (ageOfMaturity w)
-        -- we don't have to worry about divide by zero, because if the
-        -- age of maturity is zero, the "then" path is always taken.
+-- ageFactor :: Wain p a -> Double
+-- ageFactor w
+--   = if mature w
+--       then 1
+--       else fromIntegral (age w) / fromIntegral (ageOfMaturity w)
+--         -- we don't have to worry about divide by zero, because if the
+--         -- age of maturity is zero, the "then" path is always taken.
 
 data Object p a = DObject p String | AObject (Wain p a)
 
@@ -335,22 +335,25 @@ describeOutcomes w = mapM_ (U.writeToLog . f)
 --   for any children in the wain's litter.
 applyMetabolismCost
   :: U.Universe u
-    => Double -> Double -> Wain p a -> StateT u IO (Wain p a, Double, Double)
-applyMetabolismCost baseCost costPerByte w = do
-  (adultAfter, adultCost) <- applyMetabolismCost1 baseCost costPerByte w
-  xs <- mapM (applyMetabolismCost1 baseCost costPerByte) (litter w)
+    => Double -> Double -> Double -> Wain p a
+      -> StateT u IO (Wain p a, Double, Double)
+applyMetabolismCost baseCost costPerByte childCostFactor w = do
+  (adultAfter, adultCost)
+    <- applyMetabolismCost1 baseCost costPerByte 1 w
+  xs <- mapM (applyMetabolismCost1 baseCost costPerByte childCostFactor)
+         (litter w)
   let childrenAfter = map fst xs
   let childCost = sum . map snd $ xs
   return (adultAfter { litter = childrenAfter }, adultCost, childCost)
 
 applyMetabolismCost1
   :: U.Universe u
-    => Double -> Double -> Wain p a -> StateT u IO (Wain p a, Double)
-applyMetabolismCost1 baseCost costPerByte w = do
+    => Double -> Double -> Double -> Wain p a -> StateT u IO (Wain p a, Double)
+applyMetabolismCost1 baseCost costPerByte factor w = do
   (w', delta', _) <- adjustEnergy1 "metabolism" delta w
   return (w', delta')
   where adultCost = baseCost + costPerByte * fromIntegral (wainSize w)
-        delta = adultCost * ageFactor w
+        delta = adultCost * factor
 
 -- | Adjusts the energy of a wain and its children.
 --   Note: A wain's energy is capped to the range [0,1].
