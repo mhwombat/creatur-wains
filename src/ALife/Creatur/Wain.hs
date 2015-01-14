@@ -359,21 +359,20 @@ applyMetabolismCost1 baseCost costPerByte factor w = do
 --   Note: A wain's energy is capped to the range [0,1].
 adjustEnergy
   :: U.Universe u
-    => String -> Double -> Wain p a -> StateT u IO (Wain p a, Double)
+    => String -> Double -> Wain p a -> StateT u IO (Wain p a, Double, Double)
 adjustEnergy reason delta w =
+  -- Rewards are shared with litter; penalties aren't
   if delta > 0 && hasLitter w
-    -- Rewards are shared with litter
     then do
       let childrensShare = devotion w * delta
       (w2, childrensShare', leftover)
         <- adjustChildrensEnergy reason delta w
       let adultShare = delta - childrensShare + leftover
       (w3, adultShare', _) <- adjustEnergy1 reason adultShare w2
-      return (w3, adultShare' + childrensShare')
-    -- Penalties are not shared with litter
+      return (w3, adultShare', childrensShare')
     else do
       (w4, delta', _) <- adjustEnergy1 reason delta w
-      return (w4, delta')
+      return (w4, delta', 0)
 
 adjustChildrensEnergy
   :: U.Universe u
