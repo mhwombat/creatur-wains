@@ -10,7 +10,8 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies, FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.BrainQC
   (
@@ -34,7 +35,7 @@ instance Arbitrary (Brain TestPattern TestAction) where
   arbitrary = do
     c <- arbitrary
     d <- arbitrary
-    return $ buildBrain c d
+    return $ Brain c d
     
 equiv
   :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Bool

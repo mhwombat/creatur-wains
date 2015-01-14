@@ -10,8 +10,9 @@
 -- A collection of tools for making SVG diagrams about wains.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE NoMonomorphismRestriction, TypeFamilies,
-    FlexibleContexts #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 module ALife.Creatur.Wain.Util.Diagram
   (
     assessmentDiagram,
@@ -30,11 +31,11 @@ import Numeric
 
 redGreenRect :: Word8 -> Colour Double
 redGreenRect x = sRGB x' (1-x') 0
-  where x' = (fromIntegral x)/255
+  where x' = fromIntegral x / 255
 
 blueBlackRect :: Word8 -> Colour Double
 blueBlackRect x = sRGB 0 0 x'
-  where x' = (fromIntegral x)/255
+  where x' = fromIntegral x / 255
 
 string2hexs :: String -> [Word8]
 string2hexs = map readOneHex . chunksOf 2

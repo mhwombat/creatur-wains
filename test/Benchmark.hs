@@ -53,7 +53,7 @@ randomWain n classifierSize deciderSize maxAgeOfMaturity = do
   fd <- randomExponential randomExponentialParams
   xs <- sequence . replicate deciderSize $ randomResponse (numModels c) 
   let d = buildGeneticSOM fd xs
-  let b = buildBrain c d
+  let b = Brain c d
   d <- getRandomR unitInterval
   m <- getRandomR (0,maxAgeOfMaturity)
   p <- getRandomR unitInterval

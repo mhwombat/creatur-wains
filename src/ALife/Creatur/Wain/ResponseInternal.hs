@@ -12,7 +12,9 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 module ALife.Creatur.Wain.ResponseInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, Reader, put, get)
@@ -64,7 +66,7 @@ instance (Eq a) => Pattern (Response a) where
   type Metric (Response a) = Double
   difference x y =
     if action x == action y
-      then (sum $ zipWith (*) deciderWeights ds)/2
+      then sum (zipWith (*) deciderWeights ds) / 2
       else 1.0
     where ds = [sDiff, rDiff]
           sDiff = difference (scenario x) (scenario y)
@@ -80,7 +82,7 @@ instance (Eq a) => Pattern (Response a) where
                 (fromMaybe 0.0 $ outcome x)
 
 diffOutcome :: Double -> Double -> Double
-diffOutcome a b = (abs (a-b))/2
+diffOutcome a b = abs (a-b) / 2
   -- a and b are in the interval [-1,1]. We want the difference to be
   -- in the interval [0,1]
 

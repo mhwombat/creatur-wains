@@ -10,7 +10,8 @@
 -- A decision-maker based on a Kohonen Self-organising Map (SOM).
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 module ALife.Creatur.Wain.Decider
   (
     Label,
@@ -39,7 +40,7 @@ predict d s a = (r3, k)
         model = d `modelAt` k
         rawOutcome = fromJust . outcome $ model
         adjustedOutcome
-          = Just $ (similarityIgnoringOutcome model r)*rawOutcome
+          = Just $ similarityIgnoringOutcome model r * rawOutcome
         r3 = r { outcome=adjustedOutcome }
 
 -- -- | Predicts the outcome of a response based on the decider models,
@@ -62,7 +63,7 @@ possibleActions = nub . map action . models
 --   model, and all models have predicted results; returns @False@
 --   otherwise.
 deciderOK :: Eq a => Decider a -> Bool
-deciderOK d = somOK d && and (map modelOK $ models d)
+deciderOK d = somOK d && all modelOK (models d)
 
 modelOK :: Response a -> Bool
 modelOK = isJust . outcome

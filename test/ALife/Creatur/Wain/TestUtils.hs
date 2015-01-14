@@ -10,7 +10,9 @@
 -- QuickCheck test utilities.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric, TypeFamilies, FlexibleInstances #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.TestUtils
   (

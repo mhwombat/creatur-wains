@@ -12,15 +12,18 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies, DeriveGeneric, FlexibleContexts,
-    FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOMInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
-import ALife.Creatur.Wain.ClassificationMetrics (novelty)
+import ALife.Creatur.Wain.ClassificationMetrics (novelty,
+  discrimination)
 import ALife.Creatur.Wain.Statistics (Statistical, iStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
@@ -113,8 +116,8 @@ instance (Diploid f, Diploid t, Diploid k, Ord k, Diploid p) =>
 data GeneticSOM p =
   GeneticSOM
     {
-      patternMap :: (SOM.SSOM (SOM.Exponential Double) Word16 Label p),
-      counterMap :: (M.Map Label Word16)
+      patternMap :: SOM.SSOM (SOM.Exponential Double) Word16 Label p,
+      counterMap :: M.Map Label Word16
     }
   deriving (Eq, Show, Generic)
 
@@ -196,7 +199,7 @@ reportAndTrain s p = (bmu, diffs, nov, adjNov, s')
         cMap = M.adjust (+1) bmu (counterMap s)
         s' = s { patternMap=som', counterMap=cMap}
         nov = novelty bmu (M.toList cMap)
-        adjNov = round $ nov * (fromIntegral $ SOM.counter som')
+        adjNov = round $ nov * fromIntegral (SOM.counter som')
 
 -- | Returns the number of models in the SOM.
 numModels
@@ -220,3 +223,6 @@ toList (GeneticSOM s _) = C.toList s
 
 learningFunction :: GeneticSOM p -> SOM.Exponential Double
 learningFunction (GeneticSOM s _) = SOM.learningFunction s
+
+schemaQuality :: GeneticSOM p -> Int
+schemaQuality = discrimination . M.elems . counterMap

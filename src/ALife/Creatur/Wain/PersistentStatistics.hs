@@ -10,7 +10,7 @@
 -- Statistical calculations
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 module ALife.Creatur.Wain.PersistentStatistics
   (
     updateStats,

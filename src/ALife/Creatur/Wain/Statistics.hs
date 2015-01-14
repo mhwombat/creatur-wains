@@ -10,7 +10,8 @@
 -- Statistical calculations
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric, FlexibleInstances #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances #-}
 module ALife.Creatur.Wain.Statistics
   (
     Statistical,
@@ -123,7 +124,7 @@ compile s f yss = map (prefix s) $ applyToColumns f yss
 -- toCSV = intercalate "," . map prettyVal
 
 applyToColumns :: ([Double] -> Double) -> [[Statistic]] -> [Statistic]
-applyToColumns f xss = map (applyToColumn f) xss
+applyToColumns f = map (applyToColumn f)
 
 applyToColumn :: ([Double] -> Double) -> [Statistic] -> Statistic
 applyToColumn f xs@(y:_) = y { sVal=f (map sVal xs) }

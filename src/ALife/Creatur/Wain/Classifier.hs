@@ -10,7 +10,9 @@
 -- A classifier based on a Kohonen Self-organising Map (SOM).
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module ALife.Creatur.Wain.Classifier
   (
     Label,

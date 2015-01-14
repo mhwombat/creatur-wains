@@ -20,8 +20,8 @@ import Data.Maybe (fromMaybe)
 
 discrimination :: Integral a => [a] -> Int
 discrimination xs = length $ filter (>k) xs
-  where k = (sum xs) `div` (fromIntegral $ 2 * length xs)
+  where k = sum xs `div` fromIntegral (2 * length xs)
 
 novelty :: (Eq a, Integral b) => a -> [(a, b)] -> Double
-novelty l m = 1/(fromIntegral n)
+novelty l m = 1 / fromIntegral n
   where n = fromMaybe 0 $ lookup l m

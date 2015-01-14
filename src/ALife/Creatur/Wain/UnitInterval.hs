@@ -10,8 +10,10 @@
 -- Utility functions that don't fit anywhere else.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric, TypeFamilies, FlexibleInstances,
-  GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module ALife.Creatur.Wain.UnitInterval
   (
     UIDouble(..),
@@ -79,7 +81,7 @@ instance Pattern [UIDouble] where
   difference xs ys
     | null xs && null ys = 0
     | null xs || null ys = 1
-    | otherwise         = d / (fromIntegral $ length deltas)
+    | otherwise         = d / fromIntegral (length deltas)
     where deltas = zipWith (-) xs ys
           d = sum $ map (\z -> z*z) deltas
   makeSimilar = adjustVector

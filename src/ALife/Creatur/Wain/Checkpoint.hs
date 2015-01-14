@@ -22,7 +22,7 @@ import ALife.Creatur.Task (requestShutdown)
 import ALife.Creatur.Universe (Universe, currentTime)
 import ALife.Creatur.Wain.Statistics (Statistic, lookup)
 import Control.Monad.State.Lazy (StateT)
-import Control.Monad (when)
+import Control.Monad (when, unless)
 
 -- | @`Check t s l`@ creates a constraint @l@ on the statistic @s@
 --   to be satisfied beginning at time @t@.
@@ -48,7 +48,7 @@ fails v l = not $ v `satisfies` l
 enforceAll
   :: (Universe u)
     => [Statistic] -> [Checkpoint] -> StateT u IO ()
-enforceAll xs cs = mapM_ (enforce xs) cs
+enforceAll xs = mapM_ (enforce xs)
 
 enforce
   :: (Universe u)
@@ -60,6 +60,5 @@ enforce xs c@(Check start key lim) = do
   case lookup key xs of
     Just x -> when (t >= start && x `fails` lim) $ requestShutdown 
                ("failed check " ++ show c ++ " " ++ key ++ "=" ++ show x)
-    Nothing -> if null xs
-                then return () -- ignore missing stats file
-                else requestShutdown $ "Cannot find statistic: " ++ key
+    Nothing -> unless (null xs) $ -- ignore missing stats file
+                requestShutdown $ "Cannot find statistic: " ++ key

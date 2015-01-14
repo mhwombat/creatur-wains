@@ -11,7 +11,8 @@
 -- current status in order to make good decisions.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric, TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.Condition
   (
     Condition(..),

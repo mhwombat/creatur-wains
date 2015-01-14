@@ -10,7 +10,9 @@
 -- ???
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 module ALife.Creatur.Wain.Scenario
   (
     Scenario(..),
@@ -61,7 +63,7 @@ instance Serialize Scenario
 
 instance Pattern Scenario where
   type Metric Scenario = Double
-  difference x y = (sum $ zipWith (*) scenarioWeights ds)/3
+  difference x y = sum (zipWith (*) scenarioWeights ds)/3
     where ds = [doDiff, ioDiff, cDiff]
           doDiff = difference (directObject x) (directObject y)
           ioDiff = difference (indirectObject x) (indirectObject y)
@@ -84,8 +86,8 @@ instance Genetic Scenario where
     case n of
       Left msgs -> return $ Left msgs
       Right n' -> do
-        ds <- fmap (fmap word8sToDoubles) $ getRawWord8s n'
-        is <- fmap (fmap word8sToDoubles) $ getRawWord8s n'
+        ds <- fmap word8sToDoubles <$> getRawWord8s n'
+        is <- fmap word8sToDoubles <$> getRawWord8s n'
         c <- get
         return $ Scenario <$> ds <*> is <*> c
 

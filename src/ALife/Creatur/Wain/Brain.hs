@@ -10,16 +10,12 @@
 -- ???
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric, TypeFamilies, FlexibleContexts,
-    StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 module ALife.Creatur.Wain.Brain
   (
     -- * Constructors
     Brain(..),
-    buildBrain,
-    -- * Learning about the objects in the universe
-    classify,
-    learnLabel,
     -- * Making decisions
     chooseAction,
     reflect,

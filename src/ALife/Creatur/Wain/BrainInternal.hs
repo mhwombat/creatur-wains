@@ -1,4 +1,4 @@
-------------------------------------------------------------------------
+-----------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.BrainInternal
 -- Copyright   :  (c) Amy de Buitléir 2012-2014
@@ -12,8 +12,10 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric, TypeFamilies, FlexibleContexts,
-    StandaloneDeriving #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module ALife.Creatur.Wain.BrainInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -68,10 +70,6 @@ brainOK
 brainOK b = (C.classifierOK . classifier $ b)
               && (D.deciderOK . decider $ b)
 
--- | Constructs a new brain.
-buildBrain :: C.Classifier p -> D.Decider a -> Brain p a
-buildBrain c d = Brain c d
-
 instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
     => Genetic (Brain p a) where
   put (Brain c d) = G.put c >> G.put d
@@ -90,12 +88,11 @@ instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
             if GSOM.numModels d1 == 0
                then Left ["Decider has no models"]
                else Right d1
-    return $ buildBrain <$> c <*> d
+    return $ Brain <$> c <*> d
 
--- | Presents two stimuli (direct object and indirect object)
---   to a brain, and returns the the action it chooses to take,
---   the scenario the brain considered, and
---   the responses it considered (with outcome predictions).
+-- | Presents stimuli to a brain, and returns the the action it chooses
+--   to take, the scenario the brain considered, and the responses it
+--   considered (with outcome predictions).
 chooseAction
   :: (Pattern p, Metric p ~ Double, Eq a, Enum a,
     Bounded a, Show a)
@@ -147,13 +144,13 @@ knownActions b = D.possibleActions $ decider b
 -- | Predicts the outcome of a response based on the brain's decider
 --   models, and updates the outcome field in that response.
 predict :: (Eq a) => Brain p a -> Scenario -> a -> (Response a, D.Label)
-predict b s a = D.predict (decider b) s a
+predict b = D.predict (decider b)
 
--- | Teaches a pattern + label to the brain.
-learnLabel
-  :: (Pattern p, Metric p ~ Double)
-    => p -> C.Label -> Brain p a -> Brain p a
-learnLabel p l b = b { classifier=GSOM.learn p l (classifier b) }
+-- -- | Teaches a pattern + label to the brain.
+-- learnLabel
+--   :: (Pattern p, Metric p ~ Double)
+--     => p -> C.Label -> Brain p a -> Brain p a
+-- learnLabel p l b = b { classifier=GSOM.learn p l (classifier b) }
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
@@ -180,3 +177,4 @@ imprint b p1 p2 a = b' {decider=d'}
         r = Response s a (Just 1.0)
         (_, _, _, _, d') = GSOM.reportAndTrain (decider b) r
         c = Condition 0.5 0.5 0 -- neutral condition
+

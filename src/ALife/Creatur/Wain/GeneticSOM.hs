@@ -26,7 +26,8 @@ module ALife.Creatur.Wain.GeneticSOM
     randomExponentialParams,
     randomExponential,
     somOK,
-    learningFunction
+    learningFunction,
+    schemaQuality
   ) where
 
 import ALife.Creatur.Wain.GeneticSOMInternal
