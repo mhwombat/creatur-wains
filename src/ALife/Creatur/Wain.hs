@@ -34,7 +34,8 @@ module ALife.Creatur.Wain
     condition,
     chooseAction,
     reflect,
-    tryMating,
+    imprint,
+    mate,
     weanMatureChildren,
     pruneDeadChildren,
     programVersion
@@ -52,29 +53,23 @@ import ALife.Creatur.Genetics.Recombination (mutatePairedLists,
   repeatWithProbability, withProbability)
 import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
   produceGamete, build, makeOffspring)
-import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Condition as C
 import qualified ALife.Creatur.Wain.Brain as B
-import ALife.Creatur.Wain.GeneticSOM (Label, toList)
-import ALife.Creatur.Wain.Pretty (pretty)
+import ALife.Creatur.Wain.GeneticSOM (Label)
 import qualified ALife.Creatur.Wain.Response as R
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.Util (scaleToWord8, scaleFromWord8,
   unitInterval, enforceRange)
 import Control.Applicative ((<$>), (<*>), pure)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Random (evalRandIO)
-import Control.Monad.State.Lazy (StateT)
+import Control.Monad.Random (Rand, RandomGen)
 import qualified Data.ByteString as BS
 import Data.Datamining.Pattern (Pattern(..), Metric)
 import Data.List (partition)
-import Data.Maybe (fromJust)
 import Data.Serialize (Serialize, encode)
 import Data.Word (Word8, Word16)
 import Data.Version (showVersion)
 import GHC.Generics (Generic)
 import Paths_creatur_wains (version)
-import Text.Printf (printf)
 
 -- | Returns the current version number of this library.
 programVersion :: String
@@ -300,100 +295,62 @@ appearanceOf (AObject a) = appearance a
 --   to a wain, and returns the the action it chooses to take,
 --   and the updated wain.
 chooseAction
-  :: (Pattern p, Metric p ~ Double, U.Universe u, Eq a, Enum a,
-    Bounded a, Show a)
+  :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
     => p -> p -> Wain p a
-      -> StateT u IO (Label, Double, Double, Int, Label, Double, Double,
-                      Int, R.Response a, Wain p a)
-chooseAction p1 p2 w = do
-  let n = name w
-  let (l1, diff1, nov1, novAdj1, l2, diff2, nov2, novAdj2, r, b', xs)
-         = B.chooseAction (brain w) p1 p2 (condition w)
-  U.writeToLog $ n ++ "'s assessment=" ++ pretty (R.scenario r)
-  describeModels w
-  describeOutcomes w xs
-  return (l1, diff1, nov1, novAdj1, l2, diff2, nov2, novAdj2, r,
-             w {brain=b'})
-
-describeModels :: (U.Universe u, Show a, Eq a) => Wain p a -> StateT u IO ()
-describeModels w = mapM_ (U.writeToLog . f) ms
-  where ms = toList . B.decider $ brain w
-        f (l, r) = name w ++ "'s decider model " ++ show l ++ "="
-                     ++ pretty r
-
-describeOutcomes
-  :: (U.Universe u, Show a)
-    => Wain p a -> [(R.Response a, Label)] -> StateT u IO ()
-describeOutcomes w = mapM_ (U.writeToLog . f)
-  where f (r, l) = name w ++ "'s predicted outcome of "
-                     ++ show (R.action r) ++ " is "
-                     ++ (printf "%.3f" . fromJust . R.outcome $ r)
-                     ++ " from model " ++ show l
+      -> (R.Response a, Wain p a, [(R.Response a, Label)])
+chooseAction p1 p2 w = (r, w', xs)
+  where (r, b', xs) = B.chooseAction (brain w) p1 p2 (condition w)
+        w' = w {brain=b'}
 
 -- | Deducts a wain's metabolism cost from its energy, and do the same
 --   for any children in the wain's litter.
 applyMetabolismCost
-  :: U.Universe u
-    => Double -> Double -> Double -> Wain p a
-      -> StateT u IO (Wain p a, Double, Double)
-applyMetabolismCost baseCost costPerByte childCostFactor w = do
-  (adultAfter, adultCost)
-    <- applyMetabolismCost1 baseCost costPerByte 1 w
-  xs <- mapM (applyMetabolismCost1 baseCost costPerByte childCostFactor)
-         (litter w)
-  let childrenAfter = map fst xs
-  let childCost = sum . map snd $ xs
-  return (adultAfter { litter = childrenAfter }, adultCost, childCost)
+  :: Double -> Double -> Double -> Wain p a -> (Wain p a, Double, Double)
+applyMetabolismCost baseCost costPerByte childCostFactor w
+  = (adultAfter { litter = childrenAfter }, adultCost, childCost)
+  where (adultAfter, adultCost)
+          = applyMetabolismCost1 baseCost costPerByte 1 w
+        xs = map (applyMetabolismCost1 baseCost costPerByte childCostFactor)
+               (litter w)
+        childrenAfter = map fst xs
+        childCost = sum . map snd $ xs
 
 applyMetabolismCost1
-  :: U.Universe u
-    => Double -> Double -> Double -> Wain p a -> StateT u IO (Wain p a, Double)
-applyMetabolismCost1 baseCost costPerByte factor w = do
-  (w', delta', _) <- adjustEnergy1 "metabolism" delta w
-  return (w', delta')
-  where adultCost = baseCost + costPerByte * fromIntegral (wainSize w)
+  :: Double -> Double -> Double -> Wain p a -> (Wain p a, Double)
+applyMetabolismCost1 baseCost costPerByte factor w = (w', delta')
+  where (w', delta', _) = adjustEnergy1 delta w
+        adultCost = baseCost + costPerByte * fromIntegral (wainSize w)
         delta = adultCost * factor
 
 -- | Adjusts the energy of a wain and its children.
 --   Note: A wain's energy is capped to the range [0,1].
 adjustEnergy
-  :: U.Universe u
-    => String -> Double -> Wain p a -> StateT u IO (Wain p a, Double, Double)
-adjustEnergy reason delta w =
+  :: Double -> Wain p a -> (Wain p a, Double, Double)
+adjustEnergy delta w =
   -- Rewards are shared with litter; penalties aren't
   if delta > 0 && hasLitter w
-    then do
-      let childrensShare = devotion w * delta
+    then (w3, adultShare', childrensShare')
+    else (w4, delta', 0)
+  where
+      childrensShare = devotion w * delta
       (w2, childrensShare', leftover)
-        <- adjustChildrensEnergy reason delta w
-      let adultShare = delta - childrensShare + leftover
-      (w3, adultShare', _) <- adjustEnergy1 reason adultShare w2
-      return (w3, adultShare', childrensShare')
-    else do
-      (w4, delta', _) <- adjustEnergy1 reason delta w
-      return (w4, delta', 0)
+        = adjustChildrensEnergy delta w
+      adultShare = delta - childrensShare + leftover
+      (w3, adultShare', _) = adjustEnergy1 adultShare w2
+      (w4, delta', _) = adjustEnergy1 delta w
 
 adjustChildrensEnergy
-  :: U.Universe u
-    => String -> Double -> Wain p a
-      -> StateT u IO (Wain p a, Double, Double)
-adjustChildrensEnergy reason delta w = do
-  result <- mapM (adjustEnergy1 reason delta) $ litter w
-  let childrenAfter = map (\(x, _, _) -> x) result
-  let delta' = sum . map (\(_, y, _) -> y) $ result
-  let leftover = sum . map (\(_, _, z) -> z) $ result
-  return (w {litter=childrenAfter}, delta', leftover)
+  :: Double -> Wain p a -> (Wain p a, Double, Double)
+adjustChildrensEnergy delta w
+  = (w {litter=childrenAfter}, delta', leftover)
+  where result = map (adjustEnergy1 delta) $ litter w
+        childrenAfter = map (\(x, _, _) -> x) result
+        delta' = sum . map (\(_, y, _) -> y) $ result
+        leftover = sum . map (\(_, _, z) -> z) $ result
 
 adjustEnergy1
-  :: U.Universe u
-    => String -> Double -> Wain p a -> StateT u IO (Wain p a, Double, Double)
-adjustEnergy1 reason delta w = do
-  U.writeToLog $ "Adjusting energy of " ++ name w ++ " because of "
-    ++ reason ++ ": " ++ printf "%.3f" eBefore
-    ++ " + " ++ printf "%.3f" delta
-    ++ " = " ++ printf "%.3f" eAfter
-    ++ " with " ++ printf "%.3f" leftover ++ " left over"
-  return (wAfter, delta', leftover)
+  :: Double -> Wain p a -> (Wain p a, Double, Double)
+adjustEnergy1 delta w = (wAfter, delta', leftover)
   where eBefore = energy w
         eAfter = max 0 . min 1 $ energy w + delta
         wAfter = w {energy=eAfter}
@@ -413,28 +370,19 @@ coolPassion :: Wain p a -> Wain p a
 coolPassion w = w {passion=0}
 
 -- | Increments the age of the wain, and its litter (if any).
-incAge
-  :: (Pattern p, Metric p ~ Double, U.Universe u)
-    => Wain p a -> StateT u IO (Wain p a)
-incAge w = incAge1 w >>= incLitterAge
+incAge :: Wain p a -> Wain p a
+incAge = incAge1 . incLitterAge
 
-incLitterAge
-  :: (Pattern p, Metric p ~ Double, U.Universe u)
-    => Wain p a -> StateT u IO (Wain p a)
-incLitterAge w = do
-  litter' <- mapM incAge1 (litter w)
-  return w { litter=litter' }
+incLitterAge :: Wain p a -> Wain p a
+incLitterAge w = w { litter=litter' }
+  where litter' = map incAge1 (litter w)
   
-incAge1
-  :: (Pattern p, Metric p ~ Double, U.Universe u)
-    => Wain p a -> StateT u IO (Wain p a)
-incAge1 w = return w { age=age w + 1 }
+incAge1 :: Wain p a -> Wain p a
+incAge1 w = w { age=age w + 1 }
 
 -- | Increments a wain's swagger count
-incSwagger
-  :: (Pattern p, Metric p ~ Double, U.Universe u)
-    => Wain p a -> StateT u IO (Wain p a)
-incSwagger w = return w { swagger=swagger w + 1 }
+incSwagger :: Wain p a -> Wain p a
+incSwagger w = w { swagger=swagger w + 1 }
 
 -- | Causes a wain to considers whether it is happier or not as a
 --   result of the last action it took, and modifies its decision models
@@ -445,30 +393,25 @@ incSwagger w = return w { swagger=swagger w + 1 }
 --   the action was perfect (increased happiness by 1)
 --   TODO: Do something more realistic.
 reflect
-  :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
-    => p -> p -> R.Response a -> Wain p a -> StateT u IO (Wain p a, Double)
-reflect p1 p2 r w = do
-  (w', err) <- reflect1 r w
-  let a = R.action r
-  litter' <- mapM (imprint p1 p2 a) (litter w)
-  return (w' { litter=litter' }, err)
+  :: (Pattern p, Metric p ~ Double, Eq a)
+    => p -> p -> R.Response a -> Wain p a -> (Wain p a, Double)
+reflect p1 p2 r w = (w' { litter=litter' }, err)
+  where (w', err) = reflect1 r w
+        a = R.action r
+        litter' = map (imprint p1 p2 a) (litter w)
 
 reflect1
-  :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
-    => R.Response a -> Wain p a -> StateT u IO (Wain p a, Double)
-reflect1 r w = do
-  U.writeToLog $ name w ++ " is reflecting on the outcome"
-  let (b', err) = B.reflect (brain w) r (condition w)
-  return (w { brain=b'}, err)
+  :: (Pattern p, Metric p ~ Double, Eq a)
+    => R.Response a -> Wain p a -> (Wain p a, Double)
+reflect1 r w = (w { brain=b'}, err)
+  where (b', err) = B.reflect (brain w) r (condition w)
 
 -- | Teaches the wain that the last action taken was a good one.
 --   This can be used to help children learn by observing their parents.
 imprint
-  :: (Pattern p, Metric p ~ Double, Eq a, U.Universe u)
-    => p -> p -> a -> Wain p a -> StateT u IO (Wain p a)
-imprint p1 p2 a w = do
-  U.writeToLog $ name w ++ " learns this action"
-  return $ w { brain=B.imprint (brain w) p1 p2 a }
+  :: (Pattern p, Metric p ~ Double, Eq a)
+    => p -> p -> a -> Wain p a -> Wain p a
+imprint p1 p2 a w = w { brain=B.imprint (brain w) p1 p2 a (condition w)}
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.
@@ -476,94 +419,68 @@ imprint p1 p2 a w = do
 --   reset to zero.
 --   Returns the (possibly modified) wains, together with a boolean
 --   indicating whether or not mating occurred.
-tryMating
-  :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
-    Genetic p, Genetic a, Eq a, Serialize p, Serialize a)
-    => Wain p a -> Wain p a -> StateT u IO ([Wain p a], Bool, Double, Double)
-tryMating a b
-  | hasLitter a = do
-      U.writeToLog $ name a ++ " already has a litter"
-      return ([a, b], False, 0, 0)
-  | hasLitter b = do
-      U.writeToLog $ name b ++ " already has a litter"
-      return ([a, b], False, 0, 0)
-  | otherwise   = do
-      U.writeToLog $ name a ++ " mates with " ++ name b
-      (as, aContribution, bContribution) <- mate a b
-      return (as, True, aContribution, bContribution)
-
 mate
-  :: (U.Universe u, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
+  :: (RandomGen r, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
     Genetic p, Genetic a, Eq a, Serialize p, Serialize a)
-      => Wain p a -> Wain p a -> StateT u IO ([Wain p a], Double, Double)
-mate a b = do
+    => Wain p a -> Wain p a -> String
+      -> Rand r ([Wain p a], [String], Double, Double)
+mate a b babyName
+  | hasLitter a
+      = return ([a, b], [name a ++ " already has a litter"], 0, 0)
+  | hasLitter b
+      = return ([a, b], [name b ++ " already has a litter"], 0, 0)
+  | otherwise = mate' a b babyName
+
+mate'
+  :: (RandomGen r, Pattern p, Metric p ~ Double, Diploid p, Diploid a,
+    Genetic p, Genetic a, Eq a, Serialize p, Serialize a)
+      => Wain p a -> Wain p a -> String
+        -> Rand r ([Wain p a], [String], Double, Double)
+mate' a b babyName = do
   let a2 = coolPassion a
   let b2 = coolPassion b
-  babyName <- U.genName
-  result <- liftIO $ evalRandIO (makeOffspring a b babyName)
+  result <- makeOffspring a b babyName
   case result of
     Right baby ->
       if B.brainOK (brain baby)
         then do
-          U.writeToLog $ name a ++ " and " ++ name b ++ " produce "
-            ++ babyName
-          (a3, b3, baby3, aContribution, bContribution)
-             <- donateParentEnergy a2 b2 baby
+          let (a3, b3, baby3, aContribution, bContribution)
+                 = donateParentEnergy a2 b2 baby
           let a4 = a3 { litter=[baby3],
                         childrenBorneLifetime
                           =childrenBorneLifetime a + 1}
-          return ([a4, b3], aContribution, bContribution)
-        else do
-          U.writeToLog $ "child of " ++ name a ++ " and " ++ name b
-            ++ " would have had an abnormal brain"
-          return ([a2, b2], 0, 0)
-    Left msgs -> do
-      U.writeToLog $ "child of " ++ name a ++ " and " ++ name b
-        ++ " not viable: " ++ show msgs
-      return ([a2, b2], 0, 0)
+          return ([a4, b3], [], aContribution, bContribution)
+        else return ([a2, b2], ["Child had an invalid brain"], 0, 0)
+    Left msgs -> return ([a2, b2], msgs, 0, 0)
 
 donateParentEnergy
-  :: U.Universe u
-    => Wain p a -> Wain p a -> Wain p a
-      -> StateT u IO (Wain p a, Wain p a, Wain p a, Double, Double)
-donateParentEnergy a b c = do
-  let aContribution = - devotion a * energy a
-  let bContribution = - devotion b * energy b
-  (a', aContribution', _) <- adjustEnergy1 "birth" aContribution a
-  (b', bContribution', _) <- adjustEnergy1 "birth" bContribution b
-  let cContribution = -(aContribution' + bContribution')
-  (c', _, _) <- adjustEnergy1 "birth" cContribution c
-  return (a', b', c', aContribution', bContribution')
+  :: Wain p a -> Wain p a -> Wain p a
+     -> (Wain p a, Wain p a, Wain p a, Double, Double)
+donateParentEnergy a b c = (a', b', c', aContribution', bContribution')
+  where aContribution = - devotion a * energy a
+        bContribution = - devotion b * energy b
+        (a', aContribution', _) = adjustEnergy1 aContribution a
+        (b', bContribution', _) = adjustEnergy1 bContribution b
+        cContribution = -(aContribution' + bContribution')
+        (c', _, _) = adjustEnergy1 cContribution c
 
 -- | Removes any mature children from the wain's litter.
 --   Returns a list containing the (possibly modified) wain, together
 --   with any children that have just been weaned.
-weanMatureChildren
-  :: U.Universe u
-    => Wain p a -> StateT u IO [Wain p a]
+weanMatureChildren :: Wain p a -> [Wain p a]
 weanMatureChildren a =
   if null (litter a)
-    then return [a]
-    else do
-      let (weanlings, babes) = partition mature (litter a)
-      mapM_ (\c -> U.writeToLog $
-                    name c ++ " weaned from " ++ name a) weanlings
-      let a' = a { litter = babes,
-                   childrenWeanedLifetime =
-                     childrenWeanedLifetime a +
-                       fromIntegral (length weanlings) }
-      return $ a':weanlings
+    then [a]
+    else a':weanlings
+  where (weanlings, babes) = partition mature (litter a)
+        a' = a { litter = babes,
+                 childrenWeanedLifetime = childrenWeanedLifetime a +
+                   fromIntegral (length weanlings) }
 
-pruneDeadChildren
-  :: U.Universe u
-    => Wain p a -> StateT u IO [Wain p a]
+pruneDeadChildren :: Wain p a -> [Wain p a]
 pruneDeadChildren a =
   if null (litter a)
-    then return [a]
-    else do
-      let (aliveChildren, deadChildren) = partition isAlive (litter a)
-      mapM_ (\c -> U.writeToLog $
-                    name c ++ ", child of " ++ name a ++ ", died")
-                      deadChildren
-      let a' = a { litter = aliveChildren }
-      return $ a':deadChildren
+    then [a]
+    else a':deadChildren
+  where (aliveChildren, deadChildren) = partition isAlive (litter a)
+        a' = a { litter = aliveChildren }

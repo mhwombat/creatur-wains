@@ -24,6 +24,7 @@ import ALife.Creatur.Wain.Condition
 import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.DeciderQC as D
 import ALife.Creatur.Wain.GeneticSOMQC ()
+import ALife.Creatur.Wain.Response (outcome)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.TestUtils
@@ -61,6 +62,18 @@ prop_reflect_error_in_range b s cAfter
         (r, _) = predict b s a
         (_, x) = reflect b r cAfter
 
+prop_imprint_works
+  :: Brain TestPattern TestAction -> TestPattern -> TestPattern
+    -> TestAction -> Condition -> Property
+prop_imprint_works b p1 p2 a c
+  = a `elem` (knownActions b) ==> x' >= x
+  where b' = imprint b p1 p2 a c
+        (s, _) = assessSituation b p1 p2 c
+        (r, _) = predict b s a
+        (r', _) = predict b' s a
+        Just x = outcome r
+        Just x' = outcome r'
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"
   [
@@ -84,5 +97,7 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
     testProperty "prop_reflect_makes_predictions_more_accurate"
       prop_reflect_makes_predictions_more_accurate,
     testProperty "prop_reflect_error_in_range"
-      prop_reflect_error_in_range
+      prop_reflect_error_in_range,
+    testProperty "prop_imprint_works"
+      prop_imprint_works
   ]

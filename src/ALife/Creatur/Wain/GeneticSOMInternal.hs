@@ -22,8 +22,6 @@ module ALife.Creatur.Wain.GeneticSOMInternal where
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
-import ALife.Creatur.Wain.ClassificationMetrics (novelty,
-  discrimination)
 import ALife.Creatur.Wain.Statistics (Statistical, iStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
@@ -33,6 +31,7 @@ import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Data.Datamining.Pattern (Pattern, Metric)
 import qualified Data.Datamining.Clustering.Classifier as C
 import qualified Data.Datamining.Clustering.SSOM as SOM
+import Data.Datamining.Clustering.SSOMInternal (rate)
 import qualified Data.Map.Strict as M
 import qualified Data.Serialize as S
 import Data.Word (Word16)
@@ -193,13 +192,11 @@ justClassify s = C.classify (patternMap s)
 reportAndTrain
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> p
-      -> (Label, [(Label, Metric p)], Double, Int, GeneticSOM p)
-reportAndTrain s p = (bmu, diffs, nov, adjNov, s')
+      -> (Label, [(Label, Metric p)], GeneticSOM p)
+reportAndTrain s p = (bmu, diffs, s')
   where (bmu, diffs, som') = C.reportAndTrain (patternMap s) p
         cMap = M.adjust (+1) bmu (counterMap s)
         s' = s { patternMap=som', counterMap=cMap}
-        nov = novelty bmu (M.toList cMap)
-        adjNov = round $ nov * fromIntegral (SOM.counter som')
 
 -- | Returns the number of models in the SOM.
 numModels
@@ -224,5 +221,14 @@ toList (GeneticSOM s _) = C.toList s
 learningFunction :: GeneticSOM p -> SOM.Exponential Double
 learningFunction (GeneticSOM s _) = SOM.learningFunction s
 
+currentLearningRate :: GeneticSOM p -> Double
+currentLearningRate s
+  = rate (learningFunction s) (fromIntegral t)
+  where t = SOM.counter . patternMap $ s
+
 schemaQuality :: GeneticSOM p -> Int
 schemaQuality = discrimination . M.elems . counterMap
+
+discrimination :: Integral a => [a] -> Int
+discrimination xs = length $ filter (>k) xs
+  where k = sum xs `div` fromIntegral (2 * length xs)

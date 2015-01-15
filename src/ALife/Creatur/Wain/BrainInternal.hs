@@ -94,16 +94,12 @@ instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
 --   to take, the scenario the brain considered, and the responses it
 --   considered (with outcome predictions).
 chooseAction
-  :: (Pattern p, Metric p ~ Double, Eq a, Enum a,
-    Bounded a, Show a)
+  :: (Pattern p, Metric p ~ Double, Eq a, Enum a, Bounded a)
       => Brain p a -> p -> p -> Condition
-        -> (C.Label, Double, Double, Int, C.Label, Double, Double, Int,
-            Response a, Brain p a, [(Response a, D.Label)])
+        -> (Response a, Brain p a, [(Response a, D.Label)])
 chooseAction b p1 p2 c
-  = (l1, diff1, nov1, novAdj1, l2, diff2, nov2, novAdj2, r, b',
-      consideredResponses)
-  where (l1, diff1, nov1, novAdj1, l2, diff2, nov2, novAdj2, s, b')
-            = assessSituation b p1 p2 c
+  = (r, b', consideredResponses)
+  where (s, b') = assessSituation b p1 p2 c
         consideredResponses = map (predict b s) $ knownActions b
         r = maximumBy f $ map fst consideredResponses
         f = comparing (fromMaybe 0 . outcome)
@@ -113,13 +109,10 @@ chooseAction b p1 p2 c
 --   See @Scenario@ for more information.
 assessSituation
   :: (Pattern p, Metric p ~ Double)
-    => Brain p a -> p -> p -> Condition
-      -> (C.Label, Double, Double, Int, C.Label, Double, Double,
-          Int, Scenario, Brain p a)
-assessSituation b p1 p2 c
-  = (l1, diff1, nov1, novAdj1, l2, diff2, nov2, novAdj2, s, b2)
-  where (l1, diff1, sig1, nov1, novAdj1, b1) = classify p1 b
-        (l2, diff2, sig2, nov2, novAdj2, b2) = classify p2 b1
+    => Brain p a -> p -> p -> Condition -> (Scenario, Brain p a)
+assessSituation b p1 p2 c = (s, b2)
+  where (sig1, b1) = classify p1 b
+        (sig2, b2) = classify p2 b1
         s = Scenario sig1 sig2 c
 
 -- | Updates the brain's classifier models based on the stimulus
@@ -130,27 +123,19 @@ assessSituation b p1 p2 c
 --   from the classification experience).
 classify
   :: (Pattern p, Metric p ~ Double)
-    => p -> Brain p a
-      -> (C.Label, Metric p, [Metric p], Double, Int, Brain p a)
-classify s b = (label, diff, sig, nov, novAdj, b')
-  where (label, diff, sig, nov, novAdj, c')
-          = C.classify (classifier b) s
+    => p -> Brain p a -> ([Metric p], Brain p a)
+classify s b = (sig, b')
+  where (sig, c') = C.classify (classifier b) s
         b' = b { classifier = c' }
 
 -- | Returns the list of actions that this brain "knows".
 knownActions :: (Eq a) => Brain p a -> [a]
-knownActions b = D.possibleActions $ decider b
+knownActions b = D.knownActions $ decider b
 
 -- | Predicts the outcome of a response based on the brain's decider
 --   models, and updates the outcome field in that response.
 predict :: (Eq a) => Brain p a -> Scenario -> a -> (Response a, D.Label)
 predict b = D.predict (decider b)
-
--- -- | Teaches a pattern + label to the brain.
--- learnLabel
---   :: (Pattern p, Metric p ~ Double)
---     => p -> C.Label -> Brain p a -> Brain p a
--- learnLabel p l b = b { classifier=GSOM.learn p l (classifier b) }
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
@@ -162,8 +147,7 @@ reflect
 reflect b r cAfter = (b {decider=d'}, err)
   where deltaH = happiness cAfter - happiness (condition . scenario $ r)
         predictedDeltaH = fromJust . outcome $ r
-        (_, _, _, _, d') =
-          GSOM.reportAndTrain (decider b) (r `setOutcome` deltaH)
+        (_, _, d') = GSOM.reportAndTrain (decider b) (r `setOutcome` deltaH)
         err = abs (deltaH - predictedDeltaH)
 
 -- | Teaches the brain that the last action taken was a perfect one.
@@ -171,10 +155,9 @@ reflect b r cAfter = (b {decider=d'}, err)
 --   It can also be used to allow wains to learn from others.
 imprint
   :: (Pattern p, Metric p ~ Double, Eq a)
-    => Brain p a -> p -> p -> a -> Brain p a
-imprint b p1 p2 a = b' {decider=d'}
-  where (_, _, _, _, _, _, _, _, s, b') = assessSituation b p1 p2 c
-        r = Response s a (Just 1.0)
-        (_, _, _, _, d') = GSOM.reportAndTrain (decider b) r
-        c = Condition 0.5 0.5 0 -- neutral condition
+    => Brain p a -> p -> p -> a -> Condition -> Brain p a
+imprint b p1 p2 a c = b' {decider=d'}
+  where (s, b') = assessSituation b p1 p2 c
+        d = decider b
+        d' = D.imprint d s a
 

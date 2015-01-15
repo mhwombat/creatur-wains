@@ -17,14 +17,15 @@ module ALife.Creatur.Wain.Decider
     Label,
     Decider,
     predict,
-    possibleActions,
+    knownActions,
+    imprint,
     deciderOK
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, justClassify,
-  models, modelAt, somOK)
+  models, modelAt, somOK, reportAndTrain)
 import ALife.Creatur.Wain.Response (Response(..), action,
-  similarityIgnoringOutcome)
+  similarityIgnoringOutcome, setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import Data.List (nub)
 import Data.Maybe (fromJust, isJust)
@@ -43,21 +44,19 @@ predict d s a = (r3, k)
           = Just $ similarityIgnoringOutcome model r * rawOutcome
         r3 = r { outcome=adjustedOutcome }
 
--- -- | Predicts the outcome of a response based on the decider models,
--- --   and updates the outcome field in that response.
--- predict :: (Eq a) => Decider a -> Scenario -> a -> Response a
--- predict d s a = r { outcome=Just o }
---   where r = Response s a Nothing
---         applicableModels = filter (\x -> action x == a) $ models d
---         similarities
---           = map (similarityIgnoringOutcome r) applicableModels
---         rawOutcomes = map (fromJust . outcome) applicableModels
---         adjustedOutcomes = zipWith (*) similarities rawOutcomes
---         o = (sum adjustedOutcomes)/(sum similarities)
+-- | Teaches a response to the decider.
+imprint :: (Eq a) => Decider a -> Scenario -> a -> Decider a
+imprint d s a =
+  if a `elem` knownActions d
+    then d'
+    else d -- Can't teach this response
+  where (r, _) = predict d s a
+        r' = r `setOutcome` 1
+        (_, _, d') = reportAndTrain d r'
 
 -- | Returns the list of actions that this decider "knows".
-possibleActions :: (Eq a) => Decider a -> [a]
-possibleActions = nub . map action . models 
+knownActions :: (Eq a) => Decider a -> [a]
+knownActions = nub . map action . models 
 
 -- | Returns @True@ if the SOM has a valid Exponential and at least one
 --   model, and all models have predicted results; returns @False@

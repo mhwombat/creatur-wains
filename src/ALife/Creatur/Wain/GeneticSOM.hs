@@ -27,6 +27,7 @@ module ALife.Creatur.Wain.GeneticSOM
     randomExponential,
     somOK,
     learningFunction,
+    currentLearningRate,
     schemaQuality
   ) where
 

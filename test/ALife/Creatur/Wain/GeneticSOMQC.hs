@@ -136,7 +136,7 @@ prop_sum_counts_correct som ps = property $
 
 runSOM :: TestPattern -> GeneticSOM TestPattern -> GeneticSOM TestPattern
 runSOM p s = x
-  where (_, _, _, _, x) = reportAndTrain s p
+  where (_, _, x) = reportAndTrain s p
 
 -- -- | WARNING: This can fail when two nodes are close enough in
 -- --   value so that after training they become identical.
