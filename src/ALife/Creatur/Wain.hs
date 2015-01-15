@@ -27,6 +27,7 @@ module ALife.Creatur.Wain
     happiness,
     identity,
     appearanceOf,
+    childEnergy,
     hasLitter,
     litterSize,
     incAge,
@@ -184,9 +185,9 @@ instance (Pattern p, Metric p ~ Double, Eq a) =>
       : iStat "size" (wainSize w)
       : iStat "children borne (lifetime)" (childrenBorneLifetime w)
       : iStat "children reared (lifetime)" (childrenWeanedLifetime w)
-      : dStat "adult energy" adultEnergy
-      : dStat "child energy" childEnergy
-      : dStat "energy" (adultEnergy + childEnergy)
+      : dStat "adult energy" e
+      : dStat "child energy" ec
+      : dStat "energy" (e + ec)
       : dStat "passion" (passion w)
       : iStat "current litter size" (length $ litter w)
       : dStat "happiness" (happiness w)
@@ -194,8 +195,8 @@ instance (Pattern p, Metric p ~ Double, Eq a) =>
       : stats (brain w)
       ++ [iStat "genome length" ( (length . fst $ genome w)
                                   + (length . snd $ genome w) )]
-    where adultEnergy = energy w
-          childEnergy = sum . map energy $ litter w
+    where e = energy w
+          ec = sum . map energy $ litter w
                                
 instance (Serialize p, Serialize a, Pattern p, Metric p ~ Double, Eq a)
   => Serialize (Wain p a)
@@ -244,6 +245,10 @@ instance (Genetic p, Genetic a, Diploid p, Diploid a, Eq a, Pattern p,
     withProbability 0.001 mutatePairedLists >>=
     randomOneOfPair
   build n = runDiploidReader (buildWainFromGenome False n)
+
+-- | Returns the total energy of all children in the litter.
+childEnergy :: Wain p a -> Double
+childEnergy = sum . map energy . litter
 
 -- | Returns @True@ if a wain is currently raising children; returns
 --   @False@ otherwise.
