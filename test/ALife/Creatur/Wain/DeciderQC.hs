@@ -39,10 +39,10 @@ prop_training_makes_predictions_more_accurate
 prop_training_makes_predictions_more_accurate d s a o =
   a `elem` (knownActions d) ==> errAfter <= errBefore
   where (r, _) = predict d s a
-        (Just predictionBefore) = outcome r
+        (Just predictionBefore) = _outcome r
         errBefore = abs (o - predictionBefore)
         (_, _, d') = reportAndTrain d (r `setOutcome` o)
-        (Just predictionAfter) = outcome . fst $ predict d' s a
+        (Just predictionAfter) = _outcome . fst $ predict d' s a
         errAfter = abs (o - predictionAfter)
 
 prop_prediction_error_in_range
@@ -50,7 +50,7 @@ prop_prediction_error_in_range
 prop_prediction_error_in_range d s a (UIDouble o) =
   a `elem` (knownActions d) ==> -2 <= e && e <= 2
   where (r, _) = predict d s a
-        (Just prediction) = outcome r
+        (Just prediction) = _outcome r
         e = abs (o - prediction)
 
 prop_imprint_works
@@ -60,8 +60,8 @@ prop_imprint_works d s a
   where d' = imprint d s a
         (r, _) = predict d s a
         (r', _) = predict d' s a
-        Just x = outcome r
-        Just x' = outcome r'
+        Just x = _outcome r
+        Just x' = _outcome r'
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.DeciderQC"

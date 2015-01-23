@@ -13,8 +13,9 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.ResponseInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, Reader, put, get)
@@ -23,6 +24,7 @@ import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Scenario (Scenario, randomScenario)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleToWord8)
 import Control.Applicative ((<$>), (<*>))
+import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
 import Data.Datamining.Pattern (Pattern, Metric, difference,
   makeSimilar)
@@ -50,36 +52,37 @@ deciderWeights =
 data Response a = Response
   {
     -- | The situation to be responded to
-    scenario :: Scenario,
+    _scenario :: Scenario,
     -- | Action
-    action :: a,
+    _action :: a,
     -- | Happiness level change (predicted or actual).
     --   Response patterns stored in the decider will have a @Just@
     --   value; stimuli received from the outside will have a @Nothing@
     --   value.
-    outcome :: Maybe Double
+    _outcome :: Maybe Double
   } deriving (Eq, Show, Generic, Ord)
-  
+makeLenses ''Response
+
 instance (Serialize a) => Serialize (Response a)
 
 instance (Eq a) => Pattern (Response a) where
   type Metric (Response a) = Double
   difference x y =
-    if action x == action y
+    if _action x == _action y
       then sum (zipWith (*) deciderWeights ds) / 2
       else 1.0
     where ds = [sDiff, rDiff]
-          sDiff = difference (scenario x) (scenario y)
-          rDiff = diffOutcome (fromMaybe 0 $ outcome x)
-                    (fromMaybe 0 $ outcome x)
+          sDiff = difference (_scenario x) (_scenario y)
+          rDiff = diffOutcome (fromMaybe 0 . _outcome $ x)
+                    (fromMaybe 0 . _outcome $ y)
   makeSimilar target r x =
-    if action target == action x
+    if _action target == _action x
        then Response s a o
        else x
-    where s = makeSimilar (scenario target) r (scenario x)
-          a = action x
-          o = Just $ makeSimilar (fromMaybe 0.0 $ outcome target) r
-                (fromMaybe 0.0 $ outcome x)
+    where s = makeSimilar (_scenario target) r (_scenario x)
+          a = _action x
+          o = Just $ makeSimilar (fromMaybe 0.0 . _outcome $ target) r
+                (fromMaybe 0.0 . _outcome $ x)
 
 diffOutcome :: Double -> Double -> Double
 diffOutcome a b = abs (a-b) / 2
@@ -88,9 +91,8 @@ diffOutcome a b = abs (a-b) / 2
 
 similarityIgnoringOutcome :: Eq a => Response a -> Response a -> Double
 similarityIgnoringOutcome x y = 1 - difference x' y'
-  where x' = x {outcome=Nothing}
-        y' = y {outcome=Nothing}
-
+  where x' = set outcome Nothing x
+        y' = set outcome Nothing y
 
 -- | The initial sequences stored at birth are genetically determined.
 instance (Genetic a) => Genetic (Response a) where
@@ -121,11 +123,11 @@ randomResponse n
 
 -- | Updates the outcome in the second response to match the first.
 copyOutcomeTo :: Response a -> Response a -> Response a
-copyOutcomeTo source target = target { outcome=outcome source }
+copyOutcomeTo source = set outcome (_outcome source)
 
 -- | Updates the outcome in a response model.
 setOutcome :: Response a -> Double -> Response a
-setOutcome r o = r { outcome=Just o }
+setOutcome r o = set outcome (Just o) r
 
 -- getOutcome :: Response s a -> Double
 -- getOutcome = outcome

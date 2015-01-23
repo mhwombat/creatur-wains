@@ -12,8 +12,12 @@
 ------------------------------------------------------------------------
 module ALife.Creatur.Wain.GeneticSOM
   (
-    GeneticSOM(..),
+    GeneticSOM,
     Label,
+    r0Range,
+    dRange,
+    patternMap,
+    counterMap,
     buildGeneticSOM,
     numModels,
     models,

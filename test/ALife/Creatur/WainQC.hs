@@ -19,13 +19,14 @@ module ALife.Creatur.WainQC
 
 import ALife.Creatur.Genetics.BRGCWord8 (runDiploidReader, write)
 -- import ALife.Creatur.Genetics.Reproduction.Sexual (makeOffspring)
-import ALife.Creatur.Wain
+import ALife.Creatur.WainInternal
 -- import ALife.Creatur.Wain.Brain (brainOK)
 import qualified ALife.Creatur.Wain.BrainQC as BQC
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
 import Control.Applicative ((<$>), (<*>), pure)
+import Control.Lens
 -- import Control.Monad.Random (evalRand)
 -- import System.Random (mkStdGen)
 import Test.Framework (Test, testGroup)
@@ -34,11 +35,11 @@ import Test.QuickCheck
 
 equiv :: Wain TestPattern TestAction -> Wain TestPattern TestAction -> Bool
 equiv a1 a2 =
-  appearance a1 == appearance a2
-  && brain a1 `BQC.equiv` brain a2
-  && devotion a1 == devotion a2
-  && ageOfMaturity a1 == ageOfMaturity a2
-  && passionDelta a1 == passionDelta a2
+  _appearance a1 == _appearance a2
+  && _brain a1 `BQC.equiv` _brain a2
+  && _devotion a1 == _devotion a2
+  && _ageOfMaturity a1 == _ageOfMaturity a2
+  && _passionDelta a1 == _passionDelta a2
 --  && genome a1 == genome a2
 --  && size a1 == size a2
 
@@ -79,7 +80,7 @@ sizedArbWain n = do
   if n < 1
     then do
       cs <- listOf arbWain
-      return $ w { litter=cs}
+      return $ set litter cs w
     else return w
 
 instance Arbitrary (Wain TestPattern TestAction) where

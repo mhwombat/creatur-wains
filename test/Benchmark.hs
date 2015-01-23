@@ -15,6 +15,7 @@ import ALife.Creatur.Wain.ResponseQC
 import ALife.Creatur.Wain.Scenario
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Util (unitInterval)
+import Control.Lens
 import Control.Monad (replicateM)
 import Control.Monad.Random (Rand, Random, RandomGen, evalRandIO,
   getRandomR)
@@ -38,7 +39,7 @@ deciderBenchmark :: Decider TestAction -> IO ()
 deciderBenchmark d = do
   putStrLn $ "model count=" ++ show (numModels d)
   putStrLn $ "object length="
-    ++ show (length . directObject . scenario . head . C.models $ patternMap d)
+    ++ show (length . _directObject . _scenario . head . C.models . view patternMap $ d)
   let x = W8.write d
   let d' = fromEither (error "read returned Nothing") . W8.read $ x
   putStrLn $ "passed=" ++ show (d' == d)

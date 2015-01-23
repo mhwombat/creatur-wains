@@ -11,11 +11,15 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.Scenario
   (
     Scenario(..),
+    condition,
+    directObject,
+    indirectObject,
     randomScenario
   ) where
 
@@ -27,6 +31,7 @@ import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Util (forceIntToWord8, word8ToInt,
   scaleToWord8, scaleFromWord8, unitInterval, doublesTo8BitHex)
 import Control.Applicative
+import Control.Lens
 import Control.Monad (replicateM)
 import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (Pattern, Metric, difference,
@@ -51,13 +56,15 @@ data Scenario = Scenario
   {
     -- | The pattern probabilities identified by the classifier
     --   for the direct object of the action.
-    directObject :: [Double],
+    _directObject :: [Double],
     -- | The pattern probabilities identified by the classifier
     --   for the indirect object of the action.
-    indirectObject :: [Double],
+    _indirectObject :: [Double],
     -- | Current condition
-    condition :: Condition
+    _condition :: Condition
   } deriving (Eq, Show, Generic, Ord)
+
+makeLenses ''Scenario
 
 instance Serialize Scenario
 
@@ -65,13 +72,14 @@ instance Pattern Scenario where
   type Metric Scenario = Double
   difference x y = sum (zipWith (*) scenarioWeights ds)/3
     where ds = [doDiff, ioDiff, cDiff]
-          doDiff = difference (directObject x) (directObject y)
-          ioDiff = difference (indirectObject x) (indirectObject y)
-          cDiff = difference (condition x) (condition y)
+          doDiff = difference (_directObject x)   (_directObject y)
+          ioDiff = difference (_indirectObject x) (_indirectObject y)
+          cDiff = difference (_condition x) (_condition y)
   makeSimilar target r x = Scenario dObj iObj cond
-    where dObj = makeSimilar (directObject target) r (directObject x)
-          iObj = makeSimilar (indirectObject target) r (indirectObject x)
-          cond = makeSimilar (condition target) r (condition x)
+    where dObj = makeSimilar (_directObject target) r (_directObject x)
+          iObj = makeSimilar (_indirectObject target)
+                   r (_indirectObject x)
+          cond = makeSimilar (_condition target) r (_condition x)
     
 -- | The initial sequences stored at birth are genetically determined.
 instance Genetic Scenario where

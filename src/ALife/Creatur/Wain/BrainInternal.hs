@@ -13,9 +13,10 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.BrainInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -24,11 +25,12 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as C
 import qualified ALife.Creatur.Wain.Decider as D
 import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
-import ALife.Creatur.Wain.Condition (Condition(..), happiness)
+import ALife.Creatur.Wain.Condition (Condition, happiness)
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix)
 import Control.Applicative ((<$>), (<*>))
+import Control.Lens
 import Data.Datamining.Pattern (Pattern, Metric)
 import Data.List (maximumBy)
 import Data.Maybe (fromMaybe, fromJust)
@@ -39,10 +41,12 @@ import GHC.Generics (Generic)
 data Brain p a = Brain
   {
     -- | Component that categorises and identifies patterns
-    classifier :: C.Classifier p,
+    _classifier :: C.Classifier p,
     -- | Component that decides what actions to take
-    decider :: D.Decider a
+    _decider :: D.Decider a
   } deriving (Generic)
+
+makeLenses ''Brain
 
 deriving instance (Eq p, Eq a, Pattern p, Metric p ~ Double) 
     => Eq (Brain p a)
@@ -67,8 +71,8 @@ instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), Show a, Eq a)
 brainOK
   :: (Pattern p, Ord (Metric p), Metric p ~ Double, Eq a)
     => Brain p a -> Bool
-brainOK b = (C.classifierOK . classifier $ b)
-              && (D.deciderOK . decider $ b)
+brainOK b = C.classifierOK (_classifier b)
+              && D.deciderOK (_decider b)
 
 instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a)
     => Genetic (Brain p a) where
@@ -102,7 +106,7 @@ chooseAction b p1 p2 c
   where (s, b') = assessSituation b p1 p2 c
         consideredResponses = map (predict b s) $ knownActions b
         r = maximumBy f $ map fst consideredResponses
-        f = comparing (fromMaybe 0 . outcome)
+        f = comparing (fromMaybe 0 . _outcome)
 
 -- | Returns a scenario, based on the two input patterns
 --   (direct object and indirect object) and the current condition.
@@ -125,17 +129,17 @@ classify
   :: (Pattern p, Metric p ~ Double)
     => p -> Brain p a -> ([Metric p], Brain p a)
 classify s b = (sig, b')
-  where (sig, c') = C.classify (classifier b) s
-        b' = b { classifier = c' }
+  where (sig, c') = C.classify (_classifier b) s
+        b' = set classifier c' b
 
 -- | Returns the list of actions that this brain "knows".
 knownActions :: (Eq a) => Brain p a -> [a]
-knownActions b = D.knownActions $ decider b
+knownActions = D.knownActions . _decider
 
 -- | Predicts the outcome of a response based on the brain's decider
 --   models, and updates the outcome field in that response.
 predict :: (Eq a) => Brain p a -> Scenario -> a -> (Response a, D.Label)
-predict b = D.predict (decider b)
+predict b = D.predict (_decider b)
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
@@ -144,10 +148,11 @@ predict b = D.predict (decider b)
 reflect
   :: (Pattern p, Metric p ~ Double, Eq a)
     => Brain p a -> Response a -> Condition -> (Brain p a, Double)
-reflect b r cAfter = (b {decider=d'}, err)
-  where deltaH = happiness cAfter - happiness (condition . scenario $ r)
-        predictedDeltaH = fromJust . outcome $ r
-        (_, _, d') = GSOM.reportAndTrain (decider b) (r `setOutcome` deltaH)
+reflect b r cAfter = (set decider d' b, err)
+  where deltaH = happiness cAfter - happiness cBefore
+        cBefore = _condition . _scenario $ r
+        predictedDeltaH = fromJust . _outcome $ r
+        (_, _, d') = GSOM.reportAndTrain (_decider b) (r `setOutcome` deltaH)
         err = abs (deltaH - predictedDeltaH)
 
 -- | Teaches the brain that the last action taken was a perfect one.
@@ -156,8 +161,8 @@ reflect b r cAfter = (b {decider=d'}, err)
 imprint
   :: (Pattern p, Metric p ~ Double, Eq a)
     => Brain p a -> p -> p -> a -> Condition -> Brain p a
-imprint b p1 p2 a c = b' {decider=d'}
+imprint b p1 p2 a c = set decider d' b'
   where (s, b') = assessSituation b p1 p2 c
-        d = decider b
+        d = _decider b
         d' = D.imprint d s a
 

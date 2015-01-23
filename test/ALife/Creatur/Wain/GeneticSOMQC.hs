@@ -131,7 +131,7 @@ prop_diploid_decayingExponential_valid a b = property . validExponential $ c
 prop_sum_counts_correct
   :: GeneticSOM TestPattern -> [TestPattern] -> Property
 prop_sum_counts_correct som ps = property $
-  (sum . M.elems . counterMap $ som') == (counter . patternMap $ som')
+  (sum . M.elems . _counterMap $ som') == (counter . _patternMap $ som')
   where som' = foldr runSOM som ps
 
 runSOM :: TestPattern -> GeneticSOM TestPattern -> GeneticSOM TestPattern

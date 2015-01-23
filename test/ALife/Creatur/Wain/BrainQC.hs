@@ -24,7 +24,7 @@ import ALife.Creatur.Wain.Condition
 import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.DeciderQC as D
 import ALife.Creatur.Wain.GeneticSOMQC ()
-import ALife.Creatur.Wain.Response (outcome)
+import ALife.Creatur.Wain.Response (_outcome)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.TestUtils
@@ -40,8 +40,8 @@ instance Arbitrary (Brain TestPattern TestAction) where
     
 equiv
   :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Bool
-equiv b1 b2 = classifier b1 `C.equiv` classifier b2
-  && decider b1 `D.equiv` decider b2
+equiv b1 b2 = _classifier b1 `C.equiv` _classifier b2
+  && _decider b1 `D.equiv` _decider b2
 
 prop_reflect_makes_predictions_more_accurate
   :: Brain TestPattern TestAction -> Scenario -> Condition
@@ -71,8 +71,8 @@ prop_imprint_works b p1 p2 a c
         (s, _) = assessSituation b p1 p2 c
         (r, _) = predict b s a
         (r', _) = predict b' s a
-        Just x = outcome r
-        Just x' = outcome r'
+        Just x = _outcome r
+        Just x' = _outcome r'
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"

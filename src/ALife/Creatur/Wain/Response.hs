@@ -15,6 +15,9 @@
 module ALife.Creatur.Wain.Response
   (
     Response(..),
+    scenario,
+    action,
+    outcome,
     copyOutcomeTo,
     setOutcome,
     randomResponse,

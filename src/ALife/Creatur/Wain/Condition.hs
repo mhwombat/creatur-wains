@@ -12,10 +12,14 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.Condition
   (
     Condition(..),
+    cEnergy,
+    cPassion,
+    cLitterSize,
     randomCondition,
     happiness
   ) where
@@ -27,6 +31,7 @@ import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Util (unitInterval, scaleFromWord8,
   scaleToWord8, doubleTo8BitHex)
 import Control.Applicative ((<$>), (<*>))
+import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (Pattern, Metric, adjustNum,
   difference, makeSimilar)
@@ -57,12 +62,13 @@ passionHapWeight = 0.3
 data Condition = Condition
   {
     -- | Current energy level
-    cEnergy :: Double,
+    _cEnergy :: Double,
     -- | Current passion level
-    cPassion :: Double,
+    _cPassion :: Double,
     -- | Is the wain currently rearing a litter?
-    cLitterSize :: Word8
+    _cLitterSize :: Word8
   } deriving (Eq, Show, Generic, Ord)
+makeLenses ''Condition
 
 instance Serialize Condition
 
@@ -86,15 +92,15 @@ instance Pattern Condition where
   type Metric Condition = Double
   difference x y
     = sum [eDiff*energySimWeight, pDiff*passionSimWeight, lDiff*litterSimWeight]
-    where eDiff = abs (cEnergy x - cEnergy y)
-          pDiff = abs (cPassion x - cPassion y)
-          lDiff = if cLitterSize x == cLitterSize y then 0 else 1
+    where eDiff = abs (_cEnergy x - _cEnergy y)
+          pDiff = abs (_cPassion x - _cPassion y)
+          lDiff = if _cLitterSize x == _cLitterSize y then 0 else 1
   makeSimilar target r x = Condition e p l
-    where e = adjustNum (cEnergy target) r (cEnergy x)
-          p = adjustNum (cPassion target) r (cPassion x)
+    where e = adjustNum (_cEnergy target) r (_cEnergy x)
+          p = adjustNum (_cPassion target) r (_cPassion x)
           l = round $ adjustNum lTarget r lX
-          lTarget = fromIntegral $ cLitterSize target :: Double
-          lX = fromIntegral $ cLitterSize x :: Double
+          lTarget = fromIntegral . _cLitterSize $ target :: Double
+          lX = fromIntegral . _cLitterSize $ x :: Double
 
 -- instance Statistical Condition where
 --   stats c@(Condition e p l) =

@@ -24,9 +24,10 @@ module ALife.Creatur.Wain.Decider
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, justClassify,
   models, modelAt, somOK, reportAndTrain)
-import ALife.Creatur.Wain.Response (Response(..), action,
+import ALife.Creatur.Wain.Response (Response(..), outcome,
   similarityIgnoringOutcome, setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario)
+import Control.Lens
 import Data.List (nub)
 import Data.Maybe (fromJust, isJust)
 
@@ -39,10 +40,10 @@ predict d s a = (r3, k)
   where r = Response s a Nothing
         k = justClassify d r
         model = d `modelAt` k
-        rawOutcome = fromJust . outcome $ model
+        rawOutcome = fromJust . _outcome $ model
         adjustedOutcome
           = Just $ similarityIgnoringOutcome model r * rawOutcome
-        r3 = r { outcome=adjustedOutcome }
+        r3 = set outcome adjustedOutcome r
 
 -- | Teaches a response to the decider.
 imprint :: (Eq a) => Decider a -> Scenario -> a -> Decider a
@@ -56,7 +57,7 @@ imprint d s a =
 
 -- | Returns the list of actions that this decider "knows".
 knownActions :: (Eq a) => Decider a -> [a]
-knownActions = nub . map action . models 
+knownActions = nub . map _action . models 
 
 -- | Returns @True@ if the SOM has a valid Exponential and at least one
 --   model, and all models have predicted results; returns @False@
@@ -65,4 +66,4 @@ deciderOK :: Eq a => Decider a -> Bool
 deciderOK d = somOK d && all modelOK (models d)
 
 modelOK :: Response a -> Bool
-modelOK = isJust . outcome
+modelOK = isJust . _outcome

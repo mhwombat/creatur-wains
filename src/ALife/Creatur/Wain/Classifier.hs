@@ -21,7 +21,7 @@ module ALife.Creatur.Wain.Classifier
     classifierOK
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM(..), Label,
+import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label,
   reportAndTrain, somOK)
 import Data.Datamining.Pattern (Pattern, Metric)
 

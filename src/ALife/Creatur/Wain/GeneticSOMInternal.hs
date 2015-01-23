@@ -12,10 +12,11 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOMInternal where
 
@@ -27,6 +28,7 @@ import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
 import ALife.Creatur.Wain.Util (intersection)
 import Control.Applicative ((<$>), (<*>))
+import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Data.Datamining.Pattern (Pattern, Metric)
 import qualified Data.Datamining.Clustering.Classifier as C
@@ -55,9 +57,11 @@ instance (Diploid a) => Diploid (SOM.Exponential a)
 
 data RandomExponentialParams = RandomExponentialParams
   {
-    r0Range :: (Double, Double),
-    dRange :: (Double, Double)
+    _r0Range :: (Double, Double),
+    _dRange :: (Double, Double)
   } deriving Show
+
+makeLenses ''RandomExponentialParams
 
 r0RangeLimits :: (Double, Double)
 r0RangeLimits = (1/255, 1)
@@ -68,12 +72,8 @@ dRangeLimits = (1/255, 1)
 -- | Returns a set of parameters which will permit the broadest possible
 --   set of random decaying gaussian functions for a SOM.
 randomExponentialParams :: RandomExponentialParams
-randomExponentialParams = 
-  RandomExponentialParams
-    {
-      r0Range = r0RangeLimits,
-      dRange = dRangeLimits
-    }
+randomExponentialParams =
+  RandomExponentialParams r0RangeLimits dRangeLimits
 
 -- | @'randomExponential' r0Range dRange@ returns a random decaying
 --   exponential that can be used as the learning function for a SOM.
@@ -86,8 +86,8 @@ randomExponential
     => RandomExponentialParams
       -> Rand g (SOM.Exponential Double)
 randomExponential p = do
-  r0 <- getRandomR $ intersection r0RangeLimits (r0Range p)
-  d <- getRandomR $ intersection dRangeLimits (dRange p)
+  r0 <- getRandomR . intersection r0RangeLimits . _r0Range $ p
+  d <- getRandomR . intersection dRangeLimits . _dRange $ p
   return $ SOM.Exponential r0 d
 
 validExponential :: SOM.Exponential Double -> Bool
@@ -115,10 +115,12 @@ instance (Diploid f, Diploid t, Diploid k, Ord k, Diploid p) =>
 data GeneticSOM p =
   GeneticSOM
     {
-      patternMap :: SOM.SSOM (SOM.Exponential Double) Word16 Label p,
-      counterMap :: M.Map Label Word16
+      _patternMap :: SOM.SSOM (SOM.Exponential Double) Word16 Label p,
+      _counterMap :: M.Map Label Word16
     }
   deriving (Eq, Show, Generic)
+
+makeLenses ''GeneticSOM
 
 -- | Returns @True@ if the SOM has a valid Exponential and at least one
 --   model; returns @False@ otherwise.
@@ -163,7 +165,7 @@ instance (Diploid p) => Diploid (GeneticSOM p)
 instance (Pattern p, Metric p ~ Double) => Statistical (GeneticSOM p) where
   stats s =
     (iStat "num models" . numModels $ s)
-      :(stats . SOM.learningFunction . patternMap $ s)
+      :(stats . SOM.learningFunction . _patternMap $ s)
 
 -- | Adjusts the model at the index (grid location) specified.
 --   Only the one model is changed. This is useful for allowing wains
@@ -172,8 +174,8 @@ instance (Pattern p, Metric p ~ Double) => Statistical (GeneticSOM p) where
 learn
   :: (Pattern p, Metric p ~ Double)
     => p -> Label -> GeneticSOM p -> GeneticSOM p
-learn p l s = s { patternMap=gm' }
-  where gm = patternMap s
+learn p l s = set patternMap gm' s
+  where gm = _patternMap s
         gm' = SOM.trainNode gm l p
 
 -- | Returns the index (grid location) of the model that most closely
@@ -181,7 +183,7 @@ learn p l s = s { patternMap=gm' }
 justClassify
   :: (Pattern p, Ord (Metric p), Metric p ~ Double)
     => GeneticSOM p -> p -> Label
-justClassify s = C.classify (patternMap s)
+justClassify s = C.classify (_patternMap s)
 
 -- | Updates the SOM based on the input pattern.
 --   Returns the index (grid location) of the model that most closely
@@ -194,9 +196,9 @@ reportAndTrain
     => GeneticSOM p -> p
       -> (Label, [(Label, Metric p)], GeneticSOM p)
 reportAndTrain s p = (bmu, diffs, s')
-  where (bmu, diffs, som') = C.reportAndTrain (patternMap s) p
-        cMap = M.adjust (+1) bmu (counterMap s)
-        s' = s { patternMap=som', counterMap=cMap}
+  where (bmu, diffs, som') = C.reportAndTrain (_patternMap s) p
+        cMap = M.adjust (+1) bmu (_counterMap s)
+        s' = set patternMap som' . set counterMap cMap $ s
 
 -- | Returns the number of models in the SOM.
 numModels
@@ -211,7 +213,7 @@ models
 models (GeneticSOM s _) = C.models s
 
 modelAt :: GeneticSOM p -> Label -> p
-modelAt s k = (SOM.toMap . patternMap $ s) M.! k
+modelAt s k = SOM.toMap (_patternMap s) M.! k
 
 -- | Returns a list containing each index (grid location) in the SOM,
 --   paired with the model at that index.
@@ -224,10 +226,10 @@ learningFunction (GeneticSOM s _) = SOM.learningFunction s
 currentLearningRate :: GeneticSOM p -> Double
 currentLearningRate s
   = rate (learningFunction s) (fromIntegral t)
-  where t = SOM.counter . patternMap $ s
+  where t = SOM.counter . _patternMap $ s
 
 schemaQuality :: GeneticSOM p -> Int
-schemaQuality = discrimination . M.elems . counterMap
+schemaQuality = discrimination . M.elems . _counterMap
 
 discrimination :: Integral a => [a] -> Int
 discrimination xs = length $ filter (>k) xs
