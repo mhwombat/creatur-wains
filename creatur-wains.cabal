@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           7.0.0
+Version:           7.0.1
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -14,7 +14,7 @@ Synopsis:          Artificial agent specialised for for pattern
                    discovery.
 License:           BSD3
 License-file:      LICENSE
-Copyright:         (c) Amy de Buitléir 2010-2014
+Copyright:         (c) Amy de Buitléir 2010-2015
 Author:            Amy de Buitléir
 Maintainer:        amy@nualeargais.ie
 Build-Type:        Simple
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      7.0.0
+  tag:      7.0.1
 
 library
   GHC-Options:      -Wall -Werror
@@ -65,7 +65,7 @@ library
                     MonadRandom ==0.3.*,
                     mtl ==2.2.*,
                     random ==1.1.*,
-                    som ==7.4.* && >=7.4.1,
+                    som ==7.5.*,
                     transformers ==0.4.*
 
 Test-suite wain-tests
@@ -83,7 +83,7 @@ Test-suite wain-tests
                     lens ==4.7.*,
                     random ==1.1.*,
                     MonadRandom ==0.3.*,
-                    som ==7.4.* && >=7.4.1,
+                    som ==7.5.*,
                     transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
@@ -101,9 +101,9 @@ Executable wain-benchmark
                     lens ==4.7.*,
                     random ==1.1.*,
                     MonadRandom ==0.3.*,
-                    som ==7.4.* && >=7.4.1,
-                    temporary ==1.1.*,
-                    time ==1.4.*,
+                    som ==7.5.*,
+                    temporary ==1.2.*,
+                    time ==1.4.* || ==1.5.*,
                     transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
