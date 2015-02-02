@@ -105,7 +105,7 @@ buildWain n a b d m p g = set wainSize s w
               {
                 _name = n, _appearance = a, _brain = b, _devotion = d,
                 _ageOfMaturity = m, _passionDelta = p, _energy = 0,
-                _passion = 0, _age = 0, _litter = [],
+                _passion = 1, _age = 0, _litter = [],
                 _childrenBorneLifetime = 0, _childrenWeanedLifetime = 0,
                 _swagger = 0, _genome = g, _wainSize = 0
               }
