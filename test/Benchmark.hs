@@ -58,7 +58,8 @@ randomWain n classifierSize deciderSize maxAgeOfMaturity = do
   d <- getRandomR unitInterval
   m <- getRandomR (0,maxAgeOfMaturity)
   p <- getRandomR unitInterval
-  return $ buildWainAndGenerateGenome n app b d m p
+  e <- getRandomR unitInterval
+  return $ buildWainAndGenerateGenome n app b d m p e
 
 wainBenchmark :: Int -> Int -> FilePath -> IO ()
 wainBenchmark classifierSize deciderSize dir = do

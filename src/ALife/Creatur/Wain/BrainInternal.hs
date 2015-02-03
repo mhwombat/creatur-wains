@@ -60,7 +60,7 @@ instance (Diploid p, Diploid a, Pattern p, Eq a, Metric p ~ Double)
 instance (Pattern p, Metric p ~ Double, Eq a)
       => Statistical (Brain p a) where
   stats (Brain c d) = map (prefix "classifier ") (stats c)
-    ++ map (prefix "decider ") (stats d)
+    ++ map (prefix "decider ") (stats d) 
 
 instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), Show a, Eq a)
       => Show (Brain p a) where
@@ -147,9 +147,9 @@ predict b = D.predict (_decider b)
 --   prediction of the outcome.
 reflect
   :: (Pattern p, Metric p ~ Double, Eq a)
-    => Brain p a -> Response a -> Condition -> (Brain p a, Double)
-reflect b r cAfter = (set decider d' b, err)
-  where deltaH = happiness cAfter - happiness cBefore
+    => Brain p a -> Double -> Response a -> Condition -> (Brain p a, Double)
+reflect b x r cAfter = (set decider d' b, err)
+  where deltaH = happiness x cAfter - happiness x cBefore
         cBefore = _condition . _scenario $ r
         predictedDeltaH = fromJust . _outcome $ r
         (_, _, d') = GSOM.reportAndTrain (_decider b) (r `setOutcome` deltaH)

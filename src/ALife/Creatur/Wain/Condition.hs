@@ -41,22 +41,15 @@ import GHC.Generics (Generic)
 import Text.Printf (printf)
 
 -- Weights used for calculating the similarity between two conditions
+-- TODO: Make this genetic
 energySimWeight :: Double
 energySimWeight = 1 - passionSimWeight - litterSimWeight
 
 passionSimWeight :: Double
-passionSimWeight = 0.1
+passionSimWeight = 0.33
 
 litterSimWeight :: Double
-litterSimWeight = 0.1
-
--- Weights used for calculating happiness
--- TODO: Make these weights genetic
-energyHapWeight :: Double
-energyHapWeight = 1 - passionHapWeight
-
-passionHapWeight :: Double
-passionHapWeight = 0.3
+litterSimWeight = 0.33
 
 -- | A model of a stimulus and the response to it
 data Condition = Condition
@@ -119,9 +112,10 @@ randomCondition = do
 -- | Wains seek to maximise their happiness, which is a function
 --   their current condition.
 --   TODO: Should the litter size affect happiness?
-happiness :: Condition -> Double
-happiness (Condition e p _)
+happiness :: Double -> Condition -> Double
+happiness energyHapWeight (Condition e p _)
   = e*energyHapWeight + (1 - p)*passionHapWeight
+  where passionHapWeight = 1 - energyHapWeight
 
 instance Pretty Condition where
   pretty (Condition e p l)

@@ -70,6 +70,8 @@ data Wain p a = Wain
     -- | The amount that a wain's passion increases at each CPU turn.
     --   this influences the frequency of mating.
     _passionDelta :: Double,
+    -- | Weight of energy in determining happiness
+    _energyWeight :: Double,
     -- | The wain's current energy level.
     --   This is a number between 0 and 1, inclusive.
     _energy :: Double,
@@ -96,16 +98,17 @@ makeLenses ''Wain
 
 buildWain
   :: (Pattern p, Metric p ~ Double, Serialize a, Serialize p, Eq a)
-    => String -> p -> B.Brain p a -> Double -> Word16 -> Double
+    => String -> p -> B.Brain p a -> Double -> Word16 -> Double -> Double
       -> (Sequence, Sequence) -> Wain p a
-buildWain n a b d m p g = set wainSize s w
+buildWain n a b d m p e g = set wainSize s w
   -- We first set the size to 0, then figure out what the size really
   -- is.
   where w = Wain
               {
                 _name = n, _appearance = a, _brain = b, _devotion = d,
-                _ageOfMaturity = m, _passionDelta = p, _energy = 0,
-                _passion = 1, _age = 0, _litter = [],
+                _ageOfMaturity = m, _passionDelta = p,
+                _energyWeight = e, _energy = 0, _passion = 1, _age = 0,
+                _litter = [],
                 _childrenBorneLifetime = 0, _childrenWeanedLifetime = 0,
                 _swagger = 0, _genome = g, _wainSize = 0
               }
@@ -117,9 +120,10 @@ buildWain n a b d m p g = set wainSize s w
 buildWainAndGenerateGenome
   :: (Pattern p, Metric p ~ Double, Serialize a, Serialize p, Genetic p,
       Genetic a, Eq a)
-        => String -> p -> B.Brain p a -> Double -> Word16 -> Double -> Wain p a
-buildWainAndGenerateGenome n a b d m p = set genome (g,g) strawMan
-  where strawMan = buildWain n a b d m p ([], [])
+        => String -> p -> B.Brain p a -> Double -> Word16 -> Double -> Double
+          -> Wain p a
+buildWainAndGenerateGenome n a b d m p e = set genome (g,g) strawMan
+  where strawMan = buildWain n a b d m p e ([], [])
         g = write strawMan
 
 -- | Constructs a wain from its genome. This is used when a child is
@@ -134,10 +138,12 @@ buildWainFromGenome truncateGenome n = do
   d <- getAndExpress
   m <- getAndExpress
   p <- getAndExpress
+  e <- getAndExpress
   let d' = fmap (scaleFromWord8 unitInterval) d
   let p' = fmap (scaleFromWord8 unitInterval) p
+  let e' = fmap (scaleFromWord8 unitInterval) e
   g <- if truncateGenome then consumed2 else copy2
-  return $ buildWain n <$> a <*> b <*> d' <*> m <*> p' <*> pure g
+  return $ buildWain n <$> a <*> b <*> d' <*> m <*> p' <*> e' <*> pure g
 
 deriving instance (Pattern p, Show p, Show (Metric p), Ord (Metric p), 
   Show a, Eq a)
@@ -188,6 +194,7 @@ instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a,
             >> put (scaleToWord8 unitInterval . _devotion $ w)
             >> put (_ageOfMaturity w)
             >> put (scaleToWord8 unitInterval . _passionDelta $ w)
+            >> put (scaleToWord8 unitInterval . _energyWeight $ w)
   get = do
     g <- copy
     a <- get
@@ -195,18 +202,20 @@ instance (Genetic p, Genetic a, Pattern p, Metric p ~ Double, Eq a,
     d <- fmap (fmap (scaleFromWord8 unitInterval)) get
     m <- get
     p <- fmap (fmap (scaleFromWord8 unitInterval)) get
-    return $ buildWain "" <$> a <*> b <*> d <*> m <*> p <*> pure (g, g)
+    x <- fmap (fmap (scaleFromWord8 unitInterval)) get
+    return $ buildWain "" <$> a <*> b <*> d <*> m <*> p <*> x <*> pure (g, g)
 
 -- This implementation is useful for testing
 instance (Diploid p, Diploid a, Pattern p, Metric p ~ Double, Eq a,
   Serialize p, Serialize a)
       => Diploid (Wain p a) where
-  express x y = buildWain "" a b d m p ([],[])
+  express x y = buildWain "" a b d m p e ([],[])
     where a = express (_appearance x)    (_appearance y)
           b = express (_brain x)         (_brain y)
           d = express (_devotion x)      (_devotion y)
           m = express (_ageOfMaturity x) (_ageOfMaturity y)
           p = express (_passionDelta x)  (_passionDelta y)
+          e = express (_energyWeight x)  (_energyWeight y)
           
 instance Agent (Wain p a) where
   agentId = view name
@@ -249,7 +258,7 @@ condition w = C.Condition (_energy w) (_passion w)
 -- | Returns the wain's current happiness level.
 --   This is a number between 0 and 1, inclusive.
 happiness :: Wain p a -> Double
-happiness = C.happiness . condition
+happiness w = C.happiness (_energyWeight w) (condition w)
 
 data Object p a = DObject p String | AObject (Wain p a)
 
@@ -379,7 +388,8 @@ reflect1
   :: (Pattern p, Metric p ~ Double, Eq a)
     => R.Response a -> Wain p a -> (Wain p a, Double)
 reflect1 r w = (set brain b' w, err)
-  where (b', err) = B.reflect (_brain w) r (condition w)
+  where (b', err)
+          = B.reflect (_brain w) (_energyWeight w) r (condition w)
 
 -- | Teaches the wain that the last action taken was a good one.
 --   This can be used to help children learn by observing their parents.

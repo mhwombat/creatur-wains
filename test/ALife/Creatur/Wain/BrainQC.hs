@@ -28,6 +28,8 @@ import ALife.Creatur.Wain.Response (_outcome)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
+import ALife.Creatur.Wain.UnitIntervalQC ()
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -44,23 +46,23 @@ equiv b1 b2 = _classifier b1 `C.equiv` _classifier b2
   && _decider b1 `D.equiv` _decider b2
 
 prop_reflect_makes_predictions_more_accurate
-  :: Brain TestPattern TestAction -> Scenario -> Condition
+  :: Brain TestPattern TestAction -> Scenario -> UIDouble -> Condition
     -> Property
-prop_reflect_makes_predictions_more_accurate b s cAfter =
+prop_reflect_makes_predictions_more_accurate b s (UIDouble e) cAfter =
   property $ errAfter <= errBefore
   where a = head . knownActions $ b
         (r, _) = predict b s a
-        (b2, errBefore) = reflect b r cAfter
-        (_, errAfter) = reflect b2 r cAfter
+        (b2, errBefore) = reflect b e r cAfter
+        (_, errAfter) = reflect b2 e r cAfter
 
 prop_reflect_error_in_range
-  :: Brain TestPattern TestAction -> Scenario -> Condition
+  :: Brain TestPattern TestAction -> Scenario -> UIDouble -> Condition
     -> Property
-prop_reflect_error_in_range b s cAfter
+prop_reflect_error_in_range b s (UIDouble e) cAfter
   = property $ -2 <= x && x <= 2
   where a = head . knownActions $ b
         (r, _) = predict b s a
-        (_, x) = reflect b r cAfter
+        (_, x) = reflect b e r cAfter
 
 prop_imprint_works
   :: Brain TestPattern TestAction -> TestPattern -> TestPattern

@@ -19,6 +19,8 @@ module ALife.Creatur.Wain.ConditionQC
 import ALife.Creatur.Wain.Condition
 import ALife.Creatur.Wain.Util (unitInterval)
 import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
+import ALife.Creatur.Wain.UnitIntervalQC ()
 import Control.Applicative
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -28,9 +30,9 @@ instance Arbitrary Condition where
   arbitrary = Condition <$> arb8BitDouble unitInterval
                 <*> arb8BitDouble unitInterval <*> arbitrary
 
-prop_happiness_in_range :: Condition -> Property
-prop_happiness_in_range c = property $ 0 <= x && x <= 1
-  where x = happiness c
+prop_happiness_in_range :: UIDouble -> Condition -> Property
+prop_happiness_in_range (UIDouble e) c = property $ 0 <= x && x <= 1
+  where x = happiness e c
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ConditionQC"
