@@ -15,6 +15,7 @@
 module ALife.Creatur.Wain.ResponseQC
   (
     test,
+    TestResponse,
     TestAction(..)
   ) where
 
@@ -24,7 +25,10 @@ import ALife.Creatur.Wain.ResponseInternal
 import ALife.Creatur.Wain.ScenarioQC ()
 import ALife.Creatur.Wain.ConditionQC ()
 import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
+import ALife.Creatur.Wain.UnitIntervalQC ()
 import ALife.Creatur.Wain.Util (intersection)
+import ALife.Creatur.Wain.Weights (Weights)
 import Control.Applicative
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
@@ -33,7 +37,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
-data TestAction = Smile | Frown
+data TestAction = Walk | Run | Jump | Skip | Crawl
   deriving (Show, Eq, Generic, Enum, Bounded)
 
 instance Serialize TestAction
@@ -44,6 +48,10 @@ instance Arbitrary TestAction where
   arbitrary = elements [minBound .. maxBound]
 
 type TestResponse = Response TestAction
+
+-- instance Serialize TestResponse
+-- instance Genetic TestResponse
+-- instance Diploid TestResponse
 
 instance Arbitrary TestResponse where
   arbitrary = do
@@ -70,15 +78,34 @@ instance Random TestOutcome where
 instance Arbitrary TestOutcome where
   arbitrary = TestOutcome <$> choose (-1,1)
 
-prop_diffOutcome_inRange :: TestOutcome -> TestOutcome -> Property
-prop_diffOutcome_inRange (TestOutcome a) (TestOutcome b)
-  = property $ 0 <= x && x <= 1
-  where x = diffOutcome a b
+-- prop_responseDiff_can_be_1 :: Weights -> Property
+-- prop_responseDiff_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8
+--   where x = responseDiff w (Response [0] [0] (Condition 0 0 0))
+--               (Response [1] [1] (Condition 1 1 1))
+--         ws = toDoubles w
+
+prop_responseDiff_can_be_0
+  :: Weights -> Weights -> Weights -> TestResponse -> Property
+prop_responseDiff_can_be_0 cw sw rw r = property $ abs (x - 0) < 1e-8
+  where x = responseDiff cw sw rw r r
+
+prop_responseDiff_in_range
+  :: Weights -> Weights -> Weights -> TestResponse -> TestResponse -> Property
+prop_responseDiff_in_range cw sw rw a b = property $ 0 <= x && x <= 1
+  where x = responseDiff cw sw rw a b
 
 prop_similarityIgnoringOutcome_inRange
-  :: Response TestAction -> Response TestAction -> Property
-prop_similarityIgnoringOutcome_inRange a b = property $ 0 <= x && x <= 1
-  where x = similarityIgnoringOutcome a b
+  :: Weights -> Weights -> Weights -> TestResponse -> TestResponse -> Property
+prop_similarityIgnoringOutcome_inRange cw sw rw a b
+  = property $ 0 <= x && x <= 1
+  where x = similarityIgnoringOutcome cw sw rw a b
+
+prop_makeResponseSimilar_works
+  :: Weights -> Weights -> Weights -> TestResponse -> UIDouble
+    -> TestResponse -> Property
+prop_makeResponseSimilar_works cw sw rw
+  = prop_makeSimilar_works (responseDiff cw sw rw) makeResponseSimilar
+
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ResponseQC"
@@ -94,8 +121,14 @@ test = testGroup "ALife.Creatur.Wain.ResponseQC"
        :: TestResponse -> TestResponse -> Property),
     testProperty "prop_diploid_readable - Response"
       (prop_diploid_readable :: TestResponse -> TestResponse -> Property),
-    testProperty "prop_diffOutcome_inRange"
-      prop_diffOutcome_inRange,
+    -- testProperty "prop_responseDiff_can_be_1"
+    --   prop_responseDiff_can_be_1,
+    testProperty "prop_responseDiff_can_be_0"
+      prop_responseDiff_can_be_0,
+    testProperty "prop_responseDiff_in_range"
+      prop_responseDiff_in_range,
     testProperty "prop_similarityIgnoringOutcome_inRange"
-      prop_similarityIgnoringOutcome_inRange
+      prop_similarityIgnoringOutcome_inRange,
+    testProperty "prop_makeResponseSimilar_works"
+      prop_makeResponseSimilar_works
   ]

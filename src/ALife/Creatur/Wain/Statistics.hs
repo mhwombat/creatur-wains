@@ -30,7 +30,7 @@ module ALife.Creatur.Wain.Statistics
 import Prelude hiding (lookup)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Raw (Raw, raw)
-import Data.Datamining.Clustering.SSOM (Exponential(..))
+-- import Data.Datamining.Clustering.SSOM (Exponential(..))
 import Data.List (transpose)
 import Data.Serialize (Serialize)
 import Factory.Math.Statistics (getMean, getStandardDeviation)
@@ -134,9 +134,9 @@ applyToColumn _ [] = error "no data"
 -- prettyVal (DStatistic _ x) = pretty x
 -- prettyVal (IStatistic _ x) = pretty (round x :: Int)
 
-instance Statistical (Exponential Double) where
-  stats (Exponential r0 d) = 
-    [ uiStat "r0" r0, uiStat "d" d ]
+-- instance Statistical (Exponential Double) where
+--   stats (Exponential r0 d) = 
+--     [ uiStat "r0" r0, uiStat "d" d ]
 
 lookup :: String -> [Statistic] -> Maybe Double
 lookup _ [] = Nothing

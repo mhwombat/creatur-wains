@@ -17,10 +17,12 @@ module ALife.Creatur.Wain.ConditionQC
   ) where
 
 import ALife.Creatur.Wain.Condition
-import ALife.Creatur.Wain.Util (unitInterval)
-import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
+import ALife.Creatur.Wain.Util (unitInterval)
+import ALife.Creatur.Wain.Weights (Weights)
+import ALife.Creatur.Wain.WeightsQC ()
+import ALife.Creatur.Wain.TestUtils
 import Control.Applicative
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -30,9 +32,37 @@ instance Arbitrary Condition where
   arbitrary = Condition <$> arb8BitDouble unitInterval
                 <*> arb8BitDouble unitInterval <*> arbitrary
 
-prop_happiness_in_range :: UIDouble -> Condition -> Property
-prop_happiness_in_range (UIDouble e) c = property $ 0 <= x && x <= 1
-  where x = happiness e c
+-- prop_happiness_can_be_1 :: Weights -> Property
+-- prop_happiness_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8
+--   where x = happiness w (Condition 1 1 1)
+--         ws = toDoubles w
+
+prop_happiness_can_be_0 :: Weights -> Property
+prop_happiness_can_be_0 w = property $ abs (x - 0) < 1e-8
+  where x = happiness w (Condition 0 0 0)
+
+prop_happiness_in_range :: Weights -> Condition -> Property
+prop_happiness_in_range w c = property $ 0 <= x && x <= 1
+  where x = happiness w c
+
+-- prop_conditionDiff_can_be_1 :: Weights -> Property
+-- prop_conditionDiff_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8
+--   where x = conditionDiff w (Condition 0 0 0) (Condition 1 1 1)
+--         ws = toDoubles w
+
+prop_conditionDiff_can_be_0 :: Weights -> Condition -> Property
+prop_conditionDiff_can_be_0 w c = property $ abs (x - 0) < 1e-8
+  where x = conditionDiff w c c
+
+prop_conditionDiff_in_range
+  :: Weights -> Condition -> Condition -> Property
+prop_conditionDiff_in_range w a b = property $ 0 <= x && x <= 1
+  where x = conditionDiff w a b
+
+prop_makeConditionSimilar_works
+  :: Weights -> Condition -> UIDouble -> Condition -> Property
+prop_makeConditionSimilar_works ws
+  = prop_makeSimilar_works (conditionDiff ws) makeConditionSimilar
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ConditionQC"
@@ -47,5 +77,15 @@ test = testGroup "ALife.Creatur.Wain.ConditionQC"
       (prop_diploid_expressable :: Condition -> Condition -> Property),
     testProperty "prop_diploid_readable - Condition"
       (prop_diploid_readable :: Condition -> Condition -> Property),
-    testProperty "prop_happiness_in_range" prop_happiness_in_range
+    -- testProperty "prop_happiness_can_be_1" prop_happiness_can_be_1,
+    testProperty "prop_happiness_can_be_0" prop_happiness_can_be_0,
+    testProperty "prop_happiness_in_range" prop_happiness_in_range,
+    -- testProperty "prop_conditionDiff_can_be_1"
+    --   prop_conditionDiff_can_be_1,
+    testProperty "prop_conditionDiff_can_be_0"
+      prop_conditionDiff_can_be_0,
+    testProperty "prop_conditionDiff_in_range"
+      prop_conditionDiff_in_range,
+    testProperty "prop_makeConditionSimilar_works"
+      prop_makeConditionSimilar_works
   ]

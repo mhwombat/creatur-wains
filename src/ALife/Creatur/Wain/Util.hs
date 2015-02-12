@@ -35,8 +35,7 @@ module ALife.Creatur.Wain.Util
   ) where
 
 import Data.Word (Word8, Word16)
-import Data.Datamining.Pattern (Pattern(..), Metric, adjustNum,
-  adjustVector)
+-- import Data.Datamining.Pattern (adjustNum, adjustVector)
 import Text.Printf (printf)
 
 -- | The range [0,1], endpoints included.
@@ -104,6 +103,9 @@ forceIntToWord8 = fromIntegral . min maxBound
 word8ToInt :: Word8 -> Int
 word8ToInt = fromIntegral
 
+-- roundtripToWord8 :: (Fractional a, RealFrac a) => (a, a) -> a -> a
+-- roundtripToWord8 interval = scaleFromWord8 interval . scaleToWord8 interval
+
 -- | @'forceIntToWord8' x@ returns 65535 or @x@, whichever is smaller.
 --   TODO: How should negative values be handled?
 forceIntToWord16 :: Int -> Word16
@@ -113,20 +115,20 @@ forceIntToWord16 = fromIntegral . min maxBound
 word16ToInt :: Word16 -> Int
 word16ToInt = fromIntegral
 
-instance Pattern Double where
-  type Metric Double = Double
-  difference a b = abs $ (-) a b
-  makeSimilar = adjustNum
+-- instance Pattern Double where
+--   type Metric Double = Double
+--   difference a b = abs $ (-) a b
+--   makeSimilar = adjustNum
 
-instance Pattern [Double] where
-  type Metric [Double] = Double
-  difference xs ys
-    | null xs && null ys = 0
-    | null xs || null ys = 1
-    | otherwise         = d / fromIntegral (length deltas)
-    where deltas = zipWith (-) xs ys
-          d = sum $ map (\z -> z*z) deltas
-  makeSimilar = adjustVector
+-- instance Pattern [Double] where
+--   type Metric [Double] = Double
+--   difference xs ys
+--     | null xs && null ys = 0
+--     | null xs || null ys = 1
+--     | otherwise         = d / fromIntegral (length deltas)
+--     where deltas = zipWith (-) xs ys
+--           d = sum $ map (\z -> z*z) deltas
+--   makeSimilar = adjustVector
 
 -- | Given a sequence of numbers on the unit interval], scales them
 --   to the interval [0,255] and returns a hexadecimal representation.
@@ -152,3 +154,8 @@ intersection (a, b) (c, d)
   | otherwise         = (max a' c', min b' d')
   where (a', b') = proper (a, b)
         (c', d') = proper (c, d)
+
+-- random8BitDouble :: (Double, Double) -> m Double
+-- random8BitDouble interval = do 
+--   x <- getRandom
+--   return $ scaleFromWord8 interval x

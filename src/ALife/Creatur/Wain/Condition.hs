@@ -21,7 +21,9 @@ module ALife.Creatur.Wain.Condition
     cPassion,
     cLitterSize,
     randomCondition,
-    happiness
+    happiness,
+    conditionDiff,
+    makeConditionSimilar
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -30,26 +32,15 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Util (unitInterval, scaleFromWord8,
   scaleToWord8, doubleTo8BitHex)
+import ALife.Creatur.Wain.Weights (Weights, toDoubles)
 import Control.Applicative ((<$>), (<*>))
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandom)
-import Data.Datamining.Pattern (Pattern, Metric, adjustNum,
-  difference, makeSimilar)
+import Data.Datamining.Pattern (adjustNum)
 import Data.Serialize (Serialize)
 import Data.Word (Word8)
 import GHC.Generics (Generic)
 import Text.Printf (printf)
-
--- Weights used for calculating the similarity between two conditions
--- TODO: Make this genetic
-energySimWeight :: Double
-energySimWeight = 1 - passionSimWeight - litterSimWeight
-
-passionSimWeight :: Double
-passionSimWeight = 0.33
-
-litterSimWeight :: Double
-litterSimWeight = 0.33
 
 -- | A model of a stimulus and the response to it
 data Condition = Condition
@@ -81,24 +72,32 @@ instance Genetic Condition where
 
 instance Diploid Condition
 
-instance Pattern Condition where
-  type Metric Condition = Double
-  difference x y
-    = sum [eDiff*energySimWeight, pDiff*passionSimWeight, lDiff*litterSimWeight]
-    where eDiff = abs (_cEnergy x - _cEnergy y)
-          pDiff = abs (_cPassion x - _cPassion y)
-          lDiff = if _cLitterSize x == _cLitterSize y then 0 else 1
-  makeSimilar target r x = Condition e p l
-    where e = adjustNum (_cEnergy target) r (_cEnergy x)
-          p = adjustNum (_cPassion target) r (_cPassion x)
-          l = round $ adjustNum lTarget r lX
-          lTarget = fromIntegral . _cLitterSize $ target :: Double
-          lX = fromIntegral . _cLitterSize $ x :: Double
+-- | Wains seek to maximise their happiness, which is a function
+--   their current condition.
+happiness :: Weights -> Condition -> Double
+happiness w (Condition e p l)
+  = sum (zipWith (*) ws ds)
+  where ds = [e, p, l']
+        l' = if l > 0 then 1 else 0
+        ws = toDoubles w
 
--- instance Statistical Condition where
---   stats c@(Condition e p l) =
---     [dStat "energy" e, dStat "passion" p,
---      dStat "happiness" (happiness c)]
+conditionDiff
+  :: Weights -> Condition -> Condition -> Double
+conditionDiff w x y
+  = sum (zipWith (*) ws ds)
+  where eDiff = abs (_cEnergy x - _cEnergy y)
+        pDiff = abs (_cPassion x - _cPassion y)
+        lDiff = if _cLitterSize x == _cLitterSize y then 0 else 1
+        ds = [eDiff, pDiff, lDiff]
+        ws = toDoubles w
+
+makeConditionSimilar :: Condition -> Double -> Condition -> Condition
+makeConditionSimilar target r x = Condition e p l
+  where e = adjustNum (_cEnergy target) r (_cEnergy x)
+        p = adjustNum (_cPassion target) r (_cPassion x)
+        l = round $ adjustNum lTarget r lX
+        lTarget = fromIntegral . _cLitterSize $ target :: Double
+        lX = fromIntegral . _cLitterSize $ x :: Double
 
 -- | Returns a random condition.
 --   This is useful for generating random response models.
@@ -108,14 +107,6 @@ randomCondition = do
     p <- getRandom
     l <- getRandom
     return $ Condition e p l
-
--- | Wains seek to maximise their happiness, which is a function
---   their current condition.
---   TODO: Should the litter size affect happiness?
-happiness :: Double -> Condition -> Double
-happiness energyHapWeight (Condition e p _)
-  = e*energyHapWeight + (1 - p)*passionHapWeight
-  where passionHapWeight = 1 - energyHapWeight
 
 instance Pretty Condition where
   pretty (Condition e p l)

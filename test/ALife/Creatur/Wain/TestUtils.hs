@@ -25,7 +25,10 @@ module ALife.Creatur.Wain.TestUtils
     prop_diploid_expressable,
     prop_diploid_readable,
     prop_show_read_round_trippable,
-    randomTestPattern
+    prop_makeSimilar_works,
+    randomTestPattern,
+    testPatternDiff,
+    makeTestPatternSimilar
 --    test
   ) where
 
@@ -34,9 +37,10 @@ import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Util (fromEither)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleWord8ToInt,
   forceToWord8)
+import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
 import Control.Applicative ((<$>))
 import Control.Monad.Random (Rand, RandomGen, getRandom)
-import Data.Datamining.Pattern (Pattern(..), Metric, adjustNum)
+import Data.Datamining.Pattern (adjustNum)
 import Data.Serialize (Serialize, encode, decode)
 import Data.Word (Word8)
 import GHC.Generics (Generic)
@@ -85,6 +89,15 @@ prop_diploid_readable a b = property $ seq (c `asTypeOf` a) True
         gb = W8.write b
         (Right c) = W8.runDiploidReader W8.getAndExpress (ga, gb)
 
+prop_makeSimilar_works
+  :: (a -> a -> Double) -> (a -> Double -> a -> a) -> a -> UIDouble -> a
+    -> Property
+prop_makeSimilar_works diff makeSimilar x (UIDouble r) y
+  = property $ diffAfter <= diffBefore
+  where diffBefore = diff x y
+        y' = makeSimilar x r y
+        diffAfter = diff x y'
+
 data TestPattern = TestPattern Word8
   deriving (Show, Eq, Generic)
 
@@ -94,12 +107,14 @@ instance Diploid TestPattern
 
 instance Arbitrary TestPattern where
   arbitrary = TestPattern <$> arbitrary
-
-instance Pattern TestPattern where
-  type Metric TestPattern = Double
-  difference (TestPattern x) (TestPattern y)
-    = abs (fromIntegral x - fromIntegral y) / 255
-  makeSimilar (TestPattern target) r (TestPattern x)
+  
+testPatternDiff :: Fractional a => TestPattern -> TestPattern -> a
+testPatternDiff (TestPattern x) (TestPattern y)
+     = abs (fromIntegral x - fromIntegral y) / 255
+       
+makeTestPatternSimilar
+  :: TestPattern -> Double -> TestPattern -> TestPattern
+makeTestPatternSimilar (TestPattern target) r (TestPattern x)
     = TestPattern (forceToWord8 x'')
     where t' = fromIntegral target :: Double
           x' = fromIntegral x :: Double

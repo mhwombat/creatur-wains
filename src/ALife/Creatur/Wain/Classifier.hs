@@ -17,21 +17,26 @@ module ALife.Creatur.Wain.Classifier
   (
     Label,
     Classifier,
+    buildClassifier,
     classify,
     classifierOK
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label,
+import ALife.Creatur.Wain.GeneticSOM (GeneticSOM,
+  ExponentialParams(..), Thinker(..), Label, buildGeneticSOM,
   reportAndTrain, somOK)
-import Data.Datamining.Pattern (Pattern, Metric)
 
 type Classifier = GeneticSOM
+
+buildClassifier
+  :: (Thinker t, p ~ Pattern t)
+    => ExponentialParams -> t -> [p] -> Classifier p t
+buildClassifier = buildGeneticSOM
 
 -- | Returns @True@ if the SOM has a valid Exponential and at least one
 --   model; returns @False@ otherwise.
 classifierOK
-  :: (Pattern s, Ord (Metric s), Metric s ~ Double)
-    => Classifier s -> Bool
+  :: Classifier s t -> Bool
 classifierOK = somOK
 
 -- | Updates the classifier models based on the stimulus (input).
@@ -40,8 +45,7 @@ classifierOK = somOK
 --   pattern and each model in the classifier, and the updated
 --   classifier (the counter for the closest model is incremented).
 classify
-  :: (Pattern s, Ord (Metric s), Metric s ~ Double)
-    => Classifier s -> s -> ([Metric s], Classifier s)
+  :: Classifier s t -> s -> ([Double], Classifier s t)
 classify c p = (sig, c')
   where (_, diffs, c') = reportAndTrain c p
         sig = map snd diffs

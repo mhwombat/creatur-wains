@@ -16,7 +16,7 @@
 module ALife.Creatur.Wain.BrainQC
   (
     test,
-    equiv
+    equivBrain
   ) where
 
 import ALife.Creatur.Wain.BrainInternal
@@ -28,45 +28,45 @@ import ALife.Creatur.Wain.Response (_outcome)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
-import ALife.Creatur.Wain.UnitIntervalQC ()
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
-instance Arbitrary (Brain TestPattern TestAction) where
+instance Arbitrary (Brain TestPattern C.TestThinker TestAction) where
   arbitrary = do
     c <- arbitrary
     d <- arbitrary
-    return $ Brain c d
+    hs <- arbitrary
+    return $ Brain c d hs
     
-equiv
-  :: Brain TestPattern TestAction -> Brain TestPattern TestAction -> Bool
-equiv b1 b2 = _classifier b1 `C.equiv` _classifier b2
-  && _decider b1 `D.equiv` _decider b2
+equivBrain
+  :: Brain TestPattern C.TestThinker TestAction
+    -> Brain TestPattern C.TestThinker TestAction -> Bool
+equivBrain b1 b2 = _classifier b1 `C.equivClassifier` _classifier b2
+  && _decider b1 `D.equivDecider` _decider b2
 
 prop_reflect_makes_predictions_more_accurate
-  :: Brain TestPattern TestAction -> Scenario -> UIDouble -> Condition
+  :: Brain TestPattern C.TestThinker TestAction -> Scenario -> Condition
     -> Property
-prop_reflect_makes_predictions_more_accurate b s (UIDouble e) cAfter =
+prop_reflect_makes_predictions_more_accurate b s cAfter =
   property $ errAfter <= errBefore
   where a = head . knownActions $ b
         (r, _) = predict b s a
-        (b2, errBefore) = reflect b e r cAfter
-        (_, errAfter) = reflect b2 e r cAfter
+        (b2, errBefore) = reflect b r cAfter
+        (_, errAfter) = reflect b2 r cAfter
 
 prop_reflect_error_in_range
-  :: Brain TestPattern TestAction -> Scenario -> UIDouble -> Condition
+  :: Brain TestPattern C.TestThinker TestAction -> Scenario -> Condition
     -> Property
-prop_reflect_error_in_range b s (UIDouble e) cAfter
+prop_reflect_error_in_range b s cAfter
   = property $ -2 <= x && x <= 2
   where a = head . knownActions $ b
         (r, _) = predict b s a
-        (_, x) = reflect b e r cAfter
+        (_, x) = reflect b r cAfter
 
 prop_imprint_works
-  :: Brain TestPattern TestAction -> TestPattern -> TestPattern
-    -> TestAction -> Condition -> Property
+  :: Brain TestPattern C.TestThinker TestAction -> TestPattern
+    -> TestPattern -> TestAction -> Condition -> Property
 prop_imprint_works b p1 p2 a c
   = a `elem` (knownActions b) ==> x' >= x
   where b' = imprint b p1 p2 a c
@@ -81,21 +81,21 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
   [
     testProperty "prop_serialize_round_trippable - Brain"
       (prop_serialize_round_trippable
-        :: Brain TestPattern TestAction -> Property),
+        :: Brain TestPattern C.TestThinker TestAction -> Property),
     testProperty "prop_genetic_round_trippable - Brain"
-      (prop_genetic_round_trippable equiv
-        :: Brain TestPattern TestAction -> Property),
+      (prop_genetic_round_trippable equivBrain
+        :: Brain TestPattern C.TestThinker TestAction -> Property),
     testProperty "prop_diploid_identity - Brain"
-      (prop_diploid_identity equiv
-        :: Brain TestPattern TestAction -> Property),
+      (prop_diploid_identity equivBrain
+        :: Brain TestPattern C.TestThinker TestAction -> Property),
     testProperty "prop_diploid_expressable - Brain"
       (prop_diploid_expressable
-        :: Brain TestPattern TestAction -> Brain TestPattern TestAction
-          -> Property),
+        :: Brain TestPattern C.TestThinker TestAction
+          -> Brain TestPattern C.TestThinker TestAction -> Property),
     testProperty "prop_diploid_readable - Brain"
       (prop_diploid_readable
-        :: Brain TestPattern TestAction -> Brain TestPattern TestAction
-          -> Property),
+        :: Brain TestPattern C.TestThinker TestAction
+          -> Brain TestPattern C.TestThinker TestAction -> Property),
     testProperty "prop_reflect_makes_predictions_more_accurate"
       prop_reflect_makes_predictions_more_accurate,
     testProperty "prop_reflect_error_in_range"

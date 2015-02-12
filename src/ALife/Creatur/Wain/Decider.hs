@@ -10,28 +10,56 @@
 -- A decision-maker based on a Kohonen Self-organising Map (SOM).
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 module ALife.Creatur.Wain.Decider
   (
     Label,
     Decider,
+    DeciderThinker(..),
+    buildDecider,
     predict,
     knownActions,
     imprint,
     deciderOK
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Label, justClassify,
-  models, modelAt, somOK, reportAndTrain)
+import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
+import ALife.Creatur.Genetics.Diploid (Diploid)
+import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, ExponentialParams(..),
+  Label, Thinker(..), buildGeneticSOM, justClassify, models, modelAt,
+  somOK, reportAndTrain, teacher)
 import ALife.Creatur.Wain.Response (Response(..), outcome,
-  similarityIgnoringOutcome, setOutcome)
+  diffIgnoringOutcome, similarityIgnoringOutcome, setOutcome,
+  makeResponseSimilar)
 import ALife.Creatur.Wain.Scenario (Scenario)
+import ALife.Creatur.Wain.Weights (Weights)
 import Control.Lens
 import Data.List (nub)
 import Data.Maybe (fromJust, isJust)
+import Data.Serialize (Serialize)
+import GHC.Generics (Generic)
 
-type Decider a = GeneticSOM (Response a)
+data DeciderThinker a = DeciderThinker Weights Weights Weights
+  deriving (Eq, Show, Generic)
+
+instance (Eq a) => Thinker (DeciderThinker a) where
+  type Pattern (DeciderThinker a) = Response a
+  diff (DeciderThinker cw sw rw) = diffIgnoringOutcome cw sw rw
+  adjust _ = makeResponseSimilar
+
+instance Serialize (DeciderThinker a)
+instance Genetic (DeciderThinker a)
+instance Diploid (DeciderThinker a)
+
+type Decider a = GeneticSOM (Response a) (DeciderThinker a)
+
+buildDecider
+  :: Eq a
+    => ExponentialParams -> Weights -> Weights -> Weights -> [Response a]
+      -> Decider a
+buildDecider e cw sw rw = buildGeneticSOM e (DeciderThinker cw sw rw)
 
 -- | Predicts the outcome of a response based on the decider models,
 --   and updates the outcome field in that response.
@@ -41,8 +69,9 @@ predict d s a = (r3, k)
         k = justClassify d r
         model = d `modelAt` k
         rawOutcome = fromJust . _outcome $ model
+        (DeciderThinker cw sw rw)  = view teacher d
         adjustedOutcome
-          = Just $ similarityIgnoringOutcome model r * rawOutcome
+          = Just $ similarityIgnoringOutcome cw sw rw model r * rawOutcome
         r3 = set outcome adjustedOutcome r
 
 -- | Teaches a response to the decider.

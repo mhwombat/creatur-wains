@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           7.1.0
+Version:           7.2.0
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      7.1.0
+  tag:      7.2.0
 
 library
   GHC-Options:      -Wall -Werror
@@ -50,7 +50,9 @@ library
                     ALife.Creatur.Wain.Scenario,
                     ALife.Creatur.Wain.Statistics,
                     ALife.Creatur.Wain.UnitInterval,
-                    ALife.Creatur.Wain.Util
+                    ALife.Creatur.Wain.Util,
+                    ALife.Creatur.Wain.Weights,
+                    ALife.Creatur.Wain.WeightsInternal
   Other-modules:    Paths_creatur_wains
   Build-Depends:
                     base ==4.*,
@@ -65,7 +67,7 @@ library
                     MonadRandom ==0.3.*,
                     mtl ==2.2.*,
                     random ==1.1.*,
-                    som ==7.5.*,
+                    som ==8.0.*,
                     transformers ==0.4.*
 
 Test-suite wain-tests
@@ -83,7 +85,7 @@ Test-suite wain-tests
                     lens ==4.7.*,
                     random ==1.1.*,
                     MonadRandom ==0.3.*,
-                    som ==7.5.*,
+                    som ==8.0.*,
                     transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
@@ -101,7 +103,7 @@ Executable wain-benchmark
                     lens ==4.7.*,
                     random ==1.1.*,
                     MonadRandom ==0.3.*,
-                    som ==7.5.*,
+                    som ==8.0.*,
                     temporary ==1.2.*,
                     time ==1.4.* || ==1.5.*,
                     transformers ==0.4.*,

@@ -10,29 +10,66 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.DeciderQC
   (
     test,
-    equiv
+    equivThinker,
+    equivDecider
   ) where
 
 import ALife.Creatur.Wain.Decider
-import ALife.Creatur.Wain.GeneticSOM (reportAndTrain)
-import ALife.Creatur.Wain.GeneticSOMQC (equiv)
+import ALife.Creatur.Wain.GeneticSOM (reportAndTrain, buildGeneticSOM)
+import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM)
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
 import ALife.Creatur.Wain.UnitIntervalQC ()
+import ALife.Creatur.Wain.WeightsQC (equivWeights)
+import Control.Applicative
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
+-- data TestThinker = TestThinker deriving (Eq, Show, Generic)
+
+-- instance Thinker TestThinker where
+--   type Pattern TestThinker = TestAction
+--   diff TestThinker a b = if a == b then 1 else 0
+--   adjust _ target r b = b
+
+-- instance Serialize TestThinker
+-- instance Diploid TestThinker
+
+type TestThinker = DeciderThinker TestAction
+
+instance Arbitrary TestThinker where
+  arbitrary
+    = DeciderThinker <$> arbitrary <*> arbitrary <*> arbitrary
+
+equivThinker :: TestThinker -> TestThinker -> Bool
+equivThinker (DeciderThinker as bs cs) (DeciderThinker xs ys zs) =
+  equivWeights as xs && equivWeights bs ys && equivWeights cs zs
+
 type TestDecider = Decider TestAction
+
+sizedArbTestDecider :: Int -> Gen TestDecider
+sizedArbTestDecider n = do
+  e <- arbitrary
+  xs <- vectorOf (n+1) arbitrary
+  t <- arbitrary
+  return $ buildGeneticSOM e t xs
+
+instance Arbitrary TestDecider where
+  arbitrary = sized sizedArbTestDecider
+
+equivDecider :: TestDecider -> TestDecider -> Bool
+equivDecider = equivGSOM (==) equivThinker
 
 prop_training_makes_predictions_more_accurate
   :: TestDecider -> Scenario -> TestAction -> Double -> Property
@@ -54,7 +91,7 @@ prop_prediction_error_in_range d s a (UIDouble o) =
         e = abs (o - prediction)
 
 prop_imprint_works
-  :: Decider TestAction -> Scenario -> TestAction -> Property
+  :: TestDecider -> Scenario -> TestAction -> Property
 prop_imprint_works d s a
   = a `elem` (knownActions d) ==> x' >= x
   where d' = imprint d s a
@@ -66,12 +103,22 @@ prop_imprint_works d s a
 test :: Test
 test = testGroup "ALife.Creatur.Wain.DeciderQC"
   [
+    testProperty "prop_serialize_round_trippable - Thinker"
+      (prop_serialize_round_trippable :: TestThinker -> Property),
+    testProperty "prop_genetic_round_trippable - Thinker"
+      (prop_genetic_round_trippable equivThinker :: TestThinker -> Property),
+    testProperty "prop_diploid_identity - Thinker"
+      (prop_diploid_identity (==) :: TestThinker -> Property),
+    testProperty "prop_diploid_expressable - Thinker"
+      (prop_diploid_expressable :: TestThinker -> TestThinker -> Property),
+    testProperty "prop_diploid_readable - Thinker"
+      (prop_diploid_readable :: TestThinker -> TestThinker -> Property),
     testProperty "prop_serialize_round_trippable - Decider"
       (prop_serialize_round_trippable :: TestDecider -> Property),
     testProperty "prop_genetic_round_trippable - Decider"
-      (prop_genetic_round_trippable equiv :: TestDecider -> Property),
+      (prop_genetic_round_trippable equivDecider :: TestDecider -> Property),
     testProperty "prop_diploid_identity - Decider"
-      (prop_diploid_identity equiv :: TestDecider -> Property),
+      (prop_diploid_identity (==) :: TestDecider -> Property),
     testProperty "prop_diploid_expressable - Decider"
       (prop_diploid_expressable :: TestDecider -> TestDecider -> Property),
     testProperty "prop_diploid_readable - Decider"

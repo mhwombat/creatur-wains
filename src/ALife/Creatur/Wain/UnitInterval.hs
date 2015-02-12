@@ -18,15 +18,19 @@ module ALife.Creatur.Wain.UnitInterval
   (
     UIDouble(..),
     uiToDouble,
-    doubleToUI
+    doubleToUI,
+    uiDiff,
+    makeUISimilar,
+    uiVectorDiff,
+    makeUIVectorsSimilar,
+    vectorDiff
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Util (unitInterval, enforceRange,
   scaleToWord8, scaleFromWord8)
-import Data.Datamining.Pattern (Pattern(..), Metric, adjustNum,
-  adjustVector)
+import Data.Datamining.Pattern (adjustNum, adjustVector)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 import System.Random (Random(..), randomR)
@@ -66,22 +70,41 @@ instance W8.Genetic UIDouble where
 instance Serialize UIDouble
 instance Diploid UIDouble
 
-instance Pattern UIDouble where
-  type Metric UIDouble = UIDouble
-  difference a b = abs $ (-) a b
-  makeSimilar = adjustNum
+-- instance Pattern UIDouble where
+--   type Metric UIDouble = UIDouble
+--   difference a b = abs $ (-) a b
+--   makeSimilar = adjustNum
+
+uiDiff :: UIDouble -> UIDouble -> Double
+uiDiff (UIDouble a) (UIDouble b) = abs (a - b)
+
+makeUISimilar :: UIDouble -> Double -> UIDouble -> UIDouble
+makeUISimilar (UIDouble target) r (UIDouble x)
+  = UIDouble $ adjustNum target r x
 
 instance Random UIDouble where
   randomR (UIDouble a, UIDouble b) g = (UIDouble x, g')
     where (x, g') = randomR (a,b) g
   random = randomR (0,1)
-  
-instance Pattern [UIDouble] where
-  type Metric [UIDouble] = UIDouble
-  difference xs ys
-    | null xs && null ys = 0
-    | null xs || null ys = 1
-    | otherwise         = d / fromIntegral (length deltas)
-    where deltas = zipWith (-) xs ys
-          d = sum $ map (\z -> z*z) deltas
-  makeSimilar = adjustVector
+
+uiVectorDiff :: [UIDouble] -> [UIDouble] -> Double
+uiVectorDiff xs ys
+  | null xs && null ys = 0
+  | null xs || null ys = 1
+  | otherwise         = vectorDiff xs' ys'
+  where xs' = map uiToDouble xs
+        ys' = map uiToDouble ys
+
+makeUIVectorsSimilar :: [UIDouble] -> Double -> [UIDouble] -> [UIDouble]
+makeUIVectorsSimilar xs r ys = map UIDouble $ adjustVector xs' r ys'
+  where xs' = map uiToDouble xs
+        ys' = map uiToDouble ys
+
+-- We're scaling the euclidean distance by the length of the vector
+vectorDiff :: Fractional a => [a] -> [a] -> a
+vectorDiff xs ys
+  | null xs && null ys = 0
+  | null xs || null ys = 1
+  | otherwise         = d / fromIntegral (length deltas)
+  where deltas = zipWith (-) xs ys
+        d = sum $ map (\x -> x*x) deltas

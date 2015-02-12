@@ -12,12 +12,16 @@
 ------------------------------------------------------------------------
 module ALife.Creatur.Wain.GeneticSOM
   (
+    ExponentialParams(..),
     GeneticSOM,
     Label,
-    r0Range,
-    dRange,
+    Thinker(..),
     patternMap,
     counterMap,
+    exponentialParams,
+    teacher,
+    r0Range,
+    dRange,
     buildGeneticSOM,
     numModels,
     models,
@@ -30,7 +34,6 @@ module ALife.Creatur.Wain.GeneticSOM
     randomExponentialParams,
     randomExponential,
     somOK,
-    learningFunction,
     currentLearningRate,
     schemaQuality
   ) where

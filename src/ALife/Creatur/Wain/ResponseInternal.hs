@@ -21,13 +21,14 @@ module ALife.Creatur.Wain.ResponseInternal where
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, Reader, put, get)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.Scenario (Scenario, randomScenario)
+import ALife.Creatur.Wain.Scenario (Scenario, randomScenario,
+  scenarioDiff, makeScenarioSimilar)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleToWord8)
+import ALife.Creatur.Wain.Weights (Weights, toDoubles)
 import Control.Applicative ((<$>), (<*>))
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
-import Data.Datamining.Pattern (Pattern, Metric, difference,
-  makeSimilar)
+import Data.Datamining.Pattern (adjustNum)
 import Data.Maybe (fromMaybe)
 import Data.Serialize (Serialize)
 import Data.Word (Word8)
@@ -37,16 +38,6 @@ import Text.Printf (printf)
 
 outcomeInterval :: (Double, Double)
 outcomeInterval = (-1.0,1.0)
-
--- Weights to use when comparing possible courses of action.
--- The values should add up to one.
--- TODO: Make genetic
-deciderWeights :: [Double]
-deciderWeights =
-  [
-    0.3, -- scenario
-    0.1  -- result
-  ]
 
 -- | A model of a situation that a wain might encounter.
 data Response a = Response
@@ -64,35 +55,7 @@ data Response a = Response
 makeLenses ''Response
 
 instance (Serialize a) => Serialize (Response a)
-
-instance (Eq a) => Pattern (Response a) where
-  type Metric (Response a) = Double
-  difference x y =
-    if _action x == _action y
-      then sum (zipWith (*) deciderWeights ds) / 2
-      else 1.0
-    where ds = [sDiff, rDiff]
-          sDiff = difference (_scenario x) (_scenario y)
-          rDiff = diffOutcome (fromMaybe 0 . _outcome $ x)
-                    (fromMaybe 0 . _outcome $ y)
-  makeSimilar target r x =
-    if _action target == _action x
-       then Response s a o
-       else x
-    where s = makeSimilar (_scenario target) r (_scenario x)
-          a = _action x
-          o = Just $ makeSimilar (fromMaybe 0.0 . _outcome $ target) r
-                (fromMaybe 0.0 . _outcome $ x)
-
-diffOutcome :: Double -> Double -> Double
-diffOutcome a b = abs (a-b) / 2
-  -- a and b are in the interval [-1,1]. We want the difference to be
-  -- in the interval [0,1]
-
-similarityIgnoringOutcome :: Eq a => Response a -> Response a -> Double
-similarityIgnoringOutcome x y = 1 - difference x' y'
-  where x' = set outcome Nothing x
-        y' = set outcome Nothing y
+instance (Diploid a) => Diploid (Response a)
 
 -- | The initial sequences stored at birth are genetically determined.
 instance (Genetic a) => Genetic (Response a) where
@@ -104,13 +67,54 @@ instance (Genetic a) => Genetic (Response a) where
     o <- get :: Reader (Either [String] (Maybe Word8))
     return $ Response <$> s <*> a <*> fmap (fmap $ scaleFromWord8 outcomeInterval) o
 
-instance (Diploid a) => Diploid (Response a)
-
 instance (Show a) => Pretty (Response a) where
   pretty (Response s a o)
     = pretty s ++ '|':show a ++ '|':format o
     where format (Just x) = printf "%.3f" x
           format _ = "ø"
+
+responseDiff
+  :: Eq a
+    => Weights -> Weights -> Weights -> Response a -> Response a -> Double
+responseDiff cw sw rw x y =
+    if _action x == _action y
+      then sum (zipWith (*) ws ds) / 2
+      else 1.0
+    where ds = [sDiff, rDiff]
+          sDiff = scenarioDiff cw sw (_scenario x) (_scenario y)
+          rDiff = outcomeDiff (fromMaybe 0 . _outcome $ x)
+                    (fromMaybe 0 . _outcome $ y)
+          ws = toDoubles rw
+
+diffIgnoringOutcome
+  :: Eq a
+    => Weights -> Weights -> Weights -> Response a -> Response a -> Double
+diffIgnoringOutcome cw sw rw x y = responseDiff cw sw rw x' y'
+  where x' = set outcome Nothing x
+        y' = set outcome Nothing y
+
+makeResponseSimilar
+  :: Eq a
+    => Response a -> Double -> Response a -> Response a
+makeResponseSimilar target r x =
+    if _action target == _action x
+       then Response s a o
+       else x
+    where s = makeScenarioSimilar (_scenario target) r (_scenario x)
+          a = _action x
+          o = Just $ adjustNum (fromMaybe 0.0 . _outcome $ target) r
+                (fromMaybe 0.0 . _outcome $ x)
+
+outcomeDiff :: Double -> Double -> Double
+outcomeDiff a b = abs (a-b) / 2
+  -- a and b are in the interval [-1,1]. We want the difference to be
+  -- in the interval [0,1]
+
+similarityIgnoringOutcome
+  :: Eq a
+    => Weights -> Weights -> Weights -> Response a -> Response a -> Double
+similarityIgnoringOutcome cw sw rw x y
+  = 1 - diffIgnoringOutcome cw sw rw x y
 
 -- | Returns a random response model for a decider that operates with a
 --   classifier containing the specified number of models.

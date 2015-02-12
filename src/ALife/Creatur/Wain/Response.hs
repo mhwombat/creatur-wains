@@ -21,7 +21,10 @@ module ALife.Creatur.Wain.Response
     copyOutcomeTo,
     setOutcome,
     randomResponse,
-    similarityIgnoringOutcome
+    responseDiff,
+    diffIgnoringOutcome,
+    similarityIgnoringOutcome,
+    makeResponseSimilar
   ) where
 
 import ALife.Creatur.Wain.ResponseInternal
