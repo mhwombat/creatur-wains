@@ -251,6 +251,7 @@ buildGeneticSOM e@(ExponentialParams r0 d) t xs
 instance Statistical (GeneticSOM p t) where
   stats s =
     (iStat "num models" . numModels $ s)
+      :(iStat "SQ" . schemaQuality $ s)
       :(stats . _exponentialParams $ s)
 
 -- | Adjusts the model at the index (grid location) specified.
