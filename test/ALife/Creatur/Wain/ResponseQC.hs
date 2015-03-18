@@ -38,7 +38,7 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
 data TestAction = Walk | Run | Jump | Skip | Crawl
-  deriving (Show, Eq, Generic, Enum, Bounded)
+  deriving (Show, Eq, Ord, Generic, Enum, Bounded)
 
 instance Serialize TestAction
 instance Genetic TestAction

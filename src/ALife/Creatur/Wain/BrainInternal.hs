@@ -29,7 +29,7 @@ import qualified ALife.Creatur.Wain.Condition as Cd
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix,
-  uiStat)
+  iStat, uiStat)
 import ALife.Creatur.Wain.Weights (Weights, weightAt)
 import Control.Applicative ((<$>), (<*>))
 import Control.Lens
@@ -62,13 +62,14 @@ instance (Diploid p, Diploid t, Diploid a, Eq a, GSOM.Thinker t,
   p ~ GSOM.Pattern t)
     => Diploid (Brain p t a)
 
-instance (Eq a)
+instance (Eq a, Ord a)
       => Statistical (Brain p t a) where
   stats (Brain c d hw) = map (prefix "classifier ") (stats c)
     ++ map (prefix "decider ") (stats d)
-    ++ [ uiStat "energyWeight" $ hw `weightAt` 0,
-         uiStat "energyWeight" $ hw `weightAt` 1,
-         uiStat "energyWeight" $ hw `weightAt` 2]
+    ++ [ iStat "DQ" $ D.deciderQuality d,
+         uiStat "energyWeight" $ hw `weightAt` 0,
+         uiStat "passionWeight" $ hw `weightAt` 1,
+         uiStat "litterSizeWeight" $ hw `weightAt` 2]
 
 instance (Show p, Show a, Show t, Eq a)
       => Show (Brain p t a) where

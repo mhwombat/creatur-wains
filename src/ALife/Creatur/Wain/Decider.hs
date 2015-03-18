@@ -22,21 +22,24 @@ module ALife.Creatur.Wain.Decider
     predict,
     knownActions,
     imprint,
-    deciderOK
+    deciderOK,
+    deciderQuality
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, ExponentialParams(..),
   Label, Thinker(..), buildGeneticSOM, justClassify, models, modelAt,
-  somOK, reportAndTrain, teacher)
+  somOK, reportAndTrain, teacher, discrimination, counterMap)
 import ALife.Creatur.Wain.Response (Response(..), outcome,
   diffIgnoringOutcome, similarityIgnoringOutcome, setOutcome,
-  makeResponseSimilar)
+  makeResponseSimilar, action)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.Weights (Weights)
 import Control.Lens
-import Data.List (nub)
+import Data.Function (on)
+import Data.List (nub, groupBy, sortBy)
+import qualified Data.Map.Strict as M
 import Data.Maybe (fromJust, isJust)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
@@ -96,3 +99,12 @@ deciderOK d = somOK d && all modelOK (models d)
 
 modelOK :: Response a -> Bool
 modelOK = isJust . _outcome
+
+deciderQuality :: (Eq a, Ord a) => Decider a -> Int
+deciderQuality d = discrimination actionCounts
+  where modelCounts = M.elems . view counterMap $ d
+        actions = map (view action) $ models d
+        actionCounts = map (sum . map snd)
+                         . groupBy ((==) `on` fst)
+                         . sortBy (compare `on` fst)
+                           $ zip actions modelCounts

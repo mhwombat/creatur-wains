@@ -155,7 +155,7 @@ instance Record (Wain p t a) where
 instance SizedRecord (Wain p t a) where
   size = view wainSize
 
-instance (Eq a) =>
+instance (Eq a, Ord a) =>
   Statistical (Wain p t a) where
   stats w =
     iStat "age" (_age w)
