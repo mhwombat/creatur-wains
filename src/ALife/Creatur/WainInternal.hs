@@ -334,7 +334,8 @@ adjustEnergy1
   :: Double -> Wain p t a -> (Wain p t a, Double, Double)
 adjustEnergy1 delta w = (wAfter, delta', leftover)
   where eBefore = _energy w
-        eAfter = max 0 . min 1 $ _energy w + delta
+        -- eAfter = max 0 . min 1 $ _energy w + delta
+        eAfter = min 1 $ _energy w + delta
         wAfter = set energy eAfter w
         delta' = eAfter - eBefore
         leftover = delta - delta'
