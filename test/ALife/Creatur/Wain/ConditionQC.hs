@@ -20,7 +20,7 @@ import ALife.Creatur.Wain.Condition
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
 import ALife.Creatur.Wain.Util (unitInterval)
-import ALife.Creatur.Wain.Weights (Weights)
+import ALife.Creatur.Wain.Weights (Weights, makeWeights)
 import ALife.Creatur.Wain.WeightsQC ()
 import ALife.Creatur.Wain.TestUtils
 import Control.Applicative
@@ -32,14 +32,15 @@ instance Arbitrary Condition where
   arbitrary = Condition <$> arb8BitDouble unitInterval
                 <*> arb8BitDouble unitInterval <*> arbitrary
 
--- prop_happiness_can_be_1 :: Weights -> Property
--- prop_happiness_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8
---   where x = happiness w (Condition 1 1 1)
---         ws = toDoubles w
+prop_happiness_can_be_1 :: Bool
+prop_happiness_can_be_1 = abs (x - 1) < 1e-8
+  where x = happiness w (Condition 1 0 1)
+        w = makeWeights [1, 1, 1]
 
-prop_happiness_can_be_0 :: Weights -> Property
-prop_happiness_can_be_0 w = property $ abs (x - 0) < 1e-8
+prop_happiness_can_be_0 :: Bool
+prop_happiness_can_be_0 = abs (x - 0) < 1e-8
   where x = happiness w (Condition 0 1 0)
+        w = makeWeights [1, 1, 1]
 
 prop_happiness_in_range :: Weights -> Condition -> Property
 prop_happiness_in_range w c = property $ 0 <= x && x <= 1
@@ -77,7 +78,7 @@ test = testGroup "ALife.Creatur.Wain.ConditionQC"
       (prop_diploid_expressable :: Condition -> Condition -> Property),
     testProperty "prop_diploid_readable - Condition"
       (prop_diploid_readable :: Condition -> Condition -> Property),
-    -- testProperty "prop_happiness_can_be_1" prop_happiness_can_be_1,
+    testProperty "prop_happiness_can_be_1" prop_happiness_can_be_1,
     testProperty "prop_happiness_can_be_0" prop_happiness_can_be_0,
     testProperty "prop_happiness_in_range" prop_happiness_in_range,
     -- testProperty "prop_conditionDiff_can_be_1"
