@@ -77,7 +77,7 @@ instance Diploid Condition
 happiness :: Weights -> Condition -> Double
 happiness w (Condition e p l)
   = sum (zipWith (*) ws ds)
-  where ds = [e, p, l']
+  where ds = [e, 1-p, l']
         l' = if l > 0 then 1 else 0
         ws = toDoubles w
 
