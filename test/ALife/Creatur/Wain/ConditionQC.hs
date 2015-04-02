@@ -39,7 +39,7 @@ instance Arbitrary Condition where
 
 prop_happiness_can_be_0 :: Weights -> Property
 prop_happiness_can_be_0 w = property $ abs (x - 0) < 1e-8
-  where x = happiness w (Condition 0 0 0)
+  where x = happiness w (Condition 0 1 0)
 
 prop_happiness_in_range :: Weights -> Condition -> Property
 prop_happiness_in_range w c = property $ 0 <= x && x <= 1
