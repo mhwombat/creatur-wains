@@ -33,7 +33,6 @@ import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Util (unitInterval, scaleFromWord8,
   scaleToWord8, doubleTo8BitHex)
 import ALife.Creatur.Wain.Weights (Weights, toDoubles)
-import Control.Applicative ((<$>), (<*>))
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (adjustNum)

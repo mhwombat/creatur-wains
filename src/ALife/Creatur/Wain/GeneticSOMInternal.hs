@@ -27,7 +27,6 @@ import ALife.Creatur.Wain.Statistics (Statistical, iStat, uiStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
 import ALife.Creatur.Wain.Util (intersection)
-import Control.Applicative ((<$>), (<*>))
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import qualified Data.Datamining.Clustering.Classifier as C

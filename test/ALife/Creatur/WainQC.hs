@@ -26,7 +26,6 @@ import ALife.Creatur.Wain.ClassifierQC (TestThinker)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
-import Control.Applicative ((<$>), (<*>), pure)
 import Control.Lens
 -- import Control.Monad.Random (evalRand)
 -- import System.Random (mkStdGen)

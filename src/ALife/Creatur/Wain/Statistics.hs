@@ -33,7 +33,6 @@ import ALife.Creatur.Wain.Raw (Raw, raw)
 -- import Data.Datamining.Clustering.SSOM (Exponential(..))
 import Data.List (transpose)
 import Data.Serialize (Serialize)
-import Factory.Math.Statistics (getMean, getStandardDeviation)
 import GHC.Generics
 import Text.Printf (printf)
 
@@ -99,8 +98,8 @@ summarise xss = [maxima,minima,averages,stdDevs,sums]
   where yss = transpose xss
         maxima   = compile "max. " maximum yss
         minima   = compile "min. " minimum yss
-        averages = compile "avg. " getMean $ map (map toDStat) yss
-        stdDevs  = compile "std. dev. " getStandardDeviation $
+        averages = compile "avg. " mean $ map (map toDStat) yss
+        stdDevs  = compile "std. dev. " popStdDev $
                      map (map toDStat) yss
         sums     = compile "total " sum yss
 -- summarise xss = [h,maxima,minima,averages,stdDevs,sums]
@@ -108,9 +107,9 @@ summarise xss = [maxima,minima,averages,stdDevs,sums]
 --         yss = transpose xss
 --         maxima = "max," ++ (toCSV $ applyToColumns maximum yss)
 --         minima = "min," ++ (toCSV $ applyToColumns minimum yss)
---         averages = "avg," ++ (toCSV $ applyToColumns getMean yss)
+--         averages = "avg," ++ (toCSV $ applyToColumns mean yss)
 --         stdDevs = "std. dev,"
---                     ++ (toCSV $ applyToColumns getStandardDeviation yss)
+--                     ++ (toCSV $ applyToColumns popStdDev yss)
 --         sums = "total," ++ (toCSV $ applyToColumns sum yss)
 
 compile :: String -> ([Double] -> Double) -> [[Statistic]] -> [Statistic]
@@ -143,3 +142,21 @@ lookup _ [] = Nothing
 lookup key (x:xs) = if key == sName x
                       then Just (sVal x)
                       else lookup key xs
+
+mean :: (Eq a, Fractional a, Foldable t) => t a -> a
+mean xs
+  | count == 0 = error "no data"
+  | otherwise = total / count
+  where (total, count) = foldr f (0, 0) xs
+        f x (y, n) = (y+x, n+1)
+
+popVariance :: (Eq a, Fractional a, Foldable t) => t a -> a
+popVariance xs
+  | count == 0 = error "no data"
+  | otherwise = total / count
+  where (total, count) = foldr f (0, 0) xs
+        f x (y, n) = (y + (x - mu)*(x - mu), n+1)
+        mu = mean xs
+
+popStdDev :: (Eq a, Fractional a, Floating a, Foldable t) => t a -> a
+popStdDev = sqrt . popVariance

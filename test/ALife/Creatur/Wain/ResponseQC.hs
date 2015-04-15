@@ -29,7 +29,6 @@ import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
 import ALife.Creatur.Wain.Util (intersection)
 import ALife.Creatur.Wain.Weights (Weights)
-import Control.Applicative
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 import System.Random (Random, random, randomR)

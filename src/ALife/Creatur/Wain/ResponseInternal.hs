@@ -25,7 +25,6 @@ import ALife.Creatur.Wain.Scenario (Scenario, randomScenario,
   scenarioDiff, makeScenarioSimilar)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleToWord8)
 import ALife.Creatur.Wain.Weights (Weights, toDoubles)
-import Control.Applicative ((<$>), (<*>))
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
 import Data.Datamining.Pattern (adjustNum)

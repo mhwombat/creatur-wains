@@ -23,7 +23,6 @@ import ALife.Creatur.Wain.Util (unitInterval)
 import ALife.Creatur.Wain.Weights (Weights, makeWeights)
 import ALife.Creatur.Wain.WeightsQC ()
 import ALife.Creatur.Wain.TestUtils
-import Control.Applicative
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck

@@ -22,7 +22,6 @@ import ALife.Creatur.Wain.UnitInterval
 import ALife.Creatur.Wain.Util (unitInterval)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity)
-import Control.Applicative ((<$>))
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck

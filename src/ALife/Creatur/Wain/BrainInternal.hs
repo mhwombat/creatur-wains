@@ -31,7 +31,6 @@ import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix,
   iStat, uiStat)
 import ALife.Creatur.Wain.Weights (Weights, weightAt)
-import Control.Applicative ((<$>), (<*>))
 import Control.Lens
 import Data.List (maximumBy)
 import Data.Maybe (fromMaybe, fromJust)

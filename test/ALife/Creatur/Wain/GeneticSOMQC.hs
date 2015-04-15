@@ -30,7 +30,6 @@ import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.GeneticSOMInternal
 import ALife.Creatur.Wain.TestUtils
 import Control.Lens
-import Control.Applicative
 import Control.Monad.Random (evalRand, runRand)
 import Data.Datamining.Clustering.SSOM (SSOM, counter, toMap)
 import qualified Data.Map.Strict as M

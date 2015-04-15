@@ -38,7 +38,6 @@ import ALife.Creatur.Util (fromEither)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleWord8ToInt,
   forceToWord8)
 import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
-import Control.Applicative ((<$>))
 import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (adjustNum)
 import Data.Serialize (Serialize, encode, decode)

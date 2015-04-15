@@ -35,7 +35,6 @@ import ALife.Creatur.Wain.UnitInterval (vectorDiff)
 import ALife.Creatur.Wain.Weights (Weights, toDoubles)
 import ALife.Creatur.Wain.Util (forceIntToWord8, word8ToInt,
   scaleToWord8, scaleFromWord8, unitInterval, doublesTo8BitHex)
-import Control.Applicative
 import Control.Lens
 import Control.Monad (replicateM)
 import Control.Monad.Random (Rand, RandomGen, getRandom)

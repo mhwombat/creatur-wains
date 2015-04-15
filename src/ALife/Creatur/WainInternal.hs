@@ -36,7 +36,6 @@ import qualified ALife.Creatur.Wain.Response as R
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.Util (scaleToWord8, scaleFromWord8,
   unitInterval, enforceRange)
-import Control.Applicative ((<$>), (<*>), pure)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen)
 import qualified Data.ByteString as BS
