@@ -12,6 +12,7 @@
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE CPP #-}
 module ALife.Creatur.Wain.ResponseQC
   (
     test,
@@ -36,6 +37,11 @@ import System.Random (Random, random, randomR)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
+
+#if MIN_VERSION_base(4,8,0)
+#else
+import Control.Applicative
+#endif
 
 data TestAction = Walk | Run | Jump | Skip | Crawl
   deriving (Show, Eq, Ord, Generic, Enum, Bounded)

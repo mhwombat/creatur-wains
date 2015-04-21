@@ -13,6 +13,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.TestUtils
   (
@@ -44,6 +45,11 @@ import Data.Serialize (Serialize, encode, decode)
 import Data.Word (Word8)
 import GHC.Generics (Generic)
 import Test.QuickCheck
+
+#if MIN_VERSION_base(4,8,0)
+#else
+import Control.Applicative
+#endif
 
 -- instance (Floating a, Fractional a, Ord a, Eq a) => Pattern [a] where
 --   type Metric [a] = a

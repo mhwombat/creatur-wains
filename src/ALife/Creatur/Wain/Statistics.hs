@@ -143,14 +143,16 @@ lookup key (x:xs) = if key == sName x
                       then Just (sVal x)
                       else lookup key xs
 
-mean :: (Eq a, Fractional a, Foldable t) => t a -> a
+-- mean :: (Eq a, Fractional a, Foldable t) => t a -> a
+mean :: (Fractional a, Eq a) => [a] -> a
 mean xs
   | count == 0 = error "no data"
   | otherwise = total / count
   where (total, count) = foldr f (0, 0) xs
         f x (y, n) = (y+x, n+1)
 
-popVariance :: (Eq a, Fractional a, Foldable t) => t a -> a
+-- popVariance :: (Eq a, Fractional a, Foldable t) => t a -> a
+popVariance :: (Fractional a, Eq a) => [a] -> a
 popVariance xs
   | count == 0 = error "no data"
   | otherwise = total / count
@@ -158,5 +160,6 @@ popVariance xs
         f x (y, n) = (y + (x - mu)*(x - mu), n+1)
         mu = mean xs
 
-popStdDev :: (Eq a, Fractional a, Floating a, Foldable t) => t a -> a
+-- popStdDev :: (Eq a, Fractional a, Floating a, Foldable t) => t a -> a
+popStdDev :: [Double] -> Double
 popStdDev = sqrt . popVariance

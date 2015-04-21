@@ -17,6 +17,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
 module ALife.Creatur.Wain.BrainInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -37,6 +38,11 @@ import Data.Maybe (fromMaybe, fromJust)
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
+
+#if MIN_VERSION_base(4,8,0)
+#else
+import Control.Applicative
+#endif
 
 data Brain p t a = Brain
   {

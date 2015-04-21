@@ -10,6 +10,7 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.UnitIntervalQC
   (
@@ -25,6 +26,11 @@ import ALife.Creatur.Wain.Util (unitInterval)
 -- import Test.Framework (Test, testGroup)
 -- import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
+
+#if MIN_VERSION_base(4,8,0)
+#else
+import Control.Applicative
+#endif
 
 instance Arbitrary UIDouble where
   arbitrary = doubleToUI <$> choose unitInterval

@@ -15,6 +15,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE CPP #-}
 module ALife.Creatur.WainInternal where
 
 import ALife.Creatur (Agent, agentId, isAlive)
@@ -45,6 +46,11 @@ import Data.Word (Word8, Word16)
 import Data.Version (showVersion)
 import GHC.Generics (Generic)
 import Paths_creatur_wains (version)
+
+#if MIN_VERSION_base(4,8,0)
+#else
+import Control.Applicative
+#endif
 
 -- | Returns the current version number of this library.
 programVersion :: String

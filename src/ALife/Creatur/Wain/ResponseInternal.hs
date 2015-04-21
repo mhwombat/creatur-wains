@@ -16,6 +16,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
 module ALife.Creatur.Wain.ResponseInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, Reader, put, get)
@@ -34,6 +35,11 @@ import Data.Word (Word8)
 import GHC.Generics (Generic)
 import System.Random (Random)
 import Text.Printf (printf)
+
+#if MIN_VERSION_base(4,8,0)
+#else
+import Control.Applicative
+#endif
 
 outcomeInterval :: (Double, Double)
 outcomeInterval = (-1.0,1.0)

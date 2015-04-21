@@ -10,6 +10,7 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.ConditionQC
   (
@@ -26,6 +27,11 @@ import ALife.Creatur.Wain.TestUtils
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
+
+#if MIN_VERSION_base(4,8,0)
+#else
+import Control.Applicative
+#endif
 
 instance Arbitrary Condition where
   arbitrary = Condition <$> arb8BitDouble unitInterval

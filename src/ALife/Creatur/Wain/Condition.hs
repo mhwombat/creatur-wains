@@ -14,6 +14,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
 module ALife.Creatur.Wain.Condition
   (
     Condition(..),
@@ -40,6 +41,11 @@ import Data.Serialize (Serialize)
 import Data.Word (Word8)
 import GHC.Generics (Generic)
 import Text.Printf (printf)
+
+#if MIN_VERSION_base(4,8,0)
+#else
+import Control.Applicative
+#endif
 
 -- | A model of a stimulus and the response to it
 data Condition = Condition

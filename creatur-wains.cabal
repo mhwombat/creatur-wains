@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           7.3.0
+Version:           7.3.1
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      7.3.0
+  tag:      7.3.1
 
 library
   GHC-Options:      -Wall -Werror
@@ -55,7 +55,7 @@ library
                     ALife.Creatur.Wain.WeightsInternal
   Other-modules:    Paths_creatur_wains
   Build-Depends:
-                    base >=4.8 && <5,
+                    base ==4.*,
                     bytestring ==0.10.*,
                     cereal ==0.4.*,
                     containers ==0.5.*,
@@ -76,7 +76,7 @@ Test-suite wain-tests
   GHC-Options:      -Wall -Werror
   Hs-source-dirs:   test
   Build-Depends:    
-                    base >=4.8 && <5,
+                    base ==4.*,
                     cereal ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.9.*,
@@ -95,7 +95,7 @@ Executable wain-benchmark
   Main-is:          Benchmark.hs
   Hs-source-dirs:   test
   Build-Depends:    
-                    base >=4.8 && <5,
+                    base ==4.*,
                     cereal ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.9.*,
@@ -117,7 +117,7 @@ Executable wain-benchmark
 --   GHC-Options:      -Wall -rtsopts
 --   Hs-source-dirs:   src
 --   build-depends:
---                     base >=4.8 && <5,
+--                     base ==4.*,
 --                     colour ==2.3.*,
 --                     diagrams-lib ==1.2.*,
 --                     diagrams-svg ==1.0.* || ==1.1.*,
@@ -128,7 +128,7 @@ Executable wain-benchmark
 --   GHC-Options:      -Wall -rtsopts
 --   Hs-source-dirs:   src
 --   build-depends:
---                     base >=4.8 && <5,
+--                     base ==4.*,
 --                     colour ==2.3.*,
 --                     diagrams-lib ==1.2.*,
 --                     diagrams-svg ==1.0.* || ==1.1.*,

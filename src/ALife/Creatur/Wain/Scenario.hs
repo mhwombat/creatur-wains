@@ -14,6 +14,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
 module ALife.Creatur.Wain.Scenario
   (
     Scenario(..),
@@ -40,6 +41,11 @@ import Data.Datamining.Pattern (adjustVectorPreserveLength)
 import Data.List (intersperse)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
+
+#if MIN_VERSION_base(4,8,0)
+#else
+import Control.Applicative
+#endif
 
 -- | A wain's assessment of a situation.
 data Scenario = Scenario
