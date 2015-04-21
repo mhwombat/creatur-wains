@@ -85,7 +85,7 @@ imprint d s a =
     else d -- Can't teach this response
   where (r, _) = predict d s a
         r' = r `setOutcome` 1
-        (_, _, d') = reportAndTrain d r'
+        (_, _, _, d') = reportAndTrain d r'
 
 -- | Returns the list of actions that this decider "knows".
 knownActions :: (Eq a) => Decider a -> [a]

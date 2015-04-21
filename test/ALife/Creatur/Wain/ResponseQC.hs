@@ -16,13 +16,14 @@ module ALife.Creatur.Wain.ResponseQC
   (
     test,
     TestResponse,
-    TestAction(..)
+    TestAction(..),
+    sizedArbTestResponse
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.ResponseInternal
-import ALife.Creatur.Wain.ScenarioQC ()
+import ALife.Creatur.Wain.ScenarioQC (sizedArbScenario)
 import ALife.Creatur.Wain.ConditionQC ()
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
@@ -52,12 +53,15 @@ type TestResponse = Response TestAction
 -- instance Genetic TestResponse
 -- instance Diploid TestResponse
 
+sizedArbTestResponse :: Int -> Gen TestResponse
+sizedArbTestResponse n = do
+  s <- sizedArbScenario n
+  a <- arbitrary
+  o <- arb8BitDouble (-1,1)
+  return $ Response s a (Just o)
+
 instance Arbitrary TestResponse where
-  arbitrary = do
-    s <- arbitrary
-    a <- arbitrary
-    o <- arb8BitDouble (-1,1)
-    return $ Response s a (Just o)
+  arbitrary = sized sizedArbTestResponse
 
 -- | This is used for testing random SOM generation
 instance Random TestAction where

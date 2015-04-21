@@ -32,7 +32,7 @@ makeDecider :: Int -> Int -> Decider TestAction
 makeDecider n patternLength
   = buildGeneticSOM f t (replicate n modelResponse)
   where modelResponse = Response modelScenario Walk (Just 0)
-        modelScenario = Scenario xs xs modelCondition
+        modelScenario = Scenario [xs, xs] modelCondition
         modelCondition = Condition 1 0 0
         xs = replicate patternLength 0
         f = ExponentialParams 1 1
@@ -43,7 +43,7 @@ deciderBenchmark :: Decider TestAction -> IO ()
 deciderBenchmark d = do
   putStrLn $ "model count=" ++ show (numModels d)
   putStrLn $ "object length="
-    ++ show (length . _directObject . _scenario . head . C.models . view patternMap $ d)
+    ++ show (length . head . view diffs . _scenario . head . C.models . view patternMap $ d)
   let x = W8.write d
   let d' = fromEither (error "read returned Nothing") . W8.read $ x
   putStrLn $ "passed=" ++ show (d' == d)
@@ -56,7 +56,7 @@ randomWain n classifierSize deciderSize maxAgeOfMaturity = do
   fc <- randomExponential randomExponentialParams
   let c = buildGeneticSOM fc TestThinker ps
   fd <- randomExponential randomExponentialParams
-  xs <- sequence . replicate deciderSize $ randomResponse (numModels c)
+  xs <- sequence . replicate deciderSize $ randomResponse 2 (numModels c)
   let hw = makeWeights [1,1,1]
   let t = DeciderThinker (makeWeights [1,1,1])
               (makeWeights [1,1,1]) (makeWeights [1,1])

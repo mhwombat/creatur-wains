@@ -31,7 +31,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Util (unitInterval, scaleFromWord8,
-  scaleToWord8, doubleTo8BitHex)
+  scaleToWord8, uiDoubleTo8BitHex)
 import ALife.Creatur.Wain.Weights (Weights, toDoubles)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandom)
@@ -109,4 +109,4 @@ randomCondition = do
 
 instance Pretty Condition where
   pretty (Condition e p l)
-    = doubleTo8BitHex e ++ doubleTo8BitHex p ++ printf "%.2X" l
+    = uiDoubleTo8BitHex e ++ uiDoubleTo8BitHex p ++ printf "%.2X" l

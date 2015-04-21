@@ -40,7 +40,7 @@ prop_scaleFromWord8_round_trippable (a, b) x = b > a ==> x' == x
   where x' = scaleToWord8 (a, b) . scaleFromWord8 (a, b) $ x
 
 test :: Test
-test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
+test = testGroup "ALife.Creatur.Wain.UtilQC"
   [
     testProperty "prop_scaleToWord8_min"
       prop_scaleToWord8_min,

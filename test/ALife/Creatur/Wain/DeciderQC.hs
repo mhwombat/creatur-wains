@@ -25,8 +25,9 @@ import ALife.Creatur.Wain.Decider
 import ALife.Creatur.Wain.GeneticSOM (reportAndTrain, buildGeneticSOM)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM)
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
-import ALife.Creatur.Wain.ResponseQC (TestAction)
+import ALife.Creatur.Wain.ResponseQC (TestAction, sizedArbTestResponse)
 import ALife.Creatur.Wain.Scenario (Scenario)
+import ALife.Creatur.Wain.ScenarioQC ()
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
 import ALife.Creatur.Wain.UnitIntervalQC ()
@@ -60,7 +61,7 @@ type TestDecider = Decider TestAction
 sizedArbTestDecider :: Int -> Gen TestDecider
 sizedArbTestDecider n = do
   e <- arbitrary
-  xs <- vectorOf (n+1) arbitrary
+  xs <- vectorOf (n+1) (sizedArbTestResponse $ min 5 n) -- reduce test time
   t <- arbitrary
   return $ buildGeneticSOM e t xs
 
@@ -77,7 +78,7 @@ prop_training_makes_predictions_more_accurate d s a o =
   where (r, _) = predict d s a
         (Just predictionBefore) = _outcome r
         errBefore = abs (o - predictionBefore)
-        (_, _, d') = reportAndTrain d (r `setOutcome` o)
+        (_, _, _, d') = reportAndTrain d (r `setOutcome` o)
         (Just predictionAfter) = _outcome . fst $ predict d' s a
         errAfter = abs (o - predictionAfter)
 

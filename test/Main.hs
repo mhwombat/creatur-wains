@@ -20,7 +20,7 @@ import ALife.Creatur.Wain.DeciderQC (test)
 import ALife.Creatur.Wain.GeneticSOMQC (test)
 import ALife.Creatur.Wain.ResponseQC (test)
 import ALife.Creatur.Wain.ScenarioQC (test)
-import ALife.Creatur.Wain.UnitIntervalQC (test)
+-- import ALife.Creatur.Wain.UnitIntervalQC (test)
 import ALife.Creatur.Wain.UtilQC (test)
 import ALife.Creatur.Wain.WeightsQC (test)
 
@@ -31,7 +31,7 @@ tests =
   [
     -- In increasing order of complexity
     ALife.Creatur.Wain.UtilQC.test,
-    ALife.Creatur.Wain.UnitIntervalQC.test,
+    -- ALife.Creatur.Wain.UnitIntervalQC.test,
     ALife.Creatur.Wain.WeightsQC.test,
     ALife.Creatur.Wain.ConditionQC.test,
     ALife.Creatur.Wain.ScenarioQC.test,

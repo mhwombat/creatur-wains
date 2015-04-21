@@ -14,7 +14,8 @@
 module ALife.Creatur.Wain.WeightsQC
   (
     test,
-    equivWeights
+    equivWeights,
+    sizedArbWeights
   ) where
 
 import ALife.Creatur.Wain.WeightsInternal

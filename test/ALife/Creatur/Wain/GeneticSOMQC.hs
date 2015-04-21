@@ -183,8 +183,21 @@ prop_sum_counts_correct som ps = property $
   where som' = foldr runSOM som ps
 
 runSOM :: TestPattern -> TestGSOM -> TestGSOM
-runSOM p s = x
-  where (_, _, x) = reportAndTrain s p
+runSOM p s = s'
+  where (_, _, _, s') = reportAndTrain s p
+
+-- The novelty won't decrease if the model is already close to the
+-- input pattern and the learning rate isn't high enough.
+
+prop_novelty_decreases :: TestPattern -> TestGSOM -> Property
+prop_novelty_decreases p s = x1 > 0.004 ==> x2 <= x1
+    where (_, _, x1, s') = reportAndTrain s p
+          (_, _, x2, _) = reportAndTrain s' p
+
+prop_novelty_never_increases :: TestPattern -> TestGSOM -> Property
+prop_novelty_never_increases p s = property $ x2 <= x1
+    where (_, _, x1, s') = reportAndTrain s p
+          (_, _, x2, _) = reportAndTrain s' p
 
 -- -- | WARNING: This can fail when two nodes are close enough in
 -- --   value so that after training they become identical.
@@ -236,7 +249,11 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
     testProperty "prop_diploid_decayingExponential_valid"
       prop_diploid_decayingExponential_valid,
     testProperty "prop_sum_counts_correct"
-      prop_sum_counts_correct
+      prop_sum_counts_correct,
+    testProperty "prop_novelty_decreases"
+      prop_novelty_decreases,
+    testProperty "prop_novelty_never_increases"
+      prop_novelty_never_increases
     -- testProperty "prop_new_som_has_models"
     --   prop_new_som_has_models
     -- testProperty "prop_classification_is_consistent"

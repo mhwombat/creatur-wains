@@ -14,35 +14,55 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.ScenarioQC
   (
-    test
+    test,
+    sizedArbScenario
   ) where
 
 import ALife.Creatur.Wain.Scenario
+import ALife.Creatur.Wain.Condition (Condition(..))
 import ALife.Creatur.Wain.ConditionQC ()
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
 import ALife.Creatur.Wain.Util (unitInterval)
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Weights (Weights)
+import ALife.Creatur.Wain.WeightsQC (sizedArbWeights)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
 sizedArbScenario :: Int -> Gen Scenario
 sizedArbScenario n = do
-  is <- vectorOf n (arb8BitDouble unitInterval)
-  os <- vectorOf n (arb8BitDouble unitInterval)
+  j <- choose(0,n)
+  let k = n - j
+  xs <- vectorOf j (vectorOf k (arb8BitDouble unitInterval))
   c <- arbitrary
-  return $ Scenario is os c
+  return $ Scenario xs c
   
 instance Arbitrary Scenario where
   arbitrary = sized sizedArbScenario
 
--- prop_scenarioDiff_can_be_1 :: Weights -> Property
--- prop_scenarioDiff_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8
---   where x = scenarioDiff w (Scenario [0] [0] (Condition 0 0 0))
---               (Scenario [1] [1] (Condition 1 1 1))
---         ws = toDoubles w
+data TestData1 = TestData1 Weights Weights Scenario Scenario
+  deriving (Eq, Show)
+
+sizedArbTestData1 :: Int -> Gen TestData1
+sizedArbTestData1 n = do
+  j <- choose(1,n+1)
+  let k = n + 2 - j
+  cw <- sizedArbWeights 3
+  sw <- sizedArbWeights j
+  let zeroes = replicate j . replicate k $ 0
+  let ones = replicate j . replicate k $ 1
+  let x = Scenario zeroes (Condition 0 0 0)
+  let y = Scenario ones (Condition 1 1 1)
+  return $ TestData1 cw sw x y
+
+instance Arbitrary TestData1 where
+  arbitrary = sized sizedArbTestData1
+
+prop_scenarioDiff_can_be_1 :: TestData1 -> Property
+prop_scenarioDiff_can_be_1 (TestData1 cw sw x y) = property $ abs (d - 1) < 1e-8
+  where d = scenarioDiff cw sw x y
 
 prop_scenarioDiff_can_be_0 :: Weights -> Weights -> Scenario -> Property
 prop_scenarioDiff_can_be_0 cw sw s = property $ abs (x - 0) < 1e-8
@@ -71,8 +91,8 @@ test = testGroup "ALife.Creatur.Wain.ScenarioQC"
       (prop_diploid_expressable :: Scenario -> Scenario -> Property),
     testProperty "prop_diploid_readable - Scenario"
       (prop_diploid_readable :: Scenario -> Scenario -> Property),
-    -- testProperty "prop_scenarioDiff_can_be_1"
-    --   prop_scenarioDiff_can_be_1,
+    testProperty "prop_scenarioDiff_can_be_1"
+      prop_scenarioDiff_can_be_1,
     testProperty "prop_scenarioDiff_can_be_0"
       prop_scenarioDiff_can_be_0,
     testProperty "prop_scenarioDiff_in_range"

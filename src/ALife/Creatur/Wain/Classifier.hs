@@ -18,13 +18,15 @@ module ALife.Creatur.Wain.Classifier
     Label,
     Classifier,
     buildClassifier,
-    classify,
+    -- classify,
+    classifyAll,
     classifierOK
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM,
   ExponentialParams(..), Thinker(..), Label, buildGeneticSOM,
   reportAndTrain, somOK)
+import Data.List (foldl')
 
 type Classifier = GeneticSOM
 
@@ -40,15 +42,28 @@ classifierOK
 classifierOK = somOK
 
 -- | Updates the classifier models based on the stimulus (input).
---   Returns the index (grid location) of the model that most closely
---   matches the input pattern, the differences between the input
+--   Returns the differences between the input pattern and each model
+--   in the classifier, the novelty of the input pattern, and the
+--   updated classifier.
+classify
+  :: Classifier s t -> s -> ([Double], Double, Classifier s t)
+classify c p = (sig, nov, c')
+  where (_, diffs, nov, c') = reportAndTrain c p
+        sig = map snd diffs
+
+-- | Updates the classifier models based on the stimulus (inputs).
+--   Returns the the differences between the input
 --   pattern and each model in the classifier, and the updated
 --   classifier (the counter for the closest model is incremented).
-classify
-  :: Classifier s t -> s -> ([Double], Classifier s t)
-classify c p = (sig, c')
-  where (_, diffs, c') = reportAndTrain c p
-        sig = map snd diffs
+classifyAll
+  :: Classifier s t -> [s] -> ([[Double]], [Double], Classifier s t)
+classifyAll c ps = foldl' classifyOne ([], [], c) ps
+
+classifyOne
+  :: ([[Double]], [Double], Classifier s t)
+    -> s -> ([[Double]], [Double], Classifier s t)
+classifyOne (ds, ns, c) p = (d:ds, n:ns, c')
+  where (d, n, c') = classify c p
 
 -- conflation :: Metric s ~ Double => Classifier s -> Double
 -- conflation c = conflation' $ counts c

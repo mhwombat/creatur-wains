@@ -271,15 +271,15 @@ appearanceOf :: Object p t a -> p
 appearanceOf (DObject img _) = img
 appearanceOf (AObject a) = _appearance a
 
--- | Presents two stimuli (direct object and indirect object)
---   to a wain, and returns the the action it chooses to take,
+-- | Presents a stimulus (one or more objects) to a wain, and returns
+--   the the action it chooses to take, the novelty information,
 --   and the updated wain.
 chooseAction
   :: (Eq a, Enum a, Bounded a)
-    => p -> p -> Wain p t a
-      -> (R.Response a, Wain p t a, [(R.Response a, Label)])
-chooseAction p1 p2 w = (r, w', xs)
-  where (r, b', xs) = B.chooseAction (_brain w) p1 p2 (condition w)
+    => [p] -> Wain p t a
+      -> (R.Response a, Wain p t a, [(R.Response a, Label)], [Double])
+chooseAction ps w = (r, w', xs, ns)
+  where (r, b', xs, ns) = B.chooseAction (_brain w) ps (condition w)
         w' = set brain b' w
 
 -- | Deducts a wain's metabolism cost from its energy, and do the same
@@ -376,11 +376,11 @@ incSwagger = swagger +~ 1
 --   TODO: Do something more realistic.
 reflect
   :: Eq a
-    => p -> p -> R.Response a -> Wain p t a -> (Wain p t a, Double)
-reflect p1 p2 r w = (set litter litter' w', err)
+    => [p] -> R.Response a -> Wain p t a -> (Wain p t a, Double)
+reflect ps r w = (set litter litter' w', err)
   where (w', err) = reflect1 r w
         a = R._action r
-        litter' = map (imprint p1 p2 a) (_litter w)
+        litter' = map (imprint ps a) (_litter w)
 
 reflect1
   :: Eq a
@@ -393,9 +393,9 @@ reflect1 r w = (set brain b' w, err)
 --   This can be used to help children learn by observing their parents.
 imprint
   :: Eq a
-    => p -> p -> a -> Wain p t a -> Wain p t a
-imprint p1 p2 a w = set brain b' w
-  where b' = B.imprint (_brain w) p1 p2 a (condition w)
+    => [p] -> a -> Wain p t a -> Wain p t a
+imprint ps a w = set brain b' w
+  where b' = B.imprint (_brain w) ps a (condition w)
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.

@@ -65,12 +65,12 @@ prop_reflect_error_in_range b s cAfter
         (_, x) = reflect b r cAfter
 
 prop_imprint_works
-  :: Brain TestPattern C.TestThinker TestAction -> TestPattern
-    -> TestPattern -> TestAction -> Condition -> Property
-prop_imprint_works b p1 p2 a c
+  :: Brain TestPattern C.TestThinker TestAction -> [TestPattern]
+    -> TestAction -> Condition -> Property
+prop_imprint_works b ps a c
   = a `elem` (knownActions b) ==> x' >= x
-  where b' = imprint b p1 p2 a c
-        (s, _) = assessSituation b p1 p2 c
+  where b' = imprint b ps a c
+        (s, _, _) = assessSituation b ps c
         (r, _) = predict b s a
         (r', _) = predict b' s a
         Just x = _outcome r

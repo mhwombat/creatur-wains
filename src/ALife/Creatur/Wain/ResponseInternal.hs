@@ -115,14 +115,16 @@ similarityIgnoringOutcome
 similarityIgnoringOutcome cw sw rw x y
   = 1 - diffIgnoringOutcome cw sw rw x y
 
--- | Returns a random response model for a decider that operates with a
---   classifier containing the specified number of models.
+-- | @'randomResponse' n k@ returns a random response model involving
+--   @n@ objects, for a decider that operates with a classifier
+--   containing @k@ models.
 --   This is useful for generating random deciders.
 randomResponse
   :: (RandomGen g, Random a)
-    => Int -> Rand g (Response a)
-randomResponse n
-  = Response <$> randomScenario n <*> getRandom <*> fmap Just (getRandomR outcomeInterval)
+    => Int -> Int -> Rand g (Response a)
+randomResponse n k
+  = Response <$> randomScenario n k <*> getRandom
+      <*> fmap Just (getRandomR outcomeInterval)
 
 -- | Updates the outcome in the second response to match the first.
 copyOutcomeTo :: Response a -> Response a -> Response a

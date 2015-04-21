@@ -273,15 +273,23 @@ justClassify s = C.classify (_patternMap s)
 --   Returns the index (grid location) of the model that most closely
 --   matches the input pattern, the differences between the input
 --   pattern and each model in the SOM, the novelty of the input
---   pattern, the adjusted novelty, and the updated SOM (the counter
---   for the closest model is incremented).
+--   pattern, and the updated SOM (the counter for the closest model
+--   is incremented).
 reportAndTrain
   :: GeneticSOM p t -> p
-      -> (Label, [(Label, Double)], GeneticSOM p t)
-reportAndTrain s p = (bmu, diffs, s')
+      -> (Label, [(Label, Double)], Double, GeneticSOM p t)
+reportAndTrain s p = (bmu, diffs', novelty, s')
   where (bmu, diffs, som') = C.reportAndTrain (_patternMap s) p
+        diffs' = validateDiffs diffs
         cMap = M.adjust (+1) bmu (_counterMap s)
         s' = set patternMap som' . set counterMap cMap $ s
+        novelty = minimum . map snd $ diffs
+
+validateDiffs :: [(Label, Double)] -> [(Label, Double)]
+validateDiffs = map f
+  where f (l, x) = if 0 <= x && x <= 1
+                     then (l, x)
+                     else (error "Difference is out of range")
 
 -- | Returns the number of models in the SOM.
 numModels
