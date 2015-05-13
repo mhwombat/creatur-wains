@@ -195,6 +195,10 @@ runSOM p s = s'
 -- The novelty won't decrease if the model is already close to the
 -- input pattern and the learning rate isn't high enough.
 
+prop_novelty_btw_0_and_1 :: TestPattern -> TestGSOM -> Property
+prop_novelty_btw_0_and_1 p s = property $ 0 <= x && x <= 1
+    where (_, _, x, _) = reportAndTrain s p
+
 prop_novelty_decreases :: TestPattern -> TestGSOM -> Property
 prop_novelty_decreases p s = x1 > 0.004 ==> x2 <= x1
     where (_, _, x1, s') = reportAndTrain s p
@@ -256,6 +260,8 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       prop_diploid_decayingExponential_valid,
     testProperty "prop_sum_counts_correct"
       prop_sum_counts_correct,
+    testProperty "prop_novelty_btw_0_and_1"
+      prop_novelty_btw_0_and_1,
     testProperty "prop_novelty_decreases"
       prop_novelty_decreases,
     testProperty "prop_novelty_never_increases"

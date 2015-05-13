@@ -17,7 +17,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.TestUtils
   (
-    TestPattern(..),
+    TestPattern,
     arb8BitDouble,
     arb8BitInt,
     prop_serialize_round_trippable,
@@ -38,7 +38,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Util (fromEither)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleWord8ToInt,
   forceToWord8)
-import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (adjustNum)
 import Data.Serialize (Serialize, encode, decode)
@@ -97,10 +97,10 @@ prop_diploid_readable a b = property $ seq (c `asTypeOf` a) True
 prop_makeSimilar_works
   :: (a -> a -> Double) -> (a -> Double -> a -> a) -> a -> UIDouble -> a
     -> Property
-prop_makeSimilar_works diff makeSimilar x (UIDouble r) y
+prop_makeSimilar_works diff makeSimilar x r y
   = property $ diffAfter <= diffBefore
   where diffBefore = diff x y
-        y' = makeSimilar x r y
+        y' = makeSimilar x (uiToDouble r) y
         diffAfter = diff x y'
 
 data TestPattern = TestPattern Word8

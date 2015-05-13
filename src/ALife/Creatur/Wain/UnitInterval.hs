@@ -16,13 +16,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module ALife.Creatur.Wain.UnitInterval
   (
-    UIDouble(..),
+    UIDouble,
     uiToDouble,
     doubleToUI,
-    -- uiDiff,
-    -- makeUISimilar,
-    -- uiVectorDiff,
-    -- makeUIVectorsSimilar,
+    uiApply,
     vectorDiff
   ) where
 
@@ -56,6 +53,10 @@ uiToDouble (UIDouble a) = a
 doubleToUI :: Double -> UIDouble
 doubleToUI = UIDouble . enforceRange unitInterval
 
+-- | Apply a function to a value in the unit interval.
+uiApply :: (Double -> Double) -> UIDouble -> UIDouble
+uiApply f (UIDouble x) = doubleToUI (f x)
+
 instance Show UIDouble where
   show (UIDouble a) = show a
 
@@ -70,27 +71,10 @@ instance W8.Genetic UIDouble where
 instance Serialize UIDouble
 instance Diploid UIDouble
 
--- uiDiff :: UIDouble -> UIDouble -> Double
--- uiDiff (UIDouble a) (UIDouble b) = abs (a - b)
-
--- makeUISimilar :: UIDouble -> Double -> UIDouble -> UIDouble
--- makeUISimilar (UIDouble target) r (UIDouble x)
---   = UIDouble $ adjustNum target r x
-
 instance Random UIDouble where
   randomR (UIDouble a, UIDouble b) g = (UIDouble x, g')
     where (x, g') = randomR (a,b) g
   random = randomR (0,1)
-
--- uiVectorDiff :: [UIDouble] -> [UIDouble] -> Double
--- uiVectorDiff xs ys = vectorDiff xs' ys'
---   where xs' = map uiToDouble xs
---         ys' = map uiToDouble ys
-
--- makeUIVectorsSimilar :: [UIDouble] -> Double -> [UIDouble] -> [UIDouble]
--- makeUIVectorsSimilar xs r ys = map UIDouble $ adjustVector xs' r ys'
---   where xs' = map uiToDouble xs
---         ys' = map uiToDouble ys
 
 -- We're scaling the euclidean distance by the length of the vector
 vectorDiff :: Fractional a => [a] -> [a] -> a

@@ -30,7 +30,7 @@ import ALife.Creatur.Wain.ResponseQC (TestAction, sizedArbTestResponse)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.ScenarioQC ()
 import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.UnitInterval (UIDouble(..))
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
 import ALife.Creatur.Wain.WeightsQC (equivWeights)
 import Test.Framework (Test, testGroup)
@@ -90,11 +90,11 @@ prop_training_makes_predictions_more_accurate d s a o =
 
 prop_prediction_error_in_range
   :: TestDecider -> Scenario -> TestAction -> UIDouble -> Property
-prop_prediction_error_in_range d s a (UIDouble o) =
+prop_prediction_error_in_range d s a o =
   a `elem` (knownActions d) ==> -2 <= e && e <= 2
   where (r, _) = predict d s a
         (Just prediction) = _outcome r
-        e = abs (o - prediction)
+        e = abs (uiToDouble o - prediction)
 
 prop_imprint_works
   :: TestDecider -> Scenario -> TestAction -> Property

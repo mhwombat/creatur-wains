@@ -120,8 +120,9 @@ instance (Ord k, Diploid p) => Diploid (M.Map k p) where
 class Thinker t where
   type Pattern t
   -- | Compares two patterns and returns a /non-negative/ number
-  --   representing how different the patterns are. A result of @0@
-  --   indicates that the patterns are identical.
+  --   representing how different the patterns are.
+  --   The difference should be between @0@ and @1@, inclusive.
+  --   A result of @0@ indicates that the patterns are identical.
   diff :: t -> Pattern t -> Pattern t -> Double
   -- | @'makeSimilar' f target r pattern@ returns a modified copy
   --   of @pattern@ that is more similar to @target@ than @pattern@ is.
