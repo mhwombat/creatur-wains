@@ -56,7 +56,7 @@ data Response a = Response
     --   value; stimuli received from the outside will have a @Nothing@
     --   value.
     _outcome :: Maybe Double
-  } deriving (Eq, Show, Generic, Ord)
+  } deriving (Eq, Show, Read, Generic, Ord)
 makeLenses ''Response
 
 instance (Serialize a) => Serialize (Response a)
@@ -78,16 +78,29 @@ instance (Show a) => Pretty (Response a) where
     where format (Just x) = printf "%.3f" x
           format _ = "ø"
 
+-- | @'responseDiff' cw sw rw x y@ compares the response patterns
+--   @x@ and @y@, and returns a number between 0 and 1, representing
+--   how different the patterns are. A result of 0 indicates that the
+--   patterns are identical.
+--   The parameter @cw@ determines the relative weight to assign to
+--   differences in energy, passion, and whether or not there is a
+--   litter in each pattern.
+--   The parameter @sw@ determines the relative weight to assign to
+--   differences between each corresponding pair of objects represented
+--   by the scenario being responded to in each pattern.
+--   The parameter @rw@ determines the relative weight to assign to
+--   differences in the scenarios and the outcomes in the two patterns.
 responseDiff
   :: Eq a
-    => Weights -> Weights -> Weights -> Response a -> Response a -> Double
+    => Weights -> Weights -> Weights -> Response a -> Response a
+      -> Double
 responseDiff cw sw rw x y =
     if _action x == _action y
       then sum (zipWith (*) ws ds) / 2
       else 1.0
-    where ds = [sDiff, rDiff]
+    where ds = [sDiff, oDiff]
           sDiff = scenarioDiff cw sw (_scenario x) (_scenario y)
-          rDiff = outcomeDiff (fromMaybe 0 . _outcome $ x)
+          oDiff = outcomeDiff (fromMaybe 0 . _outcome $ x)
                     (fromMaybe 0 . _outcome $ y)
           ws = toDoubles rw
 

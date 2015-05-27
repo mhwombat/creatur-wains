@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           7.3.2
+Version:           7.3.4
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      7.3.2
+  tag:      7.3.4
 
 library
   GHC-Options:      -Wall -Werror
@@ -63,8 +63,8 @@ library
                     directory ==1.2.*,
                     -- factory ==0.2.*,
                     filepath ==1.4.*,
-                    lens ==4.9.*,
-                    MonadRandom ==0.3.*,
+                    lens ==4.11.*,
+                    MonadRandom ==0.4.*,
                     mtl ==2.2.*,
                     random ==1.1.*,
                     som ==8.0.* && >=8.0.2,
@@ -82,14 +82,14 @@ Test-suite wain-tests
                     creatur ==5.9.*,
                     creatur-wains,
                     -- factory ==0.2.*,
-                    lens ==4.9.*,
+                    lens ==4.11.*,
                     random ==1.1.*,
-                    MonadRandom ==0.3.*,
+                    MonadRandom ==0.4.*,
                     som ==8.0.* && >=8.0.2,
                     transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
-                    QuickCheck ==2.7.* || ==2.8.*
+                    QuickCheck ==2.8.*
 
 Executable wain-benchmark
   Main-is:          Benchmark.hs
@@ -100,16 +100,16 @@ Executable wain-benchmark
                     containers ==0.5.*,
                     creatur ==5.9.*,
                     creatur-wains,
-                    lens ==4.9.*,
+                    lens ==4.11.*,
                     random ==1.1.*,
-                    MonadRandom ==0.3.*,
+                    MonadRandom ==0.4.*,
                     som ==8.0.* && >=8.0.2,
                     temporary ==1.2.*,
-                    time ==1.4.* || ==1.5.*,
+                    time ==1.5.*,
                     transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
-                    QuickCheck ==2.7.* || ==2.8.*
+                    QuickCheck ==2.8.*
 
 -- Commented out until the diagrams package is updated to work with GHC 7.10
 -- Executable assessment-diagram

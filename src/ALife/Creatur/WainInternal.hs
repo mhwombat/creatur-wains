@@ -277,9 +277,10 @@ appearanceOf :: Object p t a -> p
 appearanceOf (DObject img _) = img
 appearanceOf (AObject a) = _appearance a
 
--- | Presents a stimulus (one or more objects) to a wain, and returns
---   the the action it chooses to take, the novelty information,
---   and the updated wain.
+-- | Chooses a response based on the stimuli (input patterns).
+--   Returns the chosen response, the updated wain, the responses it
+--   considered (with outcome predictions), and the novelty of each
+--   input pattern.
 chooseAction
   :: (Eq a, Enum a, Bounded a)
     => [p] -> Wain p t a
@@ -288,8 +289,11 @@ chooseAction ps w = (r, w', xs, ns)
   where (r, b', xs, ns) = B.chooseAction (_brain w) ps (condition w)
         w' = set brain b' w
 
--- | Deducts a wain's metabolism cost from its energy, and do the same
---   for any children in the wain's litter.
+-- | @'applyMetabolismCost' baseCost costPerByte childCostFactor w@
+--   deducts the appropriate metabolism cost from a wain, and any
+--   children in its litter.
+--   Returns the update wain (including litter), the energy deducted
+--   from the wain, and the total energy deducted from the litter.
 applyMetabolismCost
   :: Double -> Double -> Double -> Wain p t a -> (Wain p t a, Double, Double)
 applyMetabolismCost baseCost costPerByte childCostFactor w
@@ -378,7 +382,7 @@ incSwagger = swagger +~ 1
 --   the parent's internal condition, and their own condition will not
 --   change, so they do not have any way to assess whether the outcome
 --   of the action was good. Instead they will simply assume that
---   the action was perfect (increased happiness by 1)
+--   the action was perfect (increased happiness by 1).
 --   TODO: Do something more realistic.
 reflect
   :: Eq a
@@ -395,7 +399,8 @@ reflect1 r w = (set brain b' w, err)
   where (b', err)
           = B.reflect (_brain w) r (condition w)
 
--- | Teaches the wain that the last action taken was a good one.
+-- | Teaches the wain that the last action taken was a perfect one
+--   (increased happiness by 1).
 --   This can be used to help children learn by observing their parents.
 imprint
   :: Eq a
@@ -407,8 +412,9 @@ imprint ps a w = set brain b' w
 --   If either of the wains already has a litter, mating will not occur.
 --   If mating does occur, the passion level of both wains will be
 --   reset to zero.
---   Returns the (possibly modified) wains, together with a boolean
---   indicating whether or not mating occurred.
+--   Returns the (possibly modified) wains, descriptions of any errors
+--   that occurred when attempting to produce a child from the genome,
+--   and the energy contribution from each parent.
 mate
   :: (RandomGen r, Diploid p, Diploid t, Diploid a,
     Genetic p, Genetic t, Genetic a,
@@ -470,6 +476,7 @@ weanMatureChildren a =
         a' = (litter .~ babes)
                . (childrenWeanedLifetime +~ newWeanlings) $ a
 
+-- | Removes any dead children from the wain's litter.
 pruneDeadChildren :: Wain p t a -> [Wain p t a]
 pruneDeadChildren a =
   if null (_litter a)

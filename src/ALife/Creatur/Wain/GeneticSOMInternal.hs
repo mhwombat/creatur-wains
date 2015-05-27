@@ -42,8 +42,13 @@ import GHC.Generics (Generic)
 import Control.Applicative
 #endif
 
+-- | A unique identifier for a model in a SOM.
 type Label = Word16
 
+-- | @'ExponentialParams' r0 d@ defines the first two parameters for
+--     an exponential learning function.
+--   See @'Data.Datamining.Clustering.SSOM.exponential'@ for more
+--   information.
 data ExponentialParams = ExponentialParams Double Double
   deriving (Eq, Show, Generic)
 
@@ -65,10 +70,13 @@ instance Statistical ExponentialParams where
   stats (ExponentialParams r0 d)
     = [uiStat "r0" r0, uiStat "d" d]
 
+-- | Returns true if the parameters for an exponential function are
+--   valid, false otherwise.
 validExponential :: ExponentialParams -> Bool
 validExponential (ExponentialParams r0 d) = 0 <= r0 && r0 <= 1
                                               && 0 <= d && d <= 1
-
+-- @'toExponential' p t@ returns the learning rate at time @t@,
+-- given an exponential learning function with parameters @p@.
 toExponential :: ExponentialParams -> Word16 -> Double
 toExponential (ExponentialParams r0 d)
   = SOM.exponential r0 d . fromIntegral
@@ -92,7 +100,8 @@ randomExponentialParams :: RandomExponentialParams
 randomExponentialParams =
   RandomExponentialParams r0RangeLimits dRangeLimits
 
--- | @'randomExponential' r0Range dRange@ returns a random decaying
+-- | @'randomExponential' ('RandomExponentialParams' r0Range dRange)@
+--   returns a random decaying
 --   exponential that can be used as the learning function for a SOM.
 --   The parameters of the gaussian will be chosen such that:
 --
@@ -117,6 +126,7 @@ instance (Ord k, Diploid p) => Diploid (M.Map k p) where
     where ks = M.keys gm1
           vs = express (M.elems gm1) (M.elems gm2)
 
+-- | A "thinker" is responsible for comparing and adjusting patterns.
 class Thinker t where
   type Pattern t
   -- | Compares two patterns and returns a /non-negative/ number
@@ -124,7 +134,7 @@ class Thinker t where
   --   The difference should be between @0@ and @1@, inclusive.
   --   A result of @0@ indicates that the patterns are identical.
   diff :: t -> Pattern t -> Pattern t -> Double
-  -- | @'makeSimilar' f target r pattern@ returns a modified copy
+  -- | @'adjust' t target r pattern@ returns a modified copy
   --   of @pattern@ that is more similar to @target@ than @pattern@ is.
   --   The magnitude of the adjustment is controlled by the @r@
   --   parameter, which should be a number between 0 and 1. Larger
@@ -143,6 +153,25 @@ data GeneticSOM p t =
     }
 makeLenses ''GeneticSOM
 
+-- | @'buildGeneticSOM' p t ps@ returns a genetic SOM, with an
+--   exponential function with the parameters @p@ as a learning
+--   function, the "thinker" @t@, and initialised with the models @ps@.
+buildGeneticSOM
+  :: (Thinker t, p ~ Pattern t)
+    => ExponentialParams -> t -> [p] -> GeneticSOM p t
+buildGeneticSOM e@(ExponentialParams r0 d) t xs
+  | null xs   = error "SOM has no models"
+  | r0 < 0    = error "r0<0"
+  | d < 0     = error "d<0"
+  | otherwise = GeneticSOM som ks e t
+  where gm = M.fromList . zip [0..] $ xs
+        zeros = map (const 0) xs
+        som = SOM.SSOM gm lrf df af 0
+        lrf = toExponential e
+        df = diff t
+        af = adjust t
+        ks = M.fromList . zip [0..] $ zeros
+
 instance (Eq p, Eq t) => Eq (GeneticSOM p t) where
   (==) x y = (SOM.sMap . _patternMap $ x) == (SOM.sMap . _patternMap $ y)
              && (SOM.counter . _patternMap $ x) == (SOM.counter . _patternMap $ y)
@@ -159,6 +188,7 @@ instance (Show p, Show t) => Show (GeneticSOM p t) where
           e = _exponentialParams x
           t = _teacher x
 
+-- | Formats a genetic SOM for display.
 showSSOM
   :: (Show p, Show t)
     => SOM.SSOM Word16 Double Label p -> ExponentialParams -> t -> String
@@ -227,7 +257,6 @@ safeGetPatternMap = do
 -- instance (Diploid p) => Diploid (GeneticSOM p t) where
 --   express 
 
-
 -- | Returns @True@ if the SOM has a valid Exponential and at least one
 --   model; returns @False@ otherwise.
 somOK
@@ -236,34 +265,21 @@ somOK s
   = (not . null . models $ s) && (numModels s > 1)
       && (validExponential . _exponentialParams $ s)
 
--- | @'buildGeneticSOM' f ps@ returns a genetic SOM, using the learning
---   function @f@, and initialised with the models @ps@.
-buildGeneticSOM
-  :: (Thinker t, p ~ Pattern t)
-    => ExponentialParams -> t -> [p] -> GeneticSOM p t
-buildGeneticSOM e@(ExponentialParams r0 d) t xs
-  | null xs   = error "SOM has no models"
-  | r0 < 0    = error "r0<0"
-  | d < 0     = error "d<0"
-  | otherwise = GeneticSOM som ks e t
-  where gm = M.fromList . zip [0..] $ xs
-        zeros = map (const 0) xs
-        som = SOM.SSOM gm lrf df af 0
-        lrf = toExponential e
-        df = diff t
-        af = adjust t
-        ks = M.fromList . zip [0..] $ zeros
-
 instance Statistical (GeneticSOM p t) where
   stats s =
     (iStat "num models" . numModels $ s)
       :(iStat "SQ" . schemaQuality $ s)
       :(stats . _exponentialParams $ s)
 
--- | Adjusts the model at the index (grid location) specified.
+-- | @'learn' p l s@ adjusts the model at the index (grid location) @l@
+--   in @s@ to more closely match the pattern @p@.
+--   The amount of adjusted is determined by the current learning rate
+--   of the SOM @s@.
 --   Only the one model is changed. This is useful for allowing wains
 --   to learn from each other.
--- TODO: Maybe it would be better to do the normal training instead?
+--   The difference between @'learn'@ and @'train'@ is that when using
+--   @'learn'@, you specify which model should be adjusted,
+--   whereas with @'train'@, the closest matching model is adjusted.
 learn
   :: p -> Label -> GeneticSOM p t -> GeneticSOM p t
 learn p l s = set patternMap gm' s
@@ -308,6 +324,7 @@ models
   :: GeneticSOM p t -> [p]
 models (GeneticSOM s _ _ _) = C.models s
 
+-- | Returns the model at the specified location in the SOM.
 modelAt :: GeneticSOM p t -> Label -> p
 modelAt s k = SOM.toMap (_patternMap s) M.! k
 
@@ -316,11 +333,14 @@ modelAt s k = SOM.toMap (_patternMap s) M.! k
 toList :: GeneticSOM p t -> [(Label, p)]
 toList (GeneticSOM s _ _ _) = C.toList s
 
+-- | Returns the SOM's current learning rate.
 currentLearningRate :: GeneticSOM p t -> Double
 currentLearningRate s
   = (SOM.learningRate . _patternMap $ s) (fromIntegral t)
   where t = SOM.counter . _patternMap $ s
 
+-- | Measures the quality of the classification system represented by
+--   the SOM, and returns the result.
 schemaQuality :: GeneticSOM p t -> Int
 schemaQuality = discrimination . M.elems . _counterMap
 

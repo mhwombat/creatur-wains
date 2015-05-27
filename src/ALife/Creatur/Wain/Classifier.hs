@@ -30,21 +30,24 @@ import Data.List (foldl')
 
 type Classifier = GeneticSOM
 
+-- | @'buildClassifier' p t ps@ returns a genetic SOM, with an
+--   exponential function with the parameters @p@ as a learning
+--   function, the "thinker" @t@, and initialised with the models @ps@.
 buildClassifier
   :: (Thinker t, p ~ Pattern t)
     => ExponentialParams -> t -> [p] -> Classifier p t
 buildClassifier = buildGeneticSOM
 
--- | Returns @True@ if the SOM has a valid Exponential and at least one
---   model; returns @False@ otherwise.
+-- | Returns @True@ if the SOM has a valid learning function
+--   and at least one model; returns @False@ otherwise.
 classifierOK
   :: Classifier s t -> Bool
 classifierOK = somOK
 
 -- | Updates the classifier models based on the stimulus (input).
---   Returns the differences between the input pattern and each model
---   in the classifier, the novelty of the input pattern, and the
---   updated classifier.
+--   Returns the "signature" (differences between the input pattern
+--   and each model in the classifier), the novelty of the input
+--   pattern, and the updated classifier.
 classify
   :: Classifier s t -> s -> ([Double], Double, Classifier s t)
 classify c p = (sig, nov, c')
@@ -52,9 +55,9 @@ classify c p = (sig, nov, c')
         sig = map snd diffs
 
 -- | Updates the classifier models based on the stimulus (inputs).
---   Returns the the differences between the input
---   pattern and each model in the classifier, and the updated
---   classifier (the counter for the closest model is incremented).
+--   Returns the the differences between the array of input
+--   patterns and each model in the classifier, the novelty of each
+--   input pattern, and the updated classifier.
 classifyAll
   :: Classifier s t -> [s] -> ([[Double]], [Double], Classifier s t)
 classifyAll c ps = foldl' classifyOne ([], [], c) ps

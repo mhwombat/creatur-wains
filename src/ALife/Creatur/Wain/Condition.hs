@@ -56,7 +56,7 @@ data Condition = Condition
     _cPassion :: Double,
     -- | Is the wain currently rearing a litter?
     _cLitterSize :: Word8
-  } deriving (Eq, Show, Generic, Ord)
+  } deriving (Eq, Show, Read, Generic, Ord)
 makeLenses ''Condition
 
 instance Serialize Condition
@@ -86,6 +86,13 @@ happiness w (Condition e p l)
         l' = if l > 0 then 1 else 0
         ws = toDoubles w
 
+-- | @'conditionDiff' w x y@ compares the condition patterns @x@ and
+--   @y@, and returns a number between 0 and 1, representing how
+--   different the patterns are. A result of 0 indicates that the
+--   patterns are identical.
+--   The parameter @w@ determines the relative weight to assign to
+--   differences in energy, passion, and whether or not there is a
+--   litter in each pattern.
 conditionDiff
   :: Weights -> Condition -> Condition -> Double
 conditionDiff w x y

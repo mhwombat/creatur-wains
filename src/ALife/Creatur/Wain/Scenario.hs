@@ -55,12 +55,22 @@ data Scenario = Scenario
     _diffs :: [[Double]],
     -- | Current condition
     _condition :: Condition
-  } deriving (Eq, Show, Generic, Ord)
+  } deriving (Eq, Show, Read, Generic, Ord)
 
 makeLenses ''Scenario
 
 instance Serialize Scenario
 
+-- | @'scenarioDiff' cw sw x y@ compares the scenario patterns
+--   @x@ and @y@, and returns a number between 0 and 1, representing
+--   how different the patterns are. A result of 0 indicates that the
+--   patterns are identical.
+--   The parameter @cw@ determines the relative weight to assign to
+--   differences in energy, passion, and whether or not there is a
+--   litter in each pattern.
+--   The parameter @sw@ determines the relative weight to assign to
+--   differences between each corresponding pair of objects represented
+--   by the scenarios in each pattern.
 scenarioDiff :: Weights -> Weights -> Scenario -> Scenario -> Double
 scenarioDiff cw sw x y = sum (zipWith (*) ws ds)
   where ds = cDiff:oDiffs

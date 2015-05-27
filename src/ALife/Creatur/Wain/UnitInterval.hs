@@ -31,6 +31,7 @@ import ALife.Creatur.Wain.Util (unitInterval, enforceRange,
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 import System.Random (Random(..), randomR)
+import Text.Read (readPrec)
 
 -- | A number on the unit interval 0 to 1, inclusive.
 --   In fact, this type can hold any Double value for convenience in
@@ -59,6 +60,9 @@ uiApply f (UIDouble x) = doubleToUI (f x)
 
 instance Show UIDouble where
   show (UIDouble a) = show a
+
+instance Read UIDouble where
+  readPrec = fmap doubleToUI readPrec
 
 instance Real UIDouble where
   toRational (UIDouble a) = toRational a

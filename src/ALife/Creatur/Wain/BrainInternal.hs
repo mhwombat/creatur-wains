@@ -109,9 +109,10 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Thinker t,
     hw <- G.get
     return $ Brain <$> c <*> d <*> hw
 
--- | Presents stimuli to a brain, and returns the the action it chooses
---   to take, the scenario the brain considered, and the responses it
---   considered (with outcome predictions).
+-- | Chooses a response based on the stimuli (input patterns).
+--   Returns the chosen response, the updated brain, the responses it
+--   considered (with outcome predictions), and the novelty of each
+--   input pattern.
 chooseAction
   :: (Eq a, Enum a, Bounded a)
       => Brain p t a -> [p] -> Cd.Condition
@@ -123,8 +124,9 @@ chooseAction b ps c
         r = maximumBy f $ map fst consideredResponses
         f = comparing (fromMaybe 0 . _outcome)
 
--- | Returns a scenario, based on the input patterns and the current
---   condition.
+-- | Evaluates the input patterns and the current condition.
+--   Returns the scenario, the novelty of each input pattern, and
+--   the updated brain.
 --   See @Scenario@ for more information.
 assessSituation
   :: Brain p t a -> [p] -> Cd.Condition -> (Scenario, [Double], Brain p t a)
@@ -167,7 +169,8 @@ reflect b r cAfter = (set decider d' b, err)
         (_, _, _, d') = GSOM.reportAndTrain (_decider b) (r `setOutcome` deltaH)
         err = abs (deltaH - predictedDeltaH)
 
--- | Teaches the brain that the last action taken was a perfect one.
+-- | Teaches the brain that the last action taken was a perfect one
+--   (increased happiness by 1).
 --   This can be used to help children learn by observing their parents.
 --   It can also be used to allow wains to learn from others.
 imprint

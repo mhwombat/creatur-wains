@@ -44,6 +44,17 @@ import Data.Maybe (fromJust, isJust)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 
+-- | @'DeciderThinker' cs sw rw@ constructs an object which is
+--   responsible for comparing and adjusting response patterns.
+--   The parameter @cw@ determines the relative weight to assign to
+--   differences in energy, passion, and whether or not there is a
+--   litter when comparing two patterns.
+--   The parameter @sw@ determines the relative weight to assign to
+--   differences between each corresponding pair of objects represented
+--   by the scenario when comparing two patterns.
+--   The parameter @rw@ determines the relative weight to assign to
+--   differences in the scenarios and the outcomes when comparing two
+--   patterns.
 data DeciderThinker a = DeciderThinker Weights Weights Weights
   deriving (Eq, Show, Generic)
 
@@ -77,7 +88,8 @@ predict d s a = (r3, k)
           = Just $ similarityIgnoringOutcome cw sw rw model r * rawOutcome
         r3 = set outcome adjustedOutcome r
 
--- | Teaches a response to the decider.
+-- | Teaches a response to the decider (teaches it that the response
+--   increases happiness by 1).
 imprint :: (Eq a) => Decider a -> Scenario -> a -> Decider a
 imprint d s a =
   if a `elem` knownActions d
