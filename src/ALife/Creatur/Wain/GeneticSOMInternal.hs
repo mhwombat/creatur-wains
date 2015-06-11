@@ -75,6 +75,7 @@ instance Statistical ExponentialParams where
 validExponential :: ExponentialParams -> Bool
 validExponential (ExponentialParams r0 d) = 0 <= r0 && r0 <= 1
                                               && 0 <= d && d <= 1
+
 -- @'toExponential' p t@ returns the learning rate at time @t@,
 -- given an exponential learning function with parameters @p@.
 toExponential :: ExponentialParams -> Word16 -> Double

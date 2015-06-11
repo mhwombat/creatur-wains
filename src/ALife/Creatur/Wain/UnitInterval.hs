@@ -25,7 +25,7 @@ module ALife.Creatur.Wain.UnitInterval
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.Util (unitInterval, enforceRange,
+import ALife.Creatur.Wain.Util (unitInterval, inRange, enforceRange,
   scaleToWord8, scaleFromWord8)
 -- import Data.Datamining.Pattern (adjustNum, adjustVector)
 import Data.Serialize (Serialize)
@@ -41,7 +41,7 @@ import Text.Read (readPrec)
 --   The functions random and arbitrary will only generate values in
 --   the unit interval.
 newtype UIDouble = UIDouble Double
-  deriving (Eq, Ord, Generic, Enum, Num, Fractional, Floating, RealFrac)
+  deriving (Eq, Ord, Generic, Enum)
 
 -- | Extract the value from a @UIDouble@.
 --   Note that this value can be outside the unit interval; see
@@ -52,7 +52,9 @@ uiToDouble (UIDouble a) = a
 -- | Convert a value to a @UIDouble@. The value will be capped to the
 --   unit interval.
 doubleToUI :: Double -> UIDouble
-doubleToUI = UIDouble . enforceRange unitInterval
+doubleToUI x = if inRange unitInterval x
+                 then UIDouble x
+                 else error "value not in unit interval"
 
 -- | Apply a function to a value in the unit interval.
 uiApply :: (Double -> Double) -> UIDouble -> UIDouble
@@ -64,8 +66,8 @@ instance Show UIDouble where
 instance Read UIDouble where
   readPrec = fmap doubleToUI readPrec
 
-instance Real UIDouble where
-  toRational (UIDouble a) = toRational a
+-- instance Real UIDouble where
+--   toRational (UIDouble a) = toRational a
 
 -- | The initial sequences stored at birth are genetically determined.
 instance W8.Genetic UIDouble where
@@ -78,7 +80,8 @@ instance Diploid UIDouble
 instance Random UIDouble where
   randomR (UIDouble a, UIDouble b) g = (UIDouble x, g')
     where (x, g') = randomR (a,b) g
-  random = randomR (0,1)
+  random = fmap f $ randomR (0,1)
+    where f (x, y) = (doubleToUI x, y)
 
 -- We're scaling the euclidean distance by the length of the vector
 vectorDiff :: Fractional a => [a] -> [a] -> a
