@@ -141,10 +141,11 @@ similarityIgnoringOutcome cw sw rw x y
 --   This is useful for generating random deciders.
 randomResponse
   :: (RandomGen g, Random a)
-    => Int -> Int -> Rand g (Response a)
-randomResponse n k
+    => Int -> Int -> (Double, Double) -> Rand g (Response a)
+randomResponse n k interval
   = Response <$> randomScenario n k <*> getRandom
-      <*> fmap Just (getRandomR outcomeInterval)
+      <*> fmap Just (getRandomR interval')
+  where interval' = intersection outcomeInterval interval
 
 -- | Updates the outcome in the second response to match the first.
 copyOutcomeTo :: Response a -> Response a -> Response a
