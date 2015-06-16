@@ -17,7 +17,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.TestUtils
   (
-    TestPattern,
+    TestPattern(..),
     arb8BitDouble,
     arb8BitInt,
     prop_serialize_round_trippable,

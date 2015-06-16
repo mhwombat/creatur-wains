@@ -33,6 +33,7 @@ import ALife.Creatur.Wain.TestUtils
 import Control.Lens
 import Control.Monad.Random (evalRand, runRand)
 import Data.Datamining.Clustering.SSOM (SSOM, counter, toMap)
+-- import Data.List (foldl')
 import qualified Data.Map.Strict as M
 import Data.Serialize (Serialize)
 import Data.Word (Word8, Word16)
@@ -199,6 +200,19 @@ prop_novelty_btw_0_and_1 :: TestPattern -> TestGSOM -> Property
 prop_novelty_btw_0_and_1 p s = property $ 0 <= x && x <= 1
     where (_, _, x, _) = reportAndTrain s p
 
+prop_familiar_patterns_have_min_novelty :: Word16 -> TestGSOM -> Property
+prop_familiar_patterns_have_min_novelty k s = property $ x == 0
+    where (_, _, x, _) = reportAndTrain s p
+          p = s `modelAt` k'
+          k' = k `mod` (fromIntegral $ numModels s)
+
+prop_new_patterns_have_max_novelty :: ExponentialParams -> Int -> Property
+prop_new_patterns_have_max_novelty f n = property $ x == 1
+    where (_, _, x, _) = reportAndTrain s p
+          s = buildGeneticSOM f (TestThinker 0) ps0
+          ps0 = replicate (abs n + 1) (TestPattern 0)
+          p = TestPattern 255
+
 prop_novelty_decreases :: TestPattern -> TestGSOM -> Property
 prop_novelty_decreases p s = x1 > 0.004 ==> x2 <= x1
     where (_, _, x1, s') = reportAndTrain s p
@@ -208,6 +222,25 @@ prop_novelty_never_increases :: TestPattern -> TestGSOM -> Property
 prop_novelty_never_increases p s = property $ x2 <= x1
     where (_, _, x1, s') = reportAndTrain s p
           (_, _, x2, _) = reportAndTrain s' p
+
+prop_novelty_never_increases2 :: TestPattern -> TestPattern -> TestGSOM -> Property
+prop_novelty_never_increases2 p1 p2 s = property $ x2 <= x1
+    where (_, _, x1, s2) = reportAndTrain s p1
+          (_, _, _, s3) = reportAndTrain s2 p2
+          (_, _, x2, _) = reportAndTrain s3 p1
+
+-- prop_novelty_never_increases3 :: [TestPattern] -> TestGSOM -> Property
+-- prop_novelty_never_increases3 (p:ps) s = (not . null $ ps) ==> x2 <= x1
+--     where (_, _, x1, s2) = reportAndTrain s p
+--           s3 = trainAll s2 ps
+--           (_, _, x2, _) = reportAndTrain s3 p
+
+-- trainAll :: TestGSOM -> [TestPattern] -> TestGSOM
+-- trainAll s ps = foldl' train1 s ps
+
+-- train1 :: TestGSOM -> TestPattern -> TestGSOM
+-- train1 s p = s'
+--   where (_, _, _, s') = reportAndTrain s p
 
 -- -- | WARNING: This can fail when two nodes are close enough in
 -- --   value so that after training they become identical.
@@ -262,10 +295,16 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       prop_sum_counts_correct,
     testProperty "prop_novelty_btw_0_and_1"
       prop_novelty_btw_0_and_1,
+    testProperty "prop_familiar_patterns_have_min_novelty"
+      prop_familiar_patterns_have_min_novelty,
+    testProperty "prop_new_patterns_have_max_novelty"
+      prop_new_patterns_have_max_novelty,
     testProperty "prop_novelty_decreases"
       prop_novelty_decreases,
     testProperty "prop_novelty_never_increases"
-      prop_novelty_never_increases
+      prop_novelty_never_increases,
+    testProperty "prop_novelty_never_increases2"
+      prop_novelty_never_increases2
     -- testProperty "prop_new_som_has_models"
     --   prop_new_som_has_models
     -- testProperty "prop_classification_is_consistent"
