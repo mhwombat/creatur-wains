@@ -20,6 +20,7 @@ module ALife.Creatur.Wain.Scenario
     Scenario(..),
     condition,
     diffs,
+    classifications,
     randomScenario,
     scenarioDiff,
     makeScenarioSimilar
@@ -38,7 +39,8 @@ import Control.Lens
 import Control.Monad (replicateM)
 import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (adjustVectorPreserveLength)
-import Data.List (intersperse)
+import Data.List (intersperse, maximumBy)
+import Data.Ord (comparing)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 
@@ -60,6 +62,15 @@ data Scenario = Scenario
 makeLenses ''Scenario
 
 instance Serialize Scenario
+
+-- | For each object in the scenario, returns the index of the model
+--   that best matches it.
+classifications :: Scenario -> [Int]
+classifications = map classification . _diffs
+
+classification :: [Double] -> Int
+classification ds = snd $ maximumBy (comparing fst) xs
+  where xs = zip ds [0..]
 
 -- | @'scenarioDiff' cw sw x y@ compares the scenario patterns
 --   @x@ and @y@, and returns a number between 0 and 1, representing
