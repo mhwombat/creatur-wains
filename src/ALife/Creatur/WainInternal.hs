@@ -284,9 +284,10 @@ appearanceOf (AObject a) = _appearance a
 chooseAction
   :: (Eq a, Enum a, Bounded a)
     => [p] -> Wain p t a
-      -> (R.Response a, Wain p t a, [(R.Response a, Label)], [Double])
-chooseAction ps w = (r, w', xs, ns)
-  where (r, b', xs, ns) = B.chooseAction (_brain w) ps (condition w)
+      -> ([Label], Label, R.Response a, Wain p t a,
+           [(R.Response a, Label)], [Double])
+chooseAction ps w = (ks, k, r, w', xs, ns)
+  where (ks, k, r, b', xs, ns) = B.chooseAction (_brain w) ps (condition w)
         w' = set brain b' w
 
 -- | @'applyMetabolismCost' baseCost costPerByte childCostFactor w@

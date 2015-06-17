@@ -65,13 +65,14 @@ instance Arbitrary TestClassifier where
 --   where (bmu, _, _, _, c') = classify c p
 --         (bmu', _, _, _, _) = classify c' p
 
-prop_classify_only_tweaks_bmu :: TestClassifier -> TestPattern -> Property
+prop_classify_only_tweaks_bmu
+  :: TestClassifier -> TestPattern -> Property
 prop_classify_only_tweaks_bmu c p = property $
   (as ++ bs) == (as' ++ bs')
   where (as, _:bs) = splitAt bmu $ models c
         (as', _:bs') = splitAt bmu $ models c'
         bmu = fst . minimumBy (comparing snd) $ zip [0..] diffs
-        (diffs, _, c') = classify c p
+        (_, diffs, _, c') = classify c p
 
 equivClassifier :: TestClassifier -> TestClassifier -> Bool
 equivClassifier = equivGSOM (==) (==)

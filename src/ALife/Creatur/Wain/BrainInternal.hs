@@ -116,35 +116,26 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Thinker t,
 chooseAction
   :: (Eq a, Enum a, Bounded a)
       => Brain p t a -> [p] -> Cd.Condition
-        -> (Response a, Brain p t a, [(Response a, D.Label)], [Double])
+        -> ([Cl.Label], D.Label, Response a, Brain p t a,
+              [(Response a, D.Label)], [Double])
 chooseAction b ps c
-  = (r, b', consideredResponses, ns)
-  where (s, ns, b') = assessSituation b ps c
+  = (ks, k, r, b', consideredResponses, ns)
+  where (ks, s, ns, b') = assessSituation b ps c
         consideredResponses = map (predict b s) $ knownActions b
-        r = maximumBy f $ map fst consideredResponses
-        f = comparing (fromMaybe 0 . _outcome)
+        (r, k) = maximumBy f $ consideredResponses
+        f = comparing (fromMaybe 0 . _outcome . fst)
 
 -- | Evaluates the input patterns and the current condition.
 --   Returns the scenario, the novelty of each input pattern, and
 --   the updated brain.
 --   See @Scenario@ for more information.
 assessSituation
-  :: Brain p t a -> [p] -> Cd.Condition -> (Scenario, [Double], Brain p t a)
-assessSituation b ps c = (s, ns, b')
-  where (ds, ns, c') = Cl.classifyAll (_classifier b) ps
+  :: Brain p t a -> [p] -> Cd.Condition
+    -> ([Cl.Label], Scenario, [Double], Brain p t a)
+assessSituation b ps c = (ks, s, ns, b')
+  where (ks, ds, ns, c') = Cl.classifyAll (_classifier b) ps
         b' = set classifier c' b
         s = Scenario ds c
-
--- -- | Updates the brain's classifier models based on the stimulus
--- --   (input).
--- --   Returns the index (grid location) of the model that most closely
--- --   matches the input pattern, the novelty of the input pattern,
--- --   the adjusted novelty, and the updated brain (which has learned
--- --   from the classification experience).
--- classify :: p -> Brain p t a -> ([Double], Brain p t a)
--- classify s b = (sig, b')
---   where (sig, c') = Cl.classify (_classifier b) s
---         b' = set classifier c' b
 
 -- | Returns the list of actions that this brain "knows".
 knownActions :: Eq a => Brain p t a -> [a]
@@ -161,12 +152,14 @@ predict b = D.predict (_decider b)
 --   prediction of the outcome.
 reflect
   :: Eq a
-    => Brain p t a -> Response a -> Cd.Condition -> (Brain p t a, Double)
+    => Brain p t a -> Response a -> Cd.Condition
+      -> (Brain p t a, Double)
 reflect b r cAfter = (set decider d' b, err)
   where deltaH = happiness b cAfter - happiness b cBefore
         cBefore = _condition . _scenario $ r
         predictedDeltaH = fromJust . _outcome $ r
-        (_, _, _, d') = GSOM.reportAndTrain (_decider b) (r `setOutcome` deltaH)
+        (_, _, _, d') = GSOM.reportAndTrain (_decider b)
+                          (r `setOutcome` deltaH)
         err = abs (deltaH - predictedDeltaH)
 
 -- | Teaches the brain that the last action taken was a perfect one
@@ -177,7 +170,7 @@ imprint
   :: Eq a
     => Brain p t a -> [p] -> a -> Cd.Condition -> Brain p t a
 imprint b ps a c = set decider d' b'
-  where (s, _, b') = assessSituation b ps c
+  where (_, s, _, b') = assessSituation b ps c
         d = _decider b
         d' = D.imprint d s a
 

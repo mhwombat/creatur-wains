@@ -45,13 +45,14 @@ classifierOK
 classifierOK = somOK
 
 -- | Updates the classifier models based on the stimulus (input).
---   Returns the "signature" (differences between the input pattern
+--   Returns the ID of the model that most closely matches the stimulus,
+--   the "signature" (differences between the input pattern
 --   and each model in the classifier), the novelty of the input
 --   pattern, and the updated classifier.
 classify
-  :: Classifier s t -> s -> ([Double], Double, Classifier s t)
-classify c p = (sig, nov, c')
-  where (_, diffs, nov, c') = reportAndTrain c p
+  :: Classifier s t -> s -> (Label, [Double], Double, Classifier s t)
+classify c p = (bmu, sig, nov, c')
+  where (bmu, diffs, nov, c') = reportAndTrain c p
         sig = map snd diffs
 
 -- | Updates the classifier models based on the stimulus (inputs).
@@ -59,14 +60,14 @@ classify c p = (sig, nov, c')
 --   patterns and each model in the classifier, the novelty of each
 --   input pattern, and the updated classifier.
 classifyAll
-  :: Classifier s t -> [s] -> ([[Double]], [Double], Classifier s t)
-classifyAll c ps = foldl' classifyOne ([], [], c) ps
+  :: Classifier s t -> [s] -> ([Label], [[Double]], [Double], Classifier s t)
+classifyAll c ps = foldl' classifyOne ([], [], [], c) ps
 
 classifyOne
-  :: ([[Double]], [Double], Classifier s t)
-    -> s -> ([[Double]], [Double], Classifier s t)
-classifyOne (ds, ns, c) p = (d:ds, n:ns, c')
-  where (d, n, c') = classify c p
+  :: ([Label], [[Double]], [Double], Classifier s t)
+    -> s -> ([Label], [[Double]], [Double], Classifier s t)
+classifyOne (ks, ds, ns, c) p = (k:ks, d:ds, n:ns, c')
+  where (k, d, n, c') = classify c p
 
 -- conflation :: Metric s ~ Double => Classifier s -> Double
 -- conflation c = conflation' $ counts c

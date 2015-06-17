@@ -70,7 +70,7 @@ prop_imprint_works
 prop_imprint_works b ps a c
   = a `elem` (knownActions b) ==> x' >= x
   where b' = imprint b ps a c
-        (s, _, _) = assessSituation b ps c
+        (_, s, _, _) = assessSituation b ps c
         (r, _) = predict b s a
         (r', _) = predict b' s a
         Just x = _outcome r
