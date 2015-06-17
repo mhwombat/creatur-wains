@@ -25,14 +25,17 @@ module ALife.Creatur.Wain.ClassifierQC
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Classifier
-import ALife.Creatur.Wain.GeneticSOM (Thinker(..), buildGeneticSOM)
+import ALife.Creatur.Wain.GeneticSOM (Thinker(..), buildGeneticSOM,
+  models)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM)
 import ALife.Creatur.Wain.TestUtils
+import Data.List (minimumBy)
+import Data.Ord (comparing)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import Test.QuickCheck hiding (classify)
 
 data TestThinker = TestThinker deriving (Eq, Show, Generic)
 
@@ -62,6 +65,14 @@ instance Arbitrary TestClassifier where
 --   where (bmu, _, _, _, c') = classify c p
 --         (bmu', _, _, _, _) = classify c' p
 
+prop_classify_only_tweaks_bmu :: TestClassifier -> TestPattern -> Property
+prop_classify_only_tweaks_bmu c p = property $
+  (as ++ bs) == (as' ++ bs')
+  where (as, _:bs) = splitAt bmu $ models c
+        (as', _:bs') = splitAt bmu $ models c'
+        bmu = fst . minimumBy (comparing snd) $ zip [0..] diffs
+        (diffs, _, c') = classify c p
+
 equivClassifier :: TestClassifier -> TestClassifier -> Bool
 equivClassifier = equivGSOM (==) (==)
 
@@ -82,7 +93,9 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
         :: TestClassifier -> TestClassifier -> Property),
     testProperty "prop_diploid_readable - Classifier"
       (prop_diploid_readable
-        :: TestClassifier -> TestClassifier -> Property)
+        :: TestClassifier -> TestClassifier -> Property),
+    testProperty "prop_classify_only_tweaks_bmu"
+      prop_classify_only_tweaks_bmu
     -- testProperty "prop_classification_is_consistent"
     --   prop_classification_is_consistent
   ]

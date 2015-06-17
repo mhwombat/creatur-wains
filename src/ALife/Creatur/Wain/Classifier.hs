@@ -18,7 +18,7 @@ module ALife.Creatur.Wain.Classifier
     Label,
     Classifier,
     buildClassifier,
-    -- classify,
+    classify,
     classifyAll,
     classifierOK
   ) where
