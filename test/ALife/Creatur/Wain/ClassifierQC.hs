@@ -74,6 +74,14 @@ prop_classify_only_tweaks_bmu c p = property $
         bmu = fst . minimumBy (comparing snd) $ zip [0..] diffs
         (_, diffs, _, c') = classify c p
 
+prop_classification_stabilises
+  :: TestClassifier -> [TestPattern] -> Property
+prop_classification_stabilises c ps = not (null ps) ==> k2 == k1
+  where (_, _, _, cStable) = classifyAll c . concat . replicate 10 $ ps
+        (k1, _, _, cStable2) = classify cStable (head ps)
+        (_, _, _, cStable3) = classifyAll cStable2 ps
+        (k2, _, _, _) = classify cStable3 (head ps)
+
 equivClassifier :: TestClassifier -> TestClassifier -> Bool
 equivClassifier = equivGSOM (==) (==)
 
@@ -96,7 +104,9 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
       (prop_diploid_readable
         :: TestClassifier -> TestClassifier -> Property),
     testProperty "prop_classify_only_tweaks_bmu"
-      prop_classify_only_tweaks_bmu
+      prop_classify_only_tweaks_bmu,
+    testProperty "prop_classification_stabilises"
+      prop_classification_stabilises
     -- testProperty "prop_classification_is_consistent"
     --   prop_classification_is_consistent
   ]

@@ -34,6 +34,7 @@ module ALife.Creatur.Wain.Util
     intersection
   ) where
 
+import Data.List (intersperse)
 import Data.Word (Word8, Word16)
 -- import Data.Datamining.Pattern (adjustNum, adjustVector)
 import Text.Printf (printf)
@@ -133,7 +134,7 @@ word16ToInt = fromIntegral
 -- | Given a sequence of numbers on the unit interval], scales them
 --   to the interval [0,255] and returns a hexadecimal representation.
 uiDoublesTo8BitHex :: [Double] -> String
-uiDoublesTo8BitHex = concatMap uiDoubleTo8BitHex
+uiDoublesTo8BitHex = concat . intersperse ":" . map uiDoubleTo8BitHex
 
 -- | Given a number on the unit interval, scales it to the interval
 --   [0,255] and returns a hexadecimal representation.
