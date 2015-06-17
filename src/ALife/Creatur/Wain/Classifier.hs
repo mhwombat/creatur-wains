@@ -60,8 +60,10 @@ classify c p = (bmu, sig, nov, c')
 --   patterns and each model in the classifier, the novelty of each
 --   input pattern, and the updated classifier.
 classifyAll
-  :: Classifier s t -> [s] -> ([Label], [[Double]], [Double], Classifier s t)
-classifyAll c ps = foldl' classifyOne ([], [], [], c) ps
+  :: Classifier s t -> [s]
+    -> ([Label], [[Double]], [Double], Classifier s t)
+classifyAll c ps = (reverse ks, reverse ds, reverse ns, c')
+  where (ks, ds, ns, c') = foldl' classifyOne ([], [], [], c) ps
 
 classifyOne
   :: ([Label], [[Double]], [Double], Classifier s t)
