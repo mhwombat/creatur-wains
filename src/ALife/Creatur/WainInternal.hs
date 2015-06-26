@@ -35,7 +35,7 @@ import qualified ALife.Creatur.Wain.Response as R
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat,
   uiStat)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
-  doubleToUI)
+  doubleToUI, forceDoubleToUI)
 import ALife.Creatur.Wain.Util (unitInterval, enforceRange)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen)
@@ -337,8 +337,7 @@ adjustEnergy1
   :: Double -> Wain p t a -> (Wain p t a, Double, Double)
 adjustEnergy1 delta w = (wAfter, delta', leftover)
   where eBefore = _energy w
-        -- eAfter = max 0 . min 1 $ _energy w + delta
-        eAfter = doubleToUI . min 1 $ uiToDouble (_energy w) + delta
+        eAfter = forceDoubleToUI $ uiToDouble (_energy w) + delta
         wAfter = set energy eAfter w
         delta' = uiToDouble eAfter - uiToDouble eBefore
         leftover = delta - delta'

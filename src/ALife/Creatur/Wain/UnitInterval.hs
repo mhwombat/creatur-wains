@@ -20,6 +20,7 @@ module ALife.Creatur.Wain.UnitInterval
     UIDouble,
     uiToDouble,
     doubleToUI,
+    forceDoubleToUI,
     uiApply,
     uiDiff,
     adjustUIDouble,
@@ -47,27 +48,24 @@ interval :: (Double, Double)
 interval = (0, 1)
 
 -- | A number on the unit interval 0 to 1, inclusive.
---   In fact, this type can hold any Double value for convenience in
---   calculations. (E.g., an intermediate value in a computation may
---   be outside the unit interval.) However, if the value is stored
---   in the genome, it will be forced into the unit interval first.
---   The functions random and arbitrary will only generate values in
---   the unit interval.
 newtype UIDouble = UIDouble Double
   deriving (Eq, Ord, Generic, Serialize, Diploid, NFData)
 
 -- | Extract the value from a @UIDouble@.
---   Note that this value can be outside the unit interval; see
---   @UIDouble@ for more information.
 uiToDouble :: UIDouble -> Double
 uiToDouble (UIDouble a) = a
 
--- | Convert a value to a @UIDouble@. The value will be capped to the
---   unit interval.
+-- | Convert a value to a @UIDouble@.
+--   If the value is outside the unit interval, an error will be thrown.
 doubleToUI :: Double -> UIDouble
 doubleToUI x = if inRange interval x
                  then UIDouble x
                  else error "value not in unit interval"
+
+-- | Convert a value to a @UIDouble@. The value will be capped to the
+--   unit interval.
+forceDoubleToUI :: Double -> UIDouble
+forceDoubleToUI = doubleToUI . max 0 . min 1
 
 -- | Apply a function to a value in the unit interval.
 uiApply :: (Double -> Double) -> UIDouble -> UIDouble

@@ -7,7 +7,7 @@
 -- Stability   :  experimental
 -- Portability :  portable
 --
--- Numbers on the unit interval (0 to 1, inclusive).
+-- Numbers on the interval -1 to 1, inclusive.
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveAnyClass #-}
@@ -20,6 +20,7 @@ module ALife.Creatur.Wain.PlusMinusOne
     PM1Double,
     pm1ToDouble,
     doubleToPM1,
+    forceDoubleToPM1,
     pm1Apply,
     pm1Diff,
     adjustPM1Double,
@@ -52,29 +53,26 @@ interval :: (Double, Double)
 interval = (-1, 1)
 
 -- | A number on the interval -1 to 1, inclusive.
---   In fact, this type can hold any Double value for convenience in
---   calculations. (E.g., an intermediate value in a computation may
---   be outside the unit interval.) However, if the value is stored
---   in the genome, it will be forced into the unit interval first.
---   The functions random and arbitrary will only generate values in
---   the unit interval.
 newtype PM1Double = PM1Double Double
   deriving (Eq, Ord, Generic, Serialize, Diploid, NFData)
 
 -- | Extract the value from a @PM1Double@.
---   Note that this value can be outside the unit interval; see
---   @PM1Double@ for more information.
 pm1ToDouble :: PM1Double -> Double
 pm1ToDouble (PM1Double a) = a
 
--- | Convert a value to a @PM1Double@. The value will be capped to the
---   unit interval.
+-- | Convert a value to a @PM1Double@.
+--   If the value is outside the allowed interval, an error will be thrown.
 doubleToPM1 :: Double -> PM1Double
 doubleToPM1 x = if inRange interval x
                  then PM1Double x
                  else error $ "value not in " ++ show interval
 
--- | Apply a function to a value in the unit interval.
+-- | Convert a value to a @PM1Double@. The value will be capped to the
+--   allowed interval.
+forceDoubleToPM1 :: Double -> PM1Double
+forceDoubleToPM1 = doubleToPM1 . max (-1) . min 1
+
+-- | Apply a function to a value in the allowed interval.
 pm1Apply :: (Double -> Double) -> PM1Double -> PM1Double
 pm1Apply f (PM1Double x) = doubleToPM1 (f x)
 
@@ -96,7 +94,7 @@ instance Num PM1Double where
  signum (PM1Double x) = doubleToPM1 (signum x)
  fromInteger = doubleToPM1 . fromInteger
  negate (PM1Double 0) = PM1Double 0
- negate _ = error "value not in unit interval"
+ negate _ = error "value not in (-1,1)"
 
 instance Fractional PM1Double where
   (/) (PM1Double x) (PM1Double y) = doubleToPM1 (x / y)
@@ -171,12 +169,12 @@ adjustPM1VectorPreserveLength [] _ x = x
 adjustPM1VectorPreserveLength (t:ts) r (x:xs)
   = adjustPM1Double t r x : adjustPM1VectorPreserveLength ts r xs
 
--- | Given a sequence of numbers on the unit interval], scales them
+-- | Given a sequence of numbers on the allowed interval], scales them
 --   to the interval [0,255] and returns a hexadecimal representation.
 pm1DoublesTo8BitHex :: [PM1Double] -> String
 pm1DoublesTo8BitHex = intercalate ":" . map pm1DoubleTo8BitHex
 
--- | Given a number on the unit interval, scales it to the interval
+-- | Given a number on the allowed interval, scales it to the interval
 --   [0,255] and returns a hexadecimal representation.
 pm1DoubleTo8BitHex :: PM1Double -> String
 pm1DoubleTo8BitHex
