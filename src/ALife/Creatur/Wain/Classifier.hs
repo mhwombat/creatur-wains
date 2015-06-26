@@ -26,6 +26,7 @@ module ALife.Creatur.Wain.Classifier
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM,
   ExponentialParams(..), Thinker(..), Label, buildGeneticSOM,
   reportAndTrain, somOK)
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Data.List (foldl')
 
 type Classifier = GeneticSOM
@@ -50,7 +51,7 @@ classifierOK = somOK
 --   and each model in the classifier), the novelty of the input
 --   pattern, and the updated classifier.
 classify
-  :: Classifier s t -> s -> (Label, [Double], Double, Classifier s t)
+  :: Classifier s t -> s -> (Label, [UIDouble], UIDouble, Classifier s t)
 classify c p = (bmu, sig, nov, c')
   where (bmu, diffs, nov, c') = reportAndTrain c p
         sig = map snd diffs
@@ -61,13 +62,13 @@ classify c p = (bmu, sig, nov, c')
 --   input pattern, and the updated classifier.
 classifyAll
   :: Classifier s t -> [s]
-    -> ([Label], [[Double]], [Double], Classifier s t)
+    -> ([Label], [[UIDouble]], [UIDouble], Classifier s t)
 classifyAll c ps = (reverse ks, reverse ds, reverse ns, c')
   where (ks, ds, ns, c') = foldl' classifyOne ([], [], [], c) ps
 
 classifyOne
-  :: ([Label], [[Double]], [Double], Classifier s t)
-    -> s -> ([Label], [[Double]], [Double], Classifier s t)
+  :: ([Label], [[UIDouble]], [UIDouble], Classifier s t)
+    -> s -> ([Label], [[UIDouble]], [UIDouble], Classifier s t)
 classifyOne (ks, ds, ns, c) p = (k:ks, d:ds, n:ns, c')
   where (k, d, n, c') = classify c p
 

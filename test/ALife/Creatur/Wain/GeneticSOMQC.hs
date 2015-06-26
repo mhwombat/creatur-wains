@@ -10,11 +10,11 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOMQC
   (
@@ -30,7 +30,9 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.GeneticSOMInternal
 import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
 import Control.Lens
+import Control.DeepSeq (NFData, deepseq)
 import Control.Monad.Random (evalRand, runRand)
 import Data.Datamining.Clustering.SSOM (SSOM, counter, toMap)
 -- import Data.List (foldl')
@@ -44,11 +46,6 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 import Test.QuickCheck.Gen (Gen(MkGen))
 
-#if MIN_VERSION_base(4,8,0)
-#else
-import Control.Applicative
-#endif
-
 instance Arbitrary ExponentialParams where
   arbitrary = do
     p <- arbitrary
@@ -61,17 +58,14 @@ equivExponential
   :: ExponentialParams -> ExponentialParams -> Bool
 equivExponential a@(ExponentialParams r0a da)
                       b@(ExponentialParams r0b db)
-  = abs (r0a - r0b) < (1/256)
-    && abs (da - db) < (1/256)
+  = equivUIDouble r0a r0b
+    && equivUIDouble da db
     && validExponential a == validExponential b
 
-data TestThinker = TestThinker Word8 deriving (Eq, Show, Generic)
+data TestThinker = TestThinker Word8
+  deriving (Eq, Show, Generic, Serialize, W8.Genetic, Diploid, NFData)
   -- The parameter isn't used; it's just there to force something to
   -- be written to the gene sequence
-
-instance Serialize TestThinker
-instance W8.Genetic TestThinker
-instance Diploid TestThinker
 
 instance Arbitrary TestThinker where
   arbitrary = TestThinker <$> arbitrary
@@ -159,8 +153,7 @@ prop_random_decayingExponential_valid seed params
 
 prop_random_learning_rate_always_in_range
   :: ExponentialParams -> Word16 -> Property
-prop_random_learning_rate_always_in_range f t =
-  t >= 0 ==> 0 <= r && r <= 1
+prop_random_learning_rate_always_in_range f t = t >= 0 ==> deepseq r True
   where r = (toExponential f) t
 
 prop_express_decayingExponential_valid
@@ -182,6 +175,10 @@ prop_diploid_decayingExponential_valid a b = property . validExponential $ c
   where g1 = W8.write a
         g2 = W8.write b
         Right c = W8.runDiploidReader W8.getAndExpress (g1, g2)
+
+prop_som_never_causes_error :: TestGSOM -> TestPattern -> Property
+prop_som_never_causes_error som p
+  = property $ deepseq (runSOM p som) True
 
 prop_sum_counts_correct
   :: TestGSOM -> [TestPattern] -> Property
@@ -253,6 +250,8 @@ prop_novelty_never_increases2 p1 p2 s = property $ x2 <= x1
 test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
   [
+    testProperty "prop_makeSimilar_works - TestPattern"
+      (prop_makeSimilar_works testPatternDiff makeTestPatternSimilar),
     testProperty "prop_serialize_round_trippable - Exponential"
       (prop_serialize_round_trippable
         :: ExponentialParams -> Property),
@@ -291,6 +290,8 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       prop_random_express_decayingExponential_valid,
     testProperty "prop_diploid_decayingExponential_valid"
       prop_diploid_decayingExponential_valid,
+    testProperty "prop_som_never_causes_error"
+      prop_som_never_causes_error,
     testProperty "prop_sum_counts_correct"
       prop_sum_counts_correct,
     testProperty "prop_novelty_btw_0_and_1"

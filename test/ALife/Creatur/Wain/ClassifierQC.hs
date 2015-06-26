@@ -10,6 +10,7 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -29,6 +30,7 @@ import ALife.Creatur.Wain.GeneticSOM (Thinker(..), buildGeneticSOM,
   models)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM)
 import ALife.Creatur.Wain.TestUtils
+import Control.DeepSeq (NFData)
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
@@ -37,16 +39,13 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding (classify)
 
-data TestThinker = TestThinker deriving (Eq, Show, Generic)
+data TestThinker = TestThinker
+  deriving (Eq, Show, Generic, Serialize, W8.Genetic, Diploid, NFData)
 
 instance Thinker TestThinker where
   type Pattern TestThinker = TestPattern
   diff _ = testPatternDiff
   adjust _ = makeTestPatternSimilar
-
-instance Serialize TestThinker
-instance W8.Genetic TestThinker
-instance Diploid TestThinker
 
 type TestClassifier = Classifier TestPattern TestThinker
 

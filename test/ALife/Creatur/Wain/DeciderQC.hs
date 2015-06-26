@@ -13,7 +13,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.DeciderQC
   (
@@ -26,31 +25,16 @@ import ALife.Creatur.Wain.Decider
 import ALife.Creatur.Wain.GeneticSOM (reportAndTrain, buildGeneticSOM)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM)
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
-import ALife.Creatur.Wain.ResponseQC (TestAction, sizedArbTestResponse)
+import ALife.Creatur.Wain.ResponseQC (TestAction, sizedArbTestResponse,
+  equivResponse)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.ScenarioQC ()
 import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
-import ALife.Creatur.Wain.UnitIntervalQC ()
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
 import ALife.Creatur.Wain.WeightsQC (equivWeights)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
-
-#if MIN_VERSION_base(4,8,0)
-#else
-import Control.Applicative
-#endif
-
--- data TestThinker = TestThinker deriving (Eq, Show, Generic)
-
--- instance Thinker TestThinker where
---   type Pattern TestThinker = TestAction
---   diff TestThinker a b = if a == b then 1 else 0
---   adjust _ target r b = b
-
--- instance Serialize TestThinker
--- instance Diploid TestThinker
 
 type TestThinker = DeciderThinker TestAction
 
@@ -75,26 +59,27 @@ instance Arbitrary TestDecider where
   arbitrary = sized sizedArbTestDecider
 
 equivDecider :: TestDecider -> TestDecider -> Bool
-equivDecider = equivGSOM (==) equivThinker
+equivDecider = equivGSOM equivResponse equivThinker
+
 
 prop_training_makes_predictions_more_accurate
-  :: TestDecider -> Scenario -> TestAction -> Double -> Property
+  :: TestDecider -> Scenario -> TestAction -> PM1Double -> Property
 prop_training_makes_predictions_more_accurate d s a o =
   a `elem` (knownActions d) ==> errAfter <= errBefore
   where (r, _) = predict d s a
         (Just predictionBefore) = _outcome r
-        errBefore = abs (o - predictionBefore)
+        errBefore = abs (pm1ToDouble o - pm1ToDouble predictionBefore)
         (_, _, _, d') = reportAndTrain d (r `setOutcome` o)
         (Just predictionAfter) = _outcome . fst $ predict d' s a
-        errAfter = abs (o - predictionAfter)
+        errAfter = abs (pm1ToDouble o - pm1ToDouble predictionAfter)
 
 prop_prediction_error_in_range
-  :: TestDecider -> Scenario -> TestAction -> UIDouble -> Property
+  :: TestDecider -> Scenario -> TestAction -> PM1Double -> Property
 prop_prediction_error_in_range d s a o =
   a `elem` (knownActions d) ==> -2 <= e && e <= 2
   where (r, _) = predict d s a
         (Just prediction) = _outcome r
-        e = abs (uiToDouble o - prediction)
+        e = abs (pm1ToDouble o - pm1ToDouble prediction)
 
 prop_imprint_works
   :: TestDecider -> Scenario -> TestAction -> Property

@@ -10,6 +10,7 @@
 -- Statistical calculations
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 module ALife.Creatur.Wain.Statistics
@@ -23,11 +24,13 @@ module ALife.Creatur.Wain.Statistics
     dStat,
     iStat,
     uiStat,
+    pm1Stat,
     summarise,
     lookup
   ) where
 
 import Prelude hiding (lookup)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Raw (Raw, raw)
 -- import Data.Datamining.Clustering.SSOM (Exponential(..))
@@ -40,23 +43,25 @@ import Text.Printf (printf)
 data Statistic = DStatistic {sName :: String, sVal :: Double}
   | IStatistic {sName :: String, sVal :: Double}
   | UIStatistic {sName :: String, sVal :: Double}
-  deriving (Eq, Generic)
-
-instance Serialize Statistic
+  | PM1Statistic {sName :: String, sVal :: Double}
+  deriving (Eq, Generic, Serialize)
 
 instance Show Statistic where
   show (DStatistic s x) = "dStat \"" ++ s ++ "\" " ++ show x
-  show (UIStatistic s x) = "dStat \"" ++ s ++ "\" " ++ show x
+  show (UIStatistic s x) = "uiStat \"" ++ s ++ "\" " ++ show x
+  show (PM1Statistic s x) = "pm1Stat \"" ++ s ++ "\" " ++ show x
   show (IStatistic s x) = "iStat \"" ++ s ++ "\" " ++ show (round x :: Int)
 
 instance Pretty Statistic where
   pretty (DStatistic s x) = s ++ "=" ++ pretty x
   pretty (UIStatistic s x) = s ++ "=" ++  printf "%.3f" x
+  pretty (PM1Statistic s x) = s ++ "=" ++  printf "%.3f" x
   pretty (IStatistic s x) = s ++ "=" ++ pretty (round x :: Int)
 
 instance Raw Statistic where
   raw (DStatistic s x) = s ++ "=" ++ raw x
   raw (UIStatistic s x) = s ++ "=" ++  raw x
+  raw (PM1Statistic s x) = s ++ "=" ++  raw x
   raw (IStatistic s x) = s ++ "=" ++ raw x
 
 -- | Creates a value that will be displayed as a double.
@@ -65,8 +70,13 @@ dStat s = DStatistic s . realToFrac
 
 -- | Creates a value that will be displayed as a double and is expected
 --   to be in the unit interval.
-uiStat :: Real a => String -> a -> Statistic
-uiStat s = UIStatistic s . realToFrac
+uiStat :: String -> UIDouble -> Statistic
+uiStat s = UIStatistic s . uiToDouble
+
+-- | Creates a value that will be displayed as a double and is expected
+--   to be in the interval (-1, 1).
+pm1Stat :: String -> UIDouble -> Statistic
+pm1Stat s = UIStatistic s . uiToDouble
 
 -- | Creates a value that will be displayed as an integer.
 iStat :: Integral a => String -> a -> Statistic

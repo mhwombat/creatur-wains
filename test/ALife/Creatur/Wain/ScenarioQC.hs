@@ -15,15 +15,13 @@
 module ALife.Creatur.Wain.ScenarioQC
   (
     test,
-    sizedArbScenario
+    sizedArbScenario,
+    equivScenario
   ) where
 
 import ALife.Creatur.Wain.Scenario
-import ALife.Creatur.Wain.Condition (Condition(..))
-import ALife.Creatur.Wain.ConditionQC ()
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
-import ALife.Creatur.Wain.UnitIntervalQC ()
-import ALife.Creatur.Wain.Util (unitInterval)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI)
+import ALife.Creatur.Wain.UnitIntervalQC (equivUIDoubleVector)
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Weights (Weights)
 import ALife.Creatur.Wain.WeightsQC (sizedArbWeights)
@@ -33,10 +31,11 @@ import Test.QuickCheck
 
 sizedArbScenario :: Int -> Gen Scenario
 sizedArbScenario n = do
-  j <- choose(0,n)
-  let k = n - j
-  xs <- vectorOf j (vectorOf k (arb8BitDouble unitInterval))
-  c <- arbitrary
+  j <- choose (0, n)
+  k <- choose (0, j)
+  let m = n - j - k
+  xs <- vectorOf j (vectorOf k arbitrary)
+  c <- vectorOf m arbitrary
   return $ Scenario xs c
   
 instance Arbitrary Scenario where
@@ -53,15 +52,15 @@ sizedArbTestData1 n = do
   sw <- sizedArbWeights j
   let zeroes = replicate j . replicate k $ 0
   let ones = replicate j . replicate k $ 1
-  let x = Scenario zeroes (Condition 0 0 0)
-  let y = Scenario ones (Condition 1 1 1)
+  let x = Scenario zeroes [doubleToUI 0, doubleToUI 0, doubleToUI 0]
+  let y = Scenario ones [doubleToUI 1, doubleToUI 1, doubleToUI 1]
   return $ TestData1 cw sw x y
 
 instance Arbitrary TestData1 where
   arbitrary = sized sizedArbTestData1
 
 prop_scenarioDiff_can_be_1 :: TestData1 -> Property
-prop_scenarioDiff_can_be_1 (TestData1 cw sw x y) = property $ abs (d - 1) < 1e-8
+prop_scenarioDiff_can_be_1 (TestData1 cw sw x y) = property $ 1 - d < 1e-8
   where d = scenarioDiff cw sw x y
 
 prop_scenarioDiff_can_be_0 :: Weights -> Weights -> Scenario -> Property
@@ -78,13 +77,19 @@ prop_makeScenarioSimilar_works
 prop_makeScenarioSimilar_works cw sw
   = prop_makeSimilar_works (scenarioDiff cw sw) makeScenarioSimilar
 
+equivScenario :: Scenario -> Scenario -> Bool
+equivScenario x y
+  = (and $ zipWith equivUIDoubleVector (_diffs x) (_diffs y))
+      && equivUIDoubleVector (_condition x) (_condition y)
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ScenarioQC"
   [
     testProperty "prop_serialize_round_trippable - Scenario"
       (prop_serialize_round_trippable :: Scenario -> Property),
     testProperty "prop_genetic_round_trippable - Scenario"
-      (prop_genetic_round_trippable (==) :: Scenario -> Property),
+      (prop_genetic_round_trippable equivScenario
+         :: Scenario -> Property),
     testProperty "prop_diploid_identity - Scenario"
       (prop_diploid_identity (==) :: Scenario -> Property),
     testProperty "prop_diploid_expressable - Scenario"

@@ -15,7 +15,6 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE CPP #-}
 module ALife.Creatur.WainInternal where
 
 import ALife.Creatur (Agent, agentId, isAlive)
@@ -30,13 +29,14 @@ import ALife.Creatur.Genetics.Recombination (mutatePairedLists,
   repeatWithProbability, withProbability)
 import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
   produceGamete, build, makeOffspring)
-import qualified ALife.Creatur.Wain.Condition as C
 import qualified ALife.Creatur.Wain.Brain as B
 import ALife.Creatur.Wain.GeneticSOM (Label, Thinker, Pattern)
 import qualified ALife.Creatur.Wain.Response as R
-import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
-import ALife.Creatur.Wain.Util (scaleToWord8, scaleFromWord8,
-  unitInterval, enforceRange)
+import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat,
+  uiStat)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
+  doubleToUI)
+import ALife.Creatur.Wain.Util (unitInterval, enforceRange)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen)
 import qualified Data.ByteString as BS
@@ -46,11 +46,6 @@ import Data.Word (Word8, Word16)
 import Data.Version (showVersion)
 import GHC.Generics (Generic)
 import Paths_creatur_wains (version)
-
-#if MIN_VERSION_base(4,8,0)
-#else
-import Control.Applicative
-#endif
 
 -- | Returns the current version number of this library.
 programVersion :: String
@@ -68,18 +63,18 @@ data Wain p t a = Wain
     _brain :: B.Brain p t a,
     -- | The amount of energy the wain will give to offspring at birth.
     --   This is a number between 0 and 1, inclusive.
-    _devotion :: Double,
+    _devotion :: UIDouble,
     -- | The age at which this wain will/has left its parent.
     _ageOfMaturity :: Word16,
     -- | The amount that a wain's passion increases at each CPU turn.
     --   this influences the frequency of mating.
-    _passionDelta :: Double,
+    _passionDelta :: UIDouble,
     -- | The wain's current energy level.
     --   This is a number between 0 and 1, inclusive.
-    _energy :: Double,
+    _energy :: UIDouble,
     -- | The wain's current passion level
     --   This is a number between 0 and 1, inclusive.
-    _passion :: Double,
+    _passion :: UIDouble,
     -- | The wain's current age.
     _age :: Word16,
     -- | The children this wain is currently rearing.
@@ -101,7 +96,7 @@ makeLenses ''Wain
 buildWain
   :: (Genetic p, Genetic t, Genetic a, Eq a, Thinker t, p ~ Pattern t,
     Serialize p, Serialize t, Serialize a)
-    => String -> p -> B.Brain p t a -> Double -> Word16 -> Double
+    => String -> p -> B.Brain p t a -> UIDouble -> Word16 -> UIDouble
       -> (Sequence, Sequence) -> Wain p t a
 buildWain n a b d m p g = set wainSize s w
   -- We first set the size to 0, then figure out what the size really
@@ -124,7 +119,7 @@ buildWainAndGenerateGenome
   :: (Genetic p, Genetic t, Genetic a,
     Serialize p, Serialize t, Serialize a,
       Eq a, Thinker t, p ~ Pattern t)
-        => String -> p -> B.Brain p t a -> Double -> Word16 -> Double
+        => String -> p -> B.Brain p t a -> UIDouble -> Word16 -> UIDouble
           -> Wain p t a
 buildWainAndGenerateGenome n a b d m p = set genome (g,g) strawMan
   where strawMan = buildWain n a b d m p ([], [])
@@ -143,10 +138,8 @@ buildWainFromGenome truncateGenome n = do
   d <- getAndExpress
   m <- getAndExpress
   p <- getAndExpress
-  let d' = fmap (scaleFromWord8 unitInterval) d
-  let p' = fmap (scaleFromWord8 unitInterval) p
   g <- if truncateGenome then consumed2 else copy2
-  return $ buildWain n <$> a <*> b <*> d' <*> m <*> p' <*> pure g
+  return $ buildWain n <$> a <*> b <*> d <*> m <*> p <*> pure g
 
 deriving instance (Show p, Show t, Show a, Eq a)
     => Show (Wain p t a)
@@ -164,18 +157,18 @@ instance (Eq a, Ord a) =>
   Statistical (Wain p t a) where
   stats w =
     iStat "age" (_age w)
-      : dStat "devotion" (_devotion w)
+      : uiStat "devotion" (_devotion w)
       : iStat "maturity" (_ageOfMaturity w)
-      : dStat "Δp" (_passionDelta w)
+      : uiStat "Δp" (_passionDelta w)
       : iStat "size" (_wainSize w)
       : iStat "children borne (lifetime)" (_childrenBorneLifetime w)
       : iStat "children reared (lifetime)" (_childrenWeanedLifetime w)
-      : dStat "adult energy" e
-      : dStat "child energy" ec
-      : dStat "energy" (e + ec)
-      : dStat "passion" (_passion w)
+      : uiStat "adult energy" e
+      : uiStat "child energy" ec
+      : dStat "energy" (uiToDouble e + uiToDouble ec)
+      : uiStat "passion" (_passion w)
       : iStat "current litter size" (length . _litter $ w)
-      : dStat "happiness" (happiness w)
+      : uiStat "happiness" (happiness w)
       : iStat "swagger" (_swagger w)
       : stats (_brain w)
       ++ [iStat "genome length" ( (length . fst . _genome $ w)
@@ -194,16 +187,16 @@ instance (Genetic p, Genetic t, Genetic a, Eq a,
     => Genetic (Wain p t a) where
   put w = put (_appearance w)
             >> put (_brain w)
-            >> put (scaleToWord8 unitInterval . _devotion $ w)
+            >> put (_devotion w)
             >> put (_ageOfMaturity w)
-            >> put (scaleToWord8 unitInterval . _passionDelta $ w)
+            >> put (_passionDelta w)
   get = do
     g <- copy
     a <- get
     b <- get
-    d <- fmap (fmap (scaleFromWord8 unitInterval)) get
+    d <- get
     m <- get
-    p <- fmap (fmap (scaleFromWord8 unitInterval)) get
+    p <- get
     return $ buildWain "" <$> a <*> b <*> d <*> m <*> p <*> pure (g, g)
 
 -- This implementation is useful for testing
@@ -236,7 +229,7 @@ instance (Genetic p, Genetic t, Genetic a,
   build n = runDiploidReader (buildWainFromGenome False n)
 
 -- | Returns the total energy of all children in the litter.
-childEnergy :: Wain p t a -> Double
+childEnergy :: Wain p t a -> UIDouble
 childEnergy = sum . map (view energy) . view litter
 
 -- | Returns @True@ if a wain is currently raising children; returns
@@ -254,28 +247,28 @@ mature a = _age a >= _ageOfMaturity a
 
 -- | Returns the wain's current condition. This is useful for making
 --   decisions.
-condition :: Wain p t a -> C.Condition
-condition w = C.Condition (_energy w) (_passion w)
-                (fromIntegral . length . _litter $ w)
+condition :: Wain p t a -> [UIDouble]
+condition w = [_energy w, 1 - _passion w, if l > 0 then 1 else 0]
+  where l = length . _litter $ w
 
 -- | Returns the wain's current happiness level.
 --   This is a number between 0 and 1, inclusive.
-happiness :: Wain p t a -> Double
+happiness :: Wain p t a -> UIDouble
 happiness w = B.happiness (_brain w) (condition w)
 
-data Object p t a = DObject p String | AObject (Wain p t a)
+-- data Object p t a = DObject p String | AObject (Wain p t a)
 
--- | Returns the identity of an object that might be shown to a wain.
---   This should only be used for logging.
---   The wain should not have access to this information.
-identity :: Object p t a -> String
-identity (DObject _ s) = "Image " ++ s
-identity (AObject a) = _name a
+-- -- | Returns the identity of an object that might be shown to a wain.
+-- --   This should only be used for logging.
+-- --   The wain should not have access to this information.
+-- identity :: Object p t a -> String
+-- identity (DObject _ s) = "Image " ++ s
+-- identity (AObject a) = _name a
 
--- | Returns the appearance of an object that might be shown to a wain.
-appearanceOf :: Object p t a -> p
-appearanceOf (DObject img _) = img
-appearanceOf (AObject a) = _appearance a
+-- -- | Returns the appearance of an object that might be shown to a wain.
+-- appearanceOf :: Object p t a -> p
+-- appearanceOf (DObject img _) = img
+-- appearanceOf (AObject a) = _appearance a
 
 -- | Chooses a response based on the stimuli (input patterns).
 --   Returns the chosen response, the updated wain, the responses it
@@ -285,7 +278,7 @@ chooseAction
   :: (Eq a, Enum a, Bounded a)
     => [p] -> Wain p t a
       -> ([Label], Label, R.Response a, Wain p t a,
-           [(R.Response a, Label)], [Double])
+           [(R.Response a, Label)], [UIDouble])
 chooseAction ps w = (ks, k, r, w', xs, ns)
   where (ks, k, r, b', xs, ns) = B.chooseAction (_brain w) ps (condition w)
         w' = set brain b' w
@@ -324,7 +317,7 @@ adjustEnergy delta w =
     then (w3, adultShare', childrensShare')
     else (w4, delta', 0)
   where
-      childrensShare = _devotion w * delta
+      childrensShare = uiToDouble (_devotion w) * delta
       (w2, childrensShare', leftover)
         = adjustChildrensEnergy delta w
       adultShare = delta - childrensShare + leftover
@@ -345,9 +338,9 @@ adjustEnergy1
 adjustEnergy1 delta w = (wAfter, delta', leftover)
   where eBefore = _energy w
         -- eAfter = max 0 . min 1 $ _energy w + delta
-        eAfter = min 1 $ _energy w + delta
+        eAfter = doubleToUI . min 1 $ uiToDouble (_energy w) + delta
         wAfter = set energy eAfter w
-        delta' = eAfter - eBefore
+        delta' = uiToDouble eAfter - uiToDouble eBefore
         leftover = delta - delta'
 
 -- | Adjusts the wain's passion by the genetically-determined amount.
@@ -355,7 +348,8 @@ adjustEnergy1 delta w = (wAfter, delta', leftover)
 --   affected.
 adjustPassion :: Wain p t a -> Wain p t a
 adjustPassion w = set passion p w
-  where p = enforceRange unitInterval (_passion w + _passionDelta w)
+  where p = doubleToUI . enforceRange unitInterval $
+              uiToDouble (_passion w) + uiToDouble (_passionDelta w)
 
 -- | Resets the wain's passion to zero.
 --   This would normally be called immediately after mating.
@@ -457,8 +451,8 @@ donateParentEnergy
   :: Wain p t a -> Wain p t a -> Wain p t a
      -> (Wain p t a, Wain p t a, Wain p t a, Double, Double)
 donateParentEnergy a b c = (a', b', c', aContribution', bContribution')
-  where aContribution = - _devotion a * _energy a
-        bContribution = - _devotion b * _energy b
+  where aContribution = - uiToDouble (_devotion a * _energy a)
+        bContribution = - uiToDouble (_devotion b * _energy b)
         (a', aContribution', _) = adjustEnergy1 aContribution a
         (b', bContribution', _) = adjustEnergy1 bContribution b
         cContribution = -(aContribution' + bContribution')

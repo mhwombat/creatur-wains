@@ -10,13 +10,14 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE CPP #-}
 module ALife.Creatur.Wain.ResponseQC
   (
     test,
     TestResponse,
+    equivResponse,
     TestAction(..),
     sizedArbTestResponse
   ) where
@@ -24,13 +25,14 @@ module ALife.Creatur.Wain.ResponseQC
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.ResponseInternal
-import ALife.Creatur.Wain.ScenarioQC (sizedArbScenario)
-import ALife.Creatur.Wain.ConditionQC ()
+import ALife.Creatur.Wain.ScenarioQC (sizedArbScenario, equivScenario)
 import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
+import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
-import ALife.Creatur.Wain.Util (intersection)
 import ALife.Creatur.Wain.Weights (Weights)
+import Control.DeepSeq (NFData)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 import System.Random (Random, random, randomR)
@@ -38,17 +40,10 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
-#if MIN_VERSION_base(4,8,0)
-#else
-import Control.Applicative
-#endif
-
 data TestAction = Walk | Run | Jump | Skip | Crawl
-  deriving (Show, Eq, Ord, Generic, Enum, Bounded)
+  deriving ( Show, Eq, Ord, Generic, Enum, Bounded, Serialize, Genetic,
+             Diploid, NFData )
 
-instance Serialize TestAction
-instance Genetic TestAction
-instance Diploid TestAction
 
 instance Arbitrary TestAction where
   arbitrary = elements [minBound .. maxBound]
@@ -63,7 +58,7 @@ sizedArbTestResponse :: Int -> Gen TestResponse
 sizedArbTestResponse n = do
   s <- sizedArbScenario n
   a <- arbitrary
-  o <- arb8BitDouble (-1,1)
+  o <- arbitrary
   return $ Response s a (Just o)
 
 instance Arbitrary TestResponse where
@@ -75,17 +70,26 @@ instance Random TestAction where
     where (n, g') = randomR (fromEnum a, fromEnum b) g
   random = randomR (minBound,maxBound)
 
-newtype TestOutcome = TestOutcome Double deriving (Show, Eq)
+-- newtype TestOutcome = TestOutcome Double deriving (Show, Eq)
 
-instance Random TestOutcome where
-  randomR (TestOutcome a, TestOutcome b) g = (TestOutcome x, g')
-    where (x, g') = randomR (a', b') g
-          (a', b') = intersection (-1,1) (a,b)
-  random g = (TestOutcome x, g')
-    where (x, g') = randomR (-1,1) g
+-- instance Random TestOutcome where
+--   randomR (TestOutcome a, TestOutcome b) g = (TestOutcome x, g')
+--     where (x, g') = randomR (a', b') g
+--           (a', b') = intersection (-1,1) (a,b)
+--   random g = (TestOutcome x, g')
+--     where (x, g') = randomR (-1,1) g
 
-instance Arbitrary TestOutcome where
-  arbitrary = TestOutcome <$> choose (-1,1)
+-- instance Arbitrary TestOutcome where
+--   arbitrary = TestOutcome <$> choose (-1,1)
+
+equivOutcome :: Maybe PM1Double -> Maybe PM1Double -> Bool
+equivOutcome (Just x) (Just y) = equivPM1Double x y
+equivOutcome Nothing Nothing = True
+equivOutcome _ _ = False
+
+equivResponse :: TestResponse -> TestResponse -> Bool
+equivResponse (Response s1 a1 o1) (Response s2 a2 o2)
+  = equivScenario s1 s2 && a1 == a2 && equivOutcome o1 o2
 
 -- prop_responseDiff_can_be_1 :: Weights -> Property
 -- prop_responseDiff_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8
@@ -122,7 +126,7 @@ test = testGroup "ALife.Creatur.Wain.ResponseQC"
     testProperty "prop_serialize_round_trippable - Response"
       (prop_serialize_round_trippable :: TestResponse -> Property),
     testProperty "prop_genetic_round_trippable - Response"
-      (prop_genetic_round_trippable (==) :: TestResponse -> Property),
+      (prop_genetic_round_trippable equivResponse :: TestResponse -> Property),
     testProperty "prop_diploid_identity - Response"
       (prop_diploid_identity (==) :: TestResponse -> Property),
     testProperty "prop_diploid_expressable - Response"

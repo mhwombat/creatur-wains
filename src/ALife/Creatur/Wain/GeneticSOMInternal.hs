@@ -12,12 +12,12 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOMInternal where
 
@@ -28,6 +28,7 @@ import ALife.Creatur.Wain.Statistics (Statistical, iStat, uiStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
 import ALife.Creatur.Wain.Util (intersection)
+import Control.DeepSeq (NFData)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import qualified Data.Datamining.Clustering.Classifier as C
@@ -37,11 +38,6 @@ import qualified Data.Serialize as S
 import Data.Word (Word16)
 import GHC.Generics (Generic)
 
-#if MIN_VERSION_base(4,8,0)
-#else
-import Control.Applicative
-#endif
-
 -- | A unique identifier for a model in a SOM.
 type Label = Word16
 
@@ -49,21 +45,11 @@ type Label = Word16
 --     an exponential learning function.
 --   See @'Data.Datamining.Clustering.SSOM.exponential'@ for more
 --   information.
-data ExponentialParams = ExponentialParams Double Double
-  deriving (Eq, Show, Generic)
+data ExponentialParams = ExponentialParams UIDouble UIDouble
+  deriving (Eq, Show, Generic, NFData)
 
 instance S.Serialize ExponentialParams
-
-instance Genetic ExponentialParams where
-  put (ExponentialParams r0 d) = do
-    G.put $ doubleToUI r0
-    G.put $ doubleToUI d
-  get = do
-    r0 <- G.get :: G.Reader (Either [String] UIDouble)
-    d <- G.get :: G.Reader (Either [String] UIDouble)
-    return $ ExponentialParams <$> fmap uiToDouble r0
-      <*> fmap uiToDouble d
-
+instance Genetic ExponentialParams
 instance Diploid ExponentialParams
 
 instance Statistical ExponentialParams where
@@ -78,22 +64,23 @@ validExponential (ExponentialParams r0 d) = 0 <= r0 && r0 <= 1
 
 -- @'toExponential' p t@ returns the learning rate at time @t@,
 -- given an exponential learning function with parameters @p@.
-toExponential :: ExponentialParams -> Word16 -> Double
+toExponential :: ExponentialParams -> Word16 -> UIDouble
 toExponential (ExponentialParams r0 d)
-  = SOM.exponential r0 d . fromIntegral
+  = doubleToUI . SOM.exponential (uiToDouble r0) (uiToDouble d)
+      . fromIntegral
 
 data RandomExponentialParams = RandomExponentialParams
   {
-    _r0Range :: (Double, Double),
-    _dRange :: (Double, Double)
+    _r0Range :: (UIDouble, UIDouble),
+    _dRange :: (UIDouble, UIDouble)
   } deriving Show
 makeLenses ''RandomExponentialParams
 
-r0RangeLimits :: (Double, Double)
-r0RangeLimits = (1/255, 1)
+r0RangeLimits :: (UIDouble, UIDouble)
+r0RangeLimits = (doubleToUI (1/255), doubleToUI 1)
 
-dRangeLimits :: (Double, Double)
-dRangeLimits = (1/255, 1)
+dRangeLimits :: (UIDouble, UIDouble)
+dRangeLimits = (doubleToUI (1/255), doubleToUI 1)
 
 -- | Returns a set of parameters which will permit the broadest possible
 --   set of random decaying gaussian functions for a SOM.
@@ -134,7 +121,7 @@ class Thinker t where
   --   representing how different the patterns are.
   --   The difference should be between @0@ and @1@, inclusive.
   --   A result of @0@ indicates that the patterns are identical.
-  diff :: t -> Pattern t -> Pattern t -> Double
+  diff :: t -> Pattern t -> Pattern t -> UIDouble
   -- | @'adjust' t target r pattern@ returns a modified copy
   --   of @pattern@ that is more similar to @target@ than @pattern@ is.
   --   The magnitude of the adjustment is controlled by the @r@
@@ -142,16 +129,16 @@ class Thinker t where
   --   values for @r@ permit greater adjustments. If @r@=1,
   --   the result should be identical to the @target@. If @r@=0,
   --   the result should be the unmodified @pattern@.
-  adjust :: t -> Pattern t -> Double -> Pattern t -> Pattern t
+  adjust :: t -> Pattern t -> UIDouble -> Pattern t -> Pattern t
 
 data GeneticSOM p t =
   GeneticSOM
     {
-      _patternMap :: SOM.SSOM Word16 Double Label p,
+      _patternMap :: SOM.SSOM Word16 UIDouble Label p,
       _counterMap :: M.Map Label Word16,
       _exponentialParams :: ExponentialParams,
       _teacher :: t
-    }
+    } deriving (Generic, NFData)
 makeLenses ''GeneticSOM
 
 -- | @'buildGeneticSOM' p t ps@ returns a genetic SOM, with an
@@ -192,7 +179,7 @@ instance (Show p, Show t) => Show (GeneticSOM p t) where
 -- | Formats a genetic SOM for display.
 showSSOM
   :: (Show p, Show t)
-    => SOM.SSOM Word16 Double Label p -> ExponentialParams -> t -> String
+    => SOM.SSOM Word16 UIDouble Label p -> ExponentialParams -> t -> String
 showSSOM s e t = "SSOM (" ++ show (SOM.sMap s)
                    ++ ") (toExponential (" ++ show e
                    ++ ")) (diff (" ++ show t
@@ -301,19 +288,12 @@ justClassify s = C.classify (_patternMap s)
 --   is incremented).
 reportAndTrain
   :: GeneticSOM p t -> p
-      -> (Label, [(Label, Double)], Double, GeneticSOM p t)
-reportAndTrain s p = (bmu, diffs', novelty, s')
+      -> (Label, [(Label, UIDouble)], UIDouble, GeneticSOM p t)
+reportAndTrain s p = (bmu, diffs, novelty, s')
   where (bmu, diffs, som') = C.reportAndTrain (_patternMap s) p
-        diffs' = validateDiffs diffs
         cMap = M.adjust (+1) bmu (_counterMap s)
         s' = set patternMap som' . set counterMap cMap $ s
         novelty = minimum . map snd $ diffs
-
-validateDiffs :: [(Label, Double)] -> [(Label, Double)]
-validateDiffs = map f
-  where f (l, x) = if 0 <= x && x <= 1
-                     then (l, x)
-                     else (error "Difference is out of range")
 
 -- | Returns the number of models in the SOM.
 numModels
@@ -335,7 +315,7 @@ toList :: GeneticSOM p t -> [(Label, p)]
 toList (GeneticSOM s _ _ _) = C.toList s
 
 -- | Returns the SOM's current learning rate.
-currentLearningRate :: GeneticSOM p t -> Double
+currentLearningRate :: GeneticSOM p t -> UIDouble
 currentLearningRate s
   = (SOM.learningRate . _patternMap $ s) (fromIntegral t)
   where t = SOM.counter . _patternMap $ s

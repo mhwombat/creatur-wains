@@ -12,12 +12,12 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE CPP #-}
 module ALife.Creatur.Wain.BrainInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -26,23 +26,20 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import qualified ALife.Creatur.Wain.Decider as D
 import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
-import qualified ALife.Creatur.Wain.Condition as Cd
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix,
   iStat, uiStat)
-import ALife.Creatur.Wain.Weights (Weights, weightAt)
+import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1, pm1ToDouble)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
+import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum)
+import Control.DeepSeq (NFData)
 import Control.Lens
 import Data.List (maximumBy)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
-
-#if MIN_VERSION_base(4,8,0)
-#else
-import Control.Applicative
-#endif
 
 data Brain p t a = Brain
   {
@@ -52,12 +49,11 @@ data Brain p t a = Brain
     _decider :: D.Decider a,
     -- | Weights for evaluating happiness
     _happinessWeights :: Weights
-  } deriving (Generic)
-
+  } deriving (Generic, Eq, NFData)
 makeLenses ''Brain
 
-deriving instance (Eq p, Eq a, Eq t)
-    => Eq (Brain p t a)
+-- deriving instance (Eq p, Eq a, Eq t)
+--     => Eq (Brain p t a)
 
 instance (Serialize p, Serialize t, Serialize a, Eq a, GSOM.Thinker t, 
   p ~ GSOM.Pattern t)
@@ -115,14 +111,14 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Thinker t,
 --   input pattern.
 chooseAction
   :: (Eq a, Enum a, Bounded a)
-      => Brain p t a -> [p] -> Cd.Condition
+      => Brain p t a -> [p] -> [UIDouble]
         -> ([Cl.Label], D.Label, Response a, Brain p t a,
-              [(Response a, D.Label)], [Double])
+              [(Response a, D.Label)], [UIDouble])
 chooseAction b ps c
   = (ks, k, r, b', consideredResponses, ns)
   where (ks, s, ns, b') = assessSituation b ps c
         consideredResponses = map (predict b s) $ knownActions b
-        (r, k) = maximumBy f $ consideredResponses
+        (r, k) = maximumBy f consideredResponses
         f = comparing (fromMaybe 0 . _outcome . fst)
 
 -- | Evaluates the input patterns and the current condition.
@@ -130,8 +126,8 @@ chooseAction b ps c
 --   the updated brain.
 --   See @Scenario@ for more information.
 assessSituation
-  :: Brain p t a -> [p] -> Cd.Condition
-    -> ([Cl.Label], Scenario, [Double], Brain p t a)
+  :: Brain p t a -> [p] ->  [UIDouble]
+    -> ([Cl.Label], Scenario, [UIDouble], Brain p t a)
 assessSituation b ps c = (ks, s, ns, b')
   where (ks, ds, ns, c') = Cl.classifyAll (_classifier b) ps
         b' = set classifier c' b
@@ -152,14 +148,15 @@ predict b = D.predict (_decider b)
 --   prediction of the outcome.
 reflect
   :: Eq a
-    => Brain p t a -> Response a -> Cd.Condition
+    => Brain p t a -> Response a -> [UIDouble]
       -> (Brain p t a, Double)
 reflect b r cAfter = (set decider d' b, err)
-  where deltaH = happiness b cAfter - happiness b cBefore
+  where deltaH = uiToDouble (happiness b cAfter)
+                   - uiToDouble (happiness b cBefore)
         cBefore = _condition . _scenario $ r
-        predictedDeltaH = fromJust . _outcome $ r
+        predictedDeltaH = pm1ToDouble . fromJust . _outcome $ r
         (_, _, _, d') = GSOM.reportAndTrain (_decider b)
-                          (r `setOutcome` deltaH)
+                          (setOutcome r $ doubleToPM1 deltaH)
         err = abs (deltaH - predictedDeltaH)
 
 -- | Teaches the brain that the last action taken was a perfect one
@@ -168,11 +165,11 @@ reflect b r cAfter = (set decider d' b, err)
 --   It can also be used to allow wains to learn from others.
 imprint
   :: Eq a
-    => Brain p t a -> [p] -> a -> Cd.Condition -> Brain p t a
+    => Brain p t a -> [p] -> a -> [UIDouble] -> Brain p t a
 imprint b ps a c = set decider d' b'
   where (_, s, _, b') = assessSituation b ps c
         d = _decider b
         d' = D.imprint d s a
 
-happiness :: Brain p t a -> Cd.Condition -> Double
-happiness b = Cd.happiness (_happinessWeights b)
+happiness :: Brain p t a -> [UIDouble] -> UIDouble
+happiness b = weightedSum (_happinessWeights b)

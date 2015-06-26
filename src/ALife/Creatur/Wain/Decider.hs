@@ -10,6 +10,7 @@
 -- A decision-maker based on a Kohonen Self-organising Map (SOM).
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -35,7 +36,10 @@ import ALife.Creatur.Wain.Response (Response(..), outcome,
   diffIgnoringOutcome, similarityIgnoringOutcome, setOutcome,
   makeResponseSimilar, action)
 import ALife.Creatur.Wain.Scenario (Scenario)
+import ALife.Creatur.Wain.PlusMinusOne (pm1Apply)
+import ALife.Creatur.Wain.UnitInterval (uiToDouble)
 import ALife.Creatur.Wain.Weights (Weights)
+import Control.DeepSeq (NFData)
 import Control.Lens
 import Data.Function (on)
 import Data.List (nub, groupBy, sortBy)
@@ -56,16 +60,12 @@ import GHC.Generics (Generic)
 --   differences in the scenarios and the outcomes when comparing two
 --   patterns.
 data DeciderThinker a = DeciderThinker Weights Weights Weights
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, NFData, Serialize, Genetic, Diploid)
 
 instance (Eq a) => Thinker (DeciderThinker a) where
   type Pattern (DeciderThinker a) = Response a
   diff (DeciderThinker cw sw rw) = diffIgnoringOutcome cw sw rw
   adjust _ = makeResponseSimilar
-
-instance Serialize (DeciderThinker a)
-instance Genetic (DeciderThinker a)
-instance Diploid (DeciderThinker a)
 
 type Decider a = GeneticSOM (Response a) (DeciderThinker a)
 
@@ -84,8 +84,9 @@ predict d s a = (r3, k)
         model = d `modelAt` k
         rawOutcome = fromJust . _outcome $ model
         (DeciderThinker cw sw rw)  = view teacher d
-        adjustedOutcome
-          = Just $ similarityIgnoringOutcome cw sw rw model r * rawOutcome
+        adjustment = uiToDouble
+          $ similarityIgnoringOutcome cw sw rw model r
+        adjustedOutcome = Just $ pm1Apply (adjustment *) rawOutcome
         r3 = set outcome adjustedOutcome r
 
 -- | Teaches a response to the decider (teaches it that the response

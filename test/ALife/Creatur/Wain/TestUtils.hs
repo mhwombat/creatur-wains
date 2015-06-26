@@ -10,10 +10,10 @@
 -- QuickCheck test utilities.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.TestUtils
   (
@@ -38,18 +38,15 @@ import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Util (fromEither)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleWord8ToInt,
   forceToWord8)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
+  doubleToUI)
+import Control.DeepSeq (NFData, deepseq)
 import Control.Monad.Random (Rand, RandomGen, getRandom)
 import Data.Datamining.Pattern (adjustNum)
 import Data.Serialize (Serialize, encode, decode)
 import Data.Word (Word8)
 import GHC.Generics (Generic)
 import Test.QuickCheck
-
-#if MIN_VERSION_base(4,8,0)
-#else
-import Control.Applicative
-#endif
 
 -- instance (Floating a, Fractional a, Ord a, Eq a) => Pattern [a] where
 --   type Metric [a] = a
@@ -85,45 +82,44 @@ prop_show_read_round_trippable
 prop_show_read_round_trippable eq x
   = property $ (read . show $ x) `eq` x
 
-prop_diploid_expressable :: (Diploid g, W8.Genetic g) => g -> g -> Property
-prop_diploid_expressable a b = property $ seq (express a b) True
+prop_diploid_expressable
+  :: (Diploid g, W8.Genetic g, NFData g) => g -> g -> Property
+prop_diploid_expressable a b = property $ deepseq (express a b) True
 
-prop_diploid_readable :: (Diploid g, W8.Genetic g) => g -> g -> Property
-prop_diploid_readable a b = property $ seq (c `asTypeOf` a) True
+prop_diploid_readable
+  :: (Diploid g, W8.Genetic g, NFData g)
+    => g -> g -> Property
+prop_diploid_readable a b = property $ deepseq (c `asTypeOf` a) True
   where ga = W8.write a
         gb = W8.write b
         (Right c) = W8.runDiploidReader W8.getAndExpress (ga, gb)
 
 prop_makeSimilar_works
-  :: (a -> a -> Double) -> (a -> Double -> a -> a) -> a -> UIDouble -> a
-    -> Property
+  :: (a -> a -> UIDouble) -> (a -> UIDouble -> a -> a) -> a -> UIDouble
+    -> a -> Property
 prop_makeSimilar_works diff makeSimilar x r y
   = property $ diffAfter <= diffBefore
   where diffBefore = diff x y
-        y' = makeSimilar x (uiToDouble r) y
+        y' = makeSimilar x r y
         diffAfter = diff x y'
 
 data TestPattern = TestPattern Word8
-  deriving (Show, Eq, Generic)
-
-instance Serialize TestPattern
-instance W8.Genetic TestPattern
-instance Diploid TestPattern
+  deriving (Show, Eq, Generic, Serialize, W8.Genetic, Diploid, NFData)
 
 instance Arbitrary TestPattern where
   arbitrary = TestPattern <$> arbitrary
   
-testPatternDiff :: Fractional a => TestPattern -> TestPattern -> a
+testPatternDiff :: TestPattern -> TestPattern -> UIDouble
 testPatternDiff (TestPattern x) (TestPattern y)
-     = abs (fromIntegral x - fromIntegral y) / 255
+     = doubleToUI $ abs (fromIntegral x - fromIntegral y) / 255
        
 makeTestPatternSimilar
-  :: TestPattern -> Double -> TestPattern -> TestPattern
+  :: TestPattern -> UIDouble -> TestPattern -> TestPattern
 makeTestPatternSimilar (TestPattern target) r (TestPattern x)
     = TestPattern (forceToWord8 x'')
     where t' = fromIntegral target :: Double
           x' = fromIntegral x :: Double
-          x'' = adjustNum t' r x'
+          x'' = adjustNum t' (uiToDouble r) x'
 
 randomTestPattern :: RandomGen r => Rand r TestPattern
 randomTestPattern = fmap (TestPattern) getRandom

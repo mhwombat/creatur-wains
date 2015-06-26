@@ -12,41 +12,45 @@
 -- without notice.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 module ALife.Creatur.Wain.WeightsInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
-import qualified ALife.Creatur.Genetics.BRGCWord8 as G
-import ALife.Creatur.Wain.Util (unitInterval, scaleFromWord8,
-  scaleToWord8)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiApply, uiToDouble,
+  doubleToUI, uiDiff)
+import Control.DeepSeq (NFData)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 
-data Weights = Weights [Double]
-  deriving (Eq, Show, Generic, Ord)
+data Weights = Weights [UIDouble]
+  deriving (Eq, Show, Generic, Ord, Serialize, Genetic, Diploid, NFData)
+  -- Note regarding Diploid instance: sum of weights will never be >1,
+  -- because "express" chooses the smaller value.
 
-instance Serialize Weights
+makeWeights :: [UIDouble] -> Weights
+makeWeights [] = Weights []
+makeWeights ws = Weights . normalise $ ws
 
-instance Genetic Weights where
-  put (Weights ws) = G.put . map (scaleToWord8 unitInterval) $ ws
-  get = fmap (fmap (Weights . map (scaleFromWord8 unitInterval))) G.get
-
-instance Diploid Weights
-  -- sum of weights will never be >1, because "express" chooses the
-  -- smaller value
-
-makeWeights :: [Double] -> Weights
-makeWeights ws
-  | null ws   = Weights []
-  | k == 0     = Weights $ replicate n (1 / fromIntegral n)
-  | otherwise = Weights $ map (/k) ws'
-  where k = sum ws'
-        ws' = map abs ws
+normalise :: [UIDouble] -> [UIDouble]
+normalise ws
+  | k == 0    = replicate n (doubleToUI (1 / fromIntegral n))
+  | otherwise = tweak $ map (uiApply (/k)) ws
+  where k = sum . map uiToDouble $ ws
         n = length ws
 
-toDoubles :: Weights -> [Double]
-toDoubles (Weights xs) = xs
+tweak :: [UIDouble] -> [UIDouble]
+tweak (x:xs) = if excess > 0 then (x - excess):xs else x:xs
+  where excess = doubleToUI . max 0 $ s - 1
+        s = sum . map uiToDouble $ (x:xs)
+tweak [] = error "tweak should not have been called"
+
+weightedSum :: Weights -> [UIDouble] -> UIDouble
+weightedSum ws xs = sum $ zipWith (*) (toUIDoubles ws) xs
+
+toUIDoubles :: Weights -> [UIDouble]
+toUIDoubles (Weights xs) = xs
 
 -- randomWeights :: RandomGen g => Int -> Rand g Weights
 -- randomWeights n = do
@@ -65,8 +69,14 @@ toDoubles (Weights xs) = xs
 -- the weight were set to 0.
 -- Weights are short lists, so the call to length isn't too
 -- inefficient.
-weightAt :: Weights -> Int -> Double
+weightAt :: Weights -> Int -> UIDouble
 weightAt w n = if length ws > n
                then ws !! n
                else 0
-  where ws = toDoubles w
+  where ws = toUIDoubles w
+
+weightedUIVectorDiff
+  :: Weights -> [UIDouble] -> [UIDouble] -> UIDouble
+weightedUIVectorDiff ws xs ys
+  = sum . zipWith (*) (toUIDoubles ws) $ zipWith uiDiff xs ys
+

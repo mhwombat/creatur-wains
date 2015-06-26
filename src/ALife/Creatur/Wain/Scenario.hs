@@ -10,11 +10,11 @@
 -- ???
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE CPP #-}
 module ALife.Creatur.Wain.Scenario
   (
     Scenario(..),
@@ -25,41 +25,32 @@ module ALife.Creatur.Wain.Scenario
     makeScenarioSimilar
   ) where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get)
+import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.Condition (Condition, randomCondition,
-  conditionDiff, makeConditionSimilar)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.UnitInterval (vectorDiff)
-import ALife.Creatur.Wain.Weights (Weights, toDoubles)
-import ALife.Creatur.Wain.Util (scaleToWord8, scaleFromWord8,
-  unitInterval, uiDoublesTo8BitHex)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiDoublesTo8BitHex,
+  uiVectorDiff, adjustUIVectorPreserveLength)
+import ALife.Creatur.Wain.Weights (Weights, weightedUIVectorDiff,
+  weightedSum)
+import Control.DeepSeq (NFData)
 import Control.Lens
 import Control.Monad (replicateM)
-import Control.Monad.Random (Rand, RandomGen, getRandom)
-import Data.Datamining.Pattern (adjustVectorPreserveLength)
-import Data.List (intersperse)
+import Control.Monad.Random (Rand, RandomGen, getRandom, getRandoms)
+import Data.List (intercalate)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
-
-#if MIN_VERSION_base(4,8,0)
-#else
-import Control.Applicative
-#endif
 
 -- | A wain's assessment of a situation.
 data Scenario = Scenario
   {
     -- | The pattern probabilities identified by the classifier
     --   for all of the diffs it evaluated.
-    _diffs :: [[Double]],
+    _diffs :: [[UIDouble]],
     -- | Current condition
-    _condition :: Condition
-  } deriving (Eq, Show, Read, Generic, Ord)
-
+    _condition :: [UIDouble]
+  } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Genetic,
+               Diploid, NFData )
 makeLenses ''Scenario
-
-instance Serialize Scenario
 
 -- | @'scenarioDiff' cw sw x y@ compares the scenario patterns
 --   @x@ and @y@, and returns a number between 0 and 1, representing
@@ -71,42 +62,30 @@ instance Serialize Scenario
 --   The parameter @sw@ determines the relative weight to assign to
 --   differences between each corresponding pair of objects represented
 --   by the scenarios in each pattern.
-scenarioDiff :: Weights -> Weights -> Scenario -> Scenario -> Double
-scenarioDiff cw sw x y = sum (zipWith (*) ws ds)
+scenarioDiff :: Weights -> Weights -> Scenario -> Scenario -> UIDouble
+scenarioDiff cw sw x y = weightedSum sw ds
   where ds = cDiff:oDiffs
-        oDiffs = zipWith vectorDiff (_diffs x)   (_diffs y)
-        cDiff = conditionDiff cw (_condition x) (_condition y)
-        ws = toDoubles sw
+        oDiffs = zipWith uiVectorDiff (_diffs x) (_diffs y)
+        cDiff = weightedUIVectorDiff cw (_condition x) (_condition y)
 
-makeScenarioSimilar :: Scenario -> Double -> Scenario -> Scenario
+makeScenarioSimilar :: Scenario -> UIDouble -> Scenario -> Scenario
 makeScenarioSimilar target r x = Scenario xs cond
-  where xs = zipWith (flip adjustVectorPreserveLength r)
+  where xs = zipWith (`adjustUIVectorPreserveLength` r)
                (_diffs target) (_diffs x)
-        cond = makeConditionSimilar (_condition target) r (_condition x)
+        cond = adjustUIVectorPreserveLength
+                 (_condition target) r (_condition x)
 
--- | The initial sequences stored at birth are genetically determined.
-instance Genetic Scenario where
-  put (Scenario xs c) = do
-    put $ map (map (scaleToWord8 unitInterval)) xs
-    put c
-  get = do
-    xs <- fmap (fmap (map (map (scaleFromWord8 unitInterval)))) get
-    c <- get
-    return $ Scenario <$> xs <*> c
-
-instance Diploid Scenario
-
--- | @'randomScenario' n k@ returns a random scenario involving @n@
+-- | @'randomScenario' n k m@ returns a random scenario involving @n@
 --   objects, for a decider that operates with a classifier containing
---   @k@ models.
+--   @k@ models, for a wain whose condition involves @m@ elements.
 --   This is useful for generating random responses.
-randomScenario :: RandomGen g => Int -> Int -> Rand g Scenario
-randomScenario n k = do
+randomScenario :: RandomGen g => Int -> Int -> Int -> Rand g Scenario
+randomScenario n k m = do
   xs <- replicateM n (replicateM k getRandom)
-  c <- randomCondition
+  c <- fmap (take m ) getRandoms
   return $ Scenario xs c
 
 instance Pretty Scenario where
   pretty (Scenario xs c)
-    = (concat . intersperse "|" $ map uiDoublesTo8BitHex xs)
-        ++ '|':pretty c
+    = intercalate "|" (map uiDoublesTo8BitHex xs)
+        ++ '|':uiDoublesTo8BitHex c

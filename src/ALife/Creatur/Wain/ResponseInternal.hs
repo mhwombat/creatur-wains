@@ -12,38 +12,32 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE CPP #-}
 module ALife.Creatur.Wain.ResponseInternal where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic, Reader, put, get)
+import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Scenario (Scenario, randomScenario,
   scenarioDiff, makeScenarioSimilar)
-import ALife.Creatur.Wain.Util (scaleFromWord8, scaleToWord8,
-  intersection)
-import ALife.Creatur.Wain.Weights (Weights, toDoubles)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double, doubleToPM1,
+  pm1ToDouble, adjustPM1Double, interval, pm1Diff)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
+  uiApply)
+import ALife.Creatur.Wain.Util (intersection)
+import ALife.Creatur.Wain.Weights (Weights, weightedSum)
+import Control.DeepSeq (NFData)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
-import Data.Datamining.Pattern (adjustNum)
 import Data.Maybe (fromMaybe)
 import Data.Serialize (Serialize)
-import Data.Word (Word8)
 import GHC.Generics (Generic)
 import System.Random (Random)
 import Text.Printf (printf)
-
-#if MIN_VERSION_base(4,8,0)
-#else
-import Control.Applicative
-#endif
-
-outcomeInterval :: (Double, Double)
-outcomeInterval = (-1.0,1.0)
 
 -- | A model of a situation that a wain might encounter.
 data Response a = Response
@@ -56,27 +50,15 @@ data Response a = Response
     --   Response patterns stored in the decider will have a @Just@
     --   value; stimuli received from the outside will have a @Nothing@
     --   value.
-    _outcome :: Maybe Double
-  } deriving (Eq, Show, Read, Generic, Ord)
+    _outcome :: Maybe PM1Double
+  } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Genetic,
+               Diploid, NFData )
 makeLenses ''Response
-
-instance (Serialize a) => Serialize (Response a)
-instance (Diploid a) => Diploid (Response a)
-
--- | The initial sequences stored at birth are genetically determined.
-instance (Genetic a) => Genetic (Response a) where
-  put (Response s a o)
-    = put s >> put a >> put (fmap (scaleToWord8 outcomeInterval) o)
-  get = do
-    s <- get
-    a <- get
-    o <- get :: Reader (Either [String] (Maybe Word8))
-    return $ Response <$> s <*> a <*> fmap (fmap $ scaleFromWord8 outcomeInterval) o
 
 instance (Show a) => Pretty (Response a) where
   pretty (Response s a o)
     = pretty s ++ '|':show a ++ '|':format o
-    where format (Just x) = printf "%.3f" x
+    where format (Just x) =  printf "%.3f" $ pm1ToDouble x
           format _ = "ø"
 
 -- | @'responseDiff' cw sw rw x y@ compares the response patterns
@@ -94,65 +76,62 @@ instance (Show a) => Pretty (Response a) where
 responseDiff
   :: Eq a
     => Weights -> Weights -> Weights -> Response a -> Response a
-      -> Double
+      -> UIDouble
 responseDiff cw sw rw x y =
     if _action x == _action y
-      then sum (zipWith (*) ws ds) / 2
-      else 1.0
+      then weightedSum rw ds
+      else doubleToUI 1.0
     where ds = [sDiff, oDiff]
           sDiff = scenarioDiff cw sw (_scenario x) (_scenario y)
-          oDiff = outcomeDiff (fromMaybe 0 . _outcome $ x)
+          oDiff = pm1Diff (fromMaybe 0 . _outcome $ x)
                     (fromMaybe 0 . _outcome $ y)
-          ws = toDoubles rw
 
 diffIgnoringOutcome
   :: Eq a
-    => Weights -> Weights -> Weights -> Response a -> Response a -> Double
+    => Weights -> Weights -> Weights -> Response a -> Response a
+      -> UIDouble
 diffIgnoringOutcome cw sw rw x y = responseDiff cw sw rw x' y'
   where x' = set outcome Nothing x
         y' = set outcome Nothing y
 
 makeResponseSimilar
   :: Eq a
-    => Response a -> Double -> Response a -> Response a
+    => Response a -> UIDouble -> Response a -> Response a
 makeResponseSimilar target r x =
     if _action target == _action x
        then Response s a o
        else x
     where s = makeScenarioSimilar (_scenario target) r (_scenario x)
           a = _action x
-          o = Just $ adjustNum (fromMaybe 0.0 . _outcome $ target) r
-                (fromMaybe 0.0 . _outcome $ x)
-
-outcomeDiff :: Double -> Double -> Double
-outcomeDiff a b = abs (a-b) / 2
-  -- a and b are in the interval [-1,1]. We want the difference to be
-  -- in the interval [0,1]
+          o = Just $ adjustPM1Double (fromMaybe 0.0 . _outcome $ target)
+                r (fromMaybe 0.0 . _outcome $ x)
 
 similarityIgnoringOutcome
   :: Eq a
-    => Weights -> Weights -> Weights -> Response a -> Response a -> Double
+    => Weights -> Weights -> Weights -> Response a -> Response a
+      -> UIDouble
 similarityIgnoringOutcome cw sw rw x y
-  = 1 - diffIgnoringOutcome cw sw rw x y
+  = uiApply (\z -> 1 - z) $ diffIgnoringOutcome cw sw rw x y
 
--- | @'randomResponse' n k@ returns a random response model involving
+-- | @'randomResponse' n k m@ returns a random response model involving
 --   @n@ objects, for a decider that operates with a classifier
---   containing @k@ models.
+--   containing @k@ models, for a wain whose condition involves
+--   @m@ elements.
 --   This is useful for generating random deciders.
 randomResponse
   :: (RandomGen g, Random a)
-    => Int -> Int -> (Double, Double) -> Rand g (Response a)
-randomResponse n k interval
-  = Response <$> randomScenario n k <*> getRandom
-      <*> fmap Just (getRandomR interval')
-  where interval' = intersection outcomeInterval interval
+    => Int -> Int -> Int -> (Double, Double) -> Rand g (Response a)
+randomResponse n k m customInterval
+  = Response <$> randomScenario n k m <*> getRandom
+      <*> fmap (Just . doubleToPM1) (getRandomR interval')
+  where interval' = intersection interval customInterval
 
 -- | Updates the outcome in the second response to match the first.
 copyOutcomeTo :: Response a -> Response a -> Response a
 copyOutcomeTo source = set outcome (_outcome source)
 
 -- | Updates the outcome in a response model.
-setOutcome :: Response a -> Double -> Response a
+setOutcome :: Response a -> PM1Double -> Response a
 setOutcome r o = set outcome (Just o) r
 
 -- getOutcome :: Response s a -> Double

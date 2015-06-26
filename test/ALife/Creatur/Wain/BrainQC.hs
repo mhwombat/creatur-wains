@@ -20,7 +20,6 @@ module ALife.Creatur.Wain.BrainQC
   ) where
 
 import ALife.Creatur.Wain.BrainInternal
-import ALife.Creatur.Wain.Condition
 import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.DeciderQC as D
 import ALife.Creatur.Wain.GeneticSOMQC ()
@@ -28,6 +27,7 @@ import ALife.Creatur.Wain.Response (_outcome)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -46,7 +46,7 @@ equivBrain b1 b2 = _classifier b1 `C.equivClassifier` _classifier b2
   && _decider b1 `D.equivDecider` _decider b2
 
 prop_reflect_makes_predictions_more_accurate
-  :: Brain TestPattern C.TestThinker TestAction -> Scenario -> Condition
+  :: Brain TestPattern C.TestThinker TestAction -> Scenario -> [UIDouble]
     -> Property
 prop_reflect_makes_predictions_more_accurate b s cAfter =
   property $ errAfter <= errBefore
@@ -56,7 +56,7 @@ prop_reflect_makes_predictions_more_accurate b s cAfter =
         (_, errAfter) = reflect b2 r cAfter
 
 prop_reflect_error_in_range
-  :: Brain TestPattern C.TestThinker TestAction -> Scenario -> Condition
+  :: Brain TestPattern C.TestThinker TestAction -> Scenario -> [UIDouble]
     -> Property
 prop_reflect_error_in_range b s cAfter
   = property $ -2 <= x && x <= 2
@@ -66,7 +66,7 @@ prop_reflect_error_in_range b s cAfter
 
 prop_imprint_works
   :: Brain TestPattern C.TestThinker TestAction -> [TestPattern]
-    -> TestAction -> Condition -> Property
+    -> TestAction -> [UIDouble] -> Property
 prop_imprint_works b ps a c
   = a `elem` (knownActions b) ==> x' >= x
   where b' = imprint b ps a c

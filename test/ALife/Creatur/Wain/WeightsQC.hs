@@ -20,13 +20,14 @@ module ALife.Creatur.Wain.WeightsQC
 
 import ALife.Creatur.Wain.WeightsInternal
 import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.Util (unitInterval)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
+import ALife.Creatur.Wain.UnitIntervalQC ()
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
 sizedArbWeights :: Int -> Gen Weights
-sizedArbWeights n = fmap makeWeights . vectorOf n $ choose unitInterval
+sizedArbWeights n = fmap makeWeights $ vectorOf n arbitrary
 
 -- sizedArbWeights :: Int -> Gen Weights
 -- sizedArbWeights n = do
@@ -44,21 +45,34 @@ sizedArbWeights n = fmap makeWeights . vectorOf n $ choose unitInterval
 instance Arbitrary Weights where
   arbitrary = sized sizedArbWeights
 
+prop_normalise_works :: [UIDouble] -> Property
+prop_normalise_works xs
+  = not (null ys) ==> sum ys <= 1 && (sum ys - 1) < 1e-10
+  where ys = map uiToDouble $ normalise xs
+
 prop_sum_of_weights_is_1 :: Weights -> Property
-prop_sum_of_weights_is_1 w = not (null ws) ==> (sum ws - 1) < 1e-10
-  where ws = toDoubles w
+prop_sum_of_weights_is_1 w
+  = not (null ws) ==> sum ws <= 1 && (sum ws - 1) < 1e-10
+  where ws = map uiToDouble $ toUIDoubles w
 
 prop_weights_are_positive :: Weights -> Property
 prop_weights_are_positive w = property $
-  (and . map (>= 0) . toDoubles $ w)
+  (and . map ((>= 0) . uiToDouble) . toUIDoubles $ w)
 
 equivWeights :: Weights -> Weights -> Bool
-equivWeights x y = and $ zipWith f (toDoubles x) (toDoubles y)
+equivWeights x y = and $ zipWith f (map uiToDouble $ toUIDoubles x)
+                                   (map uiToDouble $ toUIDoubles y)
   where f a b = abs (a - b) <= 1/255
 
+prop_weighted_sum_in_range :: Weights -> [UIDouble] -> Property
+prop_weighted_sum_in_range ws xs
+  = property $ seq (weightedSum ws xs) True
+
 test :: Test
-test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
+test = testGroup "ALife.Creatur.Wain.WeightsQC"
   [
+    testProperty "prop_normalise_works"
+      prop_normalise_works,
     testProperty "prop_sum_of_weights_is_1"
       prop_sum_of_weights_is_1,
     testProperty "prop_weights_are_positive"
@@ -72,5 +86,6 @@ test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
     testProperty "prop_diploid_expressable - Weights"
       (prop_diploid_expressable :: Weights -> Weights -> Property),
     testProperty "prop_diploid_readable - Weights"
-      (prop_diploid_readable :: Weights -> Weights -> Property)
+      (prop_diploid_readable :: Weights -> Weights -> Property),
+    testProperty "prop_weighted_sum_in_range" prop_weighted_sum_in_range
   ]

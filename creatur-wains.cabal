@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           7.4.5
+Version:           7.4.6
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      7.4.5
+  tag:      7.4.6
 
 library
   GHC-Options:      -Wall -Werror
@@ -38,7 +38,6 @@ library
                     ALife.Creatur.Wain.BrainInternal,
                     ALife.Creatur.Wain.Checkpoint,
                     ALife.Creatur.Wain.Classifier,
-                    ALife.Creatur.Wain.Condition,
                     ALife.Creatur.Wain.Decider,
                     ALife.Creatur.Wain.GeneticSOM,
                     ALife.Creatur.Wain.GeneticSOMInternal,
@@ -49,17 +48,19 @@ library
                     ALife.Creatur.Wain.ResponseInternal,
                     ALife.Creatur.Wain.Scenario,
                     ALife.Creatur.Wain.Statistics,
+                    ALife.Creatur.Wain.PlusMinusOne,
                     ALife.Creatur.Wain.UnitInterval,
                     ALife.Creatur.Wain.Util,
                     ALife.Creatur.Wain.Weights,
                     ALife.Creatur.Wain.WeightsInternal
   Other-modules:    Paths_creatur_wains
   Build-Depends:
-                    base ==4.*,
+                    base ==4.* && >=4.8.0,
                     bytestring ==0.10.*,
                     cereal ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.9.*,
+                    deepseq ==1.4.*,
                     directory ==1.2.*,
                     -- factory ==0.2.*,
                     filepath ==1.4.*,
@@ -67,7 +68,7 @@ library
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
                     random ==1.1.*,
-                    som ==8.0.* && >=8.0.2,
+                    som ==8.0.* && >=8.0.5,
                     transformers ==0.4.*
 
 Test-suite wain-tests
@@ -76,16 +77,17 @@ Test-suite wain-tests
   GHC-Options:      -Wall -Werror
   Hs-source-dirs:   test
   Build-Depends:    
-                    base ==4.*,
+                    base ==4.* && >=4.8.0,
                     cereal ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.9.*,
                     creatur-wains,
+                    deepseq ==1.4.*,
                     -- factory ==0.2.*,
                     lens ==4.11.*,
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
-                    som ==8.0.* && >=8.0.2,
+                    som ==8.0.* && >=8.0.5,
                     transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
@@ -95,15 +97,16 @@ Executable wain-benchmark
   Main-is:          Benchmark.hs
   Hs-source-dirs:   test
   Build-Depends:    
-                    base ==4.*,
+                    base ==4.* && >=4.8.0,
                     cereal ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.9.*,
                     creatur-wains,
+                    deepseq ==1.4.*,
                     lens ==4.11.*,
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
-                    som ==8.0.* && >=8.0.2,
+                    som ==8.0.* && >=8.0.5,
                     temporary ==1.2.*,
                     time ==1.5.*,
                     transformers ==0.4.*,
@@ -117,7 +120,7 @@ Executable wain-benchmark
 --   GHC-Options:      -Wall -rtsopts
 --   Hs-source-dirs:   src
 --   build-depends:
---                     base ==4.*,
+--                     base ==4.* && >=4.8.0,
 --                     colour ==2.3.*,
 --                     diagrams-lib ==1.2.*,
 --                     diagrams-svg ==1.0.* || ==1.1.*,
@@ -128,7 +131,7 @@ Executable wain-benchmark
 --   GHC-Options:      -Wall -rtsopts
 --   Hs-source-dirs:   src
 --   build-depends:
---                     base ==4.*,
+--                     base ==4.* && >=4.8.0,
 --                     colour ==2.3.*,
 --                     diagrams-lib ==1.2.*,
 --                     diagrams-svg ==1.0.* || ==1.1.*,

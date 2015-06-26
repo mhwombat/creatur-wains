@@ -29,15 +29,10 @@ module ALife.Creatur.Wain.Util
     word8ToInt,
     forceIntToWord16,
     word16ToInt,
-    uiDoublesTo8BitHex,
-    uiDoubleTo8BitHex,
     intersection
   ) where
 
-import Data.List (intersperse)
 import Data.Word (Word8, Word16)
--- import Data.Datamining.Pattern (adjustNum, adjustVector)
-import Text.Printf (printf)
 
 -- | The range [0,1], endpoints included.
 unitInterval :: Num a => (a, a)
@@ -131,16 +126,6 @@ word16ToInt = fromIntegral
 --           d = sum $ map (\z -> z*z) deltas
 --   makeSimilar = adjustVector
 
--- | Given a sequence of numbers on the unit interval], scales them
---   to the interval [0,255] and returns a hexadecimal representation.
-uiDoublesTo8BitHex :: [Double] -> String
-uiDoublesTo8BitHex = concat . intersperse ":" . map uiDoubleTo8BitHex
-
--- | Given a number on the unit interval, scales it to the interval
---   [0,255] and returns a hexadecimal representation.
-uiDoubleTo8BitHex :: Double -> String
-uiDoubleTo8BitHex = printf "%.2X" . scaleToWord8 unitInterval
-
 proper :: Ord a => (a, a) -> (a, a)
 proper (x, y) = if x <= y then (x, y) else (y, x)
 
@@ -160,3 +145,4 @@ intersection (a, b) (c, d)
 -- random8BitDouble interval = do 
 --   x <- getRandom
 --   return $ scaleFromWord8 interval x
+
