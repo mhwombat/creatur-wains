@@ -68,7 +68,7 @@ library
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
                     random ==1.1.*,
-                    som ==8.0.* && >=8.0.5,
+                    som ==8.0.* && >=8.0.6,
                     transformers ==0.4.*
 
 Test-suite wain-tests
@@ -87,7 +87,7 @@ Test-suite wain-tests
                     lens ==4.11.*,
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
-                    som ==8.0.* && >=8.0.5,
+                    som ==8.0.* && >=8.0.6,
                     transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
@@ -106,7 +106,7 @@ Executable wain-benchmark
                     lens ==4.11.*,
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
-                    som ==8.0.* && >=8.0.5,
+                    som ==8.0.* && >=8.0.6,
                     temporary ==1.2.*,
                     time ==1.5.*,
                     transformers ==0.4.*,
