@@ -5,7 +5,7 @@
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
--- Portability :  portable
+-- Portability :  portable 
 --
 -- Numbers on the interval -1 to 1, inclusive.
 --
@@ -63,9 +63,9 @@ pm1ToDouble (PM1Double a) = a
 -- | Convert a value to a @PM1Double@.
 --   If the value is outside the allowed interval, an error will be thrown.
 doubleToPM1 :: Double -> PM1Double
-doubleToPM1 x = if inRange interval x
-                 then PM1Double x
-                 else error $ "value not in " ++ show interval
+doubleToPM1 x = if (-1) <= x && x <= 1
+                  then PM1Double x
+                  else error $ "value " ++ show x ++ " not in (-1,1)"
 
 -- | Convert a value to a @PM1Double@. The value will be capped to the
 --   allowed interval.
@@ -93,8 +93,7 @@ instance Num PM1Double where
  abs x = x
  signum (PM1Double x) = doubleToPM1 (signum x)
  fromInteger = doubleToPM1 . fromInteger
- negate (PM1Double 0) = PM1Double 0
- negate _ = error "value not in (-1,1)"
+ negate (PM1Double x) = (PM1Double (-x))
 
 instance Fractional PM1Double where
   (/) (PM1Double x) (PM1Double y) = doubleToPM1 (x / y)

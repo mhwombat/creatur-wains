@@ -60,7 +60,7 @@ uiToDouble (UIDouble a) = a
 doubleToUI :: Double -> UIDouble
 doubleToUI x = if inRange interval x
                  then UIDouble x
-                 else error "value not in unit interval"
+                 else error $ "value " ++ show x ++ " not in (0,1)"
 
 -- | Convert a value to a @UIDouble@. The value will be capped to the
 --   unit interval.
