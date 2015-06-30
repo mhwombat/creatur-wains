@@ -38,8 +38,8 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI)
-import ALife.Creatur.Wain.Util (inRange, enforceRange,
-  scaleToWord8, scaleFromWord8)
+import ALife.Creatur.Wain.Util (enforceRange, scaleToWord8,
+  scaleFromWord8)
 import Control.DeepSeq (NFData)
 import Data.Datamining.Pattern (adjustNum)
 import Data.List (intercalate)
