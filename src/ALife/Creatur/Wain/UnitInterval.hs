@@ -32,7 +32,7 @@ module ALife.Creatur.Wain.UnitInterval
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import ALife.Creatur.Genetics.Diploid (Diploid)
+import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.Util (inRange, enforceRange,
   scaleToWord8, scaleFromWord8)
 import Control.DeepSeq (NFData)
@@ -49,7 +49,7 @@ interval = (0, 1)
 
 -- | A number on the unit interval 0 to 1, inclusive.
 newtype UIDouble = UIDouble Double
-  deriving (Eq, Ord, Generic, Serialize, Diploid, NFData)
+  deriving (Eq, Ord, Generic, Serialize, NFData)
 
 -- | Extract the value from a @UIDouble@.
 uiToDouble :: UIDouble -> Double
@@ -114,12 +114,18 @@ instance Floating UIDouble where
   acosh = doubleToUI . acosh . uiToDouble
   atanh = doubleToUI . atanh . uiToDouble
 
+instance Real UIDouble where
+  toRational (UIDouble x) = toRational x
+
 -- | The initial sequences stored at birth are genetically determined.
 instance W8.Genetic UIDouble where
   put = W8.put . scaleToWord8 interval . enforceRange interval
           . uiToDouble
   get = fmap (fmap (UIDouble . scaleFromWord8 interval)) W8.get
 
+instance Diploid UIDouble where
+  express (UIDouble x) (UIDouble y) = UIDouble $ (x + y)/2
+  
 instance Random UIDouble where
   randomR (UIDouble a, UIDouble b) g = (UIDouble x, g')
     where (x, g') = randomR (a,b) g

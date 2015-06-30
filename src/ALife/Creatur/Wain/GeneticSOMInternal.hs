@@ -24,7 +24,7 @@ module ALife.Creatur.Wain.GeneticSOMInternal where
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
-import ALife.Creatur.Wain.Statistics (Statistical, iStat, uiStat, stats)
+import ALife.Creatur.Wain.Statistics (Statistical, iStat, dStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
 import ALife.Creatur.Wain.Util (intersection)
@@ -54,7 +54,7 @@ instance Diploid ExponentialParams
 
 instance Statistical ExponentialParams where
   stats (ExponentialParams r0 d)
-    = [uiStat "r0" r0, uiStat "d" d]
+    = [dStat "r0" (uiToDouble r0), dStat "d" (uiToDouble d)]
 
 -- | Returns true if the parameters for an exponential function are
 --   valid, false otherwise.

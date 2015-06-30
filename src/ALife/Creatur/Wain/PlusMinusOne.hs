@@ -35,7 +35,7 @@ module ALife.Creatur.Wain.PlusMinusOne
 -- module and UIDouble. May need to use Template Haskell.
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import ALife.Creatur.Genetics.Diploid (Diploid)
+import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI)
 import ALife.Creatur.Wain.Util (inRange, enforceRange,
@@ -54,7 +54,7 @@ interval = (-1, 1)
 
 -- | A number on the interval -1 to 1, inclusive.
 newtype PM1Double = PM1Double Double
-  deriving (Eq, Ord, Generic, Serialize, Diploid, NFData)
+  deriving (Eq, Ord, Generic, Serialize, NFData)
 
 -- | Extract the value from a @PM1Double@.
 pm1ToDouble :: PM1Double -> Double
@@ -119,11 +119,17 @@ instance Floating PM1Double where
   acosh = doubleToPM1 . acosh . pm1ToDouble
   atanh = doubleToPM1 . atanh . pm1ToDouble
 
+instance Real PM1Double where
+  toRational (PM1Double x) = toRational x
+
 -- | The initial sequences stored at birth are genetically determined.
 instance W8.Genetic PM1Double where
   put = W8.put . scaleToWord8 interval . enforceRange interval
           . pm1ToDouble
   get = fmap (fmap (PM1Double . scaleFromWord8 interval)) W8.get
+
+instance Diploid PM1Double where
+  express (PM1Double x) (PM1Double y) = PM1Double $ (x + y)/2
 
 instance Random PM1Double where
   randomR (PM1Double a, PM1Double b) g = (PM1Double x, g')

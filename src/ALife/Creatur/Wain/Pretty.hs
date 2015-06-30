@@ -30,7 +30,9 @@ class Pretty a where
 instance Pretty Int
 
 instance Pretty Double where
-  pretty = printf "%.3g"
+  pretty x = if -10 < x && x < 10
+               then printf "%.3f" x
+               else printf "%.3g" x
 
 instance Pretty Word8 where
   pretty = flip showHex ""

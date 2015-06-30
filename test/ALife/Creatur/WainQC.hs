@@ -26,6 +26,7 @@ import ALife.Creatur.Wain.ClassifierQC (TestThinker)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
+import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
 import Control.Lens
 -- import Control.Monad.Random (evalRand)
 -- import System.Random (mkStdGen)
@@ -39,9 +40,9 @@ equiv
 equiv a1 a2 =
   _appearance a1 == _appearance a2
   && _brain a1 `BQC.equivBrain` _brain a2
-  && _devotion a1 == _devotion a2
+  && _devotion a1 `equivUIDouble` _devotion a2
   && _ageOfMaturity a1 == _ageOfMaturity a2
-  && _passionDelta a1 == _passionDelta a2
+  && _passionDelta a1 `equivUIDouble` _passionDelta a2
 --  && genome a1 == genome a2
 --  && size a1 == size a2
 
@@ -103,10 +104,10 @@ test = testGroup "ALife.Creatur.WainQC"
       (prop_serialize_round_trippable
         :: Wain TestPattern TestThinker TestAction -> Property),
     testProperty "prop_genetic_round_trippable - Wain"
-      (prop_genetic_round_trippable (equiv)
+      (prop_genetic_round_trippable equiv
         :: Wain TestPattern TestThinker TestAction -> Property),
     testProperty "prop_diploid_identity - Wain"
-      (prop_diploid_identity (equiv)
+      (prop_diploid_identity equiv
         :: Wain TestPattern TestThinker TestAction -> Property)
     -- testProperty "prop_offspring_are_valid" prop_offspring_are_valid
   ]

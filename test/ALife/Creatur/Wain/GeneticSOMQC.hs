@@ -18,6 +18,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOMQC
   (
+    TestThinker(..),
     test,
     equivSOM,
     equivGSOM,

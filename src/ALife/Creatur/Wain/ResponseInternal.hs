@@ -24,8 +24,8 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Scenario (Scenario, randomScenario,
   scenarioDiff, makeScenarioSimilar)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, doubleToPM1,
-  pm1ToDouble, adjustPM1Double, interval, pm1Diff)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double,
+  pm1ToDouble, adjustPM1Double, pm1Diff)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiApply)
 import ALife.Creatur.Wain.Util (intersection)
@@ -120,11 +120,11 @@ similarityIgnoringOutcome cw sw rw x y
 --   This is useful for generating random deciders.
 randomResponse
   :: (RandomGen g, Random a)
-    => Int -> Int -> Int -> (Double, Double) -> Rand g (Response a)
+    => Int -> Int -> Int -> (PM1Double, PM1Double) -> Rand g (Response a)
 randomResponse n k m customInterval
   = Response <$> randomScenario n k m <*> getRandom
-      <*> fmap (Just . doubleToPM1) (getRandomR interval')
-  where interval' = intersection interval customInterval
+      <*> fmap Just (getRandomR interval')
+  where interval' = intersection (-1, 1) customInterval
 
 -- | Updates the outcome in the second response to match the first.
 copyOutcomeTo :: Response a -> Response a -> Response a

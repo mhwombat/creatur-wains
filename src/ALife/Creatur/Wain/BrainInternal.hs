@@ -29,7 +29,7 @@ import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
 import ALife.Creatur.Wain.Response (Response(..), setOutcome)
 import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix,
-  iStat, uiStat)
+  iStat, dStat)
 import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1, pm1ToDouble)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum)
@@ -68,9 +68,9 @@ instance (Eq a, Ord a)
   stats (Brain c d hw) = map (prefix "classifier ") (stats c)
     ++ map (prefix "decider ") (stats d)
     ++ [ iStat "DQ" $ D.deciderQuality d,
-         uiStat "energyWeight" $ hw `weightAt` 0,
-         uiStat "passionWeight" $ hw `weightAt` 1,
-         uiStat "litterSizeWeight" $ hw `weightAt` 2]
+         dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
+         dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
+         dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 2]
 
 instance (Show p, Show a, Show t, Eq a)
       => Show (Brain p t a) where
