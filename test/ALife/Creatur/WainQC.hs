@@ -26,6 +26,7 @@ import ALife.Creatur.Wain.ClassifierQC (TestThinker)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
+import ALife.Creatur.Wain.UnitInterval (doubleToUI)
 import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
 import Control.Lens
 -- import Control.Monad.Random (evalRand)
@@ -97,6 +98,41 @@ instance Arbitrary (Wain TestPattern TestThinker TestAction) where
 --   where g = mkStdGen seed
 --         Right c = evalRand (makeOffspring a b "fred") g
 
+prop_adjustEnergy1_balances
+  :: Double -> Wain TestPattern TestThinker TestAction -> Property
+prop_adjustEnergy1_balances e w = property $ e == used + leftover
+  where (_, used, leftover) = adjustEnergy1 e w
+
+prop_adjustEnergy_balances_adult_energy
+  :: Double -> Wain TestPattern TestThinker TestAction -> Property
+prop_adjustEnergy_balances_adult_energy e w
+  = property $ _energy w' == _energy w + doubleToUI adultShare
+  where (w', adultShare, _) = adjustEnergy e w
+
+prop_adjustEnergy_balances_child_energy
+  :: Double -> Wain TestPattern TestThinker TestAction -> Property
+prop_adjustEnergy_balances_child_energy e w
+  = property $ childEnergy w' == childEnergy w + doubleToUI childShare
+  where (w', _, childShare) = adjustEnergy e w
+
+prop_applyMetabolismCost_balances_adult_energy
+  :: Wain TestPattern TestThinker TestAction -> Double -> Double
+    -> Double -> Property
+prop_applyMetabolismCost_balances_adult_energy
+  w baseCost costPerByte childCostFactor
+    = property $ _energy w' == _energy w + doubleToUI adultShare
+  where (w', adultShare, _)
+          = applyMetabolismCost baseCost costPerByte childCostFactor w
+
+prop_applyMetabolismCost_balances_child_energy
+  :: Wain TestPattern TestThinker TestAction -> Double -> Double
+    -> Double -> Property
+prop_applyMetabolismCost_balances_child_energy
+  w baseCost costPerByte childCostFactor
+    = property $ childEnergy w' == childEnergy w + doubleToUI childShare
+  where (w', _, childShare)
+          = applyMetabolismCost baseCost costPerByte childCostFactor w
+
 test :: Test
 test = testGroup "ALife.Creatur.WainQC"
   [
@@ -108,6 +144,16 @@ test = testGroup "ALife.Creatur.WainQC"
         :: Wain TestPattern TestThinker TestAction -> Property),
     testProperty "prop_diploid_identity - Wain"
       (prop_diploid_identity equiv
-        :: Wain TestPattern TestThinker TestAction -> Property)
+        :: Wain TestPattern TestThinker TestAction -> Property),
+    testProperty "prop_adjustEnergy1_balances"
+      prop_adjustEnergy1_balances,
+    testProperty "prop_adjustEnergy_balances_adult_energy"
+      prop_adjustEnergy_balances_adult_energy,
+    testProperty "prop_adjustEnergy_balances_child_energy"
+      prop_adjustEnergy_balances_child_energy,
+    testProperty "prop_applyMetabolismCost_balances_adult_energy"
+      prop_applyMetabolismCost_balances_adult_energy,
+    testProperty "prop_applyMetabolismCost_balances_child_energy"
+      prop_applyMetabolismCost_balances_child_energy
     -- testProperty "prop_offspring_are_valid" prop_offspring_are_valid
   ]

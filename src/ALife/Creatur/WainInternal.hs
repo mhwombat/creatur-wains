@@ -118,8 +118,8 @@ buildWainAndGenerateGenome
   :: (Genetic p, Genetic t, Genetic a,
     Serialize p, Serialize t, Serialize a,
       Eq a, Thinker t, p ~ Pattern t)
-        => String -> p -> B.Brain p t a -> UIDouble -> Word16 -> UIDouble
-          -> Wain p t a
+        => String -> p -> B.Brain p t a -> UIDouble -> Word16
+          -> UIDouble -> Wain p t a
 buildWainAndGenerateGenome n a b d m p = set genome (g,g) strawMan
   where strawMan = buildWain n a b d m p ([], [])
         g = write strawMan
@@ -130,7 +130,8 @@ buildWainFromGenome
   :: (Genetic p, Genetic t, Genetic a, Diploid p, Diploid t, Diploid a,
     Serialize p, Serialize t, Serialize a, Eq a, Thinker t,
       p ~ Pattern t)
-        => Bool -> String -> DiploidReader (Either [String] (Wain p t a))
+        => Bool -> String
+          -> DiploidReader (Either [String] (Wain p t a))
 buildWainFromGenome truncateGenome n = do
   a <- getAndExpress
   b <- getAndExpress
@@ -279,7 +280,8 @@ chooseAction
       -> ([Label], Label, R.Response a, Wain p t a,
            [(R.Response a, Label)], [UIDouble])
 chooseAction ps w = (ks, k, r, w', xs, ns)
-  where (ks, k, r, b', xs, ns) = B.chooseAction (_brain w) ps (condition w)
+  where (ks, k, r, b', xs, ns)
+          = B.chooseAction (_brain w) ps (condition w)
         w' = set brain b' w
 
 -- | @'applyMetabolismCost' baseCost costPerByte childCostFactor w@
@@ -288,7 +290,8 @@ chooseAction ps w = (ks, k, r, w', xs, ns)
 --   Returns the update wain (including litter), the energy deducted
 --   from the wain, and the total energy deducted from the litter.
 applyMetabolismCost
-  :: Double -> Double -> Double -> Wain p t a -> (Wain p t a, Double, Double)
+  :: Double -> Double -> Double -> Wain p t a
+    -> (Wain p t a, Double, Double)
 applyMetabolismCost baseCost costPerByte childCostFactor w
   = (set litter childrenAfter adultAfter, adultCost, childCost)
   where (adultAfter, adultCost)
@@ -334,9 +337,14 @@ adjustChildrensEnergy delta w
 
 adjustEnergy1
   :: Double -> Wain p t a -> (Wain p t a, Double, Double)
-adjustEnergy1 delta w = (wAfter, delta', leftover)
+adjustEnergy1 delta w =
+  -- don't feed dead wains, but do feed newborns
+  if isAlive w || _age w == 0 
+    then (wAfter, delta', leftover)
+    else (w, 0, delta)
   where eBefore = _energy w
-        eAfter = forceDoubleToUI $ uiToDouble (_energy w) + delta
+        eAfter = forceDoubleToUI . max 0 $
+                   uiToDouble (_energy w) + delta
         wAfter = set energy eAfter w
         delta' = uiToDouble eAfter - uiToDouble eBefore
         leftover = delta - delta'
