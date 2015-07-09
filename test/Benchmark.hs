@@ -56,7 +56,7 @@ randomWain n classifierSize deciderSize maxAgeOfMaturity = do
   let c = buildGeneticSOM fc TestThinker ps
   fd <- randomExponential randomExponentialParams
   -- xs <- sequence . replicate deciderSize $ randomResponse 2 (numModels c) 3 (-1, 1)
-  let xs = responseSet 2 (numModels c) 3
+  xs <- responseSet 2 (numModels c) 3
   let hw = makeWeights [1,1,1]
   let t = DeciderThinker (makeWeights [1,1,1])
               (makeWeights [1,1,1]) (makeWeights [1,1])

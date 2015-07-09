@@ -32,7 +32,7 @@ import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
 import ALife.Creatur.Wain.Weights (Weights, weightedSum)
 import Control.DeepSeq (NFData)
 import Control.Lens
--- import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
+import Control.Monad.Random (Rand, RandomGen, getRandomRs)
 import Data.Maybe (fromMaybe)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
@@ -130,13 +130,20 @@ similarityIgnoringOutcome cw sw rw x y
 --   involving @n@ objects, for a decider that operates with a
 --   classifier containing @k@ models, for a wain having conditions
 --   with @m@ elements.
---   This set spans the space of possible responses.
+--   This set spans the space of possible responses (if you ignore the
+--   outcome component).
 --   This is useful for generating deciders for the initial population.
 --   See @'scenarioSet'@ for additional information.
-responseSet :: (Enum a, Bounded a) => Int -> Int -> Int -> [Response a]
-responseSet n k m = [ Response s a (Just 0) | s <- ss, a <- as ]
-  where ss = scenarioSet n k m
+responseSet
+  :: (RandomGen g, Enum a, Bounded a)
+    => Int -> Int -> Int -> Rand g [Response a]
+responseSet n k m = do
+  os <- getRandomRs (0, 1)
+  return $ zipWith setOutcome rs os
+  where rs = [ Response s a (Just 0) | s <- ss, a <- as ]
+        ss = scenarioSet n k m
         as = [minBound..maxBound]
+        
 
 -- | Updates the outcome in the second response to match the first.
 copyOutcomeTo :: Response a -> Response a -> Response a
