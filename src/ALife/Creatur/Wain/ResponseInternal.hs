@@ -134,7 +134,7 @@ similarityIgnoringOutcome cw sw rw x y
 --   This is useful for generating deciders for the initial population.
 --   See @'scenarioSet'@ for additional information.
 responseSet :: (Enum a, Bounded a) => Int -> Int -> Int -> [Response a]
-responseSet n k m = [ Response s a (Just 0.1) | s <- ss, a <- as ]
+responseSet n k m = [ Response s a (Just 0) | s <- ss, a <- as ]
   where ss = scenarioSet n k m
         as = [minBound..maxBound]
 
