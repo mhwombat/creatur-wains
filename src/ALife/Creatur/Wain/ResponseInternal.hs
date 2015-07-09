@@ -22,21 +22,21 @@ module ALife.Creatur.Wain.ResponseInternal where
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.Scenario (Scenario, randomScenario,
-  scenarioDiff, makeScenarioSimilar)
+import ALife.Creatur.Wain.Scenario (Scenario, scenarioSet,
+  scenarioDiff)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double,
   pm1ToDouble, adjustPM1Double, pm1Diff)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiApply)
-import ALife.Creatur.Wain.Util (intersection)
+-- import ALife.Creatur.Wain.Util (intersection)
 import ALife.Creatur.Wain.Weights (Weights, weightedSum)
 import Control.DeepSeq (NFData)
 import Control.Lens
-import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
+-- import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR)
 import Data.Maybe (fromMaybe)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
-import System.Random (Random)
+-- import System.Random (Random)
 import Text.Printf (printf)
 
 -- | A model of a situation that a wain might encounter.
@@ -101,8 +101,8 @@ makeResponseSimilar target r x =
     if _action target == _action x
        then Response s a o
        else x
-    where s = makeScenarioSimilar (_scenario target) r (_scenario x)
-          a = _action x
+    where s = _scenario x -- never change this
+          a = _action x -- never change this
           o = Just $ adjustPM1Double (fromMaybe 0.0 . _outcome $ target)
                 r (fromMaybe 0.0 . _outcome $ x)
 
@@ -113,18 +113,30 @@ similarityIgnoringOutcome
 similarityIgnoringOutcome cw sw rw x y
   = uiApply (\z -> 1 - z) $ diffIgnoringOutcome cw sw rw x y
 
--- | @'randomResponse' n k m@ returns a random response model involving
---   @n@ objects, for a decider that operates with a classifier
---   containing @k@ models, for a wain whose condition involves
---   @m@ elements.
---   This is useful for generating random deciders.
-randomResponse
-  :: (RandomGen g, Random a)
-    => Int -> Int -> Int -> (PM1Double, PM1Double) -> Rand g (Response a)
-randomResponse n k m customInterval
-  = Response <$> randomScenario n k m <*> getRandom
-      <*> fmap Just (getRandomR interval')
-  where interval' = intersection (-1, 1) customInterval
+-- -- | @'randomResponse' n k m@ returns a random response model involving
+-- --   @n@ objects, for a decider that operates with a classifier
+-- --   containing @k@ models, for a wain whose condition involves
+-- --   @m@ elements.
+-- --   This is useful for generating random deciders.
+-- randomResponse
+--   :: (RandomGen g, Random a)
+--     => Int -> Int -> Int -> (PM1Double, PM1Double) -> Rand g (Response a)
+-- randomResponse n k m customInterval
+--   = Response <$> randomScenario n k m <*> getRandom
+--       <*> fmap Just (getRandomR interval')
+--   where interval' = intersection (-1, 1) customInterval
+
+-- | @'responseSet' n k m@ returns a complete set of responses
+--   involving @n@ objects, for a decider that operates with a
+--   classifier containing @k@ models, for a wain having conditions
+--   with @m@ elements.
+--   This set spans the space of possible responses.
+--   This is useful for generating deciders for the initial population.
+--   See @'scenarioSet'@ for additional information.
+responseSet :: (Enum a, Bounded a) => Int -> Int -> Int -> [Response a]
+responseSet n k m = [ Response s a (Just 0) | s <- ss, a <- as ]
+  where ss = scenarioSet n k m
+        as = [minBound..maxBound]
 
 -- | Updates the outcome in the second response to match the first.
 copyOutcomeTo :: Response a -> Response a -> Response a

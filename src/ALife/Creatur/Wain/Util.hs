@@ -29,7 +29,8 @@ module ALife.Creatur.Wain.Util
     word8ToInt,
     forceIntToWord16,
     word16ToInt,
-    intersection
+    intersection,
+    unitVectors
   ) where
 
 import Data.Word (Word8, Word16)
@@ -146,3 +147,8 @@ intersection (a, b) (c, d)
 --   x <- getRandom
 --   return $ scaleFromWord8 interval x
 
+-- | @'unitVectors' n@ returns a set of unit vectors of length @n@.
+--   For example, @unitVectors 3@ returns @[[1,0,0],[0,1,0],[0,0,1]]@.
+unitVectors :: Num a => Int -> [[a]]
+unitVectors n = map f [0..n-1]
+  where f k = replicate k 0 ++ 1 : replicate (n-k-1) 0

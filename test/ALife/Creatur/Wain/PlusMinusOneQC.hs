@@ -21,8 +21,10 @@ module ALife.Creatur.Wain.PlusMinusOneQC
 
 import ALife.Creatur.Wain.PlusMinusOne
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
+import ALife.Creatur.Wain.UnitIntervalQC ()
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity)
+  prop_genetic_round_trippable, prop_diploid_identity,
+  prop_makeSimilar_works)
 import Control.DeepSeq (deepseq)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -100,6 +102,8 @@ test = testGroup "ALife.Creatur.Wain.PlusMinusOneQC"
       prop_pm1Diff_in_range,
     testProperty "prop_pm1Diff_is_symmetric"
       prop_pm1Diff_is_symmetric,
+    testProperty "prop_makeSimilar_works - PM1Double"
+      (prop_makeSimilar_works pm1Diff adjustPM1Double),
     testProperty "prop_max_pm1VectorDiff_is_1"
       prop_max_pm1VectorDiff_is_1,
     testProperty "prop_max_pm1VectorDiff_is_0"
@@ -107,5 +111,7 @@ test = testGroup "ALife.Creatur.Wain.PlusMinusOneQC"
     testProperty "prop_pm1VectorDiff_in_range"
       prop_pm1VectorDiff_in_range,
     testProperty "prop_pm1VectorDiff_is_symmetric"
-      prop_pm1VectorDiff_is_symmetric
+      prop_pm1VectorDiff_is_symmetric,
+    testProperty "prop_makeSimilar_works - PM1 Vector"
+      (prop_makeSimilar_works pm1VectorDiff adjustPM1Vector)
   ]

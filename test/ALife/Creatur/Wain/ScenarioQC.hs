@@ -20,7 +20,6 @@ module ALife.Creatur.Wain.ScenarioQC
   ) where
 
 import ALife.Creatur.Wain.Scenario
-import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI)
 import ALife.Creatur.Wain.UnitIntervalQC (equivUIDoubleVector)
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Weights (Weights)
@@ -52,8 +51,8 @@ sizedArbTestData1 n = do
   sw <- sizedArbWeights j
   let zeroes = replicate j . replicate k $ 0
   let ones = replicate j . replicate k $ 1
-  let x = Scenario zeroes [doubleToUI 0, doubleToUI 0, doubleToUI 0]
-  let y = Scenario ones [doubleToUI 1, doubleToUI 1, doubleToUI 1]
+  let x = Scenario zeroes [0, 0, 0]
+  let y = Scenario ones [1, 1, 1]
   return $ TestData1 cw sw x y
 
 instance Arbitrary TestData1 where
@@ -72,10 +71,10 @@ prop_scenarioDiff_in_range
 prop_scenarioDiff_in_range cw sw a b = property $ 0 <= x && x <= 1
   where x = scenarioDiff cw sw a b
 
-prop_makeScenarioSimilar_works
-  :: Weights -> Weights -> Scenario -> UIDouble -> Scenario -> Property
-prop_makeScenarioSimilar_works cw sw
-  = prop_makeSimilar_works (scenarioDiff cw sw) makeScenarioSimilar
+-- prop_makeScenarioSimilar_works
+--   :: Weights -> Weights -> Scenario -> UIDouble -> Scenario -> Property
+-- prop_makeScenarioSimilar_works cw sw
+--   = prop_makeSimilar_works (scenarioDiff cw sw) makeScenarioSimilar
 
 equivScenario :: Scenario -> Scenario -> Bool
 equivScenario x y
@@ -101,7 +100,7 @@ test = testGroup "ALife.Creatur.Wain.ScenarioQC"
     testProperty "prop_scenarioDiff_can_be_0"
       prop_scenarioDiff_can_be_0,
     testProperty "prop_scenarioDiff_in_range"
-      prop_scenarioDiff_in_range,
-    testProperty "prop_makeScenarioSimilar_works"
-      prop_makeScenarioSimilar_works
+      prop_scenarioDiff_in_range
+    -- testProperty "prop_makeScenarioSimilar_works"
+    --   prop_makeScenarioSimilar_works
   ]

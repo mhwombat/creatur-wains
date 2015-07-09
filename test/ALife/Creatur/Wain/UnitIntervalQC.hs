@@ -21,7 +21,8 @@ module ALife.Creatur.Wain.UnitIntervalQC
 
 import ALife.Creatur.Wain.UnitInterval
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity)
+  prop_genetic_round_trippable, prop_diploid_identity,
+  prop_makeSimilar_works)
 import Control.DeepSeq (deepseq)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -96,6 +97,8 @@ test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
       prop_uiDiff_in_range,
     testProperty "prop_uiDiff_is_symmetric"
       prop_uiDiff_is_symmetric,
+    testProperty "prop_makeSimilar_works - UIDouble"
+      (prop_makeSimilar_works uiDiff adjustUIDouble),
     testProperty "prop_max_uiVectorDiff_is_1"
       prop_max_uiVectorDiff_is_1,
     testProperty "prop_max_uiVectorDiff_is_0"
@@ -103,5 +106,7 @@ test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
     testProperty "prop_uiVectorDiff_in_range"
       prop_uiVectorDiff_in_range,
     testProperty "prop_uiVectorDiff_is_symmetric"
-      prop_uiVectorDiff_is_symmetric
+      prop_uiVectorDiff_is_symmetric,
+    testProperty "prop_makeSimilar_works - UI Vector"
+      (prop_makeSimilar_works uiVectorDiff adjustUIVector)
   ]
