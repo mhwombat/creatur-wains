@@ -6,7 +6,7 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Util (fromEither)
 import ALife.Creatur.Wain hiding (size)
 import ALife.Creatur.Wain.Brain
-import ALife.Creatur.Wain.ClassifierQC (TestThinker(..))
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.Decider
 import ALife.Creatur.Wain.DeciderQC ()
 import ALife.Creatur.Wain.GeneticSOM hiding (size)
@@ -15,63 +15,61 @@ import ALife.Creatur.Wain.ResponseQC
 import ALife.Creatur.Wain.Scenario
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Util (unitInterval)
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.Weights (makeWeights)
 import Control.Lens
 import Control.Monad (replicateM)
 import Control.Monad.Random (Rand, Random, RandomGen, evalRandIO,
-  getRandomR)
-import qualified Data.Datamining.Clustering.Classifier as C
-import Data.Datamining.Clustering.SSOM
+  getRandom, getRandomR)
+import qualified Data.Map.Strict as M
 import Data.Version (showVersion)
 import Data.Word (Word8, Word16)
 import Paths_creatur_wains (version)
 import System.IO.Temp (withSystemTempDirectory)
 
-makeDecider :: Int -> Int -> Decider TestAction
-makeDecider n patternLength
-  = buildGeneticSOM f t (replicate n modelResponse)
-  where modelResponse = Response modelScenario Walk (Just 0)
-        modelScenario = Scenario [xs, xs] modelCondition
-        modelCondition = [1, 0, 0]
-        xs = replicate patternLength 0
-        f = ExponentialParams 1 1
-        t = DeciderThinker (makeWeights [1,1,1])
+makeDecider :: Int -> UIDouble -> Decider TestAction
+makeDecider n dt = buildGeneticSOM e n dt t
+  where e = ExponentialParams 1 1
+        t = DeciderTweaker (makeWeights [1,1,1])
               (makeWeights [1,1,1]) (makeWeights [1,1])
 
 deciderBenchmark :: Decider TestAction -> IO ()
 deciderBenchmark d = do
   putStrLn $ "model count=" ++ show (numModels d)
   putStrLn $ "object length="
-    ++ show (length . head . view diffs . _scenario . head . C.models . view patternMap $ d)
+    ++ show (length . head . view diffs . _scenario . head . M.elems
+         . modelMap $ d)
   let x = W8.write d
   let d' = fromEither (error "read returned Nothing") . W8.read $ x
   putStrLn $ "passed=" ++ show (d' == d)
 
 randomWain
   :: (RandomGen g)
-    => String -> Int -> Int -> Word16 -> Rand g (Wain TestPattern TestThinker TestAction)
-randomWain n classifierSize deciderSize maxAgeOfMaturity = do
-  (app:ps) <- sequence . replicate classifierSize $ randomTestPattern
+    => String -> Int -> UIDouble -> Int -> UIDouble -> Word16
+      -> Rand g (Wain TestPattern TestTweaker TestAction)
+randomWain wName classifierSize classifierThreshold
+    deciderSize deciderThreshold maxAgeOfMaturity = do
+  wAppearance <- randomTestPattern
   fc <- randomExponential randomExponentialParams
-  let c = buildGeneticSOM fc TestThinker ps
+  let c = buildGeneticSOM fc classifierSize classifierThreshold TestTweaker
   fd <- randomExponential randomExponentialParams
-  -- xs <- sequence . replicate deciderSize $ randomResponse 2 (numModels c) 3 (-1, 1)
-  xs <- responseSet 2 (numModels c) 3
   let hw = makeWeights [1,1,1]
-  let t = DeciderThinker (makeWeights [1,1,1])
+  let t = DeciderTweaker (makeWeights [1,1,1])
               (makeWeights [1,1,1]) (makeWeights [1,1])
-  let d = buildGeneticSOM fd t xs
-  let b = Brain c d hw
-  d <- getRandomR unitInterval
-  m <- getRandomR (0,maxAgeOfMaturity)
-  p <- getRandomR unitInterval
-  return $ buildWainAndGenerateGenome n app b d m p
+  let d = buildGeneticSOM fd deciderSize deciderThreshold t
+  let wBrain = Brain c d hw
+  wDevotion <- getRandomR unitInterval
+  wAgeOfMaturity <- getRandomR (0,maxAgeOfMaturity)
+  wPassionDelta <- getRandom
+  wDefaultOutcome <- getRandom
+  return $ buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
+    wAgeOfMaturity wPassionDelta wDefaultOutcome
 
 wainBenchmark :: Int -> Int -> FilePath -> IO ()
 wainBenchmark classifierSize deciderSize dir = do
   w <- evalRandIO
-        (randomWain "fred" classifierSize deciderSize 100)
-          :: IO (Wain TestPattern TestThinker TestAction)
+        (randomWain "fred" classifierSize 0.1 deciderSize 0.1 100)
+          :: IO (Wain TestPattern TestTweaker TestAction)
   let filename = dir ++ "/pattern"
   writeFile filename $ show w
 
@@ -85,7 +83,7 @@ runBenchmark s b = do
 main :: IO ()
 main = do
   putStrLn $ "creatur-wains v" ++ showVersion version
-  runBenchmark "deciderBenchmark" (deciderBenchmark $ makeDecider 5 100)
+  runBenchmark "deciderBenchmark" (deciderBenchmark $ makeDecider 5 0.1)
   runBenchmark "wainBenchmark"
     (withSystemTempDirectory "creatur-wains" $ wainBenchmark 3 3)
 

@@ -39,6 +39,7 @@ import Control.DeepSeq (NFData)
 import Data.Datamining.Pattern (adjustNum)
 import Data.List (intercalate)
 import Data.Serialize (Serialize)
+import Data.Word (Word8)
 import GHC.Generics (Generic)
 import System.Random (Random(..), randomR)
 import Text.Printf (printf)
@@ -119,9 +120,15 @@ instance Real UIDouble where
 
 -- | The initial sequences stored at birth are genetically determined.
 instance W8.Genetic UIDouble where
-  put = W8.put . scaleToWord8 interval . enforceRange interval
-          . uiToDouble
-  get = fmap (fmap (UIDouble . scaleFromWord8 interval)) W8.get
+  put x = W8.putAndReport bytes (show x ++ " UIDouble")
+    where bytes = [scaleToWord8 interval . enforceRange interval
+                    . uiToDouble $ x]
+  get = W8.getAndReport 1 convert
+
+convert :: [Word8] -> (Either String (UIDouble, String))
+convert (x:[]) = Right (g, show g ++ " UIDouble")
+  where g = (UIDouble . scaleFromWord8 interval) x
+convert _ = Left "logic error"
 
 instance Diploid UIDouble where
   express (UIDouble x) (UIDouble y) = UIDouble $ (x + y)/2

@@ -19,13 +19,11 @@ module ALife.Creatur.Wain.Response
     action,
     outcome,
     copyOutcomeTo,
-    setOutcome,
-    -- randomResponse,
-    responseSet,
     responseDiff,
     diffIgnoringOutcome,
     similarityIgnoringOutcome,
-    makeResponseSimilar
+    makeResponseSimilar,
+    responseSet
   ) where
 
 import ALife.Creatur.Wain.ResponseInternal

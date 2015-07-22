@@ -24,7 +24,6 @@ module ALife.Creatur.Wain.Brain
     reflect,
     imprint,
     -- * Miscellaneous
-    knownActions,
     happiness,
     brainOK
   ) where

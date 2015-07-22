@@ -21,22 +21,21 @@
 module ALife.Creatur.Wain.BrainInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
-import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import qualified ALife.Creatur.Wain.Decider as D
 import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
-import ALife.Creatur.Wain.Response (Response(..), setOutcome)
+import ALife.Creatur.Wain.Response (Response(..), responseSet)
 import ALife.Creatur.Wain.Scenario (Scenario(..))
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix,
   iStat, dStat)
-import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1, pm1ToDouble)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double, doubleToPM1,
+  pm1ToDouble)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum)
 import Control.DeepSeq (NFData)
 import Control.Lens
 import Data.List (maximumBy)
-import Data.Maybe (fromMaybe, fromJust)
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
@@ -55,11 +54,11 @@ makeLenses ''Brain
 -- deriving instance (Eq p, Eq a, Eq t)
 --     => Eq (Brain p t a)
 
-instance (Serialize p, Serialize t, Serialize a, Eq a, GSOM.Thinker t, 
+instance (Serialize p, Serialize t, Serialize a, Eq a, GSOM.Tweaker t, 
   p ~ GSOM.Pattern t)
     => Serialize (Brain p t a)
          
-instance (Diploid p, Diploid t, Diploid a, Eq a, GSOM.Thinker t,
+instance (Diploid p, Diploid t, Diploid a, Eq a, GSOM.Tweaker t,
   p ~ GSOM.Pattern t)
     => Diploid (Brain p t a)
 
@@ -80,30 +79,11 @@ instance (Show p, Show a, Show t, Eq a)
 -- | Returns @True@ if both the classifier and decider are valid
 --   according to @somOK@; returns @False@ otherwise.
 brainOK :: Eq a => Brain p t a -> Bool
-brainOK b = Cl.classifierOK (_classifier b)
-              && D.deciderOK (_decider b)
+brainOK b = GSOM.somOK (_classifier b) && GSOM.somOK (_decider b)
 
-instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Thinker t, 
-  p ~ GSOM.Pattern t)
-    => Genetic (Brain p t a) where
-  put (Brain c d hw) = G.put c >> G.put d >> G.put hw
-  get = do
-    c0 <- G.get
-    let c = case c0 of
-          (Left xs) -> Left ("Classifier:":xs)
-          (Right c1) ->
-            if GSOM.numModels c1 == 0
-               then Left ["Classifier has no models"]
-               else Right c1
-    d0 <- G.get
-    let d = case d0 of
-          (Left xs) -> Left ("Decider:":xs)
-          (Right d1) ->
-            if GSOM.numModels d1 == 0
-               then Left ["Decider has no models"]
-               else Right d1
-    hw <- G.get
-    return $ Brain <$> c <*> d <*> hw
+instance (Genetic p, Show p, Genetic t, Show t, Genetic a, Show a, Eq a,
+          GSOM.Tweaker t, p ~ GSOM.Pattern t)
+    => Genetic (Brain p t a)
 
 -- | Chooses a response based on the stimuli (input patterns).
 --   Returns the chosen response, the updated brain, the responses it
@@ -111,15 +91,14 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Thinker t,
 --   input pattern.
 chooseAction
   :: (Eq a, Enum a, Bounded a)
-      => Brain p t a -> [p] -> [UIDouble]
+      => Brain p t a -> [p] -> [UIDouble] -> PM1Double
         -> ([Cl.Label], D.Label, Response a, Brain p t a,
               [(Response a, D.Label)], [UIDouble])
-chooseAction b ps c
-  = (ks, k, r, b', consideredResponses, ns)
+chooseAction b ps c o = (ks, k, r, b'', rks, ns)
   where (ks, s, ns, b') = assessSituation b ps c
-        consideredResponses = map (predict b s) $ knownActions b
-        (r, k) = maximumBy f consideredResponses
-        f = comparing (fromMaybe 0 . _outcome . fst)
+        (rks, b'') = predict b' $ responseSet s o
+        (r, k) = maximumBy bestOutcome rks
+        bestOutcome = comparing (_outcome . fst)
 
 -- | Evaluates the input patterns and the current condition.
 --   Returns the scenario, the novelty of each input pattern, and
@@ -129,18 +108,17 @@ assessSituation
   :: Brain p t a -> [p] ->  [UIDouble]
     -> ([Cl.Label], Scenario, [UIDouble], Brain p t a)
 assessSituation b ps c = (ks, s, ns, b')
-  where (ks, ds, ns, c') = Cl.classifyAll (_classifier b) ps
+  where (ks, ns, ds, c') = Cl.classifySetAndTrain (_classifier b) ps
         b' = set classifier c' b
         s = Scenario ds c
 
--- | Returns the list of actions that this brain "knows".
-knownActions :: Eq a => Brain p t a -> [a]
-knownActions = D.knownActions . _decider
-
--- | Predicts the outcome of a response based on the brain's decider
---   models, and updates the outcome field in that response.
-predict :: Eq a => Brain p t a -> Scenario -> a -> (Response a, D.Label)
-predict b = D.predict (_decider b)
+-- | Predicts the outcome of possible responses based on the brain's
+--   decider models, and updates the outcome field in each response.
+predict
+  :: Eq a
+    => Brain p t a -> [Response a] -> ([(Response a, D.Label)], Brain p t a)
+predict b rs = (rls, b {_decider = d})
+  where (rls, d) = D.predictAll (_decider b) rs
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
@@ -154,9 +132,9 @@ reflect b r cAfter = (set decider d' b, err)
   where deltaH = uiToDouble (happiness b cAfter)
                    - uiToDouble (happiness b cBefore)
         cBefore = _condition . _scenario $ r
-        predictedDeltaH = pm1ToDouble . fromJust . _outcome $ r
-        (_, _, _, d') = GSOM.reportAndTrain (_decider b)
-                          (setOutcome r $ doubleToPM1 deltaH)
+        predictedDeltaH = pm1ToDouble . _outcome $ r
+        d' = GSOM.train (_decider b)
+               (r {_outcome = doubleToPM1 deltaH})
         err = abs (deltaH - predictedDeltaH)
 
 -- | Teaches the brain that the last action taken was a perfect one

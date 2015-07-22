@@ -22,21 +22,16 @@ module ALife.Creatur.Wain.ResponseInternal where
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.Scenario (Scenario, scenarioSet,
-  scenarioDiff)
+import ALife.Creatur.Wain.Scenario (Scenario, scenarioDiff)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double,
   pm1ToDouble, adjustPM1Double, pm1Diff)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiApply)
--- import ALife.Creatur.Wain.Util (intersection)
 import ALife.Creatur.Wain.Weights (Weights, weightedSum)
 import Control.DeepSeq (NFData)
 import Control.Lens
-import Control.Monad.Random (Rand, RandomGen, getRandomRs)
-import Data.Maybe (fromMaybe)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
--- import System.Random (Random)
 import Text.Printf (printf)
 
 -- | A model of a situation that a wain might encounter.
@@ -50,16 +45,17 @@ data Response a = Response
     --   Response patterns stored in the decider will have a @Just@
     --   value; stimuli received from the outside will have a @Nothing@
     --   value.
-    _outcome :: Maybe PM1Double
-  } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Genetic,
-               Diploid, NFData )
+    _outcome :: PM1Double
+  } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Diploid,
+               NFData )
 makeLenses ''Response
+
+instance (Genetic a, Show a) => Genetic (Response a)
 
 instance (Show a) => Pretty (Response a) where
   pretty (Response s a o)
     = pretty s ++ '|':show a ++ '|':format o
-    where format (Just x) =  printf "%.3f" $ pm1ToDouble x
-          format _ = "ø"
+    where format x =  printf "%.3f" $ pm1ToDouble x
 
 -- | @'responseDiff' cw sw rw x y@ compares the response patterns
 --   @x@ and @y@, and returns a number between 0 and 1, representing
@@ -83,16 +79,15 @@ responseDiff cw sw rw x y =
       else doubleToUI 1.0
     where ds = [sDiff, oDiff]
           sDiff = scenarioDiff cw sw (_scenario x) (_scenario y)
-          oDiff = pm1Diff (fromMaybe 0 . _outcome $ x)
-                    (fromMaybe 0 . _outcome $ y)
+          oDiff = pm1Diff (_outcome x) (_outcome $ y)
 
 diffIgnoringOutcome
   :: Eq a
     => Weights -> Weights -> Weights -> Response a -> Response a
       -> UIDouble
 diffIgnoringOutcome cw sw rw x y = responseDiff cw sw rw x' y'
-  where x' = set outcome Nothing x
-        y' = set outcome Nothing y
+  where x' = set outcome 0 x
+        y' = set outcome 0 y
 
 makeResponseSimilar
   :: Eq a
@@ -103,8 +98,7 @@ makeResponseSimilar target r x =
        else x
     where s = _scenario x -- never change this
           a = _action x -- never change this
-          o = Just $ adjustPM1Double (fromMaybe 0.0 . _outcome $ target)
-                r (fromMaybe 0.0 . _outcome $ x)
+          o = adjustPM1Double (_outcome target) r (_outcome x)
 
 similarityIgnoringOutcome
   :: Eq a
@@ -113,45 +107,12 @@ similarityIgnoringOutcome
 similarityIgnoringOutcome cw sw rw x y
   = uiApply (\z -> 1 - z) $ diffIgnoringOutcome cw sw rw x y
 
--- -- | @'randomResponse' n k m@ returns a random response model involving
--- --   @n@ objects, for a decider that operates with a classifier
--- --   containing @k@ models, for a wain whose condition involves
--- --   @m@ elements.
--- --   This is useful for generating random deciders.
--- randomResponse
---   :: (RandomGen g, Random a)
---     => Int -> Int -> Int -> (PM1Double, PM1Double) -> Rand g (Response a)
--- randomResponse n k m customInterval
---   = Response <$> randomScenario n k m <*> getRandom
---       <*> fmap Just (getRandomR interval')
---   where interval' = intersection (-1, 1) customInterval
-
--- | @'responseSet' n k m@ returns a complete set of responses
---   involving @n@ objects, for a decider that operates with a
---   classifier containing @k@ models, for a wain having conditions
---   with @m@ elements.
---   This set spans the space of possible responses (if you ignore the
---   outcome component).
---   This is useful for generating deciders for the initial population.
---   See @'scenarioSet'@ for additional information.
-responseSet
-  :: (RandomGen g, Enum a, Bounded a)
-    => Int -> Int -> Int -> Rand g [Response a]
-responseSet n k m = do
-  os <- getRandomRs (0, 1)
-  return $ zipWith setOutcome rs os
-  where rs = [ Response s a (Just 0) | s <- ss, a <- as ]
-        ss = scenarioSet n k m
-        as = [minBound..maxBound]
-        
-
 -- | Updates the outcome in the second response to match the first.
 copyOutcomeTo :: Response a -> Response a -> Response a
 copyOutcomeTo source = set outcome (_outcome source)
 
--- | Updates the outcome in a response model.
-setOutcome :: Response a -> PM1Double -> Response a
-setOutcome r o = set outcome (Just o) r
-
--- getOutcome :: Response s a -> Double
--- getOutcome = outcome
+responseSet
+  :: (Bounded a, Enum a) =>
+    Scenario -> PM1Double -> [Response a]
+responseSet s o = map (\a -> Response s a o) as
+  where as = [minBound .. maxBound]

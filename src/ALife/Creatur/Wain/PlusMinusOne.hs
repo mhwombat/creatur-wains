@@ -44,6 +44,7 @@ import Control.DeepSeq (NFData)
 import Data.Datamining.Pattern (adjustNum)
 import Data.List (intercalate)
 import Data.Serialize (Serialize)
+import Data.Word (Word8)
 import GHC.Generics (Generic)
 import System.Random (Random(..), randomR)
 import Text.Printf (printf)
@@ -123,9 +124,15 @@ instance Real PM1Double where
 
 -- | The initial sequences stored at birth are genetically determined.
 instance W8.Genetic PM1Double where
-  put = W8.put . scaleToWord8 interval . enforceRange interval
-          . pm1ToDouble
-  get = fmap (fmap (PM1Double . scaleFromWord8 interval)) W8.get
+  put x = W8.putAndReport bytes (show x ++ " PM1Double")
+    where bytes = [scaleToWord8 interval . enforceRange interval
+                    . pm1ToDouble $ x]
+  get = W8.getAndReport 1 convert
+
+convert :: [Word8] -> (Either String (PM1Double, String))
+convert (x:[]) = Right (g, show g ++ " PM1Double")
+  where g = (PM1Double . scaleFromWord8 interval) x
+convert _ = Left "logic error"
 
 instance Diploid PM1Double where
   express (PM1Double x) (PM1Double y) = PM1Double $ (x + y)/2

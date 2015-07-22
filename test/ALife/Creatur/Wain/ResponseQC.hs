@@ -27,7 +27,6 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.ResponseInternal
 import ALife.Creatur.Wain.ScenarioQC (sizedArbScenario, equivScenario)
 import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
@@ -59,7 +58,7 @@ sizedArbTestResponse n = do
   s <- sizedArbScenario n
   a <- arbitrary
   o <- arbitrary
-  return $ Response s a (Just o)
+  return $ Response s a o
 
 instance Arbitrary TestResponse where
   arbitrary = sized sizedArbTestResponse
@@ -82,14 +81,9 @@ instance Random TestAction where
 -- instance Arbitrary TestOutcome where
 --   arbitrary = TestOutcome <$> choose (-1,1)
 
-equivOutcome :: Maybe PM1Double -> Maybe PM1Double -> Bool
-equivOutcome (Just x) (Just y) = equivPM1Double x y
-equivOutcome Nothing Nothing = True
-equivOutcome _ _ = False
-
 equivResponse :: TestResponse -> TestResponse -> Bool
 equivResponse (Response s1 a1 o1) (Response s2 a2 o2)
-  = equivScenario s1 s2 && a1 == a2 && equivOutcome o1 o2
+  = equivScenario s1 s2 && a1 == a2 && equivPM1Double o1 o2
 
 -- prop_responseDiff_can_be_1 :: Weights -> Property
 -- prop_responseDiff_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8

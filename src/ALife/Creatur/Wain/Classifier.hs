@@ -18,79 +18,55 @@ module ALife.Creatur.Wain.Classifier
     Label,
     Classifier,
     buildClassifier,
-    classify,
-    classifyAll,
-    classifierOK
+    classifySetAndTrain
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM,
-  ExponentialParams(..), Thinker(..), Label, buildGeneticSOM,
-  reportAndTrain, somOK)
+  ExponentialParams(..), Tweaker(..), Label, buildGeneticSOM,
+  classify, train)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Data.List (foldl')
 
 type Classifier = GeneticSOM
 
--- | @'buildClassifier' p t ps@ returns a genetic SOM, with an
+-- | @'buildClassifier' p n dt t@ returns a genetic SOM, using an
 --   exponential function with the parameters @p@ as a learning
---   function, the "thinker" @t@, and initialised with the models @ps@.
+--   function, maximum number of models @n@, difference threshold @dt@,
+--   and "tweaker" @t@.
 buildClassifier
-  :: (Thinker t, p ~ Pattern t)
-    => ExponentialParams -> t -> [p] -> Classifier p t
+  :: (Tweaker t, p ~ Pattern t)
+    => ExponentialParams -> Int -> UIDouble -> t -> Classifier p t
 buildClassifier = buildGeneticSOM
 
--- | Returns @True@ if the SOM has a valid learning function
---   and at least one model; returns @False@ otherwise.
-classifierOK
-  :: Classifier s t -> Bool
-classifierOK = somOK
-
--- | Updates the classifier models based on the stimulus (input).
---   Returns the ID of the model that most closely matches the stimulus,
+-- | Updates the classifier models based on the stimulus (set of
+--   input patterns).
+--   Returns the IDs of the models that most closely match each input
+--   pattern,
+--   the "novelty" of each input pattern (difference between it and
+--   the best matching model),
 --   the "signature" (differences between the input pattern
---   and each model in the classifier), the novelty of the input
---   pattern, and the updated classifier.
-classify
-  :: Classifier s t -> s -> (Label, [UIDouble], UIDouble, Classifier s t)
-classify c p = (bmu, sig, nov, c')
-  where (bmu, diffs, nov, c') = reportAndTrain c p
-        sig = map snd diffs
-
--- | Updates the classifier models based on the stimulus (inputs).
---   Returns the the differences between the array of input
---   patterns and each model in the classifier, the novelty of each
---   input pattern, and the updated classifier.
-classifyAll
+--   and each model in the classifier), and the updated classifier.
+classifySetAndTrain
   :: Classifier s t -> [s]
-    -> ([Label], [[UIDouble]], [UIDouble], Classifier s t)
-classifyAll c ps = (reverse ks, reverse ds, reverse ns, c')
-  where (ks, ds, ns, c') = foldl' classifyOne ([], [], [], c) ps
+    -> ([Label], [UIDouble], [[UIDouble]], Classifier s t)
+classifySetAndTrain c ps = (reverse ks, reverse ns, reverse ds, c')
+  where (ks, ns, ds, c') = foldl' classifyNextAndTrain ([], [], [], c) ps
 
-classifyOne
-  :: ([Label], [[UIDouble]], [UIDouble], Classifier s t)
-    -> s -> ([Label], [[UIDouble]], [UIDouble], Classifier s t)
-classifyOne (ks, ds, ns, c) p = (k:ks, d:ds, n:ns, c')
-  where (k, d, n, c') = classify c p
+classifyNextAndTrain
+  :: ([Label], [UIDouble], [[UIDouble]], Classifier s t)
+    -> s -> ([Label], [UIDouble], [[UIDouble]], Classifier s t)
+classifyNextAndTrain (ks, ns, ds, c) p = (k:ks, n:ns, d:ds, c')
+  where (k, n, d, c') = classifyAndTrain c p
 
--- conflation :: Metric s ~ Double => Classifier s -> Double
--- conflation c = conflation' $ counts c
-
--- conflation' :: [Word16] -> Double
--- conflation' [] = 0
--- conflation' (_:[]) = 0
--- conflation' xs =
---   if numVotes == 0
---      then 0
---      else chiSquared / chiSquaredMax
---   where chiSquared = sum $ map (\x -> (x - expected)*(x - expected)/expected) xs'
---         chiSquaredMax = fromIntegral numVotes * fromIntegral (length xs - 1)
---         expected = fromIntegral numVotes / fromIntegral (length xs)
---         numVotes = sum $ map fromIntegral xs :: Int
---         xs' = map fromIntegral xs
-
--- discrimination
---   :: (Pattern s, Metric s ~ Double)
---     => Classifier s -> Int -> Double
--- discrimination c maxCategories = (kMax - k) / kMax
---   where kMax = fromIntegral maxCategories
---         k = fromIntegral (numModels c)
+-- | Updates the classifier models based on the input pattern.
+--   Returns the ID of the model that most closely matches the pattern,
+--   the "novelty" of the the pattern @p@ (difference between it and
+--   the best matching model),
+--   the "signature" (differences between the input pattern
+--   and each model in the classifier), and the updated classifier.
+classifyAndTrain
+  :: Classifier s t -> s -> (Label, UIDouble, [UIDouble], Classifier s t)
+classifyAndTrain c p = (bmu, nov, sig, c3)
+  where (bmu, nov, diffs, c2) = classify c p
+        c3 = train c2 p
+        sig = map snd diffs
