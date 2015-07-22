@@ -50,7 +50,7 @@ data Response a = Response
                NFData )
 makeLenses ''Response
 
-instance (Genetic a, Show a) => Genetic (Response a)
+instance (Genetic a) => Genetic (Response a)
 
 instance (Show a) => Pretty (Response a) where
   pretty (Response s a o)

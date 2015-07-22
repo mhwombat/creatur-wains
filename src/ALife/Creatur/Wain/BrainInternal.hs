@@ -81,8 +81,8 @@ instance (Show p, Show a, Show t, Eq a)
 brainOK :: Eq a => Brain p t a -> Bool
 brainOK b = GSOM.somOK (_classifier b) && GSOM.somOK (_decider b)
 
-instance (Genetic p, Show p, Genetic t, Show t, Genetic a, Show a, Eq a,
-          GSOM.Tweaker t, p ~ GSOM.Pattern t)
+instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Tweaker t,
+          p ~ GSOM.Pattern t)
     => Genetic (Brain p t a)
 
 -- | Chooses a response based on the stimuli (input patterns).

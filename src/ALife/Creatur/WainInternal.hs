@@ -133,7 +133,7 @@ buildWain
 buildWainAndGenerateGenome
   :: (Genetic p, Genetic t, Genetic a,
     Serialize p, Serialize t, Serialize a,
-      Show p, Show t, Show a, Eq a, Tweaker t, p ~ Pattern t)
+      Eq a, Tweaker t, p ~ Pattern t)
         => String -> p -> B.Brain p t a -> UIDouble -> Word16
           -> UIDouble -> PM1Double -> Wain p t a
 buildWainAndGenerateGenome
@@ -149,7 +149,7 @@ buildWainAndGenerateGenome
 --   produced as the result of mating.
 buildWainFromGenome
   :: ( Genetic p, Genetic t, Genetic a, Diploid p, Diploid t, Diploid a,
-      Serialize p, Serialize t, Serialize a, Show p, Show t, Show a,
+      Serialize p, Serialize t, Serialize a, 
       Eq a, Tweaker t, p ~ Pattern t )
         => Bool -> String
           -> DiploidReader (Either [String] (Wain p t a))
@@ -205,8 +205,7 @@ instance (Serialize p, Serialize t, Serialize a, Eq a, Tweaker t,
 -- This implementation is useful for generating the genes in the
 -- initial population, and for testing
 instance (Genetic p, Genetic t, Genetic a, Eq a,
-  Serialize p, Serialize t, Serialize a, Show p, Show t, Show a,
-  Tweaker t, p ~ Pattern t)
+  Serialize p, Serialize t, Serialize a, Tweaker t, p ~ Pattern t)
     => Genetic (Wain p t a) where
   put w = put (_appearance w)
             >> put (_brain w)
@@ -249,7 +248,7 @@ instance Agent (Wain p t a) where
 instance (Genetic p, Genetic t, Genetic a,
   Diploid p, Diploid t, Diploid a,
     Serialize p, Serialize t, Serialize a,
-      Show p, Show t, Show a, Eq a, Tweaker t, p ~ Pattern t)
+      Eq a, Tweaker t, p ~ Pattern t)
         => Reproductive (Wain p t a) where
   type Strand (Wain p t a) = Sequence
   produceGamete a =

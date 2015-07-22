@@ -103,7 +103,7 @@ randomExponential p = do
   d <- getRandomR . intersection dRangeLimits . _dRange $ p
   return $ ExponentialParams r0 d
 
-instance (Genetic k, Ord k, Show k, Genetic p, Show p)
+instance (Genetic k, Ord k, Genetic p)
     => Genetic (M.Map k p) where
   put gm = G.put (M.toList gm)
   get = do
@@ -206,7 +206,7 @@ instance (S.Serialize p, S.Serialize t, Tweaker t, p ~ Pattern t)
     let s = SOM.SOS gm lrf maxSz dt df af kNext
     return $ GeneticSOM s eps tr
 
-instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t, Show p, Show t)
+instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
     => G.Genetic (GeneticSOM p t) where
   put s = G.put (M.elems . SOM.toMap . _patternMap $ s)
             >> G.put (_exponentialParams s)
