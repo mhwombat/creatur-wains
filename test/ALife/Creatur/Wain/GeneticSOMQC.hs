@@ -92,7 +92,7 @@ sizedArbEmptyGeneticSOM n = do
   e <- arbitrary
   dt <- arbitrary
   t <- arbitrary
-  return $ buildGeneticSOM e maxSz dt t
+  return $ buildGeneticSOM e (fromIntegral maxSz) dt t
 
 sizedArbGeneticSOM
   :: (Arbitrary t, Tweaker t, Arbitrary p, p ~ Pattern t)

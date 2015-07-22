@@ -27,7 +27,7 @@ import Data.Word (Word8, Word16)
 import Paths_creatur_wains (version)
 import System.IO.Temp (withSystemTempDirectory)
 
-makeDecider :: Int -> UIDouble -> Decider TestAction
+makeDecider :: Word16 -> UIDouble -> Decider TestAction
 makeDecider n dt = buildGeneticSOM e n dt t
   where e = ExponentialParams 1 1
         t = DeciderTweaker (makeWeights [1,1,1])
@@ -45,7 +45,7 @@ deciderBenchmark d = do
 
 randomWain
   :: (RandomGen g)
-    => String -> Int -> UIDouble -> Int -> UIDouble -> Word16
+    => String -> Word16 -> UIDouble -> Word16 -> UIDouble -> Word16
       -> Rand g (Wain TestPattern TestTweaker TestAction)
 randomWain wName classifierSize classifierThreshold
     deciderSize deciderThreshold maxAgeOfMaturity = do
@@ -65,7 +65,7 @@ randomWain wName classifierSize classifierThreshold
   return $ buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
     wAgeOfMaturity wPassionDelta wDefaultOutcome
 
-wainBenchmark :: Int -> Int -> FilePath -> IO ()
+wainBenchmark :: Word16 -> Word16 -> FilePath -> IO ()
 wainBenchmark classifierSize deciderSize dir = do
   w <- evalRandIO
         (randomWain "fred" classifierSize 0.1 deciderSize 0.1 100)

@@ -44,6 +44,7 @@ import Data.Function (on)
 import Data.List (groupBy, sortBy, foldl')
 import qualified Data.Map.Strict as M
 import Data.Serialize (Serialize)
+import Data.Word (Word16)
 import GHC.Generics (Generic)
 
 -- | @'DeciderTweaker' cw sw rw@ constructs an object which is
@@ -77,7 +78,7 @@ type Decider a = GeneticSOM (Response a) (DeciderTweaker a)
 --   and "tweaker" defined by the weights @cw@, @sw@, and @rw@.
 buildDecider
   :: Eq a
-    => ExponentialParams -> Int -> UIDouble -> Weights -> Weights
+    => ExponentialParams -> Word16 -> UIDouble -> Weights -> Weights
       -> Weights -> Decider a
 buildDecider e n dt cw sw rw
   = buildGeneticSOM e n dt (DeciderTweaker cw sw rw)

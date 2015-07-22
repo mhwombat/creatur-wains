@@ -150,7 +150,7 @@ makeLenses ''GeneticSOM
 --   and "tweaker" @t@.
 buildGeneticSOM
   :: (Tweaker t, p ~ Pattern t)
-    => ExponentialParams -> Int -> UIDouble -> t -> GeneticSOM p t
+    => ExponentialParams -> Word16 -> UIDouble -> t -> GeneticSOM p t
 buildGeneticSOM e@(ExponentialParams r0 d) maxSz dt t
   | r0 < 0    = error "r0<0"
   | d < 0     = error "d<0"
