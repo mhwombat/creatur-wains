@@ -109,7 +109,7 @@ instance (Genetic k, Ord k, Genetic p)
   get = do
     xs <- G.get
     return $ M.fromList <$> xs
-    
+
 instance (Ord k, Diploid p) => Diploid (M.Map k p) where
   express gm1 gm2 = M.fromList . zip ks $ vs
     where ks = M.keys gm1
@@ -218,7 +218,7 @@ instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
     let newLabels = [minBound..] :: [Word16]
     let gm = M.fromList . zip newLabels <$> nodes
     eps <- G.get
-    maxSz <- fmap fromIntegral <$> (G.get :: G.Reader (Either [String] Word16)) 
+    maxSz <- fmap fromIntegral <$> (G.get :: G.Reader (Either [String] Word16))
     dt <- G.get
     tr <- G.get
     let lrf = toExponential <$> eps
@@ -246,7 +246,7 @@ instance (Diploid p, Diploid t, Tweaker t, p ~ Pattern t)
                           (SOM.nextIndex . _patternMap $ y)
           eps = express (_exponentialParams x) (_exponentialParams y)
           tr = express (_tweaker x) (_tweaker y)
-  
+
 -- | Returns @True@ if the SOM has a valid Exponential;
 --   returns @False@ otherwise.
 somOK
@@ -256,6 +256,7 @@ somOK = validExponential . _exponentialParams
 instance Statistical (GeneticSOM p t) where
   stats s =
     (iStat "num models" . numModels $ s)
+      :(dStat "threshold" . SOM.diffThreshold . _patternMap $ s)
       :(iStat "SQ" . schemaQuality $ s)
       :(stats . _exponentialParams $ s)
 
