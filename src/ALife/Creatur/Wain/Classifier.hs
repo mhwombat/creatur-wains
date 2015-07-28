@@ -41,33 +41,26 @@ buildClassifier = buildGeneticSOM
 
 -- | Updates the classifier models based on the stimulus (set of
 --   input patterns).
---   Returns the IDs of the models that most closely match each input
---   pattern,
---   the "novelty" of each input pattern (difference between it and
---   the best matching model),
---   the "signature" (differences between the input pattern
---   and each model in the classifier), and the updated classifier.
+--   Returns the "signature" (differences between the input pattern
+--   and each model in the classifier) of each input pattern,
+--   and the updated classifier.
 classifySetAndTrain
-  :: Classifier s t -> [s]
-    -> ([Label], [UIDouble], [[UIDouble]], Classifier s t)
-classifySetAndTrain c ps = (reverse ks, reverse ns, reverse ds, c')
-  where (ks, ns, ds, c') = foldl' classifyNextAndTrain ([], [], [], c) ps
+  :: Classifier s t -> [s] -> ([[(Label, UIDouble)]], Classifier s t)
+classifySetAndTrain c ps = (reverse ds, c')
+  where (ds, c') = foldl' classifyNextAndTrain ([], c) ps
 
 classifyNextAndTrain
-  :: ([Label], [UIDouble], [[UIDouble]], Classifier s t)
-    -> s -> ([Label], [UIDouble], [[UIDouble]], Classifier s t)
-classifyNextAndTrain (ks, ns, ds, c) p = (k:ks, n:ns, d:ds, c')
-  where (k, n, d, c') = classifyAndTrain c p
+  :: ([[(Label, UIDouble)]], Classifier s t)
+    -> s -> ([[(Label, UIDouble)]], Classifier s t)
+classifyNextAndTrain (ds, c) p = (d:ds, c')
+  where (d, c') = classifyAndTrain c p
 
 -- | Updates the classifier models based on the input pattern.
---   Returns the ID of the model that most closely matches the pattern,
---   the "novelty" of the the pattern @p@ (difference between it and
---   the best matching model),
---   the "signature" (differences between the input pattern
---   and each model in the classifier), and the updated classifier.
+--   Returns the "signature" (differences between the input pattern
+--   and each model in the classifier) and the updated classifier.
 classifyAndTrain
-  :: Classifier s t -> s -> (Label, UIDouble, [UIDouble], Classifier s t)
-classifyAndTrain c p = (bmu, nov, sig, c3)
-  where (bmu, nov, diffs, c2) = classify c p
+  :: Classifier s t -> s
+    -> ([(Label, UIDouble)], Classifier s t)
+classifyAndTrain c p = (diffs, c3)
+  where (_, _, diffs, c2) = classify c p
         c3 = train c2 p
-        sig = map snd diffs

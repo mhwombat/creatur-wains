@@ -17,8 +17,8 @@ module ALife.Creatur.Wain.Util.Diagram
   (
     assessmentDiagram,
     visualiseAssessment,
-    deciderDiagram,
-    visualiseDeciderModel
+    predictorDiagram,
+    visualisePredictorModel
   )where
 
 import Data.Colour.SRGB
@@ -70,8 +70,8 @@ spacer = colour2rect $ sRGB 1 1 1
 parseAssessment :: String -> [String]
 parseAssessment = splitOn "|"
 
-parseDeciderModel :: String -> [String]
-parseDeciderModel s = index:ts
+parsePredictorModel :: String -> [String]
+parsePredictorModel s = index:ts
   where (index:t:_) = splitOn "=" s
         ts = splitOn "|" t
 
@@ -90,13 +90,13 @@ assessmentDiagram :: String -> Diagram B R2
 assessmentDiagram =
   vcat . map (visualiseAssessment . parseAssessment) . lines
 
-visualiseDeciderModel :: [String] -> Diagram B R2
-visualiseDeciderModel (index:dObj:iObj:state:action:outcome:_) =
+visualisePredictorModel :: [String] -> Diagram B R2
+visualisePredictorModel (index:dObj:iObj:state:action:outcome:_) =
   label 4 index ||| objectBar dObj ||| spacer||| objectBar iObj
     ||| spacer ||| statusBar state ||| label 10 action
     ||| label 6 outcome
-visualiseDeciderModel _ = text "invalid decider model format"
+visualisePredictorModel _ = text "invalid predictor model format"
 
-deciderDiagram :: String -> Diagram B R2
-deciderDiagram =
-  vcat . map (visualiseDeciderModel . parseDeciderModel) . lines
+predictorDiagram :: String -> Diagram B R2
+predictorDiagram =
+  vcat . map (visualisePredictorModel . parsePredictorModel) . lines

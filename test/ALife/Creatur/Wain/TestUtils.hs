@@ -42,6 +42,7 @@ import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI)
 import Control.DeepSeq (NFData, deepseq)
 import Control.Monad.Random (Rand, RandomGen, getRandom)
+import Control.Monad.State.Lazy (runState)
 import Data.Datamining.Pattern (adjustNum)
 import Data.Serialize (Serialize, encode, decode)
 import Data.Word (Word8)
@@ -54,12 +55,12 @@ import Test.QuickCheck
 --   makeSimilar = adjustVector
 
 arb8BitDouble :: (Double, Double) -> Gen Double
-arb8BitDouble interval = do 
+arb8BitDouble interval = do
   x <- arbitrary :: Gen Word8
   return $ scaleFromWord8 interval x
-  
+
 arb8BitInt :: (Int, Int) -> Gen Int
-arb8BitInt interval = do 
+arb8BitInt interval = do
   x <- arbitrary :: Gen Word8
   return $ scaleWord8ToInt interval x
 
@@ -70,9 +71,12 @@ prop_serialize_round_trippable x = property $ x' == Right x
 
 prop_genetic_round_trippable :: (Eq g, W8.Genetic g, Show g) =>
   (g -> g -> Bool) -> g -> Property
-prop_genetic_round_trippable eq g = property $ g' `eq` g
+prop_genetic_round_trippable eq g = property $
+  g' `eq` g && null leftover
   where x = W8.write g
-        g' = fromEither (error "read returned Nothing") . W8.read $ x
+        (result, (_, i, _)) = runState W8.get (x, 0, [])
+        leftover = drop i x
+        g' = fromEither (error "read returned Nothing") $ result
 
 prop_diploid_identity :: Diploid g => (g -> g -> Bool) -> g -> Property
 prop_diploid_identity eq g = property $ express g g `eq` g
@@ -108,11 +112,11 @@ data TestPattern = TestPattern Word8
 
 instance Arbitrary TestPattern where
   arbitrary = TestPattern <$> arbitrary
-  
+
 testPatternDiff :: TestPattern -> TestPattern -> UIDouble
 testPatternDiff (TestPattern x) (TestPattern y)
      = doubleToUI $ abs (fromIntegral x - fromIntegral y) / 255
-       
+
 makeTestPatternSimilar
   :: TestPattern -> UIDouble -> TestPattern -> TestPattern
 makeTestPatternSimilar (TestPattern target) r (TestPattern x)

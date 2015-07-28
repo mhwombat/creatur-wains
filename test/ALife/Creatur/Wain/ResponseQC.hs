@@ -19,13 +19,13 @@ module ALife.Creatur.Wain.ResponseQC
     TestResponse,
     equivResponse,
     TestAction(..),
-    sizedArbTestResponse
+    arbTestResponse
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.ResponseInternal
-import ALife.Creatur.Wain.ScenarioQC (sizedArbScenario, equivScenario)
+import ALife.Creatur.Wain.ScenarioQC (arbScenario, equivScenario)
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
@@ -55,7 +55,15 @@ type TestResponse = Response TestAction
 
 sizedArbTestResponse :: Int -> Gen TestResponse
 sizedArbTestResponse n = do
-  s <- sizedArbScenario n
+  nObjects <- choose (0, n)
+  let nConditions = n - nObjects
+  arbTestResponse nObjects nConditions
+
+-- This method is used by other test classes to ensure that all of the
+-- scenarios have the same number of objects and condition parameters.
+arbTestResponse :: Int -> Int -> Gen TestResponse
+arbTestResponse nObjects nConditions = do
+  s <- arbScenario nObjects nConditions
   a <- arbitrary
   o <- arbitrary
   return $ Response s a o
@@ -92,26 +100,26 @@ equivResponse (Response s1 a1 o1) (Response s2 a2 o2)
 --         ws = toDoubles w
 
 prop_responseDiff_can_be_0
-  :: Weights -> Weights -> Weights -> TestResponse -> Property
-prop_responseDiff_can_be_0 cw sw rw r = property $ abs (x - 0) < 1e-8
-  where x = responseDiff cw sw rw r r
+  :: Weights -> Weights -> TestResponse -> Property
+prop_responseDiff_can_be_0 cw rw r = property $ abs (x - 0) < 1e-8
+  where x = responseDiff cw rw r r
 
 prop_responseDiff_in_range
-  :: Weights -> Weights -> Weights -> TestResponse -> TestResponse -> Property
-prop_responseDiff_in_range cw sw rw a b = property $ 0 <= x && x <= 1
-  where x = responseDiff cw sw rw a b
+  :: Weights -> Weights -> TestResponse -> TestResponse -> Property
+prop_responseDiff_in_range cw rw a b = property $ 0 <= x && x <= 1
+  where x = responseDiff cw rw a b
 
 prop_similarityIgnoringOutcome_inRange
-  :: Weights -> Weights -> Weights -> TestResponse -> TestResponse -> Property
-prop_similarityIgnoringOutcome_inRange cw sw rw a b
+  :: Weights -> Weights -> TestResponse -> TestResponse -> Property
+prop_similarityIgnoringOutcome_inRange cw rw a b
   = property $ 0 <= x && x <= 1
-  where x = similarityIgnoringOutcome cw sw rw a b
+  where x = similarityIgnoringOutcome cw rw a b
 
 prop_makeResponseSimilar_works
-  :: Weights -> Weights -> Weights -> TestResponse -> UIDouble
+  :: Weights -> Weights -> TestResponse -> UIDouble
     -> TestResponse -> Property
-prop_makeResponseSimilar_works cw sw rw
-  = prop_makeSimilar_works (responseDiff cw sw rw) makeResponseSimilar
+prop_makeResponseSimilar_works cw rw
+  = prop_makeSimilar_works (responseDiff cw rw) makeResponseSimilar
 
 
 test :: Test

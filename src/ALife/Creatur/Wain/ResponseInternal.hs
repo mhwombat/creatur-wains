@@ -22,7 +22,8 @@ module ALife.Creatur.Wain.ResponseInternal where
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.Scenario (Scenario, scenarioDiff)
+import ALife.Creatur.Wain.Scenario (Scenario,
+  scenarioDiff, makeScenariosSimilarIgnoringLabels)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double,
   pm1ToDouble, adjustPM1Double, pm1Diff)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
@@ -42,9 +43,6 @@ data Response a = Response
     -- | Action
     _action :: a,
     -- | Happiness level change (predicted or actual).
-    --   Response patterns stored in the decider will have a @Just@
-    --   value; stimuli received from the outside will have a @Nothing@
-    --   value.
     _outcome :: PM1Double
   } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Diploid,
                NFData )
@@ -71,21 +69,19 @@ instance (Show a) => Pretty (Response a) where
 --   differences in the scenarios and the outcomes in the two patterns.
 responseDiff
   :: Eq a
-    => Weights -> Weights -> Weights -> Response a -> Response a
-      -> UIDouble
-responseDiff cw sw rw x y =
-    if _action x == _action y
-      then weightedSum rw ds
-      else doubleToUI 1.0
-    where ds = [sDiff, oDiff]
-          sDiff = scenarioDiff cw sw (_scenario x) (_scenario y)
-          oDiff = pm1Diff (_outcome x) (_outcome $ y)
+    => Weights -> Weights -> Response a -> Response a -> UIDouble
+responseDiff cw rw x y =
+  if _action x == _action y
+    then weightedSum rw ds
+    else doubleToUI 1.0
+  where ds = [sDiff, oDiff]
+        sDiff = scenarioDiff cw (_scenario x) (_scenario y)
+        oDiff = pm1Diff (_outcome x) (_outcome $ y)
 
 diffIgnoringOutcome
   :: Eq a
-    => Weights -> Weights -> Weights -> Response a -> Response a
-      -> UIDouble
-diffIgnoringOutcome cw sw rw x y = responseDiff cw sw rw x' y'
+    => Weights -> Weights -> Response a -> Response a -> UIDouble
+diffIgnoringOutcome cw rw x y = responseDiff cw rw x' y'
   where x' = set outcome 0 x
         y' = set outcome 0 y
 
@@ -96,16 +92,16 @@ makeResponseSimilar target r x =
     if _action target == _action x
        then Response s a o
        else x
-    where s = _scenario x -- never change this
+    where s = makeScenariosSimilarIgnoringLabels (_scenario target) r
+                (_scenario x)
           a = _action x -- never change this
           o = adjustPM1Double (_outcome target) r (_outcome x)
 
 similarityIgnoringOutcome
   :: Eq a
-    => Weights -> Weights -> Weights -> Response a -> Response a
-      -> UIDouble
-similarityIgnoringOutcome cw sw rw x y
-  = uiApply (\z -> 1 - z) $ diffIgnoringOutcome cw sw rw x y
+    => Weights -> Weights -> Response a -> Response a -> UIDouble
+similarityIgnoringOutcome cw rw x y
+  = uiApply (\z -> 1 - z) $ diffIgnoringOutcome cw rw x y
 
 -- | Updates the outcome in the second response to match the first.
 copyOutcomeTo :: Response a -> Response a -> Response a

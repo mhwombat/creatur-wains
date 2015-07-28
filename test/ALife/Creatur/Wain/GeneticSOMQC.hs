@@ -96,16 +96,16 @@ sizedArbEmptyGeneticSOM n = do
 
 sizedArbGeneticSOM
   :: (Arbitrary t, Tweaker t, Arbitrary p, p ~ Pattern t)
-    => Int -> Gen (GeneticSOM p t)
-sizedArbGeneticSOM n = do
+    => Gen p -> Int -> Gen (GeneticSOM p t)
+sizedArbGeneticSOM arbPattern n = do
   som <- sizedArbEmptyGeneticSOM n
   k <- choose (0, n+1)
-  xs <- vectorOf k arbitrary
+  xs <- vectorOf k arbPattern
   let s = trainBatch (_patternMap som) xs
   return $ som { _patternMap = s }
 
 instance Arbitrary TestGSOM where
-  arbitrary = sized sizedArbGeneticSOM
+  arbitrary = sized (sizedArbGeneticSOM arbitrary)
 
 -- ignores counters and next index
 equivGSOM :: (t -> t -> Bool) -> GeneticSOM p t -> GeneticSOM p t -> Bool
@@ -117,11 +117,11 @@ equivGSOM equivT x y =
     && equivExponential (view exponentialParams x)
         (view exponentialParams y)
     &&  equivT (view tweaker x) (view tweaker y)
-    
+
 -- ignores counters and next index
 equivTestGSOM :: TestGSOM -> TestGSOM -> Bool
 equivTestGSOM = equivGSOM equivTestTweaker
-    
+
 prop_decayingExponential_valid :: ExponentialParams -> Property
 prop_decayingExponential_valid f = property $ validExponential f
 
@@ -171,7 +171,7 @@ prop_familiar_patterns_have_min_novelty k s
     where k' = k `mod` (fromIntegral $ numModels s)
           l = (keys . toMap . _patternMap $ s) !! k'
           p = modelMap s ! l
-          (_, bmuDiff, _, _) = classify s p          
+          (_, bmuDiff, _, _) = classify s p
 
 -- This is impossible to test because the SOM will create a
 -- new model if the BMU difference (i.e., the novelty) exceeds a

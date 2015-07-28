@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------
 -- |
--- Module      :  ALife.Creatur.Wain.Util.DeciderDiagram
+-- Module      :  ALife.Creatur.Wain.Util.PredictorDiagram
 -- Copyright   :  (c) Amy de Buitléir 2014-2015
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
@@ -18,5 +18,4 @@ import ALife.Creatur.Wain.Util.Diagram
 import Diagrams.Backend.SVG.CmdLine
 
 main :: IO ()
-main = getContents >>= mainWith . deciderDiagram
-
+main = getContents >>= mainWith . predictorDiagram

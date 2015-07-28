@@ -28,7 +28,6 @@ import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
 import ALife.Creatur.Wain.UnitInterval (doubleToUI)
 import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
-import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
 import Control.Lens
 -- import Control.Monad.Random (evalRand)
 -- import System.Random (mkStdGen)
@@ -45,7 +44,6 @@ equiv a1 a2 =
   && _devotion a1 `equivUIDouble` _devotion a2
   && _ageOfMaturity a1 == _ageOfMaturity a2
   && _passionDelta a1 `equivUIDouble` _passionDelta a2
-  && _defaultOutcome a1 `equivPM1Double` _defaultOutcome a2
 --  && genome a1 == genome a2
 --  && size a1 == size a2
 
@@ -56,7 +54,6 @@ strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- devotion
                 <*> arbitrary     -- age of maturity
                 <*> arbitrary     -- delta passion
-                <*> arbitrary     -- default outcome
                 <*> arbitrary     -- energy
                 <*> arbitrary     -- passion
                 <*> arbitrary     -- age

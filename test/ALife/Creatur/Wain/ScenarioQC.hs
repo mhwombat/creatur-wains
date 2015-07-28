@@ -15,7 +15,7 @@
 module ALife.Creatur.Wain.ScenarioQC
   (
     test,
-    sizedArbScenario,
+    arbScenario,
     equivScenario
   ) where
 
@@ -30,55 +30,57 @@ import Test.QuickCheck
 
 sizedArbScenario :: Int -> Gen Scenario
 sizedArbScenario n = do
-  j <- choose (0, n)
-  k <- choose (0, j)
-  let m = n - j - k
-  xs <- vectorOf j (vectorOf k arbitrary)
-  c <- vectorOf m arbitrary
+  nObjects <- choose (0, n)
+  let nConditions = n - nObjects
+  arbScenario nObjects nConditions
+
+-- This method is used by other test classes to ensure that all of the
+-- scenarios have the same number of objects and condition parameters.
+arbScenario :: Int -> Int -> Gen Scenario
+arbScenario nObjects nConditions = do
+  xs <- vectorOf nObjects arbitrary
+  c <- vectorOf nConditions arbitrary
   return $ Scenario xs c
-  
+
 instance Arbitrary Scenario where
   arbitrary = sized sizedArbScenario
 
-data TestData1 = TestData1 Weights Weights Scenario Scenario
+data TestData1 = TestData1 Weights Scenario Scenario
   deriving (Eq, Show)
 
 sizedArbTestData1 :: Int -> Gen TestData1
 sizedArbTestData1 n = do
   j <- choose(1,n+1)
-  let k = n + 2 - j
-  cw <- sizedArbWeights 3
-  sw <- sizedArbWeights j
-  let zeroes = replicate j . replicate k $ 0
-  let ones = replicate j . replicate k $ 1
-  let x = Scenario zeroes [0, 0, 0]
-  let y = Scenario ones [1, 1, 1]
-  return $ TestData1 cw sw x y
+  let k = n + 2 - j + 1
+  cw <- sizedArbWeights k
+  let x = Scenario (replicate j 0) (replicate k 0)
+  let y = Scenario (replicate j 1) (replicate k 1)
+  return $ TestData1 cw x y
 
 instance Arbitrary TestData1 where
   arbitrary = sized sizedArbTestData1
 
 prop_scenarioDiff_can_be_1 :: TestData1 -> Property
-prop_scenarioDiff_can_be_1 (TestData1 cw sw x y) = property $ 1 - d < 1e-8
-  where d = scenarioDiff cw sw x y
+prop_scenarioDiff_can_be_1 (TestData1 cw x y) = property $ 1 - d < 1e-8
+  where d = scenarioDiff cw x y
 
-prop_scenarioDiff_can_be_0 :: Weights -> Weights -> Scenario -> Property
-prop_scenarioDiff_can_be_0 cw sw s = property $ abs (x - 0) < 1e-8
-  where x = scenarioDiff cw sw s s
+prop_scenarioDiff_can_be_0 :: Weights -> Scenario -> Property
+prop_scenarioDiff_can_be_0 cw s = property $ abs (x - 0) < 1e-8
+  where x = scenarioDiff cw s s
 
 prop_scenarioDiff_in_range
-  :: Weights -> Weights -> Scenario -> Scenario -> Property
-prop_scenarioDiff_in_range cw sw a b = property $ 0 <= x && x <= 1
-  where x = scenarioDiff cw sw a b
+  :: Weights -> Scenario -> Scenario -> Property
+prop_scenarioDiff_in_range cw a b = property $ 0 <= x && x <= 1
+  where x = scenarioDiff cw a b
 
 -- prop_makeScenarioSimilar_works
---   :: Weights -> Weights -> Scenario -> UIDouble -> Scenario -> Property
--- prop_makeScenarioSimilar_works cw sw
---   = prop_makeSimilar_works (scenarioDiff cw sw) makeScenarioSimilar
+--   :: Weights -> Scenario -> UIDouble -> Scenario -> Property
+-- prop_makeScenarioSimilar_works cw
+--   = prop_makeSimilar_works (scenarioDiff cw) makeScenarioSimilar
 
 equivScenario :: Scenario -> Scenario -> Bool
 equivScenario x y
-  = (and $ zipWith equivUIDoubleVector (_diffs x) (_diffs y))
+  = _labels x == _labels y
       && equivUIDoubleVector (_condition x) (_condition y)
 
 test :: Test

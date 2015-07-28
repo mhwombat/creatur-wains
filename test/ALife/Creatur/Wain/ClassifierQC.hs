@@ -50,10 +50,15 @@ instance Arbitrary TestTweaker where
 type TestClassifier = Classifier TestPattern TestTweaker
 
 instance Arbitrary TestClassifier where
-  arbitrary = sized sizedArbGeneticSOM
+  arbitrary = sized (sizedArbGeneticSOM arbitrary)
 
 equivClassifier :: TestClassifier -> TestClassifier -> Bool
 equivClassifier = equivGSOM (==)
+
+classifySetAndTrain_label_count
+  :: TestClassifier -> [TestPattern] -> Property
+classifySetAndTrain_label_count c ps = property $ length xs == length ps
+  where (xs, _) = classifySetAndTrain c ps
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ClassifierQC"
@@ -72,5 +77,7 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
         :: TestClassifier -> TestClassifier -> Property),
     testProperty "prop_diploid_readable - Classifier"
       (prop_diploid_readable
-        :: TestClassifier -> TestClassifier -> Property)
+        :: TestClassifier -> TestClassifier -> Property),
+    testProperty "classifySetAndTrain_label_count"
+      classifySetAndTrain_label_count
   ]

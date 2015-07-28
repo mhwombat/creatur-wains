@@ -3,14 +3,14 @@ Version:           7.5.0
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
-                   intelligence to discover patterns in data and make 
+                   intelligence to discover patterns in data and make
                    survival decisions based on those patterns.
                    .
                    About the name: \"Wain\" (rhymes with “rain”, or
                    alternatively, with “mean”) is a word for “child”,
                    commonly used in Donegal and Northern Ireland.
                    .
-Synopsis:          Artificial agent specialised for for pattern 
+Synopsis:          Artificial agent specialised for for pattern
                    discovery.
 License:           BSD3
 License-file:      LICENSE
@@ -38,10 +38,11 @@ library
                     ALife.Creatur.Wain.BrainInternal,
                     ALife.Creatur.Wain.Checkpoint,
                     ALife.Creatur.Wain.Classifier,
-                    ALife.Creatur.Wain.Decider,
                     ALife.Creatur.Wain.GeneticSOM,
                     ALife.Creatur.Wain.GeneticSOMInternal,
+                    ALife.Creatur.Wain.Muser,
                     ALife.Creatur.Wain.PersistentStatistics,
+                    ALife.Creatur.Wain.Predictor,
                     ALife.Creatur.Wain.Pretty,
                     ALife.Creatur.Wain.Raw,
                     ALife.Creatur.Wain.Response,
@@ -76,7 +77,7 @@ Test-suite wain-tests
   Main-is:          Main.hs
   GHC-Options:      -Wall -Werror
   Hs-source-dirs:   test
-  Build-Depends:    
+  Build-Depends:
                     base ==4.* && >=4.8.0,
                     cereal ==0.4.*,
                     containers ==0.5.*,
@@ -87,6 +88,7 @@ Test-suite wain-tests
                     lens ==4.11.*,
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
+                    mtl ==2.2.*,
                     som ==8.1.*,
                     transformers ==0.4.*,
                     test-framework ==0.8.*,
@@ -96,7 +98,7 @@ Test-suite wain-tests
 Executable wain-benchmark
   Main-is:          Benchmark.hs
   Hs-source-dirs:   test
-  Build-Depends:    
+  Build-Depends:
                     base ==4.* && >=4.8.0,
                     cereal ==0.4.*,
                     containers ==0.5.*,
@@ -106,6 +108,51 @@ Executable wain-benchmark
                     lens ==4.11.*,
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
+                    mtl ==2.2.*,
+                    som ==8.1.*,
+                    temporary ==1.2.*,
+                    time ==1.5.*,
+                    transformers ==0.4.*,
+                    test-framework ==0.8.*,
+                    test-framework-quickcheck2 ==0.3.*,
+                    QuickCheck ==2.8.*
+
+Executable wain-learning-test
+  Main-is:          LearningTest.hs
+  Hs-source-dirs:   test
+  Build-Depends:
+                    base ==4.* && >=4.8.0,
+                    cereal ==0.4.*,
+                    containers ==0.5.*,
+                    creatur ==5.9.*,
+                    creatur-wains,
+                    deepseq ==1.4.*,
+                    lens ==4.11.*,
+                    random ==1.1.*,
+                    MonadRandom ==0.4.*,
+                    mtl ==2.2.*,
+                    som ==8.1.*,
+                    temporary ==1.2.*,
+                    time ==1.5.*,
+                    transformers ==0.4.*,
+                    test-framework ==0.8.*,
+                    test-framework-quickcheck2 ==0.3.*,
+                    QuickCheck ==2.8.*
+
+Executable wain-teaching-test
+  Main-is:          TeachingTest.hs
+  Hs-source-dirs:   test
+  Build-Depends:
+                    base ==4.* && >=4.8.0,
+                    cereal ==0.4.*,
+                    containers ==0.5.*,
+                    creatur ==5.9.*,
+                    creatur-wains,
+                    deepseq ==1.4.*,
+                    lens ==4.11.*,
+                    random ==1.1.*,
+                    MonadRandom ==0.4.*,
+                    mtl ==2.2.*,
                     som ==8.1.*,
                     temporary ==1.2.*,
                     time ==1.5.*,
@@ -126,8 +173,8 @@ Executable wain-benchmark
 --                     diagrams-svg ==1.0.* || ==1.1.*,
 --                     split ==0.2.*
 
--- Executable decider-diagram
---   Main-Is:          ALife/Creatur/Wain/Util/DeciderDiagram.hs
+-- Executable predictor-diagram
+--   Main-Is:          ALife/Creatur/Wain/Util/PredictorDiagram.hs
 --   GHC-Options:      -Wall -rtsopts
 --   Hs-source-dirs:   src
 --   build-depends:

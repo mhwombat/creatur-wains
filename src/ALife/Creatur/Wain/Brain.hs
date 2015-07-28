@@ -18,7 +18,7 @@ module ALife.Creatur.Wain.Brain
     Brain(..),
     -- * Lenses
     classifier,
-    decider,
+    predictor,
     -- * Making decisions
     chooseAction,
     reflect,

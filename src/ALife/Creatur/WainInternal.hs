@@ -31,7 +31,6 @@ import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
   produceGamete, build, makeOffspring)
 import qualified ALife.Creatur.Wain.Brain as B
 import ALife.Creatur.Wain.GeneticSOM (Label, Tweaker, Pattern)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
 import qualified ALife.Creatur.Wain.Response as R
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
@@ -69,12 +68,6 @@ data Wain p t a = Wain
     -- | The amount that a wain's passion increases at each CPU turn.
     --   this influences the frequency of mating.
     _passionDelta :: UIDouble,
-    -- | If a wain has no model for a response it's considering, it
-    --   will use this value as a prediction.
-    --   A positive value makes the wain optimistic and more likely to
-    --   take risks. A negative value makes the wain pessimistic and
-    --   risk-averse.
-    _defaultOutcome :: PM1Double,
     -- | The wain's current energy level.
     --   This is a number between 0 and 1, inclusive.
     _energy :: UIDouble,
@@ -100,10 +93,9 @@ buildWain
   :: (Genetic p, Genetic t, Genetic a, Eq a, Tweaker t, p ~ Pattern t,
     Serialize p, Serialize t, Serialize a)
     => String -> p -> B.Brain p t a -> UIDouble -> Word16 -> UIDouble
-      -> PM1Double -> (Sequence, Sequence) -> Wain p t a
+      -> (Sequence, Sequence) -> Wain p t a
 buildWain
-  wName wAppearance wBrain wDevotion wAgeOfMaturity wPassionDelta
-    wDefaultOutcome g
+  wName wAppearance wBrain wDevotion wAgeOfMaturity wPassionDelta g
       = set wainSize s w
   -- We first set the size to 0, then figure out what the size really
   -- is.
@@ -115,7 +107,6 @@ buildWain
                 _devotion = wDevotion,
                 _ageOfMaturity = wAgeOfMaturity,
                 _passionDelta = wPassionDelta,
-                _defaultOutcome = wDefaultOutcome,
                 _energy = 0,
                 _passion = 1,
                 _age = 0,
@@ -135,21 +126,19 @@ buildWainAndGenerateGenome
     Serialize p, Serialize t, Serialize a,
       Eq a, Tweaker t, p ~ Pattern t)
         => String -> p -> B.Brain p t a -> UIDouble -> Word16
-          -> UIDouble -> PM1Double -> Wain p t a
+          -> UIDouble -> Wain p t a
 buildWainAndGenerateGenome
   wName wAppearance wBrain wDevotion wAgeOfMaturity wPassionDelta
-    wDefaultOutcome
       = set genome (g,g) strawMan
   where strawMan = buildWain wName wAppearance wBrain wDevotion
-                     wAgeOfMaturity wPassionDelta wDefaultOutcome
-                       ([], [])
+                     wAgeOfMaturity wPassionDelta ([], [])
         g = write strawMan
 
 -- | Constructs a wain from its genome. This is used when a child is
 --   produced as the result of mating.
 buildWainFromGenome
   :: ( Genetic p, Genetic t, Genetic a, Diploid p, Diploid t, Diploid a,
-      Serialize p, Serialize t, Serialize a, 
+      Serialize p, Serialize t, Serialize a,
       Eq a, Tweaker t, p ~ Pattern t )
         => Bool -> String
           -> DiploidReader (Either [String] (Wain p t a))
@@ -159,11 +148,9 @@ buildWainFromGenome truncateGenome wName = do
   wDevotion <- getAndExpress
   wAgeOfMaturity <- getAndExpress
   wPassionDelta <- getAndExpress
-  wDefaultOutcome <- getAndExpress
   g <- if truncateGenome then consumed2 else copy2
   return $ buildWain wName <$> wAppearance <*> wBrain <*> wDevotion
-             <*> wAgeOfMaturity <*> wPassionDelta <*> wDefaultOutcome
-             <*> pure g
+             <*> wAgeOfMaturity <*> wPassionDelta <*> pure g
 
 deriving instance (Show p, Show t, Show a, Eq a)
     => Show (Wain p t a)
@@ -181,7 +168,6 @@ instance (Eq a, Ord a) =>
       ++ dStat "devotion" (uiToDouble $ _devotion w)
       : iStat "maturity" (_ageOfMaturity w)
       : dStat "Δp" (uiToDouble $ _passionDelta w)
-      : dStat "def. outcome" (pm1ToDouble $ _defaultOutcome w)
       : dStat "energy" (uiToDouble e + uiToDouble ec)
       : dStat "passion" (uiToDouble $ _passion w)
       : dStat "happiness" (uiToDouble $ happiness w)
@@ -197,7 +183,7 @@ instance (Eq a, Ord a) =>
       : []
     where e = _energy w
           ec = sum . map (view energy) $ _litter w
-                               
+
 instance (Serialize p, Serialize t, Serialize a, Eq a, Tweaker t,
   p ~ Pattern t)
     => Serialize (Wain p t a)
@@ -212,7 +198,6 @@ instance (Genetic p, Genetic t, Genetic a, Eq a,
             >> put (_devotion w)
             >> put (_ageOfMaturity w)
             >> put (_passionDelta w)
-            >> put (_defaultOutcome w)
   get = do
     g <- copy
     wAppearance <- get
@@ -220,10 +205,8 @@ instance (Genetic p, Genetic t, Genetic a, Eq a,
     wDevotion <- get
     wAgeOfMaturity <- get
     wPassionDelta <- get
-    wDefaultOutcome <- get
     return $ buildWain "" <$> wAppearance <*> wBrain <*> wDevotion
-               <*> wAgeOfMaturity <*> wPassionDelta <*> wDefaultOutcome
-               <*> pure (g, g)
+               <*> wAgeOfMaturity <*> wPassionDelta <*> pure (g, g)
 
 -- This implementation is useful for testing
 instance (Diploid p, Diploid t, Diploid a,
@@ -231,16 +214,14 @@ instance (Diploid p, Diploid t, Diploid a,
     Serialize p, Serialize t, Serialize a, Tweaker t, p ~ Pattern t)
       => Diploid (Wain p t a) where
   express x y = buildWain "" wAppearance wBrain wDevotion
-                  wAgeOfMaturity wPassionDelta wDefaultOutcome ([],[])
+                  wAgeOfMaturity wPassionDelta ([],[])
     where wAppearance     = express (_appearance x)    (_appearance y)
           wBrain          = express (_brain x)         (_brain y)
           wDevotion       = express (_devotion x)      (_devotion y)
           wAgeOfMaturity  = express (_ageOfMaturity x)
                                                       (_ageOfMaturity y)
           wPassionDelta   = express (_passionDelta x)  (_passionDelta y)
-          wDefaultOutcome = express (_defaultOutcome x)
-                                                     (_defaultOutcome y)
-          
+
 instance Agent (Wain p t a) where
   agentId = view name
   isAlive w = _energy w > 0
@@ -307,12 +288,11 @@ happiness w = B.happiness (_brain w) (condition w)
 chooseAction
   :: (Eq a, Enum a, Bounded a)
     => [p] -> Wain p t a
-      -> ([Label], Label, R.Response a, Wain p t a,
-           [(R.Response a, Label)], [UIDouble])
-chooseAction ps w = (ks, k, r, w', xs, ns)
-  where (ks, k, r, b', xs, ns)
+      -> ([[(Label, UIDouble)]], [(R.Response a, Label)],
+          R.Response a, Wain p t a)
+chooseAction ps w = (lds, rls, r, w')
+  where (lds, rls, r, b')
           = B.chooseAction (_brain w) ps (condition w)
-              (_defaultOutcome w)
         w' = set brain b' w
 
 -- | @'applyMetabolismCost' baseCost costPerByte childCostFactor w@
@@ -370,7 +350,7 @@ adjustEnergy1
   :: Double -> Wain p t a -> (Wain p t a, Double, Double)
 adjustEnergy1 delta w =
   -- don't feed dead wains, but do feed newborns
-  if isAlive w || _age w == 0 
+  if isAlive w || _age w == 0
     then (wAfter, delta', leftover)
     else (w, 0, delta)
   where eBefore = _energy w
@@ -400,7 +380,7 @@ incAge = incAge1 . incLitterAge
 incLitterAge :: Wain p t a -> Wain p t a
 incLitterAge w = set litter litter' w
   where litter' = map incAge1 $ _litter w
-  
+
 incAge1 :: Wain p t a -> Wain p t a
 incAge1 = age +~ 1
 

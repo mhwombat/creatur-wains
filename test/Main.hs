@@ -15,7 +15,7 @@ module Main where
 import ALife.Creatur.WainQC (test)
 import ALife.Creatur.Wain.BrainQC (test)
 import ALife.Creatur.Wain.ClassifierQC (test)
-import ALife.Creatur.Wain.DeciderQC (test)
+import ALife.Creatur.Wain.PredictorQC (test)
 import ALife.Creatur.Wain.GeneticSOMQC (test)
 import ALife.Creatur.Wain.PlusMinusOneQC (test)
 import ALife.Creatur.Wain.ResponseQC (test)
@@ -27,7 +27,7 @@ import ALife.Creatur.Wain.WeightsQC (test)
 import Test.Framework as TF (defaultMain, Test)
 
 tests :: [TF.Test]
-tests = 
+tests =
   [
     -- In increasing order of complexity
     ALife.Creatur.Wain.UtilQC.test,
@@ -38,7 +38,7 @@ tests =
     ALife.Creatur.Wain.ResponseQC.test,
     ALife.Creatur.Wain.GeneticSOMQC.test,
     ALife.Creatur.Wain.ClassifierQC.test,
-    ALife.Creatur.Wain.DeciderQC.test,
+    ALife.Creatur.Wain.PredictorQC.test,
     ALife.Creatur.Wain.BrainQC.test,
     ALife.Creatur.WainQC.test
   ]

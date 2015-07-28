@@ -23,7 +23,6 @@ module ALife.Creatur.Wain
     devotion,
     ageOfMaturity,
     passionDelta,
-    defaultOutcome,
     energy,
     passion,
     age,
@@ -57,4 +56,3 @@ module ALife.Creatur.Wain
 
 import ALife.Creatur.WainInternal
 import ALife.Creatur.Wain.GeneticSOM (Label)
-
