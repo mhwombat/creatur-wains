@@ -26,7 +26,7 @@ import GHC.Generics (Generic)
 
 data Weights = Weights [UIDouble]
   deriving (Eq, Show, Generic, Ord, Serialize, Genetic, Diploid, NFData)
-  -- Note regarding Diploid instance: sum of weights will never be >1,
+  -- NOTE: Regarding Diploid instance, sum of weights will never be >1,
   -- because "express" chooses the smaller value.
 
 makeWeights :: [UIDouble] -> Weights
@@ -79,4 +79,3 @@ weightedUIVectorDiff
   :: Weights -> [UIDouble] -> [UIDouble] -> UIDouble
 weightedUIVectorDiff ws xs ys
   = sum . zipWith (*) (toUIDoubles ws) $ zipWith uiDiff xs ys
-

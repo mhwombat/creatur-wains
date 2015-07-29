@@ -19,6 +19,7 @@ module ALife.Creatur.Wain.Muser
   (
     Muser,
     makeMuser,
+    muserOK,
     _defaultOutcome,
     defaultOutcome,
     depth,
@@ -29,7 +30,7 @@ module ALife.Creatur.Wain.Muser
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.GeneticSOM (Label)
+import ALife.Creatur.Wain.Classifier (Label, Signature)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
 import ALife.Creatur.Wain.Response (Response(..), responseSet)
 import ALife.Creatur.Wain.Scenario (Scenario(..))
@@ -58,6 +59,9 @@ data Muser = Muser
                Diploid, NFData )
 makeLenses ''Muser
 
+muserOK :: Muser -> Bool
+muserOK m = _depth m > 0
+
 instance Statistical Muser where
   stats (Muser o d) = [ dStat "def. outcome" (pm1ToDouble o),
                           iStat "depth" d ]
@@ -68,9 +72,11 @@ makeMuser o d =
     then error "zero depth"
     else Muser o d
 
+-- | Given the wain's current condition, and the output from the
+--   classifier, returns a list of responses to consider.
 generateResponses
   :: (Bounded a, Enum a)
-    => Muser -> [[(Label, UIDouble)]] -> [UIDouble]
+    => Muser -> [Signature] -> [UIDouble]
       -> [(Response a, UIDouble)]
 generateResponses p lds c = concatMap (generateResponses' p) sps
   where sps = mostLikelyScenarios p c lds
@@ -81,12 +87,11 @@ generateResponses'
 generateResponses' p (s, k) = zip (responseSet s o) (repeat k)
   where o = _defaultOutcome p
 
-
 -- | Given the wain's current condition, and the output from the
 --   classifier, returns a list of the most likely scenarios,
 --   together with the likelihood of that scenario.
 mostLikelyScenarios
-  :: Muser -> [UIDouble] -> [[(Label, UIDouble)]]
+  :: Muser -> [UIDouble] -> [Signature]
     -> [(Scenario, UIDouble)]
 mostLikelyScenarios p c
   = take (fromIntegral . _depth $ p) . reverse . sortBy (comparing snd)
@@ -96,7 +101,7 @@ mostLikelyScenarios p c
 --   classifier, returns a list of all possible scenarios,
 --   together with the likelihood of that scenario.
 generateScenarios
-  :: [UIDouble] -> [[(Label, UIDouble)]] -> [(Scenario, UIDouble)]
+  :: [UIDouble] -> [Signature] -> [(Scenario, UIDouble)]
 generateScenarios c
   = map (\(ls, p) -> (Scenario ls c, p)) . map likelihood . permute
 
@@ -105,8 +110,8 @@ permute (xs:[]) = [ [y] | y <- xs ]
 permute (xs:xss) = [ y:ys | y <- xs, ys <- permute xss]
 permute [] = []
 
--- | Given a list of labels for each object the wain is seeing,
---   and the probability that each label is accurate, returns
+-- | Given a list of labels for each object the wain is seeing, paired
+--   with the probability that each label is accurate, returns
 --   the probability that all labels are accurate.
 likelihood :: [(Label, UIDouble)] -> ([Label], UIDouble)
 likelihood xs = (ls, 1 - prob)

@@ -41,6 +41,10 @@ import GHC.Generics (Generic)
 -- | A unique identifier for a model in a SOM.
 type Label = Word16
 
+-- | An pattern's "signature" shows how different it is from each of
+--   the SOM models.
+type Signature = [(Label, UIDouble)]
+
 -- | @'ExponentialParams' r0 d@ defines the first two parameters for
 --     an exponential learning function.
 --   See @'Data.Datamining.Clustering.SOS.exponential'@ for more
@@ -256,6 +260,7 @@ somOK = validExponential . _exponentialParams
 instance Statistical (GeneticSOM p t) where
   stats s =
     (iStat "num models" . numModels $ s)
+      :(dStat "max. size" . SOM.maxSize . _patternMap $ s)
       :(dStat "threshold" . SOM.diffThreshold . _patternMap $ s)
       :(iStat "SQ" . schemaQuality $ s)
       :(stats . _exponentialParams $ s)
@@ -336,7 +341,7 @@ counterMap = SOM.counterMap . _patternMap
 --   and the (possibly updated) SOM.
 classify
   :: GeneticSOM p t -> p
-    -> (Label, UIDouble, [(Label, UIDouble)], GeneticSOM p t)
+    -> (Label, UIDouble, Signature, GeneticSOM p t)
 classify gs p = (bmu, bmuDiff, diffs, gs')
   where (bmu, bmuDiff, diffs, s') = SOM.classify s p
         s = view patternMap gs

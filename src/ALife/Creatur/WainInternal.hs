@@ -30,6 +30,7 @@ import ALife.Creatur.Genetics.Recombination (mutatePairedLists,
 import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
   produceGamete, build, makeOffspring)
 import qualified ALife.Creatur.Wain.Brain as B
+import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.GeneticSOM (Label, Tweaker, Pattern)
 import qualified ALife.Creatur.Wain.Response as R
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
@@ -281,17 +282,21 @@ happiness w = B.happiness (_brain w) (condition w)
 -- appearanceOf (DObject img _) = img
 -- appearanceOf (AObject a) = _appearance a
 
--- | Chooses a response based on the stimuli (input patterns).
---   Returns the chosen response, the updated wain, the responses it
---   considered (with outcome predictions), and the novelty of each
---   input pattern.
+-- | Chooses a response based on the stimuli (input patterns) and
+--   the wain's condition.
+--   Returns the classifier labels assigned to each input pattern,
+--   the classifier signature of each input pattern,
+--   the predictor model on which the response is based,
+--   the responses it considered (with outcome predictions filled in,
+--   and paired with predictor model labels),
+--   the chosen response, and the updated wain.
 chooseAction
   :: (Eq a, Enum a, Bounded a)
     => [p] -> Wain p t a
-      -> ([[(Label, UIDouble)]], [(R.Response a, Label)],
+      -> ([Label], [Cl.Signature], Label, [(R.Response a, Label)],
           R.Response a, Wain p t a)
-chooseAction ps w = (lds, rls, r, w')
-  where (lds, rls, r, b')
+chooseAction ps w = (cBMUs, lds, pBMU, rls, r, w')
+  where (cBMUs, lds, pBMU, rls, r, b')
           = B.chooseAction (_brain w) ps (condition w)
         w' = set brain b' w
 
@@ -321,7 +326,7 @@ applyMetabolismCost1 baseCost costPerByte factor w = (w', delta')
         delta = adultCost * factor
 
 -- | Adjusts the energy of a wain and its children.
---   Note: A wain's energy is capped to the range [0,1].
+--   NOTE: A wain's energy is capped to the range [0,1].
 adjustEnergy
   :: Double -> Wain p t a -> (Wain p t a, Double, Double)
 adjustEnergy delta w =
@@ -361,7 +366,7 @@ adjustEnergy1 delta w =
         leftover = delta - delta'
 
 -- | Adjusts the wain's passion by the genetically-determined amount.
---   Note: The passion is capped to the range [0,1]. The litter is not
+--   NOTE: The passion is capped to the range [0,1]. The litter is not
 --   affected.
 adjustPassion :: Wain p t a -> Wain p t a
 adjustPassion w = set passion p w

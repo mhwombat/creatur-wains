@@ -73,6 +73,20 @@ prop_reflect_error_in_range b r cAfter
   = property $ -2 <= x && x <= 2
   where (_, x) = reflect b r cAfter
 
+-- prop_chooseAction_chooses_closest_classifier_model
+--   :: TestBrain -> TestResponse -> Property
+-- prop_chooseAction_chooses_closest_classifier_model b r
+--   = property $ bmu == fst (minimumBy (comparing snd) rls)
+--   where (cBMUs, lds, pBMU, rls, r, b') = chooseAction b ps c
+--
+-- prop_chooseAction_chooses_closest_predictor_model
+--   :: TestBrain -> TestResponse -> Property
+-- prop_chooseAction_chooses_closest_predictor_model b r
+--   = property $ pBMU == fst (minimumBy (comparing snd) rls)
+--   where (_, _, pBMU, rls, r, b') = chooseAction b ps c
+--         model = (modelSet . _predictor $ b) ! pBMU
+--         bmuDiff = diffIgnoringOutcome r model
+
 data AFewPatterns = AFewPatterns [TestPattern]
   deriving (Eq, Show)
 
@@ -107,7 +121,7 @@ prop_imprint_works
   :: ImprintTestData -> Property
 prop_imprint_works (ImprintTestData b ps a c) = not (null ps) ==>
   _outcome rAfter >= _outcome rBefore
-  where (lds, b') = assessSituation b ps
+  where (_, lds, b') = assessSituation b ps
         (s, l) = head $ mostLikelyScenarios (_muser b') c lds
         r = Response s a 1
         ((rBefore, _):_, b2) = predictAll b' [(r, l)]

@@ -67,13 +67,16 @@ tryOne
 tryOne w p = do
   putStrLn $ "-----"
   putStrLn $ "Wain sees " ++ show p
-  let (_, _, r , wainAfterDecision) = chooseAction [p] w
-  putStrLn $ "Wain classifies it as " ++ show (head $ view (scenario . labels) r)
+  let (cBMUs, _, pBMU, _, r, wainAfterDecision)
+        = chooseAction [p] w
   -- describeClassifierModels wainAfterDecision
   -- describePredictorModels wainAfterDecision
   let a = view action r
   let deltaE = energyFor p a
-  putStrLn $ "Wain chooses to " ++ show a
+  putStrLn
+    $ "Wain classifies it as " ++ show (head cBMUs)
+      ++ " and chooses to " ++ show a
+      ++ " based on predictor model " ++ show pBMU
   let (wainRewarded, _, _) = adjustEnergy deltaE wainAfterDecision
   putStrLn $ "Δe=" ++ show deltaE
   putStrLn $ "condition before=" ++ show (condition w) ++ " after=" ++ show (condition wainRewarded)

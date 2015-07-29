@@ -26,7 +26,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import qualified ALife.Creatur.Wain.Predictor as P
 import ALife.Creatur.Wain.Muser (Muser, generateResponses,
-  mostLikelyScenarios, depth)
+  mostLikelyScenarios, muserOK)
 import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
 import ALife.Creatur.Wain.Response (Response(..))
 import ALife.Creatur.Wain.Scenario (Scenario(..))
@@ -65,11 +65,10 @@ instance (Diploid p, Diploid t, Diploid a, Eq a, GSOM.Tweaker t,
 
 instance (Eq a, Ord a)
       => Statistical (Brain p t a) where
-  stats (Brain c pos d hw) = map (prefix "classifier ") (stats c)
-    ++ (stats pos)
-    ++ (stats d)
-    ++ map (prefix "predictor ") (stats d)
-    ++ [ iStat "DQ" $ P.predictorQuality d,
+  stats (Brain c m p hw) = map (prefix "classifier ") (stats c)
+    ++ (stats m)
+    ++ map (prefix "predictor ") (stats p)
+    ++ [ iStat "DQ" $ P.predictorQuality p,
          dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
          dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
          dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 2]
@@ -83,7 +82,7 @@ instance (Show p, Show a, Show t, Eq a)
 --   according to @somOK@; returns @False@ otherwise.
 brainOK :: Eq a => Brain p t a -> Bool
 brainOK b = GSOM.somOK (_classifier b) && GSOM.somOK (_predictor b)
-              && view (muser . depth) b > 0
+              && muserOK (_muser b)
 
 instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Tweaker t,
           p ~ GSOM.Pattern t)
@@ -91,19 +90,32 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Tweaker t,
 
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
---   Returns the chosen response, the updated brain, the responses it
---   considered (with outcome predictions), and the novelty of each
---   input pattern.
+--   Returns the classifier labels assigned to each input pattern,
+--   the classifier signature of each input pattern,
+--   the predictor model on which the response is based,
+--   the responses it considered (with outcome predictions filled in,
+--   and paired with predictor model labels),
+--   the chosen response, and the updated brain.
+--
+--   NOTE: that the response chosen might be a response modelled on
+--   a different scenario than the one we think we're in.
+--   I.e., @cBMUs@ may not equal @view (scenario . labels) r@.
+--   This might happen, for example, if the ideal response to the
+--   most likely scenario has a somewhat good outcome, but the ideal
+--   response to a somewhat likely alternative scenario has a really
+--   bad outcome. "I think that food is edible, but I'm not going to
+--   eat it just in case it's poisonous."
 chooseAction
   :: (Eq a, Enum a, Bounded a)
       => Brain p t a -> [p] -> [UIDouble]
-        -> ([[(Cl.Label, UIDouble)]], [(Response a, P.Label)],
+        -> ([Cl.Label], [Cl.Signature],
+            P.Label, [(Response a, P.Label)],
             Response a, Brain p t a)
-chooseAction b ps c = (lds, rls, r, b'')
-  where (lds, b') = assessSituation b ps
+chooseAction b ps c = (cBMUs, lds, pBMU, rls, r, b'')
+  where (cBMUs, lds, b') = assessSituation b ps
         rps = generateResponses (_muser b) lds c
         (rls, b'') = predictAll b' rps
-        (r, _) = maximumBy bestOutcome rls
+        (r, pBMU) = maximumBy bestOutcome rls
         bestOutcome = comparing (_outcome . fst)
 
 -- | Evaluates the input patterns and the current condition.
@@ -111,18 +123,29 @@ chooseAction b ps c = (lds, rls, r, b'')
 --   and each model in the classifier) of each input pattern,
 --   and the updated brain.
 assessSituation
-  :: Brain p t a -> [p] -> ([[(Cl.Label, UIDouble)]], Brain p t a)
-assessSituation b ps = (ds, b')
-  where (ds, c') = Cl.classifySetAndTrain (_classifier b) ps
+  :: Brain p t a -> [p] -> ([Cl.Label], [Cl.Signature], Brain p t a)
+assessSituation b ps = (bmus, ds, b')
+  where (bmus, ds, c') = Cl.classifySetAndTrain (_classifier b) ps
         b' = set classifier c' b
 
 -- | Predicts the outcomes of a set of responses based on the Predictor
 --   models, and updates the outcome field in each response.
+--   Some of the responses we're considering are in response to the
+--   scenario we're most likely facing, and some are in response to
+--   alternative scenarios we want to consider.
+--   Each predicted outcome is scaled by how close it is to the
+--   scenario we think we're facing.
+--   So each input response is paired with the likelihood that the
+--   scenario it describes is actually the one we're facing.
+--   This approach allows us to weigh risks and outcomes.
+--   We can compare, for example, an action with a high probability of a
+--   somewhat good outcome, to an action with a low probability of a
+--   really bad outcome.
 predictAll
   :: Eq a
     =>  Brain p t a -> [(Response a, UIDouble)]
       -> ([(Response a, P.Label)],  Brain p t a)
-predictAll b rcs = foldl' predictOne ([], b) rcs
+predictAll b rps = foldl' predictOne ([], b) rps
 
 predictOne
   :: Eq a
@@ -130,7 +153,7 @@ predictOne
       -> (Response a, UIDouble)
         -> ([(Response a, P.Label)],  Brain p t a)
 predictOne (rls, b) (r, k) = ((r', l):rls, b {_predictor = d})
-  where (r', l, d) = P.predict (_predictor b) (r, k)
+  where (r', l, d) = P.predict (_predictor b) r k
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
@@ -157,7 +180,7 @@ imprint
   :: Eq a
     => Brain p t a -> [p] -> a -> [UIDouble] -> Brain p t a
 imprint b ps a c = set predictor d' b'
-  where (lds, b') = assessSituation b ps
+  where (_, lds, b') = assessSituation b ps
         (s, _) = head $ mostLikelyScenarios (_muser b) c lds
         d = _predictor b
         d' = P.imprint d s a

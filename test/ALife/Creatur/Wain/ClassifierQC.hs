@@ -58,7 +58,7 @@ equivClassifier = equivGSOM (==)
 classifySetAndTrain_label_count
   :: TestClassifier -> [TestPattern] -> Property
 classifySetAndTrain_label_count c ps = property $ length xs == length ps
-  where (xs, _) = classifySetAndTrain c ps
+  where (_, xs, _) = classifySetAndTrain c ps
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ClassifierQC"
