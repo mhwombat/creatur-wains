@@ -24,7 +24,8 @@ import ALife.Creatur.Wain.ResponseQC (TestAction(..))
 import ALife.Creatur.Wain.TestUtils (TestPattern(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (ExponentialParams(..),
   buildGeneticSOM, modelMap, schemaQuality)
-import ALife.Creatur.Wain.BrainInternal (Brain(..), classifier, predictor)
+import ALife.Creatur.Wain.BrainInternal (Brain(..), classifier,
+  predictor, makeBrain)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.UnitInterval (uiToDouble)
 import ALife.Creatur.Wain.Weights (makeWeights)
@@ -45,7 +46,7 @@ testWain :: Wain TestPattern TestTweaker TestAction
 testWain = w'
   where wName = "Fred"
         wAppearance = TestPattern 0
-        wBrain = Brain wClassifier wMuser wPredictor wHappinessWeights
+        wBrain = makeBrain wClassifier wMuser wPredictor wHappinessWeights
         wDevotion = 0.1
         wAgeOfMaturity = 100
         wPassionDelta = 0

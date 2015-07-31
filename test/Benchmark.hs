@@ -57,7 +57,7 @@ randomWain wName classifierSize classifierThreshold
   let hw = makeWeights [1,1,1]
   let t = PredictorTweaker (makeWeights [1,1,1]) (makeWeights [1,1]) :: PredictorTweaker TestAction
   let d = buildGeneticSOM fd predictorSize predictorThreshold t
-  let wBrain = Brain c (makeMuser 0 2) d hw
+  let wBrain = makeBrain c (makeMuser 0 2) d hw
   wDevotion <- getRandomR unitInterval
   wAgeOfMaturity <- getRandomR (0,maxAgeOfMaturity)
   wPassionDelta <- getRandom

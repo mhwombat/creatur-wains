@@ -21,7 +21,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.BrainInternal where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
+import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import qualified ALife.Creatur.Wain.Predictor as P
@@ -38,6 +38,7 @@ import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum)
 import Control.DeepSeq (NFData)
 import Control.Lens
 import Data.List (maximumBy, foldl')
+import qualified Data.Map.Strict as M
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
@@ -51,32 +52,40 @@ data Brain p t a = Brain
     -- | Component that decides what actions to take
     _predictor :: P.Predictor a,
     -- | Weights for evaluating happiness
-    _happinessWeights :: Weights
+    _happinessWeights :: Weights,
+    -- | Number of times each action has been used
+    _actionCounts :: M.Map a Int
   } deriving (Generic, Eq, NFData)
 makeLenses ''Brain
 
-instance (Serialize p, Serialize t, Serialize a, Eq a, GSOM.Tweaker t,
-  p ~ GSOM.Pattern t)
+makeBrain
+  :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights
+    -> Brain p t a
+makeBrain c m p hw = Brain c m p hw M.empty
+
+instance (Serialize p, Serialize t, Serialize a, Eq a, Ord a,
+  GSOM.Tweaker t, p ~ GSOM.Pattern t)
     => Serialize (Brain p t a)
 
-instance (Diploid p, Diploid t, Diploid a, Eq a, GSOM.Tweaker t,
+instance (Diploid p, Diploid t, Diploid a, Eq a, Ord a, GSOM.Tweaker t,
   p ~ GSOM.Pattern t)
     => Diploid (Brain p t a)
 
 instance (Eq a, Ord a)
       => Statistical (Brain p t a) where
-  stats (Brain c m p hw) = map (prefix "classifier ") (stats c)
+  stats b@(Brain c m p hw _) = map (prefix "classifier ") (stats c)
     ++ (stats m)
     ++ map (prefix "predictor ") (stats p)
-    ++ [ iStat "DQ" $ P.predictorQuality p,
+    ++ [ iStat "DQ" $ decisionQuality b,
          dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
          dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
          dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 2]
 
 instance (Show p, Show a, Show t, Eq a)
       => Show (Brain p t a) where
-  show (Brain c m p hw) = "Brain (" ++ show c ++ ") ("
-    ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ")"
+  show (Brain c m p hw ks) = "Brain (" ++ show c ++ ") ("
+    ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") ("
+    ++ show ks ++ ")"
 
 -- | Returns @True@ if both the classifier and predictor are valid
 --   according to @somOK@; returns @False@ otherwise.
@@ -84,9 +93,17 @@ brainOK :: Eq a => Brain p t a -> Bool
 brainOK b = GSOM.somOK (_classifier b) && GSOM.somOK (_predictor b)
               && muserOK (_muser b)
 
-instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Tweaker t,
+instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
           p ~ GSOM.Pattern t)
-    => Genetic (Brain p t a)
+    => Genetic (Brain p t a) where
+    put (Brain c m p hw _) = put c >> put m >> put p >> put hw
+    get = do
+      c <- get
+      m <- get
+      p <- get
+      hw <- get
+      return $ Brain <$> c <*> m <*> p  <*> hw <*> pure M.empty
+
 
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
@@ -106,17 +123,26 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Tweaker t,
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: (Eq a, Enum a, Bounded a)
+  :: (Eq a, Enum a, Bounded a, Ord a)
       => Brain p t a -> [p] -> [UIDouble]
         -> ([Cl.Label], [Cl.Signature],
             P.Label, [(Response a, P.Label)],
             Response a, Brain p t a)
-chooseAction b ps c = (cBMUs, lds, pBMU, rls, r, b'')
-  where (cBMUs, lds, b') = assessSituation b ps
-        rps = generateResponses (_muser b) lds c
-        (rls, b'') = predictAll b' rps
+chooseAction b ps c = (cBMUs, lds, pBMU, rls, r, b4)
+  where (cBMUs, lds, b2) = assessSituation b ps
+        rps = generateResponses (_muser b2) lds c
+        (rls, b3) = predictAll b2 rps
         (r, pBMU) = maximumBy bestOutcome rls
         bestOutcome = comparing (_outcome . fst)
+        b4 = adjustActionCounts b3 r
+
+adjustActionCounts :: Ord a => Brain p t a -> Response a -> Brain p t a
+adjustActionCounts b r = set actionCounts cs' b
+  where a = _action r
+        cs = _actionCounts b
+        cs' = M.alter inc a cs
+        inc Nothing = Just 1
+        inc (Just n) = Just (n+1)
 
 -- | Evaluates the input patterns and the current condition.
 --   Returns the "signature" (differences between the input pattern
@@ -187,3 +213,6 @@ imprint b ps a c = set predictor d' b'
 
 happiness :: Brain p t a -> [UIDouble] -> UIDouble
 happiness b = weightedSum (_happinessWeights b)
+
+decisionQuality :: Brain p t a -> Int
+decisionQuality = GSOM.discrimination . M.elems . _actionCounts

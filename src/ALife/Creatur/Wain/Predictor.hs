@@ -21,26 +21,22 @@ module ALife.Creatur.Wain.Predictor
     PredictorTweaker(..),
     buildPredictor,
     predict,
-    imprint,
-    predictorQuality
+    imprint
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, ExponentialParams(..),
-  Label, Tweaker(..), buildGeneticSOM, tweaker, discrimination,
-  classify, train, modelMap, counterMap)
+  Label, Tweaker(..), buildGeneticSOM, tweaker, classify, train,
+  modelMap)
 import ALife.Creatur.Wain.Response (Response(..), outcome,
-  diffIgnoringOutcome, similarityIgnoringOutcome, makeResponseSimilar,
-  action)
+  diffIgnoringOutcome, similarityIgnoringOutcome, makeResponseSimilar)
 import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.PlusMinusOne (adjustPM1Double)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.Weights (Weights)
 import Control.DeepSeq (NFData)
 import Control.Lens
-import Data.Function (on)
-import Data.List (groupBy, sortBy)
 import qualified Data.Map.Strict as M
 import Data.Serialize (Serialize)
 import Data.Word (Word16)
@@ -114,13 +110,13 @@ imprint p s a = p'
   where r = Response s a 1
         p' = train p r
 
--- | A metric that reflects how many of its models a predictor is
---   regularly using.
-predictorQuality :: (Eq a, Ord a) => Predictor a -> Int
-predictorQuality p = discrimination actionCounts
-  where modelCounts = M.elems . counterMap $ p
-        actions = map (view action) . M.elems . modelMap $ p
-        actionCounts = map (sum . map snd)
-                         . groupBy ((==) `on` fst)
-                         . sortBy (compare `on` fst)
-                           $ zip actions modelCounts
+-- -- | A metric that reflects how many of its models a predictor is
+-- --   regularly using.
+-- predictorQuality :: (Eq a, Ord a) => Predictor a -> Int
+-- predictorQuality p = discrimination actionCounts
+--   where modelCounts = M.elems . counterMap $ p
+--         actions = map (view action) . M.elems . modelMap $ p
+--         actionCounts = map (sum . map snd)
+--                          . groupBy ((==) `on` fst)
+--                          . sortBy (compare `on` fst)
+--                            $ zip actions modelCounts
