@@ -26,7 +26,8 @@ module ALife.Creatur.Wain.Brain
     imprint,
     -- * Miscellaneous
     happiness,
-    brainOK
+    brainOK,
+    decisionQuality
   ) where
 
 import ALife.Creatur.Wain.BrainInternal
