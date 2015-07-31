@@ -17,7 +17,8 @@ import ALife.Creatur.Wain
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.Muser (makeMuser)
 import ALife.Creatur.Wain.Predictor (PredictorTweaker(..))
-import ALife.Creatur.Wain.Response (action)
+import ALife.Creatur.Wain.Scenario (labels)
+import ALife.Creatur.Wain.Response (action, scenario)
 import ALife.Creatur.Wain.ResponseQC (TestAction(..))
 import ALife.Creatur.Wain.TestUtils (TestPattern(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (ExponentialParams(..),
@@ -56,7 +57,7 @@ testWain = imprintAll w'
         wDevotion = 0.1
         wAgeOfMaturity = 100
         wPassionDelta = 0
-        wClassifier = buildGeneticSOM ec 7 0.11 TestTweaker
+        wClassifier = buildGeneticSOM ec 10 0.1 TestTweaker
         wMuser = makeMuser 0 2
         wPredictor = buildGeneticSOM ep 50 0.1 dtw
         wHappinessWeights = makeWeights [1, 0, 0]
@@ -75,15 +76,9 @@ tryOne
 tryOne w p = do
   putStrLn $ "-----"
   putStrLn $ "Wain sees " ++ show p
-  -- putStrLn "Classifier models before"
-  -- describeClassifierModels w
-  -- putStrLn "Decision models before"
-  -- describePredictorModels w
   let (cBMUs, _, pBMU, _, r, wainAfterDecision)
         = chooseAction [p] w
-  -- putStrLn "Classifier models after decision"
   -- describeClassifierModels wainAfterDecision
-  -- putStrLn "Decision models after decision"
   -- describePredictorModels wainAfterDecision
   let a = view action r
   let deltaE = energyFor p a
@@ -93,18 +88,16 @@ tryOne w p = do
       ++ " based on predictor model " ++ show pBMU
   let (wainRewarded, _, _) = adjustEnergy deltaE wainAfterDecision
   putStrLn $ "Δe=" ++ show deltaE
+  putStrLn $ "condition before=" ++ show (condition w) ++ " after=" ++ show (condition wainRewarded)
   putStrLn $ "happiness before=" ++ show (happiness w) ++ " after=" ++ show (happiness wainRewarded)
   if deltaE < 0
-    then putStrLn $ "That was the wrong response to " ++ show p
-    else putStrLn $ "That was the correct response to " ++ show p
-  -- putStrLn "Decision models after reward"
-  -- describePredictorModels wainRewarded
+    then putStrLn "That was wrong"
+    else putStrLn "That was correct"
   let (wainAfterReflection, err) = reflect [p] r wainRewarded
   putStrLn $ "err=" ++ show err
   -- keep the wain's energy constant
   let restorationEnergy = uiToDouble (view energy w) - uiToDouble (view energy wainRewarded)
   let (wainFinal, _, _) = adjustEnergy restorationEnergy wainAfterReflection
-  putStrLn $ "condition before=" ++ show (condition w) ++ " after reward=" ++ show (condition wainRewarded) ++ " after reflection=" ++ show (condition wainAfterReflection) ++ " final=" ++ show (condition wainFinal)
   putStrLn "Final classifier models"
   describeClassifierModels wainFinal
   putStrLn "Final decision models"

@@ -90,7 +90,7 @@ sizedArbEmptyGeneticSOM
 sizedArbEmptyGeneticSOM n = do
   maxSz <- choose (1, n+1)
   e <- arbitrary
-  dt <- arbitrary
+  dt <- (\x -> x*x) <$> arbitrary
   t <- arbitrary
   return $ buildGeneticSOM e (fromIntegral maxSz) dt t
 
@@ -135,7 +135,7 @@ prop_random_decayingExponential_valid seed params
 prop_random_learning_rate_always_in_range
   :: ExponentialParams -> Word16 -> Property
 prop_random_learning_rate_always_in_range f t = t >= 0 ==> deepseq r True
-  where r = (toExponential f) t
+  where r = toExponential f t
 
 prop_express_decayingExponential_valid
   :: ExponentialParams -> ExponentialParams -> Property

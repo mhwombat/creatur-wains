@@ -18,11 +18,12 @@ import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.Muser (makeMuser)
 import ALife.Creatur.Wain.Predictor (PredictorTweaker(..))
 import ALife.Creatur.Wain.Scenario (labels)
+import ALife.Creatur.Wain.Statistics (stats)
 import ALife.Creatur.Wain.Response (action, scenario)
 import ALife.Creatur.Wain.ResponseQC (TestAction(..))
 import ALife.Creatur.Wain.TestUtils (TestPattern(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (ExponentialParams(..),
-  buildGeneticSOM, modelMap)
+  buildGeneticSOM, modelMap, schemaQuality)
 import ALife.Creatur.Wain.BrainInternal (Brain(..), classifier, predictor)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.UnitInterval (uiToDouble)
@@ -66,9 +67,11 @@ tryOne
     -> IO (Wain TestPattern TestTweaker TestAction)
 tryOne w p = do
   putStrLn $ "-----"
+  putStrLn $ "classifier SQ=" ++ show (schemaQuality . view (brain . classifier) $ w)
+  putStrLn $ "stats=" ++ show (stats w)
   putStrLn $ "Wain sees " ++ show p
-  let (cBMUs, _, pBMU, _, r, wainAfterDecision)
-        = chooseAction [p] w
+  let (cBMUs, _, pBMU, _, r, wainAfterDecision) = chooseAction [p] w
+  putStrLn $ "DEBUG classifier SQ=" ++ show (schemaQuality . view (brain . classifier) $ wainAfterDecision)
   -- describeClassifierModels wainAfterDecision
   -- describePredictorModels wainAfterDecision
   let a = view action r

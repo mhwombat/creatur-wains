@@ -290,6 +290,15 @@ happiness w = B.happiness (_brain w) (condition w)
 --   the responses it considered (with outcome predictions filled in,
 --   and paired with predictor model labels),
 --   the chosen response, and the updated wain.
+--
+--   NOTE: that the response chosen might be a response modelled on
+--   a different scenario than the one we think we're in.
+--   I.e., @cBMUs@ may not equal @view (scenario . labels) r@.
+--   This might happen, for example, if the ideal response to the
+--   most likely scenario has a somewhat good outcome, but the ideal
+--   response to a somewhat likely alternative scenario has a really
+--   bad outcome. "I think that food is edible, but I'm not going to
+--   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
   :: (Eq a, Enum a, Bounded a)
     => [p] -> Wain p t a

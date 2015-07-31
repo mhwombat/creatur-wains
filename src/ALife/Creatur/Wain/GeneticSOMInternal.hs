@@ -260,7 +260,7 @@ somOK = validExponential . _exponentialParams
 instance Statistical (GeneticSOM p t) where
   stats s =
     (iStat "num models" . numModels $ s)
-      :(dStat "max. size" . SOM.maxSize . _patternMap $ s)
+      :(iStat "max. size" . SOM.maxSize . _patternMap $ s)
       :(dStat "threshold" . SOM.diffThreshold . _patternMap $ s)
       :(iStat "SQ" . schemaQuality $ s)
       :(stats . _exponentialParams $ s)
