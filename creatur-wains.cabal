@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           7.5.1
+Version:           7.5.2
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      7.5.1
+  tag:      7.5.2
 
 library
   GHC-Options:      -Wall -Werror
@@ -69,7 +69,7 @@ library
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
                     random ==1.1.*,
-                    som ==8.1.*,
+                    som ==8.1.* && >=8.1.1,
                     transformers ==0.4.*
 
 Test-suite wain-tests
@@ -89,7 +89,7 @@ Test-suite wain-tests
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
-                    som ==8.1.*,
+                    som ==8.1.* && >=8.1.1,
                     transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
@@ -109,7 +109,7 @@ Executable wain-benchmark
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
-                    som ==8.1.*,
+                    som ==8.1.* && >=8.1.1,
                     temporary ==1.2.*,
                     time ==1.5.*,
                     transformers ==0.4.*,
@@ -131,7 +131,7 @@ Executable wain-learning-test
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
-                    som ==8.1.*,
+                    som ==8.1.* && >=8.1.1,
                     temporary ==1.2.*,
                     time ==1.5.*,
                     transformers ==0.4.*,
@@ -153,7 +153,7 @@ Executable wain-teaching-test
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
-                    som ==8.1.*,
+                    som ==8.1.* && >=8.1.1,
                     temporary ==1.2.*,
                     time ==1.5.*,
                     transformers ==0.4.*,

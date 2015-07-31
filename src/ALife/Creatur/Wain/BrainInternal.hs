@@ -104,17 +104,17 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, GSOM.Tweaker t,
 --   most likely scenario has a somewhat good outcome, but the ideal
 --   response to a somewhat likely alternative scenario has a really
 --   bad outcome. "I think that food is edible, but I'm not going to
---   eat it just in case it's poisonous."
+--   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
   :: (Eq a, Enum a, Bounded a)
       => Brain p t a -> [p] -> [UIDouble]
         -> ([Cl.Label], [Cl.Signature],
             P.Label, [(Response a, P.Label)],
             Response a, Brain p t a)
-chooseAction b ps c = (cBMUs, lds, pBMU, rls, r, b'')
+chooseAction b ps c = (cBMUs, lds, pBMU, rls, r, b')
   where (cBMUs, lds, b') = assessSituation b ps
         rps = generateResponses (_muser b) lds c
-        (rls, b'') = predictAll b' rps
+        rls = predictAll b' rps
         (r, pBMU) = maximumBy bestOutcome rls
         bestOutcome = comparing (_outcome . fst)
 
@@ -143,17 +143,18 @@ assessSituation b ps = (bmus, ds, b')
 --   really bad outcome.
 predictAll
   :: Eq a
-    =>  Brain p t a -> [(Response a, UIDouble)]
-      -> ([(Response a, P.Label)],  Brain p t a)
-predictAll b rps = foldl' predictOne ([], b) rps
+    => Brain p t a -> [(Response a, UIDouble)]
+      -> [(Response a, P.Label)]
+predictAll b rps = foldl' (predictOne b) [] rps
 
 predictOne
   :: Eq a
-    => ([(Response a, P.Label)],  Brain p t a)
-      -> (Response a, UIDouble)
-        -> ([(Response a, P.Label)],  Brain p t a)
-predictOne (rls, b) (r, k) = ((r', l):rls, b {_predictor = d})
-  where (r', l, d) = P.predict (_predictor b) r k
+    => Brain p t a -> [(Response a, P.Label)] -> (Response a, UIDouble)
+      -> [(Response a, P.Label)]
+predictOne b rls (r, k) = ((r', l):rls)
+  -- We don't return the updated preictor because we only want the
+  -- counters updated when we reflect on the outcome.
+  where (r', l, _) = P.predict (_predictor b) r k
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
