@@ -55,9 +55,12 @@ data Muser = Muser
     -- | Number of possible scenarios a wain will evaluate before
     --   choosing an action.
     _depth :: Word8
-  } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Genetic,
+  } deriving ( Eq, Read, Generic, Ord, Serialize, Genetic,
                Diploid, NFData )
 makeLenses ''Muser
+
+instance Show Muser where
+  show (Muser o d) = "makeMuser (" ++ show o ++ ") " ++ show d
 
 muserOK :: Muser -> Bool
 muserOK m = _depth m > 0

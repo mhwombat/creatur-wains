@@ -75,8 +75,8 @@ instance (Eq a, Ord a)
 
 instance (Show p, Show a, Show t, Eq a)
       => Show (Brain p t a) where
-  show (Brain c pos d hw) = "Brain (" ++ show c ++ ") ("
-    ++ show pos ++ ") (" ++ show d ++ ") (" ++ show hw ++ ")"
+  show (Brain c m p hw) = "Brain (" ++ show c ++ ") ("
+    ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ")"
 
 -- | Returns @True@ if both the classifier and predictor are valid
 --   according to @somOK@; returns @False@ otherwise.
@@ -111,10 +111,10 @@ chooseAction
         -> ([Cl.Label], [Cl.Signature],
             P.Label, [(Response a, P.Label)],
             Response a, Brain p t a)
-chooseAction b ps c = (cBMUs, lds, pBMU, rls, r, b')
+chooseAction b ps c = (cBMUs, lds, pBMU, rls, r, b'')
   where (cBMUs, lds, b') = assessSituation b ps
         rps = generateResponses (_muser b) lds c
-        rls = predictAll b' rps
+        (rls, b'') = predictAll b' rps
         (r, pBMU) = maximumBy bestOutcome rls
         bestOutcome = comparing (_outcome . fst)
 
@@ -143,18 +143,17 @@ assessSituation b ps = (bmus, ds, b')
 --   really bad outcome.
 predictAll
   :: Eq a
-    => Brain p t a -> [(Response a, UIDouble)]
-      -> [(Response a, P.Label)]
-predictAll b rps = foldl' (predictOne b) [] rps
+    =>  Brain p t a -> [(Response a, UIDouble)]
+      -> ([(Response a, P.Label)],  Brain p t a)
+predictAll b rps = foldl' predictOne ([], b) rps
 
 predictOne
   :: Eq a
-    => Brain p t a -> [(Response a, P.Label)] -> (Response a, UIDouble)
-      -> [(Response a, P.Label)]
-predictOne b rls (r, k) = ((r', l):rls)
-  -- We don't return the updated preictor because we only want the
-  -- counters updated when we reflect on the outcome.
-  where (r', l, _) = P.predict (_predictor b) r k
+    => ([(Response a, P.Label)],  Brain p t a)
+      -> (Response a, UIDouble)
+        -> ([(Response a, P.Label)],  Brain p t a)
+predictOne (rls, b) (r, k) = ((r', l):rls, b {_predictor = d})
+  where (r', l, d) = P.predict (_predictor b) r k
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
@@ -182,8 +181,8 @@ imprint
     => Brain p t a -> [p] -> a -> [UIDouble] -> Brain p t a
 imprint b ps a c = set predictor d' b'
   where (_, lds, b') = assessSituation b ps
-        (s, _) = head $ mostLikelyScenarios (_muser b) c lds
-        d = _predictor b
+        (s, _) = head $ mostLikelyScenarios (_muser b') c lds
+        d = _predictor b'
         d' = P.imprint d s a
 
 happiness :: Brain p t a -> [UIDouble] -> UIDouble

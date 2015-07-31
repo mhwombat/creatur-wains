@@ -100,7 +100,7 @@ instance Arbitrary AFewPatterns where
 
 data ImprintTestData
   = ImprintTestData TestBrain [TestPattern] TestAction [UIDouble]
-    deriving (Eq, Show)
+    deriving Eq
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
 sizedArbImprintTestData n = do
@@ -116,6 +116,11 @@ sizedArbImprintTestData n = do
 
 instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
+
+instance Show ImprintTestData where
+  show (ImprintTestData b ps a c)
+    = "ImprintTestData (" ++ show b ++ ") " ++ show ps ++ " "
+      ++ show a ++ " " ++ show c
 
 prop_imprint_works
   :: ImprintTestData -> Property
