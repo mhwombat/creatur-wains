@@ -166,12 +166,12 @@ instance (Eq a, Ord a) =>
   Statistical (Wain p t a) where
   stats w =
     stats (_brain w)
-      ++ dStat "devotion" (uiToDouble $ _devotion w)
+      ++ dStat "devotion" (_devotion w)
       : iStat "maturity" (_ageOfMaturity w)
-      : dStat "Δp" (uiToDouble $ _passionDelta w)
+      : dStat "Δp" (_passionDelta w)
       : dStat "energy" (uiToDouble e + uiToDouble ec)
-      : dStat "passion" (uiToDouble $ _passion w)
-      : dStat "happiness" (uiToDouble $ happiness w)
+      : dStat "passion" (_passion w)
+      : dStat "happiness" (happiness w)
       : iStat "age" (_age w)
       : iStat "current litter size" (length . _litter $ w)
       : iStat "children borne (lifetime)" (_childrenBorneLifetime w)
@@ -441,7 +441,7 @@ mate
   :: (RandomGen r, Diploid p, Diploid t, Diploid a,
     Genetic p, Genetic t, Genetic a,
       Serialize p, Serialize t, Serialize a,
-        Show p, Show t, Show a, Eq a, Ord a, Tweaker t, p ~ Pattern t)
+        Eq a, Ord a, Tweaker t, p ~ Pattern t)
           => Wain p t a -> Wain p t a -> String
             -> Rand r ([Wain p t a], [String], Double, Double)
 mate a b babyName
@@ -455,7 +455,7 @@ mate'
   :: (RandomGen r, Diploid p, Diploid t, Diploid a,
     Genetic p, Genetic t, Genetic a,
       Serialize p, Serialize t, Serialize a,
-        Show p, Show t, Show a, Eq a, Ord a, Tweaker t, p ~ Pattern t)
+        Eq a, Ord a, Tweaker t, p ~ Pattern t)
           => Wain p t a -> Wain p t a -> String
             -> Rand r ([Wain p t a], [String], Double, Double)
 mate' a b babyName = do
