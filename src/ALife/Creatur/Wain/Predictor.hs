@@ -32,7 +32,8 @@ import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, ExponentialParams(..),
 import ALife.Creatur.Wain.Response (Response(..), outcome,
   diffIgnoringOutcome, similarityIgnoringOutcome, makeResponseSimilar)
 import ALife.Creatur.Wain.Scenario (Scenario)
-import ALife.Creatur.Wain.PlusMinusOne (adjustPM1Double)
+import ALife.Creatur.Wain.Statistician (Probability)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double, adjustPM1Double)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.Weights (Weights)
 import Control.DeepSeq (NFData)
@@ -84,18 +85,18 @@ buildPredictor e n dt cw rw
 --   If the Predictor has no model for this response, it creates a new
 --   predictor model and returns the response unmodified.
 predict
-  :: (Eq a) => Predictor a -> Response a -> UIDouble
-    -> (Response a, Label, Predictor a)
-predict p r l = (r', bmu, p')
+  :: (Eq a) => Predictor a -> Response a -> Probability
+    -> (Response a, Label, PM1Double, Predictor a)
+predict p r prob = (r', bmu, rawOutcome, p')
   where (bmu, _, _, p') = classify p r
         model = modelMap p' M.! bmu
-        rawOutcome = _outcome model
+        rawOutcome = view outcome model
         (PredictorTweaker cw rw)  = view tweaker p
         -- Adjust the outcome based on how well the model
         -- matches the proposed response. Specifically, we're comparing
         -- the classifications and the conditions, in the model and the
         -- proposed response.
-        adjustment = l * similarityIgnoringOutcome cw rw model r
+        adjustment = prob * similarityIgnoringOutcome cw rw model r
         -- Adjust from zero because, depending on the similarity
         -- between the scenario and the model, the action may have less
         -- of an effect than predicted by the model.

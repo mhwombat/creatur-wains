@@ -22,8 +22,7 @@ module ALife.Creatur.Wain.Response
     responseDiff,
     diffIgnoringOutcome,
     similarityIgnoringOutcome,
-    makeResponseSimilar,
-    responseSet
+    makeResponseSimilar
   ) where
 
 import ALife.Creatur.Wain.ResponseInternal

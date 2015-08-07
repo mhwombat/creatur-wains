@@ -15,7 +15,7 @@ module ALife.Creatur.Wain.GeneticSOM
     ExponentialParams(..),
     GeneticSOM,
     Label,
-    Signature,
+    Difference,
     Tweaker(..),
     exponentialParams,
     tweaker,

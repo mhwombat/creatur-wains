@@ -27,7 +27,10 @@ module ALife.Creatur.Wain.Brain
     -- * Miscellaneous
     happiness,
     brainOK,
-    decisionQuality
+    decisionQuality,
+    scenarioReport,
+    responseReport,
+    decisionReport
   ) where
 
 import ALife.Creatur.Wain.BrainInternal

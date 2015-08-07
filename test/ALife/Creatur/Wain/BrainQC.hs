@@ -23,12 +23,13 @@ import ALife.Creatur.Wain.BrainInternal
 import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.PredictorQC as D
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM)
-import ALife.Creatur.Wain.Muser (mostLikelyScenarios)
 import ALife.Creatur.Wain.MuserQC ()
 import ALife.Creatur.Wain.Response (Response(..), _outcome)
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse)
+import ALife.Creatur.Wain.Scenario (Condition)
 import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
+import Data.List (maximumBy)
+import Data.Ord (comparing)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -59,16 +60,16 @@ equivBrain b1 b2 = _classifier b1 `C.equivClassifier` _classifier b2
   && _predictor b1 `D.equivPredictor` _predictor b2
 
 prop_reflect_makes_predictions_more_accurate
-  :: TestBrain -> TestResponse -> [UIDouble] -> Property
+  :: TestBrain -> TestResponse -> Condition -> Property
 prop_reflect_makes_predictions_more_accurate b r cAfter =
   property $ errAfter <= errBefore
-  where ((r2, _):_, _) = predictAll b . zip [r] $ repeat 1
+  where ((r2, _, _, _):_, _) = predictAll b . zip [r] $ repeat 1
         (b2, errBefore) = reflect b r2 cAfter
-        ((r3, _):_, _) = predictAll b . zip [r] $ repeat 1
+        ((r3, _, _, _):_, _) = predictAll b . zip [r] $ repeat 1
         (_, errAfter) = reflect b2 r3 cAfter
 
 prop_reflect_error_in_range
-  :: TestBrain -> TestResponse -> [UIDouble] -> Property
+  :: TestBrain -> TestResponse -> Condition -> Property
 prop_reflect_error_in_range b r cAfter
   = property $ -2 <= x && x <= 2
   where (_, x) = reflect b r cAfter
@@ -99,7 +100,7 @@ instance Arbitrary AFewPatterns where
   arbitrary = sized sizedArbAFewPatterns
 
 data ImprintTestData
-  = ImprintTestData TestBrain [TestPattern] TestAction [UIDouble]
+  = ImprintTestData TestBrain [TestPattern] TestAction Condition
     deriving Eq
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
@@ -126,12 +127,12 @@ prop_imprint_works
   :: ImprintTestData -> Property
 prop_imprint_works (ImprintTestData b ps a c) = not (null ps) ==>
   _outcome rAfter >= _outcome rBefore
-  where (_, lds, b') = assessSituation b ps
-        (s, l) = head $ mostLikelyScenarios (_muser b') c lds
+  where (_, lds, b') = classifyInputs b ps
+        s = fst . maximumBy (comparing snd) . generateScenarios c $ lds
         r = Response s a 1
-        ((rBefore, _):_, b2) = predictAll b' [(r, l)]
+        ((rBefore, _, _, _):_, b2) = predictAll b' [(r, 1)]
         b3 = imprint b2 ps a c
-        ((rAfter, _):_, _) = predictAll b3 [(r, l)]
+        ((rAfter, _, _, _):_, _) = predictAll b3 [(r, 1)]
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"

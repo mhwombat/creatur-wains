@@ -17,6 +17,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.Scenario
   (
+    Condition,
     Scenario(..),
     labels,
     condition,
@@ -26,7 +27,7 @@ module ALife.Creatur.Wain.Scenario
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.GeneticSOM (Label)
+import ALife.Creatur.Wain.GeneticSOM (Difference, Label)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiDoublesTo8BitHex,
   adjustUIVectorPreserveLength, doubleToUI, uiToDouble)
@@ -37,13 +38,16 @@ import Data.List (intercalate)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 
+-- | A wain's condition
+type Condition = [UIDouble]
+
 -- | A wain's assessment of a situation.
 data Scenario = Scenario
   {
     -- | The classifier labels for each object in the scenario.
     _labels :: [Label],
     -- | Current condition
-    _condition :: [UIDouble]
+    _condition :: Condition
   } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Genetic,
                Diploid, NFData )
 makeLenses ''Scenario
@@ -56,7 +60,7 @@ makeLenses ''Scenario
 --   The parameter @cw@ determines the relative weight to assign to
 --   differences in each pair of condition components (e.g., energy,
 --   passion, whether or not the wain has a litter).
-scenarioDiff :: Weights -> Scenario -> Scenario -> UIDouble
+scenarioDiff :: Weights -> Scenario -> Scenario -> Difference
 scenarioDiff cw x y =
   if _labels x == _labels y
     then doubleToUI $ uiToDouble lDiff + uiToDouble cDiff / 2
@@ -78,18 +82,6 @@ labelSimilarity' (x:xs) (y:ys) = (x == y) : (labelSimilarity' xs ys)
 labelSimilarity' (_:xs) [] = False : (labelSimilarity' xs [])
 labelSimilarity' [] (_:ys) = False : (labelSimilarity' [] ys)
 labelSimilarity' [] [] = []
-
--- | @'scenarioDiffIgnoringLabels' cw x y@ compares the scenarios
---   @x@ and @y@, and returns a number between 0 and 1,
---   representing how different the scenarios are.
---   A result of 0 indicates that the scenarios are identical,
---   apart from the labels.
---   The parameter @cw@ determines the relative weight to assign to
---   differences in each pair of condition components (e.g., energy,
---   passion, whether or not the wain has a litter).
--- scenarioDiffIgnoringLabels :: Weights -> Scenario -> Scenario -> UIDouble
--- scenarioDiffIgnoringLabels cw x y
---   = weightedUIVectorDiff cw (_condition x) (_condition y)
 
 -- | @'makeScenariosSimilar' target amount x@ returns a modified copy
 --   of @x@ that is more similar to @target@ than @x@ is.

@@ -21,6 +21,7 @@ module ALife.Creatur.Wain.ResponseInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
+import ALife.Creatur.Wain.GeneticSOM (Difference)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Scenario (Scenario,
   scenarioDiff, makeScenariosSimilarIgnoringLabels)
@@ -69,7 +70,7 @@ instance (Show a) => Pretty (Response a) where
 --   differences in the scenarios and the outcomes in the two patterns.
 responseDiff
   :: Eq a
-    => Weights -> Weights -> Response a -> Response a -> UIDouble
+    => Weights -> Weights -> Response a -> Response a -> Difference
 responseDiff cw rw x y =
   if _action x == _action y
     then weightedSum rw ds
@@ -80,7 +81,7 @@ responseDiff cw rw x y =
 
 diffIgnoringOutcome
   :: Eq a
-    => Weights -> Weights -> Response a -> Response a -> UIDouble
+    => Weights -> Weights -> Response a -> Response a -> Difference
 diffIgnoringOutcome cw rw x y = responseDiff cw rw x' y'
   where x' = set outcome 0 x
         y' = set outcome 0 y
@@ -107,8 +108,8 @@ similarityIgnoringOutcome cw rw x y
 copyOutcomeTo :: Response a -> Response a -> Response a
 copyOutcomeTo source = set outcome (_outcome source)
 
-responseSet
-  :: (Bounded a, Enum a) =>
-    Scenario -> PM1Double -> [Response a]
-responseSet s o = map (\a -> Response s a o) as
-  where as = [minBound .. maxBound]
+-- responseSet
+--   :: (Bounded a, Enum a) =>
+--     Scenario -> PM1Double -> [Response a]
+-- responseSet s o = map (\a -> Response s a o) as
+--   where as = [minBound .. maxBound]

@@ -95,12 +95,12 @@ prop_training_makes_predictions_more_accurate
   :: TrainingTestData -> Property
 prop_training_makes_predictions_more_accurate (TrainingTestData d r o) =
   property $ errAfter < 0.1 || errAfter <= errBefore
-  where (r2, _, d2) = predict d r 1
+  where (r2, _, _, d2) = predict d r 1
         predictionBefore = _outcome r2
         errBefore = abs (pm1ToDouble o - pm1ToDouble predictionBefore)
         rActual = r { _outcome = o }
         d3 = train d2 rActual
-        (r4, _, _) = predict d3 r 1
+        (r4, _, _, _) = predict d3 r 1
         predictionAfter = _outcome r4
         errAfter = abs (pm1ToDouble o - pm1ToDouble predictionAfter)
 
@@ -109,8 +109,8 @@ prop_imprint_works
 prop_imprint_works d s a = property $ _outcome r' >= _outcome r
   where d' = imprint d s a
         r0 = Response s a 0
-        (r, _, _) = predict d r0 1
-        (r', _, _) = predict d' r0 1
+        (r, _, _, _) = predict d r0 1
+        (r', _, _, _) = predict d' r0 1
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.PredictorQC"

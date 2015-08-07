@@ -16,13 +16,13 @@
 module ALife.Creatur.Wain.Classifier
   (
     Label,
-    Signature,
+    Difference,
     Classifier,
     buildClassifier,
     classifySetAndTrain
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Signature,
+import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Difference,
   ExponentialParams(..), Tweaker(..), Label, buildGeneticSOM,
   classify, train)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
@@ -46,14 +46,15 @@ buildClassifier = buildGeneticSOM
 --   and each model in the classifier) of each input pattern,
 --   and the updated classifier.
 classifySetAndTrain
-  :: Classifier s t -> [s] -> ([Label], [Signature], Classifier s t)
-classifySetAndTrain c ps = (reverse bmus, reverse ds, c')
-  where (bmus, ds, c') = foldl' classifyNextAndTrain ([], [], c) ps
+  :: Classifier s t -> [s]
+    -> ([Label], [[(Label, Difference)]], Classifier s t)
+classifySetAndTrain c ps = (reverse bmus, reverse diffs, c')
+  where (bmus, diffs, c') = foldl' classifyNextAndTrain ([], [], c) ps
 
 classifyNextAndTrain
-  :: ([Label], [Signature], Classifier s t)
-    -> s -> ([Label], [Signature], Classifier s t)
-classifyNextAndTrain (bmus, ds, c) p = (bmu:bmus, d:ds, c')
+  :: ([Label], [[(Label, Difference)]], Classifier s t)
+    -> s -> ([Label], [[(Label, Difference)]], Classifier s t)
+classifyNextAndTrain (bmus, diffs, c) p = (bmu:bmus, d:diffs, c')
   where (bmu, d, c') = classifyAndTrain c p
 
 -- | Updates the classifier models based on the input pattern.
@@ -61,7 +62,7 @@ classifyNextAndTrain (bmus, ds, c) p = (bmu:bmus, d:ds, c')
 --   and each model in the classifier) and the updated classifier.
 classifyAndTrain
   :: Classifier s t -> s
-    -> (Label, Signature, Classifier s t)
+    -> (Label, [(Label, Difference)], Classifier s t)
 classifyAndTrain c p = (bmu, diffs, c3)
   where (bmu, _, diffs, c2) = classify c p
         c3 = train c2 p

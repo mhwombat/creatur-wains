@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           7.5.3
+Version:           7.6.0
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -27,7 +27,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains.git
-  tag:      7.5.3
+  tag:      7.6.0
 
 library
   GHC-Options:      -Wall -Werror
@@ -41,6 +41,8 @@ library
                     ALife.Creatur.Wain.GeneticSOM,
                     ALife.Creatur.Wain.GeneticSOMInternal,
                     ALife.Creatur.Wain.Muser,
+                    ALife.Creatur.Wain.MuserInternal,
+                    ALife.Creatur.Wain.PlusMinusOne,
                     ALife.Creatur.Wain.PersistentStatistics,
                     ALife.Creatur.Wain.Predictor,
                     ALife.Creatur.Wain.Pretty,
@@ -48,8 +50,9 @@ library
                     ALife.Creatur.Wain.Response,
                     ALife.Creatur.Wain.ResponseInternal,
                     ALife.Creatur.Wain.Scenario,
+                    ALife.Creatur.Wain.Statistician,
+                    ALife.Creatur.Wain.StatisticianInternal,
                     ALife.Creatur.Wain.Statistics,
-                    ALife.Creatur.Wain.PlusMinusOne,
                     ALife.Creatur.Wain.UnitInterval,
                     ALife.Creatur.Wain.Util,
                     ALife.Creatur.Wain.Weights,
@@ -65,7 +68,7 @@ library
                     directory ==1.2.*,
                     -- factory ==0.2.*,
                     filepath ==1.4.*,
-                    lens ==4.11.*,
+                    lens ==4.12.*,
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
                     random ==1.1.*,
@@ -85,7 +88,7 @@ Test-suite wain-tests
                     creatur-wains,
                     deepseq ==1.4.*,
                     -- factory ==0.2.*,
-                    lens ==4.11.*,
+                    lens ==4.12.*,
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
@@ -95,27 +98,27 @@ Test-suite wain-tests
                     test-framework-quickcheck2 ==0.3.*,
                     QuickCheck ==2.8.*
 
-Executable wain-benchmark
-  Main-is:          Benchmark.hs
-  Hs-source-dirs:   test
-  Build-Depends:
-                    base ==4.* && >=4.8.0,
-                    cereal ==0.4.*,
-                    containers ==0.5.*,
-                    creatur ==5.9.*,
-                    creatur-wains,
-                    deepseq ==1.4.*,
-                    lens ==4.11.*,
-                    random ==1.1.*,
-                    MonadRandom ==0.4.*,
-                    mtl ==2.2.*,
-                    som ==8.1.* && >=8.1.1,
-                    temporary ==1.2.*,
-                    time ==1.5.*,
-                    transformers ==0.4.*,
-                    test-framework ==0.8.*,
-                    test-framework-quickcheck2 ==0.3.*,
-                    QuickCheck ==2.8.*
+-- Executable wain-benchmark
+--   Main-is:          Benchmark.hs
+--   Hs-source-dirs:   test
+--   Build-Depends:
+--                     base ==4.* && >=4.8.0,
+--                     cereal ==0.4.*,
+--                     containers ==0.5.*,
+--                     creatur ==5.9.*,
+--                     creatur-wains,
+--                     deepseq ==1.4.*,
+--                     lens ==4.12.*,
+--                     random ==1.1.*,
+--                     MonadRandom ==0.4.*,
+--                     mtl ==2.2.*,
+--                     som ==8.1.* && >=8.1.1,
+--                     temporary ==1.2.*,
+--                     time ==1.5.*,
+--                     transformers ==0.4.*,
+--                     test-framework ==0.8.*,
+--                     test-framework-quickcheck2 ==0.3.*,
+--                     QuickCheck ==2.8.*
 
 Executable wain-learning-test
   Main-is:          LearningTest.hs
@@ -127,14 +130,11 @@ Executable wain-learning-test
                     creatur ==5.9.*,
                     creatur-wains,
                     deepseq ==1.4.*,
-                    lens ==4.11.*,
+                    lens ==4.12.*,
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
                     som ==8.1.* && >=8.1.1,
-                    temporary ==1.2.*,
-                    time ==1.5.*,
-                    transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
                     QuickCheck ==2.8.*
@@ -149,14 +149,11 @@ Executable wain-teaching-test
                     creatur ==5.9.*,
                     creatur-wains,
                     deepseq ==1.4.*,
-                    lens ==4.11.*,
+                    lens ==4.12.*,
                     random ==1.1.*,
                     MonadRandom ==0.4.*,
                     mtl ==2.2.*,
                     som ==8.1.* && >=8.1.1,
-                    temporary ==1.2.*,
-                    time ==1.5.*,
-                    transformers ==0.4.*,
                     test-framework ==0.8.*,
                     test-framework-quickcheck2 ==0.3.*,
                     QuickCheck ==2.8.*

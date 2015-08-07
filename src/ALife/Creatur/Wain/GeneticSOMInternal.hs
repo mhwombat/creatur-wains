@@ -41,9 +41,8 @@ import GHC.Generics (Generic)
 -- | A unique identifier for a model in a SOM.
 type Label = Word16
 
--- | An pattern's "signature" shows how different it is from each of
---   the SOM models.
-type Signature = [(Label, UIDouble)]
+-- | A measure of the difference between an input pattern and a model.
+type Difference = UIDouble
 
 -- | @'ExponentialParams' r0 d@ defines the first two parameters for
 --     an exponential learning function.
@@ -126,7 +125,7 @@ class Tweaker t where
   --   representing how different the patterns are.
   --   The difference should be between @0@ and @1@, inclusive.
   --   A result of @0@ indicates that the patterns are identical.
-  diff :: t -> Pattern t -> Pattern t -> UIDouble
+  diff :: t -> Pattern t -> Pattern t -> Difference
   -- | @'adjust' t target r pattern@ returns a modified copy
   --   of @pattern@ that is more similar to @target@ than @pattern@ is.
   --   The magnitude of the adjustment is controlled by the @r@
@@ -341,7 +340,7 @@ counterMap = SOM.counterMap . _patternMap
 --   and the (possibly updated) SOM.
 classify
   :: GeneticSOM p t -> p
-    -> (Label, UIDouble, Signature, GeneticSOM p t)
+    -> (Label, Difference, [(Label, Difference)], GeneticSOM p t)
 classify gs p = (bmu, bmuDiff, diffs, gs')
   where (bmu, bmuDiff, diffs, s') = SOM.classify s p
         s = view patternMap gs

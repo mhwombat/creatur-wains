@@ -31,8 +31,12 @@ import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
   produceGamete, build, makeOffspring)
 import qualified ALife.Creatur.Wain.Brain as B
 import qualified ALife.Creatur.Wain.Classifier as Cl
-import ALife.Creatur.Wain.GeneticSOM (Label, Tweaker, Pattern)
+import ALife.Creatur.Wain.GeneticSOM (Tweaker, Pattern)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
+import qualified ALife.Creatur.Wain.Predictor as P
 import qualified ALife.Creatur.Wain.Response as R
+import ALife.Creatur.Wain.Scenario (Condition, Scenario)
+import ALife.Creatur.Wain.Statistician (Probability)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI, forceDoubleToUI)
@@ -259,7 +263,7 @@ mature a = _age a >= _ageOfMaturity a
 
 -- | Returns the wain's current condition. This is useful for making
 --   decisions.
-condition :: Wain p t a -> [UIDouble]
+condition :: Wain p t a -> Condition
 condition w = [_energy w, 1 - _passion w, if l > 0 then 1 else 0]
   where l = length . _litter $ w
 
@@ -302,10 +306,13 @@ happiness w = B.happiness (_brain w) (condition w)
 chooseAction
   :: (Eq a, Enum a, Bounded a, Ord a)
     => [p] -> Wain p t a
-      -> ([Label], [Cl.Signature], Label, [(R.Response a, Label)],
+      -> ([[(Cl.Label, Cl.Difference)]],
+          [(Scenario, Probability)],
+          [(R.Response a, Probability, P.Label, PM1Double)],
+          [(a, PM1Double)],
           R.Response a, Wain p t a)
-chooseAction ps w = (cBMUs, lds, pBMU, rls, r, w')
-  where (cBMUs, lds, pBMU, rls, r, b')
+chooseAction ps w = (lds, sps, rplos, aos, r, w')
+  where (lds, sps, rplos, aos, r, b')
           = B.chooseAction (_brain w) ps (condition w)
         w' = set brain b' w
 

@@ -21,7 +21,7 @@ module ALife.Creatur.Wain.MuserQC
     sizedArbMuser
   ) where
 
-import ALife.Creatur.Wain.Muser
+import ALife.Creatur.Wain.MuserInternal
 import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
 import ALife.Creatur.Wain.TestUtils
 import Test.Framework (Test, testGroup)

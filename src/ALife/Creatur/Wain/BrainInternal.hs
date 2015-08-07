@@ -25,23 +25,26 @@ import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import qualified ALife.Creatur.Wain.Predictor as P
-import ALife.Creatur.Wain.Muser (Muser, generateResponses,
-  mostLikelyScenarios, muserOK)
+import ALife.Creatur.Wain.Muser (Muser, generateResponses, muserOK)
 import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
 import ALife.Creatur.Wain.Response (Response(..))
-import ALife.Creatur.Wain.Scenario (Scenario(..))
+import ALife.Creatur.Wain.Scenario (Condition, Scenario(..))
+import ALife.Creatur.Wain.Statistician (Probability, hypothesise)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix,
   iStat, dStat)
-import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1, pm1ToDouble)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double, doubleToPM1,
+  pm1ToDouble)
+import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum)
 import Control.DeepSeq (NFData)
 import Control.Lens
-import Data.List (maximumBy, foldl')
+import Data.List (maximumBy, groupBy, foldl')
 import qualified Data.Map.Strict as M
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
+import Text.Printf (printf)
 
 data Brain p t a = Brain
   {
@@ -87,12 +90,6 @@ instance (Show p, Show a, Show t, Eq a)
     ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") ("
     ++ show ks ++ ")"
 
--- | Returns @True@ if both the classifier and predictor are valid
---   according to @somOK@; returns @False@ otherwise.
-brainOK :: Eq a => Brain p t a -> Bool
-brainOK b = GSOM.somOK (_classifier b) && GSOM.somOK (_predictor b)
-              && muserOK (_muser b)
-
 instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
           p ~ GSOM.Pattern t)
     => Genetic (Brain p t a) where
@@ -124,17 +121,23 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
   :: (Eq a, Enum a, Bounded a, Ord a)
-      => Brain p t a -> [p] -> [UIDouble]
-        -> ([Cl.Label], [Cl.Signature],
-            P.Label, [(Response a, P.Label)],
+      => Brain p t a -> [p] -> Condition
+        -> ([[(Cl.Label, GSOM.Difference)]],
+            [(Scenario, Probability)],
+            [(Response a, Probability, P.Label, PM1Double)],
+            [(a, PM1Double)],
             Response a, Brain p t a)
-chooseAction b ps c = (cBMUs, lds, pBMU, rls, r, b4)
-  where (cBMUs, lds, b2) = assessSituation b ps
-        rps = generateResponses (_muser b2) lds c
-        (rls, b3) = predictAll b2 rps
-        (r, pBMU) = maximumBy bestOutcome rls
-        bestOutcome = comparing (_outcome . fst)
+chooseAction b ps c = (lds, sps, rplos, aos, r, b4)
+  where (cBMUs, lds, b2) = classifyInputs b ps
+        sps = generateScenarios c lds
+        rps = generateResponses (_muser b2) sps
+        (rplos, b3) = predictAll b2 rps
+        rs = map (\(r1, _, _, _) -> r1) rplos
+        aos = sumByAction rs
+        (a, o) = maximumBy (comparing snd) aos
         b4 = adjustActionCounts b3 r
+        r = Response s a o
+        s = Scenario cBMUs c
 
 adjustActionCounts :: Ord a => Brain p t a -> Response a -> Brain p t a
 adjustActionCounts b r = set actionCounts cs' b
@@ -148,11 +151,28 @@ adjustActionCounts b r = set actionCounts cs' b
 --   Returns the "signature" (differences between the input pattern
 --   and each model in the classifier) of each input pattern,
 --   and the updated brain.
-assessSituation
-  :: Brain p t a -> [p] -> ([Cl.Label], [Cl.Signature], Brain p t a)
-assessSituation b ps = (bmus, ds, b')
+classifyInputs
+  :: Brain p t a -> [p]
+    -> ([Cl.Label], [[(Cl.Label, GSOM.Difference)]], Brain p t a)
+classifyInputs b ps = (bmus, ds, b')
   where (bmus, ds, c') = Cl.classifySetAndTrain (_classifier b) ps
         b' = set classifier c' b
+
+generateScenarios
+  :: Condition -> [[(Cl.Label, GSOM.Difference)]]
+    -> [(Scenario, Probability)]
+generateScenarios c lds = map f . hypothesise $ lds
+  where f (ls, p) = (Scenario ls c, p)
+
+sumByAction :: Eq a => [Response a] -> [(a, PM1Double)]
+sumByAction rs = map sumByAction' rss
+  where rss = groupBy sameAction rs
+        sameAction x y = _action x == _action y
+
+sumByAction' :: [Response a] -> (a, PM1Double)
+sumByAction' rs = (a, o)
+  where a = _action $ head rs
+        o = sum $ map _outcome rs
 
 -- | Predicts the outcomes of a set of responses based on the Predictor
 --   models, and updates the outcome field in each response.
@@ -169,17 +189,19 @@ assessSituation b ps = (bmus, ds, b')
 --   really bad outcome.
 predictAll
   :: Eq a
-    =>  Brain p t a -> [(Response a, UIDouble)]
-      -> ([(Response a, P.Label)],  Brain p t a)
+    =>  Brain p t a -> [(Response a, Probability)]
+      -> ([(Response a, Probability, P.Label, PM1Double)],
+          Brain p t a)
 predictAll b rps = foldl' predictOne ([], b) rps
 
 predictOne
   :: Eq a
-    => ([(Response a, P.Label)],  Brain p t a)
-      -> (Response a, UIDouble)
-        -> ([(Response a, P.Label)],  Brain p t a)
-predictOne (rls, b) (r, k) = ((r', l):rls, b {_predictor = d})
-  where (r', l, d) = P.predict (_predictor b) r k
+    => ([(Response a, Probability, P.Label, PM1Double)],  Brain p t a)
+      -> (Response a, Probability)
+        -> ([(Response a, Probability, P.Label, PM1Double)],
+            Brain p t a)
+predictOne (rplos, b) (r, p) = ((r', p, l, o):rplos, b {_predictor = d})
+  where (r', l, o, d) = P.predict (_predictor b) r p
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
@@ -187,7 +209,7 @@ predictOne (rls, b) (r, k) = ((r', l):rls, b {_predictor = d})
 --   prediction of the outcome.
 reflect
   :: Eq a
-    => Brain p t a -> Response a -> [UIDouble]
+    => Brain p t a -> Response a -> Condition
       -> (Brain p t a, Double)
 reflect b r cAfter = (set predictor d' b, err)
   where deltaH = uiToDouble (happiness b cAfter)
@@ -204,15 +226,42 @@ reflect b r cAfter = (set predictor d' b, err)
 --   It can also be used to allow wains to learn from others.
 imprint
   :: Eq a
-    => Brain p t a -> [p] -> a -> [UIDouble] -> Brain p t a
+    => Brain p t a -> [p] -> a -> Condition -> Brain p t a
 imprint b ps a c = set predictor d' b'
-  where (_, lds, b') = assessSituation b ps
-        (s, _) = head $ mostLikelyScenarios (_muser b') c lds
+  where (_, lds, b') = classifyInputs b ps
+        s = fst . maximumBy (comparing snd) . generateScenarios c $ lds
         d = _predictor b'
         d' = P.imprint d s a
 
-happiness :: Brain p t a -> [UIDouble] -> UIDouble
+-- | Returns @True@ if both the classifier and predictor are valid
+--   according to @somOK@; returns @False@ otherwise.
+brainOK :: Eq a => Brain p t a -> Bool
+brainOK b = GSOM.somOK (_classifier b) && GSOM.somOK (_predictor b)
+              && muserOK (_muser b)
+
+happiness :: Brain p t a -> Condition -> UIDouble
 happiness b = weightedSum (_happinessWeights b)
 
 decisionQuality :: Brain p t a -> Int
 decisionQuality = GSOM.discrimination . M.elems . _actionCounts
+
+scenarioReport :: [(Scenario, Probability)] -> [String]
+scenarioReport = map f
+  where f (s, p) = pretty s ++ " prob: " ++ prettyProbability p
+
+responseReport
+  :: Show a
+    => [(Response a, Probability, P.Label, PM1Double)] -> [String]
+responseReport = map f
+  where f (r, p, l, o) = pretty r ++ " prob: " ++ prettyProbability p
+          ++ " based on model " ++ show l ++ " raw outcome: "
+          ++ printf "%.3f" (pm1ToDouble o)
+
+decisionReport :: Show a => [(a, PM1Double)] -> [String]
+decisionReport = map f
+  where f (a, o) = "predicted outcome of " ++ show a ++ " is "
+          ++ printf "%.3f" (pm1ToDouble o)
+
+prettyProbability :: Probability -> String
+prettyProbability p = show p' ++ "%"
+  where p' = round (uiToDouble p * 100) :: Int
