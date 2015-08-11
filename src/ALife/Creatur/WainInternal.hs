@@ -179,7 +179,7 @@ instance (Eq a, Ord a) =>
   stats w =
     iStat "age" (_age w)
       : stats (_brain w)
-      : dStat "devotion" (_devotion w)
+      ++ dStat "devotion" (_devotion w)
       : iStat "maturity" (_ageOfMaturity w)
       : dStat "Δp" (_passionDelta w)
       : dStat "Δb" (_boredomDelta w)
