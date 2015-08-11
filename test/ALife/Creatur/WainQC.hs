@@ -54,8 +54,10 @@ strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- devotion
                 <*> arbitrary     -- age of maturity
                 <*> arbitrary     -- delta passion
+                <*> arbitrary     -- delta boredom
                 <*> arbitrary     -- energy
                 <*> arbitrary     -- passion
+                <*> arbitrary     -- boredom
                 <*> arbitrary     -- age
                 <*> pure []       -- litter
                 <*> arbitrary     -- children borne during lifetime

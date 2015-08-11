@@ -38,7 +38,9 @@ module ALife.Creatur.Wain
     -- * Misc.
     applyMetabolismCost,
     adjustEnergy,
-    adjustPassion,
+    adjustBoredom,
+    autoAdjustPassion,
+    autoAdjustBoredom,
     coolPassion,
     happiness,
     -- identity,

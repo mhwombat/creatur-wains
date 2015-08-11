@@ -61,6 +61,7 @@ testWain = imprintAll w'
         wDevotion = 0.1
         wAgeOfMaturity = 100
         wPassionDelta = 0
+        wBoredomDelta = 0
         wClassifier = buildGeneticSOM ec 10 0.12 TestTweaker
         wMuser = makeMuser 0 2
         wPredictor = buildGeneticSOM ep 50 0.1 dtw
@@ -71,7 +72,7 @@ testWain = imprintAll w'
         cw = makeWeights [1, 0, 0]
         rw = makeWeights [0.9, 0.1]
         w = buildWainAndGenerateGenome wName wAppearance wBrain
-              wDevotion wAgeOfMaturity wPassionDelta
+              wDevotion wAgeOfMaturity wPassionDelta wBoredomDelta
         (w', _, _) = adjustEnergy 0.5 w
 
 tryOne

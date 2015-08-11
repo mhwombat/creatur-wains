@@ -73,12 +73,18 @@ data Wain p t a = Wain
     -- | The amount that a wain's passion increases at each CPU turn.
     --   this influences the frequency of mating.
     _passionDelta :: UIDouble,
+    -- | The amount that a wain's boredom increases at each CPU turn.
+    --   this influences the frequency of mating.
+    _boredomDelta :: UIDouble,
     -- | The wain's current energy level.
     --   This is a number between 0 and 1, inclusive.
     _energy :: UIDouble,
     -- | The wain's current passion level
     --   This is a number between 0 and 1, inclusive.
     _passion :: UIDouble,
+    -- | The wain's current boredom level
+    --   This is a number between 0 and 1, inclusive.
+    _boredom :: UIDouble,
     -- | The wain's current age.
     _age :: Word16,
     -- | The children this wain is currently rearing.
@@ -98,10 +104,9 @@ buildWain
   :: (Genetic p, Genetic t, Genetic a, Eq a, Tweaker t, p ~ Pattern t,
     Serialize p, Serialize t, Serialize a, Ord a)
     => String -> p -> B.Brain p t a -> UIDouble -> Word16 -> UIDouble
-      -> (Sequence, Sequence) -> Wain p t a
-buildWain
-  wName wAppearance wBrain wDevotion wAgeOfMaturity wPassionDelta g
-      = set wainSize s w
+      -> UIDouble -> (Sequence, Sequence) -> Wain p t a
+buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
+  wPassionDelta wBoredomDelta g = set wainSize s w
   -- We first set the size to 0, then figure out what the size really
   -- is.
   where w = Wain
@@ -112,8 +117,10 @@ buildWain
                 _devotion = wDevotion,
                 _ageOfMaturity = wAgeOfMaturity,
                 _passionDelta = wPassionDelta,
+                _boredomDelta = wBoredomDelta,
                 _energy = 0,
                 _passion = 1,
+                _boredom = 1,
                 _age = 0,
                 _litter = [],
                 _childrenBorneLifetime = 0,
@@ -131,31 +138,32 @@ buildWainAndGenerateGenome
     Serialize p, Serialize t, Serialize a,
       Eq a, Ord a, Tweaker t, p ~ Pattern t)
         => String -> p -> B.Brain p t a -> UIDouble -> Word16
-          -> UIDouble -> Wain p t a
-buildWainAndGenerateGenome
-  wName wAppearance wBrain wDevotion wAgeOfMaturity wPassionDelta
-      = set genome (g,g) strawMan
+          -> UIDouble -> UIDouble -> Wain p t a
+buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
+  wAgeOfMaturity wPassionDelta wBoredomDelta = set genome (g,g) strawMan
   where strawMan = buildWain wName wAppearance wBrain wDevotion
-                     wAgeOfMaturity wPassionDelta ([], [])
+                     wAgeOfMaturity wPassionDelta wBoredomDelta ([], [])
         g = write strawMan
 
 -- | Constructs a wain from its genome. This is used when a child is
 --   produced as the result of mating.
 buildWainFromGenome
-  :: ( Genetic p, Genetic t, Genetic a, Diploid p, Diploid t, Diploid a,
-       Serialize p, Serialize t, Serialize a, Ord a, Eq a, Tweaker t,
-       p ~ Pattern t )
-    => Bool -> String
-      -> DiploidReader (Either [String] (Wain p t a))
+  :: (Genetic p, Genetic t, Genetic a, Diploid p, Diploid t, Diploid a,
+    Serialize p, Serialize t, Serialize a, Ord a, Eq a, Tweaker t,
+      p ~ Pattern t)
+        => Bool -> String
+          -> DiploidReader (Either [String] (Wain p t a))
 buildWainFromGenome truncateGenome wName = do
   wAppearance <- getAndExpress
   wBrain <- getAndExpress
   wDevotion <- getAndExpress
   wAgeOfMaturity <- getAndExpress
   wPassionDelta <- getAndExpress
+  wBoredomDelta <- getAndExpress
   g <- if truncateGenome then consumed2 else copy2
   return $ buildWain wName <$> wAppearance <*> wBrain <*> wDevotion
-             <*> wAgeOfMaturity <*> wPassionDelta <*> pure g
+             <*> wAgeOfMaturity <*> wPassionDelta <*> wBoredomDelta
+             <*> pure g
 
 deriving instance (Show p, Show t, Show a, Eq a)
     => Show (Wain p t a)
@@ -169,12 +177,19 @@ instance SizedRecord (Wain p t a) where
 instance (Eq a, Ord a) =>
   Statistical (Wain p t a) where
   stats w =
-    stats (_brain w)
-      ++ dStat "devotion" (_devotion w)
+    iStat "age" (_age w)
+      : dStat "devotion" (_devotion w)
       : iStat "maturity" (_ageOfMaturity w)
       : dStat "Δp" (_passionDelta w)
+      : dStat "Δb" (_boredomDelta w)
+      : iStat "size" (_wainSize w)
+      : iStat "children borne (lifetime)" (_childrenBorneLifetime w)
+      : iStat "children reared (lifetime)" (_childrenWeanedLifetime w)
+      : dStat "adult energy" e
+      : dStat "child energy" ec
       : dStat "energy" (uiToDouble e + uiToDouble ec)
       : dStat "passion" (_passion w)
+      : dStat "boredom" (_boredom w)
       : dStat "happiness" (happiness w)
       : iStat "age" (_age w)
       : iStat "current litter size" (length . _litter $ w)
@@ -203,6 +218,7 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a,
             >> put (_devotion w)
             >> put (_ageOfMaturity w)
             >> put (_passionDelta w)
+            >> put (_boredomDelta w)
   get = do
     g <- copy
     wAppearance <- get
@@ -210,8 +226,10 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a,
     wDevotion <- get
     wAgeOfMaturity <- get
     wPassionDelta <- get
+    wBoredomDelta <- get
     return $ buildWain "" <$> wAppearance <*> wBrain <*> wDevotion
-               <*> wAgeOfMaturity <*> wPassionDelta <*> pure (g, g)
+             <*> wAgeOfMaturity <*> wPassionDelta <*> wBoredomDelta
+               <*> pure (g, g)
 
 -- This implementation is useful for testing
 instance (Diploid p, Diploid t, Diploid a,
@@ -219,13 +237,14 @@ instance (Diploid p, Diploid t, Diploid a,
     Serialize p, Serialize t, Serialize a, Tweaker t, p ~ Pattern t)
       => Diploid (Wain p t a) where
   express x y = buildWain "" wAppearance wBrain wDevotion
-                  wAgeOfMaturity wPassionDelta ([],[])
+                  wAgeOfMaturity wPassionDelta wBoredomDelta ([],[])
     where wAppearance     = express (_appearance x)    (_appearance y)
           wBrain          = express (_brain x)         (_brain y)
           wDevotion       = express (_devotion x)      (_devotion y)
           wAgeOfMaturity  = express (_ageOfMaturity x)
                                                       (_ageOfMaturity y)
           wPassionDelta   = express (_passionDelta x)  (_passionDelta y)
+          wBoredomDelta   = express (_boredomDelta x)  (_boredomDelta y)
 
 instance Agent (Wain p t a) where
   agentId = view name
@@ -264,7 +283,8 @@ mature a = _age a >= _ageOfMaturity a
 -- | Returns the wain's current condition. This is useful for making
 --   decisions.
 condition :: Wain p t a -> Condition
-condition w = [_energy w, 1 - _passion w, if l > 0 then 1 else 0]
+condition w = [ _energy w, 1 - _passion w, 1 - _boredom w,
+                if l > 0 then 1 else 0 ]
   where l = length . _litter $ w
 
 -- | Returns the wain's current happiness level.
@@ -381,13 +401,37 @@ adjustEnergy1 delta w =
         delta' = uiToDouble eAfter - uiToDouble eBefore
         leftover = delta - delta'
 
+-- | Adjusts the boredom level of a wain.
+--   Note: A wain's boredom is capped to the range [0,1].
+adjustBoredom
+  :: Double -> Wain p t a -> (Wain p t a, Double)
+adjustBoredom delta w = (w', delta')
+  where (w', delta', _) = adjustBoredom1 delta w
+
+adjustBoredom1
+  :: Double -> Wain p t a -> (Wain p t a, Double, Double)
+adjustBoredom1 delta w = (wAfter, delta', leftover)
+  where bBefore = _boredom w
+        bAfter = forceDoubleToUI $ uiToDouble (_boredom w) + delta
+        wAfter = set boredom bAfter w
+        delta' = uiToDouble bAfter - uiToDouble bBefore
+        leftover = delta - delta'
+
 -- | Adjusts the wain's passion by the genetically-determined amount.
 --   NOTE: The passion is capped to the range [0,1]. The litter is not
 --   affected.
-adjustPassion :: Wain p t a -> Wain p t a
-adjustPassion w = set passion p w
+autoAdjustPassion :: Wain p t a -> Wain p t a
+autoAdjustPassion w = set passion p w
   where p = doubleToUI . enforceRange unitInterval $
               uiToDouble (_passion w) + uiToDouble (_passionDelta w)
+
+-- | Adjusts the wain's boredom by the genetically-determined amount.
+--   Note: The boredom is capped to the range [0,1]. The litter is not
+--   affected.
+autoAdjustBoredom :: Wain p t a -> Wain p t a
+autoAdjustBoredom w = set boredom p w
+  where p = doubleToUI . enforceRange unitInterval $
+              uiToDouble (_boredom w) + uiToDouble (_boredomDelta w)
 
 -- | Resets the wain's passion to zero.
 --   This would normally be called immediately after mating.
