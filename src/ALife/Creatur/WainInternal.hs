@@ -178,6 +178,7 @@ instance (Eq a, Ord a) =>
   Statistical (Wain p t a) where
   stats w =
     iStat "age" (_age w)
+      : stats (_brain w)
       : dStat "devotion" (_devotion w)
       : iStat "maturity" (_ageOfMaturity w)
       : dStat "Δp" (_passionDelta w)
