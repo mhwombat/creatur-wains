@@ -25,6 +25,7 @@ module ALife.Creatur.Wain
     passionDelta,
     energy,
     passion,
+    boredom,
     age,
     litter,
     childrenBorneLifetime,

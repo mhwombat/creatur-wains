@@ -158,7 +158,7 @@ buildGeneticSOM e@(ExponentialParams r0 d) maxSz dt t
   | r0 < 0    = error "r0<0"
   | d < 0     = error "d<0"
   | otherwise = GeneticSOM som e t
-  where som = SOM.makeSOS lrf (fromIntegral maxSz) dt df af
+  where som = SOM.makeSOS lrf (fromIntegral maxSz) dt False df af
         lrf = toExponential e
         df = diff t
         af = adjust t
@@ -206,7 +206,7 @@ instance (S.Serialize p, S.Serialize t, Tweaker t, p ~ Pattern t)
     let lrf = toExponential eps
     let df = diff tr
     let af = adjust tr
-    let s = SOM.SOS gm lrf maxSz dt df af kNext
+    let s = SOM.SOS gm lrf maxSz dt False df af kNext
     return $ GeneticSOM s eps tr
 
 instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
@@ -228,13 +228,13 @@ instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
     let df = diff <$> tr
     let af = adjust <$> tr
     let kNext = toEnum . length <$> nodes
-    let s = SOM.SOS <$> gm <*> lrf <*> maxSz <*> dt <*> df <*> af <*> kNext
+    let s = SOM.SOS <$> gm <*> lrf <*> maxSz <*> dt <*> pure False <*> df <*> af <*> kNext
     return $ GeneticSOM <$> s <*> eps <*> tr
 
 instance (Diploid p, Diploid t, Tweaker t, p ~ Pattern t)
     => Diploid (GeneticSOM p t) where
   express x y = GeneticSOM s eps tr
-    where s = SOM.SOS gm lrf maxSz dt df af kNext
+    where s = SOM.SOS gm lrf maxSz dt False df af kNext
           gm = M.fromList $
                  express (M.toList . SOM.toMap . _patternMap $ x)
                          (M.toList . SOM.toMap . _patternMap $ y)
