@@ -34,12 +34,11 @@ module ALife.Creatur.Wain.UnitInterval
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.Util (inRange, enforceRange,
-  scaleToWord8, scaleFromWord8)
+  scaleToWord8, scaleToWord16, scaleFromWord16)
 import Control.DeepSeq (NFData)
 import Data.Datamining.Pattern (adjustNum)
 import Data.List (intercalate)
 import Data.Serialize (Serialize)
-import Data.Word (Word8)
 import GHC.Generics (Generic)
 import System.Random (Random(..), randomR)
 import Text.Printf (printf)
@@ -120,15 +119,9 @@ instance Real UIDouble where
 
 -- | The initial sequences stored at birth are genetically determined.
 instance W8.Genetic UIDouble where
-  put x = W8.putAndReport bytes (show x ++ " UIDouble")
-    where bytes = [scaleToWord8 interval . enforceRange interval
-                    . uiToDouble $ x]
-  get = W8.getAndReport 1 convert
-
-convert :: [Word8] -> (Either String (UIDouble, String))
-convert (x:[]) = Right (g, show g ++ " UIDouble")
-  where g = (UIDouble . scaleFromWord8 interval) x
-convert _ = Left "logic error"
+  put x = W8.put . scaleToWord16 interval . enforceRange interval
+                    . uiToDouble $ x
+  get = fmap (fmap (UIDouble . scaleFromWord16 interval)) W8.get
 
 instance Diploid UIDouble where
   express (UIDouble x) (UIDouble y) = UIDouble $ (x + y)/2
@@ -187,4 +180,3 @@ uiDoublesTo8BitHex = intercalate ":" . map uiDoubleTo8BitHex
 uiDoubleTo8BitHex :: UIDouble -> String
 uiDoubleTo8BitHex
   = printf "%.2X" . scaleToWord8 interval . uiToDouble
-

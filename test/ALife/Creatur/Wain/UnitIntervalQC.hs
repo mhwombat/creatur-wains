@@ -32,7 +32,7 @@ instance Arbitrary UIDouble where
   arbitrary = doubleToUI <$> choose interval
 
 negligible :: UIDouble -> Bool
-negligible x = uiToDouble x < 1/255
+negligible x = uiToDouble x < 1/65535
 
 equivUIDouble :: UIDouble -> UIDouble -> Bool
 equivUIDouble x y = negligible $ uiDiff x y

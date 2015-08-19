@@ -79,10 +79,10 @@ data RandomExponentialParams = RandomExponentialParams
 makeLenses ''RandomExponentialParams
 
 r0RangeLimits :: (UIDouble, UIDouble)
-r0RangeLimits = (doubleToUI (1/255), doubleToUI 1)
+r0RangeLimits = (doubleToUI (1/65535), doubleToUI 1)
 
 dRangeLimits :: (UIDouble, UIDouble)
-dRangeLimits = (doubleToUI (1/255), doubleToUI 1)
+dRangeLimits = (doubleToUI (1/65535), doubleToUI 1)
 
 -- | Returns a set of parameters which will permit the broadest possible
 --   set of random decaying gaussian functions for a SOM.

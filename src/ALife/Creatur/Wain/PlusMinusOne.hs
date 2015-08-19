@@ -38,13 +38,12 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI)
-import ALife.Creatur.Wain.Util (enforceRange, scaleToWord8,
-  scaleFromWord8)
+import ALife.Creatur.Wain.Util (enforceRange, scaleToWord16,
+  scaleFromWord16, scaleToWord8)
 import Control.DeepSeq (NFData)
 import Data.Datamining.Pattern (adjustNum)
 import Data.List (intercalate)
 import Data.Serialize (Serialize)
-import Data.Word (Word8)
 import GHC.Generics (Generic)
 import System.Random (Random(..), randomR)
 import Text.Printf (printf)
@@ -124,15 +123,9 @@ instance Real PM1Double where
 
 -- | The initial sequences stored at birth are genetically determined.
 instance W8.Genetic PM1Double where
-  put x = W8.putAndReport bytes (show x ++ " PM1Double")
-    where bytes = [scaleToWord8 interval . enforceRange interval
-                    . pm1ToDouble $ x]
-  get = W8.getAndReport 1 convert
-
-convert :: [Word8] -> (Either String (PM1Double, String))
-convert (x:[]) = Right (g, show g ++ " PM1Double")
-  where g = (PM1Double . scaleFromWord8 interval) x
-convert _ = Left "logic error"
+  put x = W8.put . scaleToWord16 interval . enforceRange interval
+                    . pm1ToDouble $ x
+  get = fmap (fmap (PM1Double . scaleFromWord16 interval)) W8.get
 
 instance Diploid PM1Double where
   express (PM1Double x) (PM1Double y) = PM1Double $ (x + y)/2

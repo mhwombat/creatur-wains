@@ -34,7 +34,7 @@ instance Arbitrary PM1Double where
   arbitrary = doubleToPM1 <$> choose interval
 
 negligible :: UIDouble -> Bool
-negligible x = uiToDouble x < 1/255
+negligible x = uiToDouble x < 1/65535
 
 equivPM1Double :: PM1Double -> PM1Double -> Bool
 equivPM1Double x y = negligible $ pm1Diff x y
