@@ -192,7 +192,6 @@ instance (Eq a, Ord a) =>
       : dStat "passion" (_passion w)
       : dStat "boredom" (_boredom w)
       : dStat "happiness" (happiness w)
-      : iStat "age" (_age w)
       : iStat "current litter size" (length . _litter $ w)
       : iStat "children borne (lifetime)" (_childrenBorneLifetime w)
       : iStat "children reared (lifetime)" (_childrenWeanedLifetime w)
