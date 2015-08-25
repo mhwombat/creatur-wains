@@ -44,8 +44,6 @@ module ALife.Creatur.Wain
     autoAdjustBoredom,
     coolPassion,
     happiness,
-    -- identity,
-    -- appearanceOf,
     childEnergy,
     hasLitter,
     litterSize,

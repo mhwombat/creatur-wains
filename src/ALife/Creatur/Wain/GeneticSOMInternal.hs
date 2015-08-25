@@ -184,6 +184,7 @@ showSOS s e t = "SOS (" ++ show (SOM.toMap s)
                    ++ ") (toExponential (" ++ show e
                    ++ ")) " ++ show (SOM.maxSize s)
                    ++ " " ++ show (SOM.diffThreshold s)
+                   ++ " " ++ show (SOM.allowDeletion s)
                    ++ " (diff (" ++ show t
                    ++ ")) (adjust (" ++ show t
                    ++ ")) " ++ show (SOM.nextIndex s)

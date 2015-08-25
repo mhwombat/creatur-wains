@@ -330,7 +330,8 @@ chooseAction
           [(Scenario, Probability)],
           [(R.Response a, Probability, P.Label, PM1Double)],
           [(a, PM1Double)],
-          R.Response a, Wain p t a)
+          R.Response a,
+          Wain p t a)
 chooseAction ps w = (lds, sps, rplos, aos, r, w')
   where (lds, sps, rplos, aos, r, b')
           = B.chooseAction (_brain w) ps (condition w)
