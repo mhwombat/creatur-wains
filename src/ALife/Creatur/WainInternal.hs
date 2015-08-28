@@ -264,8 +264,8 @@ instance (Genetic p, Genetic t, Genetic a,
   build n = runDiploidReader (buildWainFromGenome False n)
 
 -- | Returns the total energy of all children in the litter.
-childEnergy :: Wain p t a -> UIDouble
-childEnergy = sum . map (view energy) . view litter
+childEnergy :: Wain p t a -> Double
+childEnergy = sum . map (uiToDouble . view energy) . view litter
 
 -- | Returns @True@ if a wain is currently raising children; returns
 --   @False@ otherwise.
@@ -374,8 +374,8 @@ adjustEnergy delta w =
   where
       childrensShare = uiToDouble (_devotion w) * delta
       (w2, childrensShare', leftover)
-        = adjustChildrensEnergy delta w
-      adultShare = delta - childrensShare + leftover
+        = adjustChildrensEnergy childrensShare w
+      adultShare = delta - childrensShare' + leftover
       (w3, adultShare', _) = adjustEnergy1 adultShare w2
       (w4, delta', _) = adjustEnergy1 delta w
 
@@ -383,7 +383,8 @@ adjustChildrensEnergy
   :: Double -> Wain p t a -> (Wain p t a, Double, Double)
 adjustChildrensEnergy delta w
   = (set litter childrenAfter w, delta', leftover)
-  where result = map (adjustEnergy1 delta) (_litter w)
+  where deltaDivided = delta / (fromIntegral . length . _litter $ w)
+        result = map (adjustEnergy1 deltaDivided) (_litter w)
         childrenAfter = map (\(x, _, _) -> x) result
         delta' = sum . map (\(_, y, _) -> y) $ result
         leftover = sum . map (\(_, _, z) -> z) $ result

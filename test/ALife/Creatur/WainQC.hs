@@ -83,9 +83,10 @@ arbWain = do
 sizedArbWain :: Int -> Gen (Wain TestPattern TestTweaker TestAction)
 sizedArbWain n = do
   w <- arbWain
-  if n < 1
+  if n > 1
     then do
-      cs <- listOf arbWain
+      k <- choose (1, min 3 n)
+      cs <- vectorOf k arbWain
       return $ set litter cs w
     else return w
 
@@ -114,36 +115,45 @@ prop_adjustEnergy_balances_adult_energy e w
 prop_adjustEnergy_balances_child_energy
   :: Double -> Wain TestPattern TestTweaker TestAction -> Property
 prop_adjustEnergy_balances_child_energy e w
-  = property $ childEnergy w' == childEnergy w + doubleToUI childShare
+  = property $ childEnergy w' == childEnergy w + childShare
   where (w', _, childShare) = adjustEnergy e w
 
 prop_adjustEnergy_child_not_overpaid
   :: Double -> Wain TestPattern TestTweaker TestAction -> Property
 prop_adjustEnergy_child_not_overpaid e w
   = property $ childShare <= maxChildShare
-  where (_, _, childShare) = adjustEnergy e w
+  where (_, _, childShare) = adjustEnergy e' w
         maxChildShare = if hasLitter w
-                               then (uiToDouble . _devotion $ w) * e'
+                               then (uiToDouble . _devotion $ w) * e' + aTad
                                else 0
         e' = enforceRange (0, 1)  e
+        aTad = 1e-10
 
 prop_adjustEnergy_adult_not_underpaid
   :: Double -> Wain TestPattern TestTweaker TestAction -> Property
 prop_adjustEnergy_adult_not_underpaid e w
   = property $ adultShare >= minAdultShare
-  where (_, adultShare, _) = adjustEnergy e w
+  where (_, adultShare, _) = adjustEnergy e' w
         minAdultShare = if hasLitter w
-                               then (1 - d) * e'
-                               else 0
+                               then (1 - d) * e' - aTad
+                               else e'
         e' = enforceRange (0, 1)  e
         d = uiToDouble . _devotion $ w
+        aTad = 1e-10
 
-prop_adjustEnergy_doesnt_underpay
+prop_adjustEnergy_pays_correct_amount
   :: Double -> Wain TestPattern TestTweaker TestAction -> Property
-prop_adjustEnergy_doesnt_underpay e w
+prop_adjustEnergy_pays_correct_amount e w
   = property $ adultShare + childShare == e' || _energy w' == 1
-  where (w', adultShare, childShare) = adjustEnergy e w
-        e' = enforceRange (0, 1)  e
+  where (w', adultShare, childShare) = adjustEnergy e' w
+        e' = enforceRange (0, 1) e
+
+prop_adjustEnergy_charges_correct_amount
+  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
+prop_adjustEnergy_charges_correct_amount e w
+  = property $ adultShare + childShare == e' || _energy w' == 0
+  where (w', adultShare, childShare) = adjustEnergy e' w
+        e' = enforceRange (-1, 0) e
 
 prop_applyMetabolismCost_balances_adult_energy
   :: Wain TestPattern TestTweaker TestAction -> Double -> Double
@@ -159,7 +169,7 @@ prop_applyMetabolismCost_balances_child_energy
     -> Double -> Property
 prop_applyMetabolismCost_balances_child_energy
   w baseCost costPerByte childCostFactor
-    = property $ childEnergy w' == childEnergy w + doubleToUI childShare
+    = property $ childEnergy w' == childEnergy w + childShare
   where (w', _, childShare)
           = applyMetabolismCost baseCost costPerByte childCostFactor w
 
@@ -183,8 +193,10 @@ test = testGroup "ALife.Creatur.WainQC"
       prop_adjustEnergy_child_not_overpaid,
     testProperty "prop_adjustEnergy_adult_not_underpaid"
       prop_adjustEnergy_adult_not_underpaid,
-    testProperty "prop_adjustEnergy_doesnt_underpay"
-      prop_adjustEnergy_doesnt_underpay,
+    testProperty "prop_adjustEnergy_pays_correct_amount"
+      prop_adjustEnergy_pays_correct_amount,
+    testProperty "prop_adjustEnergy_charges_correct_amount"
+      prop_adjustEnergy_charges_correct_amount,
     testProperty "prop_adjustEnergy_balances_child_energy"
       prop_adjustEnergy_balances_child_energy,
     testProperty "prop_applyMetabolismCost_balances_adult_energy"
