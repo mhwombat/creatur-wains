@@ -26,8 +26,9 @@ import ALife.Creatur.Wain.ClassifierQC (TestTweaker)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
-import ALife.Creatur.Wain.UnitInterval (doubleToUI)
+import ALife.Creatur.Wain.UnitInterval (doubleToUI, uiToDouble)
 import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
+import ALife.Creatur.Wain.Util (enforceRange)
 import Control.Lens
 -- import Control.Monad.Random (evalRand)
 -- import System.Random (mkStdGen)
@@ -116,6 +117,34 @@ prop_adjustEnergy_balances_child_energy e w
   = property $ childEnergy w' == childEnergy w + doubleToUI childShare
   where (w', _, childShare) = adjustEnergy e w
 
+prop_adjustEnergy_child_not_overpaid
+  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
+prop_adjustEnergy_child_not_overpaid e w
+  = property $ childShare <= maxChildShare
+  where (_, _, childShare) = adjustEnergy e w
+        maxChildShare = if hasLitter w
+                               then (uiToDouble . _devotion $ w) * e'
+                               else 0
+        e' = enforceRange (0, 1)  e
+
+prop_adjustEnergy_adult_not_underpaid
+  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
+prop_adjustEnergy_adult_not_underpaid e w
+  = property $ adultShare >= minAdultShare
+  where (_, adultShare, _) = adjustEnergy e w
+        minAdultShare = if hasLitter w
+                               then (1 - d) * e'
+                               else 0
+        e' = enforceRange (0, 1)  e
+        d = uiToDouble . _devotion $ w
+
+prop_adjustEnergy_doesnt_underpay
+  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
+prop_adjustEnergy_doesnt_underpay e w
+  = property $ adultShare + childShare == e' || _energy w' == 1
+  where (w', adultShare, childShare) = adjustEnergy e w
+        e' = enforceRange (0, 1)  e
+
 prop_applyMetabolismCost_balances_adult_energy
   :: Wain TestPattern TestTweaker TestAction -> Double -> Double
     -> Double -> Property
@@ -150,6 +179,12 @@ test = testGroup "ALife.Creatur.WainQC"
       prop_adjustEnergy1_balances,
     testProperty "prop_adjustEnergy_balances_adult_energy"
       prop_adjustEnergy_balances_adult_energy,
+    testProperty "prop_adjustEnergy_child_not_overpaid"
+      prop_adjustEnergy_child_not_overpaid,
+    testProperty "prop_adjustEnergy_adult_not_underpaid"
+      prop_adjustEnergy_adult_not_underpaid,
+    testProperty "prop_adjustEnergy_doesnt_underpay"
+      prop_adjustEnergy_doesnt_underpay,
     testProperty "prop_adjustEnergy_balances_child_energy"
       prop_adjustEnergy_balances_child_energy,
     testProperty "prop_applyMetabolismCost_balances_adult_energy"
