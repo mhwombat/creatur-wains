@@ -35,8 +35,7 @@ import ALife.Creatur.Wain.GeneticSOM (Tweaker, Pattern)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import qualified ALife.Creatur.Wain.Predictor as P
 import qualified ALife.Creatur.Wain.Response as R
-import ALife.Creatur.Wain.Scenario (Condition, Scenario)
-import ALife.Creatur.Wain.Statistician (Probability)
+import ALife.Creatur.Wain.Probability (Probability)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI, forceDoubleToUI)
@@ -282,7 +281,7 @@ mature a = _age a >= _ageOfMaturity a
 
 -- | Returns the wain's current condition. This is useful for making
 --   decisions.
-condition :: Wain p t a -> Condition
+condition :: Wain p t a -> B.Condition
 condition w = [ _energy w, 1 - _passion w, 1 - _boredom w,
                 if l > 0 then 1 else 0 ]
   where l = length . _litter $ w
@@ -291,20 +290,6 @@ condition w = [ _energy w, 1 - _passion w, 1 - _boredom w,
 --   This is a number between 0 and 1, inclusive.
 happiness :: Wain p t a -> UIDouble
 happiness w = B.happiness (_brain w) (condition w)
-
--- data Object p t a = DObject p String | AObject (Wain p t a)
-
--- -- | Returns the identity of an object that might be shown to a wain.
--- --   This should only be used for logging.
--- --   The wain should not have access to this information.
--- identity :: Object p t a -> String
--- identity (DObject _ s) = "Image " ++ s
--- identity (AObject a) = _name a
-
--- -- | Returns the appearance of an object that might be shown to a wain.
--- appearanceOf :: Object p t a -> p
--- appearanceOf (DObject img _) = img
--- appearanceOf (AObject a) = _appearance a
 
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
@@ -327,13 +312,13 @@ chooseAction
   :: (Eq a, Enum a, Bounded a, Ord a)
     => [p] -> Wain p t a
       -> ([[(Cl.Label, Cl.Difference)]],
-          [(Scenario, Probability)],
-          [(R.Response a, Probability, P.Label, PM1Double)],
-          [(a, PM1Double)],
+          [([Cl.Label], Probability)],
+          [(R.Response a, Probability, P.Label, [PM1Double])],
+          [(a, [PM1Double], UIDouble)],
           R.Response a,
           Wain p t a)
-chooseAction ps w = (lds, sps, rplos, aos, r, w')
-  where (lds, sps, rplos, aos, r, b')
+chooseAction ps w = (lds, sps, rplos, aohs, r, w')
+  where (lds, sps, rplos, aohs, r, b')
           = B.chooseAction (_brain w) ps (condition w)
         w' = set brain b' w
 
@@ -461,18 +446,18 @@ incAge1 = age +~ 1
 --   TODO: Do something more realistic.
 reflect
   :: Eq a
-    => [p] -> R.Response a -> Wain p t a -> (Wain p t a, Double)
-reflect ps r w = (set litter litter' w', err)
-  where (w', err) = reflect1 r w
+    => [p] -> R.Response a -> Wain p t a -> Wain p t a -> (Wain p t a, Double)
+reflect ps r wBefore wAfter = (set litter litter' wReflected, err)
+  where (wReflected, err) = reflect1 r wBefore wAfter
         a = R._action r
-        litter' = map (imprint ps a) (_litter w)
+        litter' = map (imprint ps a) (_litter wAfter)
 
 reflect1
   :: Eq a
-    => R.Response a -> Wain p t a -> (Wain p t a, Double)
-reflect1 r w = (set brain b' w, err)
-  where (b', err)
-          = B.reflect (_brain w) r (condition w)
+    => R.Response a -> Wain p t a -> Wain p t a -> (Wain p t a, Double)
+reflect1 r wBefore wAfter = (set brain b' wAfter, err)
+  where (b', err) = B.reflect (_brain wAfter) r (condition wBefore)
+                      (condition wAfter)
 
 -- | Teaches the wain that the last action taken was a perfect one
 --   (increased happiness by 1).
@@ -481,7 +466,7 @@ imprint
   :: Eq a
     => [p] -> a -> Wain p t a -> Wain p t a
 imprint ps a w = set brain b' w
-  where b' = B.imprint (_brain w) ps a (condition w)
+  where b' = B.imprint (_brain w) ps a
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.

@@ -17,6 +17,7 @@ module ALife.Creatur.Wain.Brain
     -- * Constructors
     Brain,
     makeBrain,
+    Condition,
     -- * Lenses
     classifier,
     predictor,

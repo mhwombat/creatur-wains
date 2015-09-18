@@ -9,7 +9,8 @@
 --
 -- The muser takes classification information (labels and
 -- probabilities) about the objects in a wain's field of "view",
--- and determines the scenarios that the wain is likely facing.
+-- and determines the most likely scenarios that the wain could be
+-- facing.
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveAnyClass #-}
@@ -20,8 +21,8 @@ module ALife.Creatur.Wain.Muser
     Muser,
     makeMuser,
     muserOK,
-    _defaultOutcome,
-    defaultOutcome,
+    _defaultOutcomes,
+    defaultOutcomes,
     depth,
     _depth,
     generateResponses

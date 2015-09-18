@@ -15,13 +15,11 @@
 module ALife.Creatur.Wain.Response
   (
     Response(..),
-    scenario,
+    labels,
     action,
-    outcome,
-    copyOutcomeTo,
+    outcomes,
+    copyOutcomesTo,
     responseDiff,
-    diffIgnoringOutcome,
-    similarityIgnoringOutcome,
     makeResponseSimilar
   ) where
 

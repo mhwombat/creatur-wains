@@ -19,7 +19,9 @@ module ALife.Creatur.Wain.PredictorQC
     test,
     equivTweaker,
     equivPredictor,
-    arbTestPredictor
+    arbTestPredictor,
+    --
+    TrainingTestData(..)
   ) where
 
 import ALife.Creatur.Wain.Predictor
@@ -29,11 +31,9 @@ import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
 import ALife.Creatur.Wain.Response (Response(..))
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
   arbTestResponse)
-import ALife.Creatur.Wain.Scenario (Scenario)
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.GeneticSOMInternal (patternMap)
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM)
-import ALife.Creatur.Wain.WeightsQC (equivWeights)
 import Control.Lens
 import Data.Datamining.Clustering.SOSInternal (diffThreshold)
 import Test.Framework (Test, testGroup)
@@ -43,12 +43,10 @@ import Test.QuickCheck
 type TestTweaker = PredictorTweaker TestAction
 
 instance Arbitrary TestTweaker where
-  arbitrary
-    = PredictorTweaker <$> arbitrary <*> arbitrary
+  arbitrary = return PredictorTweaker
 
 equivTweaker :: TestTweaker -> TestTweaker -> Bool
-equivTweaker (PredictorTweaker as bs) (PredictorTweaker xs ys) =
-  equivWeights as xs && equivWeights bs ys
+equivTweaker _ _ = True
 
 type TestPredictor = Predictor TestAction
 
@@ -71,8 +69,12 @@ equivPredictor :: TestPredictor -> TestPredictor -> Bool
 equivPredictor = equivGSOM equivTweaker
 
 data TrainingTestData
-  = TrainingTestData TestPredictor TestResponse PM1Double
-    deriving (Eq, Show)
+  = TrainingTestData
+      {
+        xPredictor :: TestPredictor,
+        xResponse :: TestResponse,
+        xOutcomes :: [PM1Double]
+      } deriving (Eq, Show)
 
 sizedArbTrainingTestData :: Int -> Gen TrainingTestData
 sizedArbTrainingTestData n = do
@@ -84,8 +86,8 @@ sizedArbTrainingTestData n = do
   let pm' = pm { diffThreshold=0.1 }
   let p' = set patternMap pm' p
   r <- arbTestResponse nObjects nConditions
-  o <- arbitrary
-  return $ TrainingTestData p' r o
+  os <- vectorOf nConditions arbitrary
+  return $ TrainingTestData p' r os
 
 instance Arbitrary TrainingTestData where
   arbitrary = sized sizedArbTrainingTestData
@@ -93,22 +95,25 @@ instance Arbitrary TrainingTestData where
 -- NOTE: I've tested this with maxSuccess=10000!
 prop_training_makes_predictions_more_accurate
   :: TrainingTestData -> Property
-prop_training_makes_predictions_more_accurate (TrainingTestData d r o) =
-  property $ errAfter < 0.1 || errAfter <= errBefore
+prop_training_makes_predictions_more_accurate (TrainingTestData d r os)
+  = property $ errAfter < 0.1 || errAfter <= errBefore
   where (r2, _, _, d2) = predict d r 1
-        predictionBefore = _outcome r2
-        errBefore = abs (pm1ToDouble o - pm1ToDouble predictionBefore)
-        rActual = r { _outcome = o }
+        errBefore = rawDiff os (_outcomes r2)
+        rActual = r { _outcomes = os }
         d3 = train d2 rActual
         (r4, _, _, _) = predict d3 r 1
-        predictionAfter = _outcome r4
-        errAfter = abs (pm1ToDouble o - pm1ToDouble predictionAfter)
+        errAfter = rawDiff os (_outcomes r4)
+
+rawDiff :: [PM1Double] ->  [PM1Double] -> Double
+rawDiff xs ys =
+  sum $ zipWith (\x y -> abs $ pm1ToDouble x - pm1ToDouble y) xs ys
 
 prop_imprint_works
-  :: TestPredictor -> Scenario -> TestAction -> Property
-prop_imprint_works d s a = property $ _outcome r' >= _outcome r
+  :: TestPredictor -> [Label] -> TestAction -> Int -> Property
+prop_imprint_works d s a nConditions =
+  property . and $ zipWith (>=) (_outcomes r') (_outcomes r)
   where d' = imprint d s a
-        r0 = Response s a 0
+        r0 = Response s a $ replicate nConditions 0
         (r, _, _, _) = predict d r0 1
         (r', _, _, _) = predict d' r0 1
 

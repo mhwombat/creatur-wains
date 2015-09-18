@@ -24,13 +24,12 @@ module ALife.Creatur.Wain.ResponseQC
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
+import ALife.Creatur.Wain.GeneticSOM (Label)
 import ALife.Creatur.Wain.ResponseInternal
-import ALife.Creatur.Wain.ScenarioQC (arbScenario, equivScenario)
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
-import ALife.Creatur.Wain.Weights (Weights)
 import Control.DeepSeq (NFData)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
@@ -63,9 +62,9 @@ sizedArbTestResponse n = do
 -- scenarios have the same number of objects and condition parameters.
 arbTestResponse :: Int -> Int -> Gen TestResponse
 arbTestResponse nObjects nConditions = do
-  s <- arbScenario nObjects nConditions
+  s <- vectorOf nObjects arbitrary
   a <- arbitrary
-  o <- arbitrary
+  o <- vectorOf nConditions arbitrary
   return $ Response s a o
 
 instance Arbitrary TestResponse where
@@ -90,8 +89,18 @@ instance Random TestAction where
 --   arbitrary = TestOutcome <$> choose (-1,1)
 
 equivResponse :: TestResponse -> TestResponse -> Bool
-equivResponse (Response s1 a1 o1) (Response s2 a2 o2)
-  = equivScenario s1 s2 && a1 == a2 && equivPM1Double o1 o2
+equivResponse (Response ls1 a1 o1) (Response ls2 a2 o2)
+  = ls1 == ls2 && a1 == a2 && and (zipWith equivPM1Double o1 o2)
+
+prop_labelSimilarity_can_be_1 :: [Label] -> Property
+prop_labelSimilarity_can_be_1 xs = property $ abs (x - 1) < 1e-8
+  where x = labelSimilarity xs xs
+
+prop_labelSimilarity_can_be_0 :: [Label] -> Property
+prop_labelSimilarity_can_be_0 xs
+  = (not . null $ xs) ==> abs (x - 0) < 1e-8
+  where x = labelSimilarity xs ys
+        ys = map (+255) xs
 
 -- prop_responseDiff_can_be_1 :: Weights -> Property
 -- prop_responseDiff_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8
@@ -99,27 +108,19 @@ equivResponse (Response s1 a1 o1) (Response s2 a2 o2)
 --               (Response [1] [1] (Condition 1 1 1))
 --         ws = toDoubles w
 
-prop_responseDiff_can_be_0
-  :: Weights -> Weights -> TestResponse -> Property
-prop_responseDiff_can_be_0 cw rw r = property $ abs (x - 0) < 1e-8
-  where x = responseDiff cw rw r r
+prop_responseDiff_can_be_0 :: TestResponse -> Property
+prop_responseDiff_can_be_0 r = property $ abs (x - 0) < 1e-8
+  where x = responseDiff r r
 
 prop_responseDiff_in_range
-  :: Weights -> Weights -> TestResponse -> TestResponse -> Property
-prop_responseDiff_in_range cw rw a b = property $ 0 <= x && x <= 1
-  where x = responseDiff cw rw a b
-
-prop_similarityIgnoringOutcome_inRange
-  :: Weights -> Weights -> TestResponse -> TestResponse -> Property
-prop_similarityIgnoringOutcome_inRange cw rw a b
-  = property $ 0 <= x && x <= 1
-  where x = similarityIgnoringOutcome cw rw a b
+  :: TestResponse -> TestResponse -> Property
+prop_responseDiff_in_range a b = property $ 0 <= x && x <= 1
+  where x = responseDiff a b
 
 prop_makeResponseSimilar_works
-  :: Weights -> Weights -> TestResponse -> UIDouble
-    -> TestResponse -> Property
-prop_makeResponseSimilar_works cw rw
-  = prop_makeSimilar_works (responseDiff cw rw) makeResponseSimilar
+  :: TestResponse -> UIDouble -> TestResponse -> Property
+prop_makeResponseSimilar_works
+  = prop_makeSimilar_works responseDiff makeResponseSimilar
 
 
 test :: Test
@@ -136,14 +137,16 @@ test = testGroup "ALife.Creatur.Wain.ResponseQC"
        :: TestResponse -> TestResponse -> Property),
     testProperty "prop_diploid_readable - Response"
       (prop_diploid_readable :: TestResponse -> TestResponse -> Property),
+    testProperty "prop_labelSimilarity_can_be_1"
+      prop_labelSimilarity_can_be_1,
+    testProperty "prop_labelSimilarity_can_be_0"
+      prop_labelSimilarity_can_be_0,
     -- testProperty "prop_responseDiff_can_be_1"
     --   prop_responseDiff_can_be_1,
     testProperty "prop_responseDiff_can_be_0"
       prop_responseDiff_can_be_0,
     testProperty "prop_responseDiff_in_range"
       prop_responseDiff_in_range,
-    testProperty "prop_similarityIgnoringOutcome_inRange"
-      prop_similarityIgnoringOutcome_inRange,
     testProperty "prop_makeResponseSimilar_works"
       prop_makeResponseSimilar_works
   ]

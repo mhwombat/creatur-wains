@@ -16,6 +16,7 @@ module ALife.Creatur.Wain
     Wain(..),
     Label,
     buildWainAndGenerateGenome,
+    Condition,
     -- * Lenses
     name,
     appearance,
@@ -56,4 +57,5 @@ module ALife.Creatur.Wain
   ) where
 
 import ALife.Creatur.WainInternal
+import ALife.Creatur.Wain.Brain (Condition)
 import ALife.Creatur.Wain.GeneticSOM (Label)

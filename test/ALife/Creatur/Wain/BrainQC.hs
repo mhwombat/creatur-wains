@@ -24,10 +24,12 @@ import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.PredictorQC as D
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM)
 import ALife.Creatur.Wain.MuserQC ()
-import ALife.Creatur.Wain.Response (Response(..), _outcome)
-import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse)
-import ALife.Creatur.Wain.Scenario (Condition)
+import ALife.Creatur.Wain.Response (Response(..), _outcomes)
+import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
+  arbTestResponse)
+import ALife.Creatur.Wain.Probability (hypothesise)
 import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.WeightsQC ()
 import Data.List (maximumBy)
 import Data.Ord (comparing)
 import Test.Framework (Test, testGroup)
@@ -47,46 +49,56 @@ sizedArbTestBrain n = do
 arbTestBrain :: Int -> Int -> Int -> Int -> Gen TestBrain
 arbTestBrain cSize nObjects nConditions pSize = do
   c <- sizedArbGeneticSOM arbitrary cSize
-  pos <- arbitrary
+  m <- arbitrary
   p <- D.arbTestPredictor nObjects nConditions pSize
   hw <- arbitrary
-  return $ makeBrain c pos p hw
+  return $ makeBrain c m p hw
 
-instance Arbitrary (TestBrain) where
+instance Arbitrary TestBrain where
   arbitrary = sized sizedArbTestBrain
 
 equivBrain :: TestBrain -> TestBrain -> Bool
 equivBrain b1 b2 = _classifier b1 `C.equivClassifier` _classifier b2
   && _predictor b1 `D.equivPredictor` _predictor b2
 
+data ReflectionTestData
+  = ReflectionTestData TestBrain TestResponse Condition Condition
+
+instance Show ReflectionTestData where
+  show (ReflectionTestData b r cBefore cAfter)
+    = "ReflectionTestData (" ++ show b ++ ") (" ++ show r ++ ") "
+      ++ show cBefore ++ " " ++ show cAfter
+
+sizedArbReflectionTestData :: Int -> Gen ReflectionTestData
+sizedArbReflectionTestData n = do
+  cSize <- choose (0, n)
+  nObjects <- choose (0, n - cSize)
+  nConditions <- choose (0, n - cSize - nObjects)
+  let pSize = n - cSize - nObjects - nConditions
+  b <- arbTestBrain cSize nObjects nConditions pSize
+  r <- arbTestResponse nObjects nConditions
+  cBefore <- vectorOf nConditions arbitrary
+  cAfter <- vectorOf nConditions arbitrary
+  return $ ReflectionTestData b r cBefore cAfter
+
+instance Arbitrary ReflectionTestData where
+  arbitrary = sized sizedArbReflectionTestData
+
 prop_reflect_makes_predictions_more_accurate
-  :: TestBrain -> TestResponse -> Condition -> Property
-prop_reflect_makes_predictions_more_accurate b r cAfter =
-  property $ errAfter <= errBefore
+  :: ReflectionTestData -> Property
+prop_reflect_makes_predictions_more_accurate
+  (ReflectionTestData b r cBefore cAfter)
+    = property $ errAfter <= errBefore
   where ((r2, _, _, _):_, _) = predictAll b . zip [r] $ repeat 1
-        (b2, errBefore) = reflect b r2 cAfter
+        (b2, errBefore) = reflect b r2 cBefore cAfter
         ((r3, _, _, _):_, _) = predictAll b . zip [r] $ repeat 1
-        (_, errAfter) = reflect b2 r3 cAfter
+        (_, errAfter) = reflect b2 r3 cBefore cAfter
 
 prop_reflect_error_in_range
-  :: TestBrain -> TestResponse -> Condition -> Property
-prop_reflect_error_in_range b r cAfter
+  :: TestBrain -> TestResponse -> Condition -> Condition -> Property
+prop_reflect_error_in_range b r cBefore cAfter
   = property $ -2 <= x && x <= 2
-  where (_, x) = reflect b r cAfter
-
--- prop_chooseAction_chooses_closest_classifier_model
---   :: TestBrain -> TestResponse -> Property
--- prop_chooseAction_chooses_closest_classifier_model b r
---   = property $ bmu == fst (minimumBy (comparing snd) rls)
---   where (cBMUs, lds, pBMU, rls, r, b') = chooseAction b ps c
---
--- prop_chooseAction_chooses_closest_predictor_model
---   :: TestBrain -> TestResponse -> Property
--- prop_chooseAction_chooses_closest_predictor_model b r
---   = property $ pBMU == fst (minimumBy (comparing snd) rls)
---   where (_, _, pBMU, rls, r, b') = chooseAction b ps c
---         model = (modelSet . _predictor $ b) ! pBMU
---         bmuDiff = diffIgnoringOutcome r model
+  where (_, x) = reflect b r cBefore cAfter
 
 data AFewPatterns = AFewPatterns [TestPattern]
   deriving (Eq, Show)
@@ -100,7 +112,7 @@ instance Arbitrary AFewPatterns where
   arbitrary = sized sizedArbAFewPatterns
 
 data ImprintTestData
-  = ImprintTestData TestBrain [TestPattern] TestAction Condition
+  = ImprintTestData TestBrain [TestPattern] TestAction
     deriving Eq
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
@@ -111,27 +123,27 @@ sizedArbImprintTestData n = do
   let pSize = max 1 (n - cSize - nObjects - nConditions)
   b <- arbTestBrain cSize nObjects nConditions pSize
   ps <- vectorOf nObjects arbitrary
-  c <- vectorOf nConditions arbitrary
   a <- arbitrary
-  return $ ImprintTestData b ps a c
+  return $ ImprintTestData b ps a
 
 instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
 
 instance Show ImprintTestData where
-  show (ImprintTestData b ps a c)
+  show (ImprintTestData b ps a)
     = "ImprintTestData (" ++ show b ++ ") " ++ show ps ++ " "
-      ++ show a ++ " " ++ show c
+      ++ show a
 
 prop_imprint_works
-  :: ImprintTestData -> Property
-prop_imprint_works (ImprintTestData b ps a c) = not (null ps) ==>
-  _outcome rAfter >= _outcome rBefore
+  :: ImprintTestData -> Int -> Property
+prop_imprint_works (ImprintTestData b ps a) nConditions =
+  not (null ps)
+    ==> and $ zipWith (>=) (_outcomes rAfter) (_outcomes rBefore)
   where (_, lds, b') = classifyInputs b ps
-        s = fst . maximumBy (comparing snd) . generateScenarios c $ lds
-        r = Response s a 1
+        s = fst . maximumBy (comparing snd) . hypothesise $ lds
+        r = Response s a $ replicate nConditions 1
         ((rBefore, _, _, _):_, b2) = predictAll b' [(r, 1)]
-        b3 = imprint b2 ps a c
+        b3 = imprint b2 ps a
         ((rAfter, _, _, _):_, _) = predictAll b3 [(r, 1)]
 
 test :: Test

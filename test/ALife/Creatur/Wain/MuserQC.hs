@@ -39,7 +39,8 @@ instance Arbitrary Muser where
 
 equivMuser :: Muser -> Muser -> Bool
 equivMuser x y
-  = equivPM1Double (_defaultOutcome x) (_defaultOutcome y)
+  = and
+      (zipWith equivPM1Double (_defaultOutcomes x) (_defaultOutcomes y))
       && _depth x == _depth y
 
 test :: Test

@@ -18,7 +18,7 @@ import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.Muser (makeMuser)
 import ALife.Creatur.Wain.Predictor (PredictorTweaker(..))
 import ALife.Creatur.Wain.Statistics (stats)
-import ALife.Creatur.Wain.Response (action, outcome)
+import ALife.Creatur.Wain.Response (action, outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction(..))
 import ALife.Creatur.Wain.TestUtils (TestPattern(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (ExponentialParams(..),
@@ -31,18 +31,18 @@ import ALife.Creatur.Wain.UnitInterval (uiToDouble)
 import ALife.Creatur.Wain.Weights (makeWeights)
 import Control.Lens
 import Control.Monad (foldM_)
-import Control.Monad.Random (evalRandIO, getRandoms)
+import Control.Monad.Random (mkStdGen, evalRand, getRandoms)
 import qualified Data.Map.Strict as M
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 
 energyFor :: TestPattern -> TestAction -> Double
 energyFor (TestPattern p) a
-  | p < 50   = if a == Walk then 1 else -0.1
-  | p < 100   = if a == Run then 1 else -0.1
-  | p < 150   = if a == Jump then 1 else -0.1
-  | p < 200   = if a == Skip then 1 else -0.1
-  | otherwise = if a == Crawl then 1 else -0.1
+  | p < 50   = if a == Walk then 0.1 else -0.1
+  | p < 100   = if a == Run then 0.1 else -0.1
+  | p < 150   = if a == Jump then 0.1 else -0.1
+  | p < 200   = if a == Skip then 0.1 else -0.1
+  | otherwise = if a == Crawl then 0.1 else -0.1
 
 testWain :: Wain TestPattern TestTweaker TestAction
 testWain = w'
@@ -53,15 +53,15 @@ testWain = w'
         wAgeOfMaturity = 100
         wPassionDelta = 0
         wBoredomDelta = 0
-        wClassifier = buildGeneticSOM ec 10 0.08 TestTweaker
-        wMuser = makeMuser 0 2
-        wPredictor = buildGeneticSOM ep 50 0.1 dtw
+        wClassifierSize = 10
+        wClassifier = buildGeneticSOM ec wClassifierSize 0.02 TestTweaker
+        wMuser = makeMuser [0, 0, 0, 0] 1
+        wPredictor = buildGeneticSOM ep (wClassifierSize*5) 0.1 PredictorTweaker
         wHappinessWeights = makeWeights [1, 0, 0]
-        ec = ExponentialParams 0.2 0.1
-        ep = ExponentialParams 0.1 0.01
-        dtw = PredictorTweaker cw rw
-        cw = makeWeights [1, 0, 0]
-        rw = makeWeights [0.9, 0.1]
+        -- The classifier does most of its learning by round 100.
+        ec = ExponentialParams 0.5 0.01
+        -- The predictor needs to keep learning longer.
+        ep = ExponentialParams 0.1 0.001
         w = buildWainAndGenerateGenome wName wAppearance wBrain
               wDevotion wAgeOfMaturity wPassionDelta wBoredomDelta
         (w', _, _) = adjustEnergy 0.5 w
@@ -76,11 +76,11 @@ tryOne w p = do
   describeClassifierModels w
   putStrLn "Initial decision models"
   describePredictorModels w
-  let (lds, sps, rplos, aos, r, wainAfterDecision) = chooseAction [p] w
+  let (lds, sps, rplos, aohs, r, wainAfterDecision) = chooseAction [p] w
   let (cBMU, cDiff) = minimumBy (comparing snd) . head $ lds
   mapM_ putStrLn $ scenarioReport sps
   mapM_ putStrLn $ responseReport rplos
-  mapM_ putStrLn $ decisionReport aos
+  mapM_ putStrLn $ decisionReport aohs
   putStrLn $ "DEBUG classifier SQ=" ++ show (schemaQuality . view (brain . classifier) $ wainAfterDecision)
   -- describeClassifierModels wainAfterDecision
   -- describePredictorModels wainAfterDecision
@@ -88,7 +88,7 @@ tryOne w p = do
   let deltaE = energyFor p a
   putStrLn $ "Wain sees " ++ show p ++ ", classifies it as "
     ++ show cBMU ++ " and chooses to " ++ show a
-    ++ " predicting the outcome " ++ show (view outcome r)
+    ++ " predicting the outcomes " ++ show (view outcomes r)
   let (wainRewarded, _, _) = adjustEnergy deltaE wainAfterDecision
   putStrLn $ "Δe=" ++ show deltaE
   putStrLn $ "condition before=" ++ show (condition w) ++ " after=" ++ show (condition wainRewarded)
@@ -97,7 +97,7 @@ tryOne w p = do
   if deltaE < 0
     then putStrLn " was wrong"
     else putStrLn " was correct"
-  let (wainAfterReflection, err) = reflect [p] r wainRewarded
+  let (wainAfterReflection, err) = reflect [p] r w wainRewarded
   putStrLn $ "err=" ++ show err
   -- keep the wain's energy constant
   let restorationEnergy = uiToDouble (view energy w) - uiToDouble (view energy wainRewarded)
@@ -125,6 +125,16 @@ describePredictorModels w = mapM_ (putStrLn . f) ms
 
 main :: IO ()
 main = do
-  ps <- map TestPattern . take 200 <$> evalRandIO getRandoms
+  putStrLn "By about round 100, the wain should have 5 classifier"
+  putStrLn "models that are roughly 25, 75, 125, 175 and 225."
+  putStrLn "The classifier models should change very little after that."
+  putStrLn "By about round 500, the predictor should have all the"
+  putStrLn "correct actions."
+  putStrLn "The predictor models will continue to vary, but the correct"
+  putStrLn "actions should not change."
+  putStrLn "After round 500, the only mistakes the wain should make are"
+  putStrLn "near boundary values (50, 100, 150, 200)."
+  let g = mkStdGen 263167 -- seed
+  let ps = map TestPattern . take 1000 $ evalRand getRandoms g
   foldM_ tryOne testWain ps
   putStrLn "test complete"
