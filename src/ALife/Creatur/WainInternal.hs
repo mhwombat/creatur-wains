@@ -18,7 +18,8 @@
 module ALife.Creatur.WainInternal where
 
 import ALife.Creatur (Agent, agentId, isAlive)
-import ALife.Creatur.Database (Record, key)
+import ALife.Creatur.Database (Record, SizedRecord, key)
+import qualified ALife.Creatur.Database (size)
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, DiploidReader,
   Sequence, get, put, copy, copy2, consumed2, getAndExpress,
   runDiploidReader, write)
@@ -30,7 +31,7 @@ import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
   produceGamete, build, makeOffspring)
 import qualified ALife.Creatur.Wain.Brain as B
 import qualified ALife.Creatur.Wain.Classifier as Cl
-import ALife.Creatur.Wain.GeneticSOM (Tweaker, Pattern, numModels)
+import ALife.Creatur.Wain.GeneticSOM (Tweaker, Pattern)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import qualified ALife.Creatur.Wain.Predictor as P
 import qualified ALife.Creatur.Wain.Response as R
@@ -41,8 +42,9 @@ import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
 import ALife.Creatur.Wain.Util (unitInterval, enforceRange)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen)
+import qualified Data.ByteString as BS
 import Data.List (partition)
-import Data.Serialize (Serialize)
+import Data.Serialize (Serialize, encode)
 import Data.Word (Word8, Word16)
 import Data.Version (showVersion)
 import GHC.Generics (Generic)
@@ -91,7 +93,9 @@ data Wain p t a = Wain
     -- | The number of children this wain has reared to maturity.
     _childrenWeanedLifetime :: Word16,
     -- | The wain's genes.
-    _genome :: ([Word8],[Word8])
+    _genome :: ([Word8],[Word8]),
+    -- The size of this wain. Useful for determining a metabolism rate.
+    _wainSize :: Int
   } deriving (Eq, Generic)
 makeLenses ''Wain
 
@@ -101,25 +105,35 @@ buildWain
     => String -> p -> B.Brain p t a -> UIDouble -> Word16 -> UIDouble
       -> UIDouble -> (Sequence, Sequence) -> Wain p t a
 buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
-  wPassionDelta wBoredomDelta g =
-  Wain
-    {
-      _name = wName,
-      _appearance = wAppearance,
-      _brain = wBrain,
-      _devotion = wDevotion,
-      _ageOfMaturity = wAgeOfMaturity,
-      _passionDelta = wPassionDelta,
-      _boredomDelta = wBoredomDelta,
-      _energy = 0,
-      _passion = 1,
-      _boredom = 1,
-      _age = 0,
-      _litter = [],
-      _childrenBorneLifetime = 0,
-      _childrenWeanedLifetime = 0,
-      _genome = g
-    }
+  wPassionDelta wBoredomDelta g = updateSize w
+  -- We first set the size to 0, then figure out what the size really
+  -- is.
+  where w = Wain
+              {
+                _name = wName,
+                _appearance = wAppearance,
+                _brain = wBrain,
+                _devotion = wDevotion,
+                _ageOfMaturity = wAgeOfMaturity,
+                _passionDelta = wPassionDelta,
+                _boredomDelta = wBoredomDelta,
+                _energy = 0,
+                _passion = 1,
+                _boredom = 1,
+                _age = 0,
+                _litter = [],
+                _childrenBorneLifetime = 0,
+                _childrenWeanedLifetime = 0,
+                _genome = g,
+                _wainSize = 0
+              }
+
+updateSize
+  :: (Serialize p, Serialize t, Serialize a, Ord a, Tweaker t,
+    p ~ Pattern t)
+      => Wain p t a -> Wain p t a
+updateSize w = w { _wainSize = BS.length . encode $ w0 }
+  where w0 = w { _litter=[] }
 
 -- | Constructs a wain with the specified parameters, with the
 --   corresponding (generated) genome. This would normally be used only
@@ -162,6 +176,9 @@ deriving instance (Show p, Show t, Show a, Eq a)
 instance Record (Wain p t a) where
   key = view name
 
+instance SizedRecord (Wain p t a) where
+  size = view wainSize
+
 instance (Eq a, Ord a) =>
   Statistical (Wain p t a) where
   stats w =
@@ -184,6 +201,7 @@ instance (Eq a, Ord a) =>
       : dStat "child energy" (uiToDouble ec)
       : iStat "genome length" ( (length . fst . _genome $ w)
                                   + (length . snd . _genome $ w) )
+      : iStat "size" (_wainSize w)
       : []
     where e = _energy w
           ec = sum . map (view energy) $ _litter w
@@ -276,6 +294,8 @@ condition w = [ _energy w, 1 - _passion w, 1 - _boredom w,
 happiness :: Wain p t a -> UIDouble
 happiness w = B.happiness (_brain w) (condition w)
 
+--numModels . view B.classifier . view brain $ w
+
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
 --   Returns the classifier labels assigned to each input pattern,
@@ -307,7 +327,7 @@ chooseAction ps w = (lds, sps, rplos, aohs, r, w')
           = B.chooseAction (_brain w) ps (condition w)
         w' = set brain b' w
 
--- | @'applyMetabolismCost' baseCost costPerCModel childCostFactor w@
+-- | @'applyMetabolismCost' baseCost costPerByte childCostFactor w@
 --   deducts the appropriate metabolism cost from a wain, and any
 --   children in its litter.
 --   Returns the update wain (including litter), the energy deducted
@@ -315,21 +335,20 @@ chooseAction ps w = (lds, sps, rplos, aohs, r, w')
 applyMetabolismCost
   :: Double -> Double -> Double -> Wain p t a
     -> (Wain p t a, Double, Double)
-applyMetabolismCost baseCost costPerCModel childCostFactor w
+applyMetabolismCost baseCost costPerByte childCostFactor w
   = (set litter childrenAfter adultAfter, adultCost, childCost)
   where (adultAfter, adultCost)
-          = applyMetabolismCost1 baseCost costPerCModel 1 w
+          = applyMetabolismCost1 baseCost costPerByte 1 w
         xs = map f $ _litter w
-        f = applyMetabolismCost1 baseCost costPerCModel childCostFactor
+        f = applyMetabolismCost1 baseCost costPerByte childCostFactor
         childrenAfter = map fst xs
         childCost = sum . map snd $ xs
 
 applyMetabolismCost1
   :: Double -> Double -> Double -> Wain p t a -> (Wain p t a, Double)
-applyMetabolismCost1 baseCost costPerCModel factor w = (w', delta')
+applyMetabolismCost1 baseCost costPerByte factor w = (w', delta')
   where (w', delta', _) = adjustEnergy1 delta w
-        adultCost = baseCost + costPerCModel * fromIntegral numCModels
-        numCModels = numModels . view B.classifier . view brain $ w
+        adultCost = baseCost + costPerByte * fromIntegral (_wainSize w)
         delta = adultCost * factor
 
 -- | Adjusts the energy of a wain and its children.
@@ -430,9 +449,12 @@ incAge1 = age +~ 1
 --   the action was perfect (increased happiness by 1).
 --   TODO: Do something more realistic.
 reflect
-  :: Eq a
-    => [p] -> R.Response a -> Wain p t a -> Wain p t a -> (Wain p t a, Double)
-reflect ps r wBefore wAfter = (set litter litter' wReflected, err)
+  :: (Serialize p, Serialize t, Serialize a, Eq a, Ord a, Tweaker t,
+    p ~ Pattern t)
+      => [p] -> R.Response a -> Wain p t a -> Wain p t a
+        -> (Wain p t a, Double)
+reflect ps r wBefore wAfter =
+  (updateSize $ set litter litter' wReflected, err)
   where (wReflected, err) = reflect1 r wBefore wAfter
         a = R._action r
         litter' = map (imprint ps a) (_litter wAfter)
@@ -448,9 +470,10 @@ reflect1 r wBefore wAfter = (set brain b' wAfter, err)
 --   (increased happiness by 1).
 --   This can be used to help children learn by observing their parents.
 imprint
-  :: Eq a
-    => [p] -> a -> Wain p t a -> Wain p t a
-imprint ps a w = set brain b' w
+  :: (Serialize p, Serialize t, Serialize a, Eq a, Ord a, Tweaker t,
+    p ~ Pattern t)
+      => [p] -> a -> Wain p t a -> Wain p t a
+imprint ps a w = updateSize $ set brain b' w
   where b' = B.imprint (_brain w) ps a
 
 -- | Attempts to mate two wains.
@@ -529,3 +552,4 @@ pruneDeadChildren a =
     else a':deadChildren
   where (aliveChildren, deadChildren) = partition isAlive (_litter a)
         a' = set litter aliveChildren a
+
