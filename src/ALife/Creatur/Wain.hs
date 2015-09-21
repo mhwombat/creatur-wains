@@ -32,7 +32,6 @@ module ALife.Creatur.Wain
     childrenBorneLifetime,
     childrenWeanedLifetime,
     genome,
-    wainSize,
     -- * Teaching and learning
     chooseAction,
     reflect,

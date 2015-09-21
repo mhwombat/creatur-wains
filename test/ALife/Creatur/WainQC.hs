@@ -64,7 +64,6 @@ strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- children borne during lifetime
                 <*> arbitrary     -- children weanded during lifetime
                 <*> pure ([],[])  -- genome
-                <*> arbitrary     -- size
 
 -- | Can't just generate an arbitrary genome and build an agent from
 --   it, because random genomes tend to be invalid.

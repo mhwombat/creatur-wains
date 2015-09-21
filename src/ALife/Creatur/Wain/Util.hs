@@ -12,7 +12,7 @@
 ------------------------------------------------------------------------
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module ALife.Creatur.Wain.Util
   (
     unitInterval,
@@ -33,7 +33,7 @@ module ALife.Creatur.Wain.Util
     unitVectors
   ) where
 
-import Data.Word (Word8, Word16)
+import Data.Word (Word16, Word8)
 
 -- | The range [0,1], endpoints included.
 unitInterval :: Num a => (a, a)
