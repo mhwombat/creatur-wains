@@ -24,7 +24,10 @@ module ALife.Creatur.Wain.Statistics
     dStat,
     iStat,
     summarise,
-    lookup
+    lookup,
+    mean,
+    popVariance,
+    popStdDev
   ) where
 
 import Prelude hiding (lookup)

@@ -18,20 +18,15 @@ module ALife.Creatur.WainQC
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (runDiploidReader, write)
--- import ALife.Creatur.Genetics.Reproduction.Sexual (makeOffspring)
 import ALife.Creatur.WainInternal
--- import ALife.Creatur.Wain.Brain (brainOK)
 import qualified ALife.Creatur.Wain.BrainQC as BQC
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
-import ALife.Creatur.Wain.UnitInterval (doubleToUI, uiToDouble)
+import ALife.Creatur.Wain.UnitInterval (doubleToUI)
 import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
-import ALife.Creatur.Wain.Util (enforceRange)
 import Control.Lens
--- import Control.Monad.Random (evalRand)
--- import System.Random (mkStdGen)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -46,7 +41,6 @@ equiv a1 a2 =
   && _ageOfMaturity a1 == _ageOfMaturity a2
   && _passionDelta a1 `equivUIDouble` _passionDelta a2
 --  && genome a1 == genome a2
---  && size a1 == size a2
 
 strawMan :: Gen (Wain TestPattern TestTweaker TestAction)
 strawMan = Wain <$> pure ""       -- name
@@ -64,7 +58,6 @@ strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- children borne during lifetime
                 <*> arbitrary     -- children weanded during lifetime
                 <*> pure ([],[])  -- genome
-                <*> arbitrary     -- size
 
 -- | Can't just generate an arbitrary genome and build an agent from
 --   it, because random genomes tend to be invalid.
@@ -93,85 +86,11 @@ sizedArbWain n = do
 instance Arbitrary (Wain TestPattern TestTweaker TestAction) where
   arbitrary = sized sizedArbWain
 
--- No longer need this test because "mate" checks for abnormal brains
--- prop_offspring_are_valid
---   :: Wain TestPattern TestTweaker TestAction -> Wain TestPattern TestTweaker TestAction -> Int
---      -> Property
--- prop_offspring_are_valid a b seed = property . brainOK . brain $ c
---   where g = mkStdGen seed
---         Right c = evalRand (makeOffspring a b "fred") g
-
-prop_adjustEnergy1_balances
+prop_adjustEnergy_balances_energy
   :: Double -> Wain TestPattern TestTweaker TestAction -> Property
-prop_adjustEnergy1_balances e w = property $ e == used + leftover
-  where (_, used, leftover) = adjustEnergy1 e w
-
-prop_adjustEnergy_balances_adult_energy
-  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
-prop_adjustEnergy_balances_adult_energy e w
-  = property $ _energy w' == _energy w + doubleToUI adultShare
-  where (w', adultShare, _) = adjustEnergy e w
-
-prop_adjustEnergy_balances_child_energy
-  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
-prop_adjustEnergy_balances_child_energy e w
-  = property $ childEnergy w' == childEnergy w + childShare
-  where (w', _, childShare) = adjustEnergy e w
-
-prop_adjustEnergy_child_not_overpaid
-  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
-prop_adjustEnergy_child_not_overpaid e w
-  = property $ childShare <= maxChildShare
-  where (_, _, childShare) = adjustEnergy e' w
-        maxChildShare = if hasLitter w
-                               then (uiToDouble . _devotion $ w) * e' + aTad
-                               else 0
-        e' = enforceRange (0, 1)  e
-        aTad = 1e-10
-
-prop_adjustEnergy_adult_not_underpaid
-  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
-prop_adjustEnergy_adult_not_underpaid e w
-  = property $ adultShare >= minAdultShare
-  where (_, adultShare, _) = adjustEnergy e' w
-        minAdultShare = if hasLitter w
-                               then (1 - d) * e' - aTad
-                               else e'
-        e' = enforceRange (0, 1)  e
-        d = uiToDouble . _devotion $ w
-        aTad = 1e-10
-
-prop_adjustEnergy_pays_correct_amount
-  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
-prop_adjustEnergy_pays_correct_amount e w
-  = property $ adultShare + childShare == e' || _energy w' == 1
-  where (w', adultShare, childShare) = adjustEnergy e' w
-        e' = enforceRange (0, 1) e
-
-prop_adjustEnergy_charges_correct_amount
-  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
-prop_adjustEnergy_charges_correct_amount e w
-  = property $ adultShare + childShare == e' || _energy w' == 0
-  where (w', adultShare, childShare) = adjustEnergy e' w
-        e' = enforceRange (-1, 0) e
-
-prop_applyMetabolismCost_balances_adult_energy
-  :: Wain TestPattern TestTweaker TestAction -> Double -> Double
-    -> Double -> Property
-prop_applyMetabolismCost_balances_adult_energy
-  w baseCost costPerByte childCostFactor
-    = property $ _energy w' == _energy w + doubleToUI adultShare
-  where (w', adultShare, _)
-          = applyMetabolismCost baseCost costPerByte childCostFactor w
-
-prop_applyMetabolismCost_balances_child_energy
-  :: Wain TestPattern TestTweaker TestAction -> Double -> Double
-    -> Double -> Property
-prop_applyMetabolismCost_balances_child_energy
-  w baseCost costPerByte childCostFactor
-    = property $ childEnergy w' == childEnergy w + childShare
-  where (w', _, childShare)
-          = applyMetabolismCost baseCost costPerByte childCostFactor w
+prop_adjustEnergy_balances_energy e w
+  = property $ _energy w' == _energy w + doubleToUI used
+  where (w', used) = adjustEnergy e w
 
 test :: Test
 test = testGroup "ALife.Creatur.WainQC"
@@ -185,23 +104,6 @@ test = testGroup "ALife.Creatur.WainQC"
     testProperty "prop_diploid_identity - Wain"
       (prop_diploid_identity equiv
         :: Wain TestPattern TestTweaker TestAction -> Property),
-    testProperty "prop_adjustEnergy1_balances"
-      prop_adjustEnergy1_balances,
-    testProperty "prop_adjustEnergy_balances_adult_energy"
-      prop_adjustEnergy_balances_adult_energy,
-    testProperty "prop_adjustEnergy_child_not_overpaid"
-      prop_adjustEnergy_child_not_overpaid,
-    testProperty "prop_adjustEnergy_adult_not_underpaid"
-      prop_adjustEnergy_adult_not_underpaid,
-    testProperty "prop_adjustEnergy_pays_correct_amount"
-      prop_adjustEnergy_pays_correct_amount,
-    testProperty "prop_adjustEnergy_charges_correct_amount"
-      prop_adjustEnergy_charges_correct_amount,
-    testProperty "prop_adjustEnergy_balances_child_energy"
-      prop_adjustEnergy_balances_child_energy,
-    testProperty "prop_applyMetabolismCost_balances_adult_energy"
-      prop_applyMetabolismCost_balances_adult_energy,
-    testProperty "prop_applyMetabolismCost_balances_child_energy"
-      prop_applyMetabolismCost_balances_child_energy
-    -- testProperty "prop_offspring_are_valid" prop_offspring_are_valid
+    testProperty "prop_adjustEnergy_balances_energy"
+      prop_adjustEnergy_balances_energy
   ]

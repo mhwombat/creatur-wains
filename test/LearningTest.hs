@@ -64,7 +64,7 @@ testWain = w'
         ep = ExponentialParams 0.1 0.001
         w = buildWainAndGenerateGenome wName wAppearance wBrain
               wDevotion wAgeOfMaturity wPassionDelta wBoredomDelta
-        (w', _, _) = adjustEnergy 0.5 w
+        (w', _) = adjustEnergy 0.5 w
 
 tryOne
   :: Wain TestPattern TestTweaker TestAction -> TestPattern
@@ -89,7 +89,7 @@ tryOne w p = do
   putStrLn $ "Wain sees " ++ show p ++ ", classifies it as "
     ++ show cBMU ++ " and chooses to " ++ show a
     ++ " predicting the outcomes " ++ show (view outcomes r)
-  let (wainRewarded, _, _) = adjustEnergy deltaE wainAfterDecision
+  let (wainRewarded, _) = adjustEnergy deltaE wainAfterDecision
   putStrLn $ "Δe=" ++ show deltaE
   putStrLn $ "condition before=" ++ show (condition w) ++ " after=" ++ show (condition wainRewarded)
   putStrLn $ "happiness before=" ++ show (happiness w) ++ " after=" ++ show (happiness wainRewarded)
@@ -101,7 +101,7 @@ tryOne w p = do
   putStrLn $ "err=" ++ show err
   -- keep the wain's energy constant
   let restorationEnergy = uiToDouble (view energy w) - uiToDouble (view energy wainRewarded)
-  let (wainFinal, _, _) = adjustEnergy restorationEnergy wainAfterReflection
+  let (wainFinal, _) = adjustEnergy restorationEnergy wainAfterReflection
   putStrLn "Final classifier models"
   describeClassifierModels wainFinal
   putStrLn "Final decision models"
