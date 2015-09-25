@@ -39,10 +39,12 @@ import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
 import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum)
 import Control.DeepSeq (NFData)
 import Control.Lens
-import Data.List (intercalate, maximumBy, groupBy, foldl')
+import Data.Function (on)
+import Data.List (intercalate, maximumBy, groupBy, sortBy, foldl')
 import qualified Data.Map.Strict as M
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
+import Data.Word (Word8)
 import GHC.Generics (Generic)
 import Text.Printf (printf)
 
@@ -59,15 +61,17 @@ data Brain p t a = Brain
     _predictor :: P.Predictor a,
     -- | Weights for evaluating happiness
     _happinessWeights :: Weights,
+    -- | Used to break ties when actions seem equally promising
+    _tiebreaker :: Word8,
     -- | Number of times each action has been used
     _actionCounts :: M.Map a Int
   } deriving (Generic, Eq, NFData)
 makeLenses ''Brain
 
 makeBrain
-  :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights
+  :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights -> Word8
     -> Brain p t a
-makeBrain c m p hw = Brain c m p hw M.empty
+makeBrain c m p hw t = Brain c m p hw t M.empty
 
 instance (Serialize p, Serialize t, Serialize a, Eq a, Ord a,
   GSOM.Tweaker t, p ~ GSOM.Pattern t)
@@ -79,31 +83,32 @@ instance (Diploid p, Diploid t, Diploid a, Eq a, Ord a, GSOM.Tweaker t,
 
 instance (Eq a, Ord a)
       => Statistical (Brain p t a) where
-  stats b@(Brain c m p hw _) = map (prefix "classifier ") (stats c)
+  stats b@(Brain c m p hw t _) = map (prefix "classifier ") (stats c)
     ++ (stats m)
     ++ map (prefix "predictor ") (stats p)
     ++ [ iStat "DQ" $ decisionQuality b,
          dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
          dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
-         dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 2]
+         dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 2,
+         iStat "tiebreaker" t ]
 
 instance (Show p, Show a, Show t, Eq a)
       => Show (Brain p t a) where
-  show (Brain c m p hw ks) = "Brain (" ++ show c ++ ") ("
+  show (Brain c m p hw t ks) = "Brain (" ++ show c ++ ") ("
     ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") ("
-    ++ show ks ++ ")"
+    ++ show t ++ ") (" ++ show ks ++ ")"
 
 instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
           p ~ GSOM.Pattern t)
     => Genetic (Brain p t a) where
-    put (Brain c m p hw _) = put c >> put m >> put p >> put hw
+    put (Brain c m p hw t _) = put c >> put m >> put p >> put hw >> put t
     get = do
       c <- get
       m <- get
       p <- get
       hw <- get
-      return $ Brain <$> c <*> m <*> p  <*> hw <*> pure M.empty
-
+      t <- get
+      return $ Brain <$> c <*> m <*> p  <*> hw <*> t <*> pure M.empty
 
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
@@ -147,9 +152,19 @@ chooseAction b ps c = (lds, sps, rplos, aohs, r, b4)
         rs = map (\(r1, _, _, _) -> r1) rplos
         aos = sumByAction $ rs
         aohs = map (fillInAdjustedHappiness b3 c) aos
-        (a, os, _) = maximumBy (comparing thirdOfTriple) aohs
+        -- (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aohs
+        (a, os, _) = maximumBy (comparing thirdOfTriple) $ aohs
         b4 = adjustActionCounts b3 r
         r = Response cBMUs a os
+
+maximaBy :: Ord b => (a -> b) -> [a] -> [a]
+maximaBy f = map snd . head . reverse . groupBy ((==) `on` fst)
+               . sortBy (comparing fst) . map (\x -> (f x, x))
+
+chooseAny :: Word8 -> [x] -> x
+chooseAny seed xs = xs !! (seed' `mod` n)
+  where seed' = fromIntegral seed
+        n = length xs -- the list will be short
 
 thirdOfTriple :: (a, b, c) -> c
 thirdOfTriple (_, _, x) = x
@@ -294,3 +309,4 @@ decisionReport = map f
 
 prettyProbability :: Probability -> String
 prettyProbability p = printf "%.3f" (uiToDouble p * 100) ++ "%"
+

@@ -52,7 +52,8 @@ arbTestBrain cSize nObjects nConditions pSize = do
   m <- arbitrary
   p <- D.arbTestPredictor nObjects nConditions pSize
   hw <- arbitrary
-  return $ makeBrain c m p hw
+  t <- arbitrary
+  return $ makeBrain c m p hw t
 
 instance Arbitrary TestBrain where
   arbitrary = sized sizedArbTestBrain
