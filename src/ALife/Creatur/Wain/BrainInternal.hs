@@ -152,8 +152,7 @@ chooseAction b ps c = (lds, sps, rplos, aohs, r, b4)
         rs = map (\(r1, _, _, _) -> r1) rplos
         aos = sumByAction $ rs
         aohs = map (fillInAdjustedHappiness b3 c) aos
-        -- (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aohs
-        (a, os, _) = maximumBy (comparing thirdOfTriple) $ aohs
+        (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aohs
         b4 = adjustActionCounts b3 r
         r = Response cBMUs a os
 
@@ -161,9 +160,9 @@ maximaBy :: Ord b => (a -> b) -> [a] -> [a]
 maximaBy f = map snd . head . reverse . groupBy ((==) `on` fst)
                . sortBy (comparing fst) . map (\x -> (f x, x))
 
-chooseAny :: Word8 -> [x] -> x
-chooseAny seed xs = xs !! (seed' `mod` n)
-  where seed' = fromIntegral seed
+chooseAny :: Brain p t a -> [x] -> x
+chooseAny b xs = xs !! (seed `mod` n)
+  where seed = fromIntegral $ _tiebreaker b
         n = length xs -- the list will be short
 
 thirdOfTriple :: (a, b, c) -> c
