@@ -95,10 +95,16 @@ predict p r prob = (r', bmu, rawOutcomes, p')
 
 -- | Teaches a response to the predictor (teaches it that the response
 --   increases each condition variable by 1).
-imprint :: (Eq a) => Predictor a -> [Label] -> a -> Predictor a
-imprint p ls a = p'
+--   The call sequence is @'imprint' n p ls a@, where
+--   p is the predictor to teach,
+--   n is the number of condition components,
+--   ls is a vector containing the classifier labels of the objects to
+--   imprint on, and
+--   a is the action to be taught.
+imprint :: (Eq a) => Predictor a -> Int -> [Label] -> a -> Predictor a
+imprint p n ls a = p'
   where r = Response ls a os
-        os = map (const 1) ls
+        os = replicate n 1
         p' = train p r
 
 -- -- | A metric that reflects how many of its models a predictor is

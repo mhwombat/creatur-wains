@@ -16,7 +16,8 @@ module ALife.Creatur.Wain.Weights
     makeWeights,
     weightedSum,
     weightAt,
-    weightedUIVectorDiff
+    weightedUIVectorDiff,
+    numWeights
   ) where
 
 import ALife.Creatur.Wain.WeightsInternal

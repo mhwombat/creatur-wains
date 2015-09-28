@@ -36,7 +36,8 @@ import ALife.Creatur.Wain.PlusMinusOne (PM1Double, doubleToPM1,
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   forceDoubleToUI)
-import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum)
+import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum,
+  numWeights)
 import Control.DeepSeq (NFData)
 import Control.Lens
 import Data.Function (on)
@@ -273,7 +274,8 @@ imprint b ps a = set predictor d' b'
   where (_, lds, b') = classifyInputs b ps
         s = fst . maximumBy (comparing snd) . hypothesise $ lds
         d = _predictor b'
-        d' = P.imprint d s a
+        d' = P.imprint d n s a
+        n = numWeights (_happinessWeights b)
 
 -- | Returns @True@ if both the classifier and predictor are valid
 --   according to @somOK@; returns @False@ otherwise.
@@ -289,7 +291,7 @@ decisionQuality = GSOM.discrimination . M.elems . _actionCounts
 
 scenarioReport :: [([Cl.Label], Probability)] -> [String]
 scenarioReport = map f
-  where f (s, p) = pretty s ++ " prob: " ++ prettyProbability p
+  where f (s, p) = show s ++ " prob: " ++ prettyProbability p
 
 responseReport
   :: Show a

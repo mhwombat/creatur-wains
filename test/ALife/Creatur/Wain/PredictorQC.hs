@@ -112,7 +112,7 @@ prop_imprint_works
   :: TestPredictor -> [Label] -> TestAction -> Int -> Property
 prop_imprint_works d s a nConditions =
   property . and $ zipWith (>=) (_outcomes r') (_outcomes r)
-  where d' = imprint d s a
+  where d' = imprint d nConditions s a
         r0 = Response s a $ replicate nConditions 0
         (r, _, _, _) = predict d r0 1
         (r', _, _, _) = predict d' r0 1

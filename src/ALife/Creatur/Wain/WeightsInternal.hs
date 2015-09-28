@@ -46,6 +46,9 @@ tweak (x:xs) = if excess > 0 then (x - excess):xs else x:xs
         s = sum . map uiToDouble $ (x:xs)
 tweak [] = error "tweak should not have been called"
 
+numWeights :: Weights -> Int
+numWeights (Weights xs) = length xs
+
 weightedSum :: Weights -> [UIDouble] -> UIDouble
 weightedSum ws xs = sum $ zipWith (*) (toUIDoubles ws) xs
 
