@@ -23,13 +23,13 @@ import ALife.Creatur.Wain.BrainInternal
 import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.PredictorQC as D
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM)
-import ALife.Creatur.Wain.MuserQC ()
+import ALife.Creatur.Wain.Muser (makeMuser)
 import ALife.Creatur.Wain.Response (Response(..), _outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
   arbTestResponse)
 import ALife.Creatur.Wain.Probability (hypothesise)
 import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.WeightsQC ()
+import ALife.Creatur.Wain.Weights (makeWeights)
 import Data.List (maximumBy)
 import Data.Ord (comparing)
 import Test.Framework (Test, testGroup)
@@ -49,9 +49,11 @@ sizedArbTestBrain n = do
 arbTestBrain :: Int -> Int -> Int -> Int -> Gen TestBrain
 arbTestBrain cSize nObjects nConditions pSize = do
   c <- sizedArbGeneticSOM arbitrary cSize
-  m <- arbitrary
+  os <- vectorOf nConditions arbitrary
+  d <- max 1 <$> arbitrary
+  let m = makeMuser os d
   p <- D.arbTestPredictor nObjects nConditions pSize
-  hw <- arbitrary
+  hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
   return $ makeBrain c m p hw t
 
@@ -90,9 +92,9 @@ prop_reflect_makes_predictions_more_accurate
 prop_reflect_makes_predictions_more_accurate
   (ReflectionTestData b r cBefore cAfter)
     = property $ errAfter <= errBefore
-  where ((r2, _, _, _):_, _) = predictAll b . zip [r] $ repeat 1
+  where ((r2, _, _, _):_) = predictAll b . zip [r] $ repeat 1
         (b2, errBefore) = reflect b r2 cBefore cAfter
-        ((r3, _, _, _):_, _) = predictAll b . zip [r] $ repeat 1
+        ((r3, _, _, _):_) = predictAll b . zip [r] $ repeat 1
         (_, errAfter) = reflect b2 r3 cBefore cAfter
 
 prop_reflect_error_in_range
@@ -143,9 +145,9 @@ prop_imprint_works (ImprintTestData b ps a) nConditions =
   where (_, lds, b') = classifyInputs b ps
         s = fst . maximumBy (comparing snd) . hypothesise $ lds
         r = Response s a $ replicate nConditions 1
-        ((rBefore, _, _, _):_, b2) = predictAll b' [(r, 1)]
-        b3 = imprint b2 ps a
-        ((rAfter, _, _, _):_, _) = predictAll b3 [(r, 1)]
+        ((rBefore, _, _, _):_) = predictAll b' [(r, 1)]
+        b2 = imprint b' ps a
+        ((rAfter, _, _, _):_) = predictAll b2 [(r, 1)]
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"

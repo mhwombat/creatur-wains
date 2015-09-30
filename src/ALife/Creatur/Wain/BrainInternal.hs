@@ -25,7 +25,8 @@ import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import qualified ALife.Creatur.Wain.Predictor as P
-import ALife.Creatur.Wain.Muser (Muser, generateResponses, muserOK)
+import ALife.Creatur.Wain.Muser (Muser, generateResponses, muserOK,
+  _defaultOutcomes)
 import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
 import ALife.Creatur.Wain.Response (Response(..))
 import ALife.Creatur.Wain.Probability (Probability, hypothesise)
@@ -72,7 +73,10 @@ makeLenses ''Brain
 makeBrain
   :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights -> Word8
     -> Brain p t a
-makeBrain c m p hw t = Brain c m p hw t M.empty
+makeBrain c m p hw t =
+  if numWeights hw == length (_defaultOutcomes m)
+    then Brain c m p hw t M.empty
+    else error "weights and default outcomes are different lengths"
 
 instance (Serialize p, Serialize t, Serialize a, Eq a, Ord a,
   GSOM.Tweaker t, p ~ GSOM.Pattern t)
@@ -145,17 +149,24 @@ chooseAction
             [(a, [PM1Double], UIDouble)],
             Response a,
             Brain p t a)
-chooseAction b ps c = (lds, sps, rplos, aohs, r, b4)
-  where (cBMUs, lds, b2) = classifyInputs b ps
+chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
+  where (cBmus, lds, b2) = classifyInputs b ps
         sps = hypothesise lds
-        rps = generateResponses (_muser b2) sps
-        (rplos, b3) = predictAll b2 rps
+        sps' = filter (and . map (GSOM.hasModel (_classifier b)) . fst) sps
+        spsSafe = if null sps'
+                    then sps -- nothing to base estimate on; have to guess
+                    else sps'
+        rps = generateResponses (_muser b2) spsSafe
+        rplos = predictAll b2 rps
         rs = map (\(r1, _, _, _) -> r1) rplos
         aos = sumByAction $ rs
-        aohs = map (fillInAdjustedHappiness b3 c) aos
+        aohs = map (fillInAdjustedHappiness b2 c) aos
         (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aohs
-        b4 = adjustActionCounts b3 r
-        r = Response cBMUs a os
+        b3 = adjustActionCounts b2 r
+        r = Response cBmus a os
+
+onlyModelsIn :: Brain p t a -> [(Cl.Label, GSOM.Difference)] -> Bool
+onlyModelsIn b = and . map (GSOM.hasModel (_classifier b) . fst)
 
 maximaBy :: Ord b => (a -> b) -> [a] -> [a]
 maximaBy f = map snd . head . reverse . groupBy ((==) `on` fst)
@@ -196,7 +207,8 @@ adjustActionCounts b r = set actionCounts cs' b
 --   and the updated brain.
 classifyInputs
   :: Brain p t a -> [p]
-    -> ([Cl.Label], [[(Cl.Label, GSOM.Difference)]], Brain p t a)
+    -> ([Cl.Label], [[(Cl.Label, GSOM.Difference)]],
+        Brain p t a)
 classifyInputs b ps = (bmus, ds, b')
   where (bmus, ds, c') = Cl.classifySetAndTrain (_classifier b) ps
         b' = set classifier c' b
@@ -233,17 +245,17 @@ sumTermByTerm (xs:ys:zss) = sumTermByTerm (ws:zss)
 predictAll
   :: Eq a
     => Brain p t a -> [(Response a, Probability)]
-      -> ([(Response a, Probability, P.Label, [PM1Double])], Brain p t a)
-predictAll b rps = foldl' predictOne ([], b) rps
+      -> [(Response a, Probability, P.Label, [PM1Double])]
+predictAll b rps = foldl' (predictOne b) [] rps
 
 predictOne
   :: Eq a
-    => ([(Response a, Probability, P.Label,  [PM1Double])],  Brain p t a)
+    => Brain p t a
+      -> [(Response a, Probability, P.Label,  [PM1Double])]
         -> (Response a, Probability)
-          -> ([(Response a, Probability, P.Label, [PM1Double])],
-               Brain p t a)
-predictOne (rplos, b) (r, p) = ((r', p, l, os):rplos, b {_predictor = d})
-  where (r', l, os, d) = P.predict (_predictor b) r p
+          -> ([(Response a, Probability, P.Label, [PM1Double])])
+predictOne b rplos (r, p) = (r', p, l, os):rplos
+  where (r', l, os, _) = P.predict (_predictor b) r p
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.

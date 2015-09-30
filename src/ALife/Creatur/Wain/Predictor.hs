@@ -87,7 +87,8 @@ predict p r prob = (r', bmu, rawOutcomes, p')
         adjustment = prob * (1 - responseDiff model r)
         -- Adjust from zero because, depending on the similarity
         -- between the true scenario and the model, the action may have
-        -- less of an effect than predicted by the model.
+        -- less of an effect (positive or negative) than predicted by
+        -- the model.
         zeroes = map (const 0) rawOutcomes
         adjustedOutcomes
           = adjustPM1Vector rawOutcomes adjustment zeroes
@@ -106,14 +107,3 @@ imprint p n ls a = p'
   where r = Response ls a os
         os = replicate n 1
         p' = train p r
-
--- -- | A metric that reflects how many of its models a predictor is
--- --   regularly using.
--- predictorQuality :: (Eq a, Ord a) => Predictor a -> Int
--- predictorQuality p = discrimination actionCounts
---   where modelCounts = M.elems . counterMap $ p
---         actions = map (view action) . M.elems . modelMap $ p
---         actionCounts = map (sum . map snd)
---                          . groupBy ((==) `on` fst)
---                          . sortBy (compare `on` fst)
---                            $ zip actions modelCounts
