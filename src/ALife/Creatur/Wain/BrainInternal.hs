@@ -65,6 +65,10 @@ data Brain p t a = Brain
     _happinessWeights :: Weights,
     -- | Used to break ties when actions seem equally promising
     _tiebreaker :: Word8,
+    -- | When a wain is taught a response, or learns it by observing
+    --   another wain (rather than through personal experience),
+    --   it will assume the action has the following outcomes.
+    _imprintOutcomes :: [PM1Double],
     -- | Number of times each action has been used
     _actionCounts :: M.Map a Int
   } deriving (Generic, Eq, NFData)
@@ -72,11 +76,14 @@ makeLenses ''Brain
 
 makeBrain
   :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights -> Word8
-    -> Brain p t a
-makeBrain c m p hw t =
-  if numWeights hw == length (_defaultOutcomes m)
-    then Brain c m p hw t M.empty
-    else error "weights and default outcomes are different lengths"
+    -> [PM1Double] -> Brain p t a
+makeBrain c m p hw t ios
+  | numWeights hw /= length (_defaultOutcomes m)
+      = error "weights and default outcomes are different lengths"
+  | numWeights hw /= length ios
+      = error "weights and imprint outcomes are different lengths"
+  | otherwise
+      = Brain c m p hw t ios M.empty
 
 instance (Serialize p, Serialize t, Serialize a, Eq a, Ord a,
   GSOM.Tweaker t, p ~ GSOM.Pattern t)
@@ -88,32 +95,40 @@ instance (Diploid p, Diploid t, Diploid a, Eq a, Ord a, GSOM.Tweaker t,
 
 instance (Eq a, Ord a)
       => Statistical (Brain p t a) where
-  stats b@(Brain c m p hw t _) = map (prefix "classifier ") (stats c)
+  stats b@(Brain c m p hw t ios _) = map (prefix "classifier ") (stats c)
     ++ (stats m)
     ++ map (prefix "predictor ") (stats p)
     ++ [ iStat "DQ" $ decisionQuality b,
          dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
          dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
-         dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 2,
+         dStat "boredomWeight" . uiToDouble $ hw `weightAt` 2,
+         dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 3,
+         dStat "energyImprint" . pm1ToDouble $ ios !! 0,
+         dStat "passionImprint" . pm1ToDouble $ ios !! 1,
+         dStat "boredomImprint" . pm1ToDouble $ ios !! 2,
+         dStat "litterSizeImprint" . pm1ToDouble $ ios !! 3,
          iStat "tiebreaker" t ]
 
 instance (Show p, Show a, Show t, Eq a)
       => Show (Brain p t a) where
-  show (Brain c m p hw t ks) = "Brain (" ++ show c ++ ") ("
-    ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") ("
-    ++ show t ++ ") (" ++ show ks ++ ")"
+  show (Brain c m p hw t ios ks) = "Brain (" ++ show c ++ ") ("
+    ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") "
+    ++ show t ++ " " ++ show ios ++ " (" ++ show ks ++ ")"
 
 instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
           p ~ GSOM.Pattern t)
     => Genetic (Brain p t a) where
-    put (Brain c m p hw t _) = put c >> put m >> put p >> put hw >> put t
+    put (Brain c m p hw t ios _)
+      = put c >> put m >> put p >> put hw >> put t >> put ios
     get = do
       c <- get
       m <- get
       p <- get
       hw <- get
       t <- get
-      return $ Brain <$> c <*> m <*> p  <*> hw <*> t <*> pure M.empty
+      ios <- get
+      return $
+        Brain <$> c <*> m <*> p  <*> hw <*> t <*> ios  <*> pure M.empty
 
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
@@ -284,10 +299,10 @@ reflect b r cBefore cAfter = (set predictor d' b, err)
 imprint :: Eq a => Brain p t a -> [p] -> a -> Brain p t a
 imprint b ps a = set predictor d' b'
   where (_, lds, b') = classifyInputs b ps
-        s = fst . maximumBy (comparing snd) . hypothesise $ lds
         d = _predictor b'
-        d' = P.imprint d n s a
-        n = numWeights (_happinessWeights b)
+        ls = fst . maximumBy (comparing snd) . hypothesise $ lds
+        r = Response ls a (_imprintOutcomes b)
+        d' = GSOM.train d r
 
 -- | Returns @True@ if both the classifier and predictor are valid
 --   according to @somOK@; returns @False@ otherwise.

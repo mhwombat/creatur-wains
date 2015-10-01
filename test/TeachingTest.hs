@@ -14,19 +14,20 @@
 module Main where
 
 import ALife.Creatur.Wain
-import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
-import ALife.Creatur.Wain.Muser (makeMuser)
-import ALife.Creatur.Wain.Predictor (PredictorTweaker(..))
-import ALife.Creatur.Wain.Statistics (stats)
-import ALife.Creatur.Wain.Response (action, outcomes)
-import ALife.Creatur.Wain.ResponseQC (TestAction(..))
-import ALife.Creatur.Wain.TestUtils (TestPattern(..))
-import ALife.Creatur.Wain.GeneticSOMInternal (ExponentialParams(..),
-  buildGeneticSOM, modelMap, schemaQuality)
 import ALife.Creatur.Wain.BrainInternal (classifier, predictor,
   makeBrain, scenarioReport, responseReport, decisionReport,
   decisionQuality)
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import ALife.Creatur.Wain.GeneticSOMInternal (ExponentialParams(..),
+  buildGeneticSOM, modelMap, schemaQuality)
+import ALife.Creatur.Wain.Muser (makeMuser)
+import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1)
+import ALife.Creatur.Wain.Predictor (PredictorTweaker(..))
 import ALife.Creatur.Wain.Pretty (pretty)
+import ALife.Creatur.Wain.Response (action, outcomes)
+import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+import ALife.Creatur.Wain.Statistics (stats)
+import ALife.Creatur.Wain.TestUtils (TestPattern(..))
 import ALife.Creatur.Wain.UnitInterval (uiToDouble)
 import ALife.Creatur.Wain.Weights (makeWeights)
 import Control.Lens
@@ -36,13 +37,16 @@ import qualified Data.Map.Strict as M
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 
+reward :: Double
+reward = 0.1
+
 energyFor :: TestPattern -> TestAction -> Double
 energyFor (TestPattern p) a
-  | p < 50   = if a == Walk then 1 else -0.1
-  | p < 100   = if a == Run then 1 else -0.1
-  | p < 150   = if a == Jump then 1 else -0.1
-  | p < 200   = if a == Skip then 1 else -0.1
-  | otherwise = if a == Crawl then 1 else -0.1
+  | p < 50   = if a == Walk then reward else -reward
+  | p < 100   = if a == Run then reward else -reward
+  | p < 150   = if a == Jump then reward else -reward
+  | p < 200   = if a == Skip then reward else -reward
+  | otherwise = if a == Crawl then reward else -reward
 
 imprintAll
   :: Wain TestPattern TestTweaker TestAction
@@ -57,13 +61,14 @@ testWain :: Wain TestPattern TestTweaker TestAction
 testWain = imprintAll w'
   where wName = "Fred"
         wAppearance = TestPattern 0
-        wBrain = makeBrain wClassifier wMuser wPredictor wHappinessWeights 1
+        wBrain = makeBrain wClassifier wMuser wPredictor wHappinessWeights 1 wIos
         wDevotion = 0.1
         wAgeOfMaturity = 100
         wPassionDelta = 0
         wBoredomDelta = 0
         wClassifier = buildGeneticSOM ec 10 0.02 TestTweaker
         wMuser = makeMuser [0, 0, 0, 0] 2
+        wIos = [doubleToPM1 reward, 0, 0, 0]
         wPredictor = buildGeneticSOM ep 50 0.1 PredictorTweaker
         wHappinessWeights = makeWeights [1, 0, 0]
         -- This wain will be taught the correct actions up front.

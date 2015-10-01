@@ -20,14 +20,13 @@ module ALife.Creatur.Wain.Predictor
     Predictor,
     PredictorTweaker(..),
     buildPredictor,
-    predict,
-    imprint
+    predict
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, ExponentialParams(..),
-  Label, Tweaker(..), buildGeneticSOM, classify, train, modelMap)
+  Label, Tweaker(..), buildGeneticSOM, classify, modelMap)
 import ALife.Creatur.Wain.Response (Response(..), outcomes,
   responseDiff, makeResponseSimilar)
 import ALife.Creatur.Wain.Probability (Probability)
@@ -93,17 +92,3 @@ predict p r prob = (r', bmu, rawOutcomes, p')
         adjustedOutcomes
           = adjustPM1Vector rawOutcomes adjustment zeroes
         r' = set outcomes adjustedOutcomes r
-
--- | Teaches a response to the predictor (teaches it that the response
---   increases each condition variable by 1).
---   The call sequence is @'imprint' n p ls a@, where
---   p is the predictor to teach,
---   n is the number of condition components,
---   ls is a vector containing the classifier labels of the objects to
---   imprint on, and
---   a is the action to be taught.
-imprint :: (Eq a) => Predictor a -> Int -> [Label] -> a -> Predictor a
-imprint p n ls a = p'
-  where r = Response ls a os
-        os = replicate n 1
-        p' = train p r

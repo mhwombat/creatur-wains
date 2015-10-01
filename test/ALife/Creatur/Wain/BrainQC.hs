@@ -55,7 +55,8 @@ arbTestBrain cSize nObjects nConditions pSize = do
   p <- D.arbTestPredictor nObjects nConditions pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
-  return $ makeBrain c m p hw t
+  ios <- vectorOf nConditions arbitrary
+  return $ makeBrain c m p hw t ios
 
 instance Arbitrary TestBrain where
   arbitrary = sized sizedArbTestBrain
@@ -142,12 +143,13 @@ prop_imprint_works
 prop_imprint_works (ImprintTestData b ps a) nConditions =
   not (null ps)
     ==> and $ zipWith (>=) (_outcomes rAfter) (_outcomes rBefore)
-  where (_, lds, b') = classifyInputs b ps
+  where bModified = b { _imprintOutcomes = [1, 1, 1, 1] }
+        (_, lds, bClassified) = classifyInputs bModified ps
         s = fst . maximumBy (comparing snd) . hypothesise $ lds
         r = Response s a $ replicate nConditions 1
-        ((rBefore, _, _, _):_) = predictAll b' [(r, 1)]
-        b2 = imprint b' ps a
-        ((rAfter, _, _, _):_) = predictAll b2 [(r, 1)]
+        ((rBefore, _, _, _):_) = predictAll bClassified [(r, 1)]
+        bImprinted = imprint bClassified ps a
+        ((rAfter, _, _, _):_) = predictAll bImprinted [(r, 1)]
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"

@@ -50,8 +50,8 @@ import GHC.Generics (Generic)
 import Paths_creatur_wains (version)
 
 -- | Returns the current version number of this library.
-programVersion :: String
-programVersion = "creatur-wains-" ++ showVersion version
+packageVersion :: String
+packageVersion = "creatur-wains-" ++ showVersion version
 
 data Wain p t a = Wain
   {

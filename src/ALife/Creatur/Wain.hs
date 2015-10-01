@@ -51,7 +51,7 @@ module ALife.Creatur.Wain
     mate,
     weanMatureChildren,
     pruneDeadChildren,
-    programVersion
+    packageVersion
   ) where
 
 import ALife.Creatur.WainInternal

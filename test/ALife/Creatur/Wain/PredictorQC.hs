@@ -108,15 +108,6 @@ rawDiff :: [PM1Double] ->  [PM1Double] -> Double
 rawDiff xs ys =
   sum $ zipWith (\x y -> abs $ pm1ToDouble x - pm1ToDouble y) xs ys
 
-prop_imprint_works
-  :: TestPredictor -> [Label] -> TestAction -> Int -> Property
-prop_imprint_works d s a nConditions =
-  property . and $ zipWith (>=) (_outcomes r') (_outcomes r)
-  where d' = imprint d nConditions s a
-        r0 = Response s a $ replicate nConditions 0
-        (r, _, _, _) = predict d r0 1
-        (r', _, _, _) = predict d' r0 1
-
 test :: Test
 test = testGroup "ALife.Creatur.Wain.PredictorQC"
   [
@@ -141,7 +132,5 @@ test = testGroup "ALife.Creatur.Wain.PredictorQC"
     testProperty "prop_diploid_readable - Predictor"
       (prop_diploid_readable :: TestPredictor -> TestPredictor -> Property),
     testProperty "prop_training_makes_predictions_more_accurate"
-      prop_training_makes_predictions_more_accurate,
-    testProperty "prop_imprint_works"
-      prop_imprint_works
+      prop_training_makes_predictions_more_accurate
   ]
