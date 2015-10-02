@@ -20,13 +20,16 @@ module ALife.Creatur.Wain.Predictor
     Predictor,
     PredictorTweaker(..),
     buildPredictor,
-    predict
+    predict,
+    scenarios,
+    hasScenario
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, ExponentialParams(..),
   Label, Tweaker(..), buildGeneticSOM, classify, modelMap)
+import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.Response (Response(..), outcomes,
   responseDiff, makeResponseSimilar)
 import ALife.Creatur.Wain.Probability (Probability)
@@ -92,3 +95,9 @@ predict p r prob = (r', bmu, rawOutcomes, p')
         adjustedOutcomes
           = adjustPM1Vector rawOutcomes adjustment zeroes
         r' = set outcomes adjustedOutcomes r
+
+scenarios :: Predictor a -> [[Cl.Label]]
+scenarios = map (_labels . snd) . M.toList . modelMap
+
+hasScenario :: Predictor a -> [Cl.Label] -> Bool
+hasScenario p ls = ls `elem` (scenarios p)

@@ -62,7 +62,7 @@ testWain = w'
         wMuser = makeMuser [0, 0, 0, 0] 1
         wIos = [doubleToPM1 reward, 0, 0, 0]
         wPredictor = buildGeneticSOM ep (wClassifierSize*5) 0.1 PredictorTweaker
-        wHappinessWeights = makeWeights [1, 0, 0]
+        wHappinessWeights = makeWeights [1, 0, 0, 0]
         -- The classifier does most of its learning by round 100.
         ec = ExponentialParams 0.5 0.01
         -- The predictor needs to keep learning longer.

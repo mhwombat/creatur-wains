@@ -22,8 +22,9 @@ module ALife.Creatur.Wain.BrainQC
 import ALife.Creatur.Wain.BrainInternal
 import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.PredictorQC as D
-import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM)
-import ALife.Creatur.Wain.Muser (makeMuser)
+import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM,
+  sizedArbEmptyGeneticSOM)
+import ALife.Creatur.Wain.Muser (makeMuser, _defaultOutcomes)
 import ALife.Creatur.Wain.Response (Response(..), _outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
   arbTestResponse)
@@ -55,7 +56,7 @@ arbTestBrain cSize nObjects nConditions pSize = do
   p <- D.arbTestPredictor nObjects nConditions pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
-  ios <- vectorOf nConditions arbitrary
+  ios <- vectorOf nConditions $ choose (-0.99999, 1)
   return $ makeBrain c m p hw t ios
 
 instance Arbitrary TestBrain where
@@ -64,6 +65,26 @@ instance Arbitrary TestBrain where
 equivBrain :: TestBrain -> TestBrain -> Bool
 equivBrain b1 b2 = _classifier b1 `C.equivClassifier` _classifier b2
   && _predictor b1 `D.equivPredictor` _predictor b2
+
+-- sizedArbEmptyTestBrain :: Int -> Gen TestBrain
+-- sizedArbEmptyTestBrain n = do
+--   cSize <- choose (0, n)
+--   nObjects <- choose (0, n - cSize)
+--   nConditions <- choose (0, n - cSize - nObjects)
+--   let pSize = n - cSize - nObjects - nConditions
+--   arbTestBrain cSize nObjects nConditions pSize
+
+arbEmptyTestBrain :: Int -> Int -> Int -> Gen TestBrain
+arbEmptyTestBrain cSize nConditions pSize = do
+  c <- sizedArbEmptyGeneticSOM cSize
+  os <- vectorOf nConditions arbitrary
+  d <- max 1 <$> arbitrary
+  let m = makeMuser os d
+  p <- D.arbEmptyTestPredictor pSize
+  hw <- makeWeights <$> vectorOf nConditions arbitrary
+  t <- arbitrary
+  ios <- vectorOf nConditions $ choose (0.01, 1)
+  return $ makeBrain c m p hw t ios
 
 data ReflectionTestData
   = ReflectionTestData TestBrain TestResponse Condition Condition
@@ -116,7 +137,7 @@ instance Arbitrary AFewPatterns where
   arbitrary = sized sizedArbAFewPatterns
 
 data ImprintTestData
-  = ImprintTestData TestBrain [TestPattern] TestAction
+  = ImprintTestData TestBrain [TestPattern] TestAction Condition
     deriving Eq
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
@@ -128,28 +149,62 @@ sizedArbImprintTestData n = do
   b <- arbTestBrain cSize nObjects nConditions pSize
   ps <- vectorOf nObjects arbitrary
   a <- arbitrary
-  return $ ImprintTestData b ps a
+  c <- vectorOf nConditions arbitrary
+  return $ ImprintTestData b ps a c
 
 instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
 
 instance Show ImprintTestData where
-  show (ImprintTestData b ps a)
+  show (ImprintTestData b ps a c)
     = "ImprintTestData (" ++ show b ++ ") " ++ show ps ++ " "
-      ++ show a
+      ++ show a ++ " " ++ show c
 
-prop_imprint_works
-  :: ImprintTestData -> Int -> Property
-prop_imprint_works (ImprintTestData b ps a) nConditions =
-  not (null ps)
+prop_imprint_works :: ImprintTestData -> Property
+prop_imprint_works (ImprintTestData b ps a _) = not (null ps)
     ==> and $ zipWith (>=) (_outcomes rAfter) (_outcomes rBefore)
-  where bModified = b { _imprintOutcomes = [1, 1, 1, 1] }
+  where bModified = b { _imprintOutcomes = replicate nConditions 1 }
         (_, lds, bClassified) = classifyInputs bModified ps
         s = fst . maximumBy (comparing snd) . hypothesise $ lds
         r = Response s a $ replicate nConditions 1
         ((rBefore, _, _, _):_) = predictAll bClassified [(r, 1)]
         bImprinted = imprint bClassified ps a
         ((rAfter, _, _, _):_) = predictAll bImprinted [(r, 1)]
+        nConditions = length $ _imprintOutcomes b
+
+data ImprintEmptyBrainTestData
+  = ImprintEmptyBrainTestData TestBrain [TestPattern] TestAction Condition
+    deriving Eq
+
+sizedArbImprintEmptyBrainTestData :: Int -> Gen ImprintEmptyBrainTestData
+sizedArbImprintEmptyBrainTestData n = do
+  cSize <- choose (1, max 1 n)
+  nObjects <- choose (1, min 3 (max 1 (n - cSize)))
+  nConditions <- choose (1, max 1 (n - cSize - nObjects))
+  let pSize = max 1 (n - cSize - nObjects - nConditions)
+  b <- arbEmptyTestBrain cSize nConditions pSize
+  ps <- vectorOf nObjects arbitrary
+  a <- arbitrary
+  c <- vectorOf nConditions arbitrary
+  return $ ImprintEmptyBrainTestData b ps a c
+
+instance Arbitrary ImprintEmptyBrainTestData where
+  arbitrary = sized sizedArbImprintEmptyBrainTestData
+
+instance Show ImprintEmptyBrainTestData where
+  show (ImprintEmptyBrainTestData b ps a c)
+    = "ImprintEmptyBrainTestData (" ++ show b ++ ") " ++ show ps ++ " "
+      ++ show a ++ " " ++ show c
+
+prop_imprint_works2 :: ImprintEmptyBrainTestData -> Property
+prop_imprint_works2 (ImprintEmptyBrainTestData b ps a c) = not (null ps)
+  ==> _action r == a
+  where bModified = b { _muser = mModified }
+        mModified = (_muser b)
+                      { _defaultOutcomes = replicate nConditions (-1) }
+        nConditions = length $ _imprintOutcomes b
+        bImprinted = imprint bModified ps a
+        (_, _, _, _, r, _) = chooseAction bImprinted ps c
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"
@@ -169,5 +224,7 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
     testProperty "prop_reflect_error_in_range"
       prop_reflect_error_in_range,
     testProperty "prop_imprint_works"
-      prop_imprint_works
+      prop_imprint_works,
+    testProperty "prop_imprint_works2"
+      prop_imprint_works2
   ]

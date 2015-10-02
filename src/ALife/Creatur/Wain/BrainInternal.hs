@@ -167,7 +167,7 @@ chooseAction
 chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
   where (cBmus, lds, b2) = classifyInputs b ps
         sps = hypothesise lds
-        sps' = filter (and . map (GSOM.hasModel (_classifier b)) . fst) sps
+        sps' = filter (P.hasScenario (_predictor b) . fst) sps
         spsSafe = if null sps'
                     then sps -- nothing to base estimate on; have to guess
                     else sps'

@@ -22,6 +22,7 @@ module ALife.Creatur.Wain.GeneticSOMQC
     test,
     equivGSOM,
     sizedArbGeneticSOM,
+    sizedArbEmptyGeneticSOM,
     validExponential,
     equivExponential
   ) where

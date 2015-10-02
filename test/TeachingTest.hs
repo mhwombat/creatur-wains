@@ -70,7 +70,7 @@ testWain = imprintAll w'
         wMuser = makeMuser [0, 0, 0, 0] 2
         wIos = [doubleToPM1 reward, 0, 0, 0]
         wPredictor = buildGeneticSOM ep 50 0.1 PredictorTweaker
-        wHappinessWeights = makeWeights [1, 0, 0]
+        wHappinessWeights = makeWeights [1, 0, 0, 0]
         -- This wain will be taught the correct actions up front.
         -- After storing those initial action models, it doesn't need to
         -- learn anything.

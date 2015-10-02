@@ -20,7 +20,7 @@ module ALife.Creatur.Wain.PredictorQC
     equivTweaker,
     equivPredictor,
     arbTestPredictor,
-    --
+    arbEmptyTestPredictor,
     TrainingTestData(..)
   ) where
 
@@ -33,7 +33,8 @@ import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
   arbTestResponse)
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.GeneticSOMInternal (patternMap)
-import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM)
+import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM,
+  sizedArbEmptyGeneticSOM)
 import Control.Lens
 import Data.Datamining.Clustering.SOSInternal (diffThreshold)
 import Test.Framework (Test, testGroup)
@@ -67,6 +68,9 @@ instance Arbitrary TestPredictor where
 
 equivPredictor :: TestPredictor -> TestPredictor -> Bool
 equivPredictor = equivGSOM equivTweaker
+
+arbEmptyTestPredictor :: Int -> Gen TestPredictor
+arbEmptyTestPredictor nSize = sizedArbEmptyGeneticSOM nSize
 
 data TrainingTestData
   = TrainingTestData
