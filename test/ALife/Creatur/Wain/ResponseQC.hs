@@ -39,8 +39,8 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
 data TestAction = Walk | Run | Jump | Skip | Crawl
-  deriving ( Show, Eq, Ord, Generic, Enum, Bounded, Serialize, Genetic,
-             Diploid, NFData )
+  deriving ( Show, Read, Eq, Ord, Generic, Enum, Bounded, Serialize,
+             Genetic, Diploid, NFData )
 
 
 instance Arbitrary TestAction where

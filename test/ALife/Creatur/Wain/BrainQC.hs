@@ -43,8 +43,9 @@ sizedArbTestBrain :: Int -> Gen TestBrain
 sizedArbTestBrain n = do
   cSize <- choose (0, n)
   nObjects <- choose (0, n - cSize)
-  nConditions <- choose (0, n - cSize - nObjects)
-  let pSize = n - cSize - nObjects - nConditions
+  -- nConditions <- choose (0, n - cSize - nObjects)
+  let nConditions = 4
+  let pSize = n + 1
   arbTestBrain cSize nObjects nConditions pSize
 
 arbTestBrain :: Int -> Int -> Int -> Int -> Gen TestBrain
@@ -98,8 +99,9 @@ sizedArbReflectionTestData :: Int -> Gen ReflectionTestData
 sizedArbReflectionTestData n = do
   cSize <- choose (0, n)
   nObjects <- choose (0, n - cSize)
-  nConditions <- choose (0, n - cSize - nObjects)
-  let pSize = n - cSize - nObjects - nConditions
+  -- nConditions <- choose (0, n - cSize - nObjects)
+  let nConditions = 4
+  let pSize = n + 1
   b <- arbTestBrain cSize nObjects nConditions pSize
   r <- arbTestResponse nObjects nConditions
   cBefore <- vectorOf nConditions arbitrary
@@ -144,8 +146,9 @@ sizedArbImprintTestData :: Int -> Gen ImprintTestData
 sizedArbImprintTestData n = do
   cSize <- choose (1, max 1 n)
   nObjects <- choose (1, min 3 (max 1 (n - cSize)))
-  nConditions <- choose (1, max 1 (n - cSize - nObjects))
-  let pSize = max 1 (n - cSize - nObjects - nConditions)
+  -- nConditions <- choose (1, max 1 (n - cSize - nObjects))
+  let nConditions = 4
+  let pSize = n + 1
   b <- arbTestBrain cSize nObjects nConditions pSize
   ps <- vectorOf nObjects arbitrary
   a <- arbitrary
@@ -180,8 +183,9 @@ sizedArbImprintEmptyBrainTestData :: Int -> Gen ImprintEmptyBrainTestData
 sizedArbImprintEmptyBrainTestData n = do
   cSize <- choose (1, max 1 n)
   nObjects <- choose (1, min 3 (max 1 (n - cSize)))
-  nConditions <- choose (1, max 1 (n - cSize - nObjects))
-  let pSize = max 1 (n - cSize - nObjects - nConditions)
+  -- nConditions <- choose (1, max 1 (n - cSize - nObjects))
+  let nConditions = 4
+  let pSize = n + 1
   b <- arbEmptyTestBrain cSize nConditions pSize
   ps <- vectorOf nObjects arbitrary
   a <- arbitrary
@@ -200,11 +204,68 @@ prop_imprint_works2 :: ImprintEmptyBrainTestData -> Property
 prop_imprint_works2 (ImprintEmptyBrainTestData b ps a c) = not (null ps)
   ==> _action r == a
   where bModified = b { _muser = mModified }
-        mModified = (_muser b)
-                      { _defaultOutcomes = replicate nConditions (-1) }
+        mModified = (_muser b) { _defaultOutcomes = replicate nConditions (-1) }
         nConditions = length $ _imprintOutcomes b
         bImprinted = imprint bModified ps a
         (_, _, _, _, r, _) = chooseAction bImprinted ps c
+
+-- imprintAll :: TestBrain -> [([TestPattern], TestAction)] -> TestBrain
+-- imprintAll b psas = foldl' imprintOne b psas
+
+-- imprintOne :: TestBrain -> ([TestPattern], TestAction) -> TestBrain
+-- imprintOne b (ps, a) = imprint b ps a
+
+-- data ImprintTestData2
+--   = ImprintTestData2 TestBrain [TestPattern] TestAction Condition String
+--     deriving Eq
+
+-- -- Are the two stimuli sufficiently similar that the brain might
+-- -- classify them using the same response labels?
+-- similar :: TestBrain -> [TestPattern] -> [TestPattern] -> Bool
+-- similar b xs ys = xPLabel == yPLabel
+--   where xPLabel = (f . classify p) xResponse :: Label
+--         yPLabel = (f . classify p) yResponse :: Label
+--         xResponse = Response xCLabels a [] :: Response TestAction
+--         yResponse = Response yCLabels a [] :: Response TestAction
+--         -- The next two lines should really use a fold
+--         xCLabels = map (f . classify c) xs :: [Label]
+--         yCLabels = map (f . classify c) ys :: [Label]
+--         c = _classifier b
+--         p = _predictor b
+--         f (z, _, _, _) = z
+--         a = minBound :: TestAction
+        
+-- sizedArbImprintTestData2 :: Int -> Gen ImprintTestData2
+-- sizedArbImprintTestData2 n = do
+--   nObjects <- min 3 <$> choose (1, n)
+--   nConditions <- min 5 <$> choose (1, n+1)
+--   nPrelearnedPatterns <- min 5 <$> choose (0, n)
+--   -- Make sure the classifier has room to create new models if needed
+--   cSize <- (nObjects*(nPrelearnedPatterns + 1) + 10 +) <$> choose (0, n)
+--   -- Make sure the predictor has room to learn a new response
+--   pSize <- (nPrelearnedPatterns + 10 +) <$> choose (0, n)
+--   -- Generate a brain
+--   b <- arbEmptyTestBrain cSize nConditions pSize
+--   -- Generate some patterns for testing and pre-imprinting.
+--   -- But make sure none of the responses we're going to teach the brain
+--   -- are inconsistent; it will make testing difficult.
+--   (ps:pss) <- nubBy (similar b) <$> vectorOf (nPrelearnedPatterns+1) (vectorOf nObjects arbitrary)
+--   -- Pre-imprint the brain with some responses
+--   as <- vectorOf nPrelearnedPatterns arbitrary
+--   let psas = zip pss as
+--   let bImprinted = imprintAll b psas
+--   -- generate some extra test data
+--   a <- arbitrary
+--   c <- vectorOf nConditions arbitrary
+--   return $ ImprintTestData2 bImprinted ps a c (show psas)
+
+-- instance Arbitrary ImprintTestData2 where
+--   arbitrary = sized sizedArbImprintTestData2
+
+-- instance Show ImprintTestData2 where
+--   show (ImprintTestData2 b ps a c imprintingInfo)
+--     = "ImprintTestData2 (" ++ show b ++ ") " ++ show ps ++ " "
+--       ++ show a ++ " " ++ show c ++ " \"" ++ imprintingInfo ++ "\""
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"

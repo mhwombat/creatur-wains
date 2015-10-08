@@ -108,7 +108,8 @@ prop_makeSimilar_works diff makeSimilar x r y
         diffAfter = diff x y'
 
 data TestPattern = TestPattern Word8
-  deriving (Show, Eq, Generic, Serialize, W8.Genetic, Diploid, NFData)
+  deriving (Show, Read, Eq, Generic, Serialize, W8.Genetic, Diploid,
+            NFData)
 
 instance Arbitrary TestPattern where
   arbitrary = TestPattern <$> arbitrary

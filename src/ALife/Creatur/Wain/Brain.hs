@@ -15,12 +15,13 @@
 module ALife.Creatur.Wain.Brain
   (
     -- * Constructors
-    Brain,
+    Brain(..),
     makeBrain,
     Condition,
     -- * Lenses
     classifier,
     predictor,
+    muser,
     -- * Making decisions
     chooseAction,
     reflect,

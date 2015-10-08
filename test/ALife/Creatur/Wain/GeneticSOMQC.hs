@@ -88,8 +88,7 @@ type TestGSOM = GeneticSOM TestPattern TestTweaker
 sizedArbEmptyGeneticSOM
   :: (Arbitrary t, Tweaker t, p ~ Pattern t)
     => Int -> Gen (GeneticSOM p t)
-sizedArbEmptyGeneticSOM n = do
-  maxSz <- choose (1, n+1)
+sizedArbEmptyGeneticSOM maxSz = do
   e <- arbitrary
   dt <- (\x -> x*x) <$> arbitrary
   t <- arbitrary
@@ -99,7 +98,7 @@ sizedArbGeneticSOM
   :: (Arbitrary t, Tweaker t, Arbitrary p, p ~ Pattern t)
     => Gen p -> Int -> Gen (GeneticSOM p t)
 sizedArbGeneticSOM arbPattern n = do
-  som <- sizedArbEmptyGeneticSOM n
+  som <- sizedArbEmptyGeneticSOM (n+1)
   k <- choose (0, n+1)
   xs <- vectorOf k arbPattern
   let s = trainBatch (_patternMap som) xs
@@ -222,8 +221,7 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
         :: ExponentialParams -> Property),
 
     testProperty "prop_serialize_round_trippable - GeneticSOM"
-      (prop_serialize_round_trippable
-        :: TestGSOM -> Property),
+      (prop_serialize_round_trippable :: TestGSOM -> Property),
     testProperty "prop_genetic_round_trippable - GeneticSOM"
       (prop_genetic_round_trippable equivTestGSOM
         :: TestGSOM -> Property),

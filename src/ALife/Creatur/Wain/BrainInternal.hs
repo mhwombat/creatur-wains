@@ -78,10 +78,12 @@ makeBrain
   :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights -> Word8
     -> [PM1Double] -> Brain p t a
 makeBrain c m p hw t ios
-  | numWeights hw /= length (_defaultOutcomes m)
-      = error "weights and default outcomes are different lengths"
-  | numWeights hw /= length ios
-      = error "weights and imprint outcomes are different lengths"
+  | numWeights hw /= 4
+      = error "incorrect number of happiness weights"
+  | length (_defaultOutcomes m) /= 4
+      = error "incorrect number of default outcomes"
+  | length ios /= 4
+      = error "incorrect number of imprint outcomes"
   | otherwise
       = Brain c m p hw t ios M.empty
 

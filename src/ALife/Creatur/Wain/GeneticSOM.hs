@@ -13,7 +13,7 @@
 module ALife.Creatur.Wain.GeneticSOM
   (
     ExponentialParams(..),
-    GeneticSOM,
+    GeneticSOM(..),
     Label,
     Difference,
     Tweaker(..),
@@ -32,6 +32,7 @@ module ALife.Creatur.Wain.GeneticSOM
     randomExponentialParams,
     randomExponential,
     somOK,
+    maxSize,
     currentLearningRate,
     schemaQuality,
     discrimination
