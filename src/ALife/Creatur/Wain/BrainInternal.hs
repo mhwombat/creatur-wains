@@ -80,9 +80,9 @@ makeBrain
 makeBrain c m p hw t ios
   | numWeights hw /= 4
       = error "incorrect number of happiness weights"
-  | length (_defaultOutcomes m) /= 4
+  | null (defaultOutcomes m) || length (_defaultOutcomes m) /= 4
       = error "incorrect number of default outcomes"
-  | length ios /= 4
+  | null ios || length ios /= 4
       = error "incorrect number of imprint outcomes"
   | otherwise
       = Brain c m p hw t ios M.empty
