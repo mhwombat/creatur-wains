@@ -58,7 +58,8 @@ arbTestBrain cSize nObjects nConditions pSize = do
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
   ios <- vectorOf nConditions $ choose (-0.99999, 1)
-  return $ makeBrain c m p hw t ios
+  let (Right b) = makeBrain c m p hw t ios
+  return b
 
 instance Arbitrary TestBrain where
   arbitrary = sized sizedArbTestBrain
@@ -85,7 +86,8 @@ arbEmptyTestBrain cSize nConditions pSize = do
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
   ios <- vectorOf nConditions $ choose (0.01, 1)
-  return $ makeBrain c m p hw t ios
+  let (Right b) = makeBrain c m p hw t ios
+  return b
 
 data ReflectionTestData
   = ReflectionTestData TestBrain TestResponse Condition Condition

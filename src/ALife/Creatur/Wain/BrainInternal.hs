@@ -76,16 +76,16 @@ makeLenses ''Brain
 
 makeBrain
   :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights -> Word8
-    -> [PM1Double] -> Brain p t a
+    -> [PM1Double] -> Either [String] (Brain p t a)
 makeBrain c m p hw t ios
   | numWeights hw /= 4
-      = error "incorrect number of happiness weights"
+      = Left ["incorrect number of happiness weights"]
   | length (_defaultOutcomes m) /= 4
-      = error "incorrect number of default outcomes"
+      = Left ["incorrect number of default outcomes"]
   | length ios /= 4
-      = error "incorrect number of imprint outcomes"
+      = Left ["incorrect number of imprint outcomes"]
   | otherwise
-      = Brain c m p hw t ios M.empty
+      = Right $ Brain c m p hw t ios M.empty
 
 instance (Serialize p, Serialize t, Serialize a, Eq a, Ord a,
   GSOM.Tweaker t, p ~ GSOM.Pattern t)
@@ -129,9 +129,10 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
       hw <- get
       t <- get
       ios <- get
-      return $
-        -- Use the safe constructor!
-        makeBrain <$> c <*> m <*> p <*> hw <*> t <*> ios
+      -- Use the safe constructor!
+      case (makeBrain <$> c <*> m <*> p <*> hw <*> t <*> ios) of
+        Left msgs -> return $ Left msgs
+        Right b   -> return b
 
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
