@@ -61,11 +61,9 @@ instance Arbitrary ExponentialParams where
 
 equivExponential
   :: ExponentialParams -> ExponentialParams -> Bool
-equivExponential a@(ExponentialParams r0a da)
-                      b@(ExponentialParams r0b db)
+equivExponential (ExponentialParams r0a da) (ExponentialParams r0b db)
   = equivUIDouble r0a r0b
     && equivUIDouble da db
-    && validExponential a == validExponential b
 
 data TestTweaker = TestTweaker Word8
   deriving (Eq, Show, Generic, Serialize, W8.Genetic, Diploid, NFData)
@@ -121,6 +119,12 @@ equivGSOM equivT x y =
 -- ignores counters and next index
 equivTestGSOM :: TestGSOM -> TestGSOM -> Bool
 equivTestGSOM = equivGSOM equivTestTweaker
+
+-- Currently this is guaranteed by the types, but we'll keep this test
+-- in case the code is redesigned later.
+validExponential :: ExponentialParams -> Bool
+validExponential (ExponentialParams r0 d) = 0 <= r0 && r0 <= 1
+                                              && 0 <= d && d <= 1
 
 prop_decayingExponential_valid :: ExponentialParams -> Property
 prop_decayingExponential_valid f = property $ validExponential f

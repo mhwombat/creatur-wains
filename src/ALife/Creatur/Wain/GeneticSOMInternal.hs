@@ -50,6 +50,8 @@ type Difference = UIDouble
 --   information.
 data ExponentialParams = ExponentialParams UIDouble UIDouble
   deriving (Eq, Show, Generic, NFData)
+  -- Since the initial learning rate and decay rate are UIDoubles,
+  -- we know they're valid.
 
 instance S.Serialize ExponentialParams
 instance Genetic ExponentialParams
@@ -58,12 +60,6 @@ instance Diploid ExponentialParams
 instance Statistical ExponentialParams where
   stats (ExponentialParams r0 d)
     = [dStat "r0" (uiToDouble r0), dStat "d" (uiToDouble d)]
-
--- | Returns true if the parameters for an exponential function are
---   valid, false otherwise.
-validExponential :: ExponentialParams -> Bool
-validExponential (ExponentialParams r0 d) = 0 <= r0 && r0 <= 1
-                                              && 0 <= d && d <= 1
 
 -- @'toExponential' p t@ returns the learning rate at time @t@,
 -- given an exponential learning function with parameters @p@.
@@ -154,10 +150,8 @@ makeLenses ''GeneticSOM
 buildGeneticSOM
   :: (Tweaker t, p ~ Pattern t)
     => ExponentialParams -> Word16 -> UIDouble -> t -> GeneticSOM p t
-buildGeneticSOM e@(ExponentialParams r0 d) maxSz dt t
-  | r0 < 0    = error "r0<0"
-  | d < 0     = error "d<0"
-  | otherwise = GeneticSOM som e t
+buildGeneticSOM e maxSz dt t
+  = GeneticSOM som e t
   where som = SOM.makeSOS lrf (fromIntegral maxSz) dt False df af
         lrf = toExponential e
         df = diff t
@@ -250,12 +244,6 @@ instance (Diploid p, Diploid t, Tweaker t, p ~ Pattern t)
                           (SOM.nextIndex . _patternMap $ y)
           eps = express (_exponentialParams x) (_exponentialParams y)
           tr = express (_tweaker x) (_tweaker y)
-
--- | Returns @True@ if the SOM has a valid Exponential;
---   returns @False@ otherwise.
-somOK
-  :: GeneticSOM p t -> Bool
-somOK = validExponential . _exponentialParams
 
 instance Statistical (GeneticSOM p t) where
   stats s =

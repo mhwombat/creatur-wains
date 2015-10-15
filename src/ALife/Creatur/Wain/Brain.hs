@@ -15,20 +15,30 @@
 module ALife.Creatur.Wain.Brain
   (
     -- * Constructors
-    Brain(..),
+    Brain,
     makeBrain,
     Condition,
     -- * Lenses
+    _classifier,
+    _muser,
+    _predictor,
+    _happinessWeights,
+    _tiebreaker,
+    _imprintOutcomes,
+    _actionCounts,
     classifier,
-    predictor,
     muser,
+    predictor,
+    happinessWeights,
+    tiebreaker,
+    imprintOutcomes,
+    actionCounts,
     -- * Making decisions
     chooseAction,
     reflect,
     imprint,
     -- * Miscellaneous
     happiness,
-    brainOK,
     decisionQuality,
     scenarioReport,
     responseReport,

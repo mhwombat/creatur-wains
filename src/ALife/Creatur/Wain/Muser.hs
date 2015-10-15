@@ -20,7 +20,6 @@ module ALife.Creatur.Wain.Muser
   (
     Muser,
     makeMuser,
-    muserOK,
     _defaultOutcomes,
     defaultOutcomes,
     depth,

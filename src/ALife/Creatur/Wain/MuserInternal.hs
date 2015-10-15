@@ -50,9 +50,6 @@ makeLenses ''Muser
 instance Show Muser where
   show (Muser o d) = "makeMuser (" ++ show o ++ ") " ++ show d
 
-muserOK :: Muser -> Bool
-muserOK m = _depth m > 0
-
 instance Statistical Muser where
   stats (Muser os d) = [iStat "depth" d,
          dStat "default energy outcome" . pm1ToDouble $ os !! 0,

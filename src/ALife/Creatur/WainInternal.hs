@@ -471,15 +471,12 @@ mate' a b babyName = do
   let b2 = coolPassion b
   result <- makeOffspring a b babyName
   case result of
-    Right baby ->
-      if B.brainOK (_brain baby)
-        then do
-          let (a3, b3, baby3, aContribution, bContribution)
-                 = donateParentEnergy a2 b2 baby
-          let a4 = (litter .~ [baby3])
-                     . (childrenBorneLifetime +~ 1) $ a3
-          return ([a4, b3], [], aContribution, bContribution)
-        else return ([a2, b2], ["Child had an invalid brain"], 0, 0)
+    Right baby -> do
+      let (a3, b3, baby3, aContribution, bContribution)
+             = donateParentEnergy a2 b2 baby
+      let a4 = (litter .~ [baby3])
+                 . (childrenBorneLifetime +~ 1) $ a3
+      return ([a4, b3], [], aContribution, bContribution)
     Left msgs -> return ([a2, b2], msgs, 0, 0)
 
 donateParentEnergy

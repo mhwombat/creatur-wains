@@ -25,7 +25,7 @@ import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import qualified ALife.Creatur.Wain.Predictor as P
-import ALife.Creatur.Wain.Muser (Muser, generateResponses, muserOK,
+import ALife.Creatur.Wain.Muser (Muser, generateResponses,
   _defaultOutcomes)
 import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
 import ALife.Creatur.Wain.Response (Response(..))
@@ -80,9 +80,9 @@ makeBrain
 makeBrain c m p hw t ios
   | numWeights hw /= 4
       = error "incorrect number of happiness weights"
-  | null (_defaultOutcomes m) || length (_defaultOutcomes m) /= 4
+  | length (_defaultOutcomes m) /= 4
       = error "incorrect number of default outcomes"
-  | null ios || length ios /= 4
+  | length ios /= 4
       = error "incorrect number of imprint outcomes"
   | otherwise
       = Brain c m p hw t ios M.empty
@@ -130,7 +130,8 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
       t <- get
       ios <- get
       return $
-        Brain <$> c <*> m <*> p  <*> hw <*> t <*> ios  <*> pure M.empty
+        -- Use the safe constructor!
+        makeBrain <$> c <*> m <*> p <*> hw <*> t <*> ios
 
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
@@ -305,12 +306,6 @@ imprint b ps a = set predictor d' b'
         ls = fst . maximumBy (comparing snd) . hypothesise $ lds
         r = Response ls a (_imprintOutcomes b)
         d' = GSOM.train d r
-
--- | Returns @True@ if both the classifier and predictor are valid
---   according to @somOK@; returns @False@ otherwise.
-brainOK :: Eq a => Brain p t a -> Bool
-brainOK b = GSOM.somOK (_classifier b) && GSOM.somOK (_predictor b)
-              && muserOK (_muser b)
 
 happiness :: Brain p t a -> Condition -> UIDouble
 happiness b = weightedSum (_happinessWeights b)
