@@ -188,8 +188,9 @@ onlyModelsIn :: Brain p t a -> [(Cl.Label, GSOM.Difference)] -> Bool
 onlyModelsIn b = and . map (GSOM.hasModel (_classifier b) . fst)
 
 maximaBy :: Ord b => (a -> b) -> [a] -> [a]
-maximaBy f = map snd . head . reverse . groupBy ((==) `on` fst)
-               . sortBy (comparing fst) . map (\x -> (f x, x))
+maximaBy _ [] = error "maximaBy: empty list"
+maximaBy f xs = map snd . head . reverse . groupBy ((==) `on` fst)
+               . sortBy (comparing fst) . map (\x -> (f x, x)) $ xs
 
 chooseAny :: Brain p t a -> [x] -> x
 chooseAny b xs = xs !! (seed `mod` n)
@@ -238,6 +239,7 @@ sumByAction rs = map sumByAction' rss
         sameAction x y = _action x == _action y
 
 sumByAction' :: [Response a] -> (a, [PM1Double])
+sumByAction' [] = error "no responses to sum"
 sumByAction' rs = (a, os)
   where a = _action $ head rs
         os = sumTermByTerm $ map _outcomes rs

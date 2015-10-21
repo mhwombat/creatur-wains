@@ -63,10 +63,10 @@ makeMuser os d =
     then error "zero depth"
     else Muser os d
 
--- | Given the wain's current condition, and a set of scenarios paired
---   with the probability that each scenario is true, returns a list
---   of responses to consider paired with the probability that the
---   response is based on the correct scenario.
+-- | Given a set of scenarios paired with the probability that each
+--   scenario is true, returns a list of responses to consider paired
+--   with the probability that the response is based on the correct
+--   scenario.
 generateResponses
   :: (Bounded a, Enum a)
     => Muser -> [([Label], Probability)] -> [(Response a, Probability)]
