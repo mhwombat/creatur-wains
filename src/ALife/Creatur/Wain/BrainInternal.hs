@@ -170,19 +170,24 @@ chooseAction
             Brain p t a)
 chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
   where (cBmus, lds, b2) = classifyInputs b ps
-        sps = hypothesise lds
+        sps = errorIfNull "sps" $ hypothesise lds
         sps' = filter (P.hasScenario (_predictor b) . fst) sps
         spsSafe = if null sps'
                     then sps -- nothing to base estimate on; have to guess
                     else sps'
-        rps = generateResponses (_muser b2) spsSafe
-        rplos = predictAll b2 rps
-        rs = map (\(r1, _, _, _) -> r1) rplos
-        aos = sumByAction $ rs
-        aohs = map (fillInAdjustedHappiness b2 c) aos
+        rps = errorIfNull "rps" $ generateResponses (_muser b2) spsSafe
+        rplos = errorIfNull "rplos" $ predictAll b2 rps
+        rs = errorIfNull "rs" $ map (\(r1, _, _, _) -> r1) rplos
+        aos = errorIfNull "aos" $ sumByAction $ rs
+        aohs = errorIfNull "aohs" $ map (fillInAdjustedHappiness b2 c) aos
         (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aohs
         b3 = adjustActionCounts b2 r
         r = Response cBmus a os
+
+errorIfNull :: String -> [a] -> [a]
+errorIfNull desc xs = if null xs
+                        then error ("null " ++ desc)
+                        else xs
 
 onlyModelsIn :: Brain p t a -> [(Cl.Label, GSOM.Difference)] -> Bool
 onlyModelsIn b = and . map (GSOM.hasModel (_classifier b) . fst)
