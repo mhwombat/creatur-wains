@@ -37,6 +37,7 @@ import ALife.Creatur.Wain.PlusMinusOne (PM1Double, doubleToPM1,
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   forceDoubleToUI)
+import ALife.Creatur.Wain.Util (thirdOfTriple)
 import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum,
   numWeights)
 import Control.DeepSeq (NFData)
@@ -202,9 +203,6 @@ chooseAny b xs = xs !! (seed `mod` n)
   where seed = fromIntegral $ _tiebreaker b
         n = length xs -- the list will be short
 
-thirdOfTriple :: (a, b, c) -> c
-thirdOfTriple (_, _, x) = x
-
 fillInAdjustedHappiness
   :: Brain p t a -> Condition -> (a, [PM1Double])
     -> (a, [PM1Double], UIDouble)
@@ -307,11 +305,17 @@ reflect b r cBefore cAfter = (set predictor d' b, err)
 --   (increased happiness by 1).
 --   This can be used to help children learn by observing their parents.
 --   It can also be used to allow wains to learn from others.
-imprint :: Eq a => Brain p t a -> [p] -> a -> Brain p t a
-imprint b ps a = set predictor d' b'
+imprint
+  :: Eq a
+    => Brain p t a -> [p] -> a
+      -> ([[(Cl.Label, GSOM.Difference)]],
+            [([Cl.Label], Probability)],
+            Brain p t a)
+imprint b ps a = (lds, sps, set predictor d' b')
   where (_, lds, b') = classifyInputs b ps
+        sps = errorIfNull "sps" $ hypothesise lds
         d = _predictor b'
-        ls = fst . maximumBy (comparing snd) . hypothesise $ lds
+        ls = fst . maximumBy (comparing snd) $ sps
         r = Response ls a (_imprintOutcomes b)
         d' = GSOM.train d r
 

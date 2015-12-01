@@ -23,8 +23,7 @@ module ALife.Creatur.Wain.GeneticSOMQC
     equivGSOM,
     sizedArbGeneticSOM,
     sizedArbEmptyGeneticSOM,
-    validExponential,
-    equivExponential
+    equivLearningFunction
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
@@ -46,24 +45,29 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding (maxSize, classify)
 import Test.QuickCheck.Gen (Gen(MkGen))
 
-instance Arbitrary RandomExponentialParams where
+instance Arbitrary RandomLearningParams where
   arbitrary = do
     r0start <- arbitrary
     r0stop <- arbitrary
-    dstart <- arbitrary
-    dstop <- arbitrary
-    return $ RandomExponentialParams (r0start,r0stop) (dstart,dstop)
+    rfstart <- arbitrary
+    rfstop <- arbitrary
+    tfstart <- arbitrary
+    tfstop <- arbitrary
+    return $ RandomLearningParams (r0start,r0stop) (rfstart,rfstop)
+               (tfstart,tfstop)
 
-instance Arbitrary ExponentialParams where
+instance Arbitrary LearningParams where
   arbitrary = do
     p <- arbitrary
-    MkGen (\r _ -> let (x,_) = runRand (randomExponential p) r in x)
+    MkGen (\r _ -> let (x,_) = runRand (randomLearningFunction p) r in x)
 
-equivExponential
-  :: ExponentialParams -> ExponentialParams -> Bool
-equivExponential (ExponentialParams r0a da) (ExponentialParams r0b db)
+equivLearningFunction
+  :: LearningParams -> LearningParams -> Bool
+equivLearningFunction (LearningParams r0a rfa tfa)
+                 (LearningParams r0b rfb tfb)
   = equivUIDouble r0a r0b
-    && equivUIDouble da db
+    && equivUIDouble rfa rfb
+    && tfa == tfb
 
 data TestTweaker = TestTweaker Word8
   deriving (Eq, Show, Generic, Serialize, W8.Genetic, Diploid, NFData)
@@ -112,51 +116,49 @@ equivGSOM equivT x y =
   maxSize x == maxSize y
     && equivUIDouble ((diffThreshold . view patternMap) x)
         ((diffThreshold . view patternMap) y)
-    && equivExponential (view exponentialParams x)
-        (view exponentialParams y)
+    && equivLearningFunction (view learningParams x)
+        (view learningParams y)
     &&  equivT (view tweaker x) (view tweaker y)
 
 -- ignores counters and next index
 equivTestGSOM :: TestGSOM -> TestGSOM -> Bool
 equivTestGSOM = equivGSOM equivTestTweaker
 
--- Currently this is guaranteed by the types, but we'll keep this test
--- in case the code is redesigned later.
-validExponential :: ExponentialParams -> Bool
-validExponential (ExponentialParams r0 d) = 0 <= r0 && r0 <= 1
-                                              && 0 <= d && d <= 1
+validLearningFunction :: LearningParams -> Bool
+validLearningFunction (LearningParams r0 rf tf)
+  = 0 < r0 && r0 <= 1 && 0 < rf && rf <= r0 && 0 < tf
 
-prop_decayingExponential_valid :: ExponentialParams -> Property
-prop_decayingExponential_valid f = property $ validExponential f
+prop_learningFunction_valid :: LearningParams -> Property
+prop_learningFunction_valid f = property $ validLearningFunction f
 
-prop_random_decayingExponential_valid
-  :: Int -> RandomExponentialParams -> Property
-prop_random_decayingExponential_valid seed params
-  = property $ validExponential f
+prop_random_learningFunction_valid
+  :: Int -> RandomLearningParams -> Property
+prop_random_learningFunction_valid seed params
+  = property $ validLearningFunction f
   where g = mkStdGen seed
-        f = evalRand (randomExponential params) g
+        f = evalRand (randomLearningFunction params) g
 
 prop_random_learning_rate_always_in_range
-  :: ExponentialParams -> Word16 -> Property
+  :: LearningParams -> Word16 -> Property
 prop_random_learning_rate_always_in_range f t = t >= 0 ==> deepseq r True
-  where r = toExponential f t
+  where r = toLearningFunction f t
 
-prop_express_decayingExponential_valid
-  :: ExponentialParams -> ExponentialParams -> Property
-prop_express_decayingExponential_valid a b
-  = property . validExponential $ express a b
+prop_express_learningFunction_valid
+  :: LearningParams -> LearningParams -> Property
+prop_express_learningFunction_valid a b
+  = property . validLearningFunction $ express a b
 
-prop_random_express_decayingExponential_valid
-  :: Int -> RandomExponentialParams -> RandomExponentialParams -> Property
-prop_random_express_decayingExponential_valid seed p1 p2
-  = property . validExponential $ express a b
+prop_random_express_learningFunction_valid
+  :: Int -> RandomLearningParams -> RandomLearningParams -> Property
+prop_random_express_learningFunction_valid seed p1 p2
+  = property . validLearningFunction $ express a b
   where g = mkStdGen seed
-        (a, g') = runRand (randomExponential p1) g
-        b = evalRand (randomExponential p2) g'
+        (a, g') = runRand (randomLearningFunction p1) g
+        b = evalRand (randomLearningFunction p2) g'
 
-prop_diploid_decayingExponential_valid
-  :: ExponentialParams -> ExponentialParams -> Property
-prop_diploid_decayingExponential_valid a b = property . validExponential $ c
+prop_diploid_learningFunction_valid
+  :: LearningParams -> LearningParams -> Property
+prop_diploid_learningFunction_valid a b = property . validLearningFunction $ c
   where g1 = W8.write a
         g2 = W8.write b
         Right c = W8.runDiploidReader W8.getAndExpress (g1, g2)
@@ -180,7 +182,7 @@ prop_familiar_patterns_have_min_novelty k s
 -- This is impossible to test because the SOM will create a
 -- new model if the BMU difference (i.e., the novelty) exceeds a
 -- threshold.
--- prop_new_patterns_have_max_novelty :: ExponentialParams -> Property
+-- prop_new_patterns_have_max_novelty :: LearningParams -> Property
 -- prop_new_patterns_have_max_novelty e = property $ bmuDiff == 1
 --     where s = buildGeneticSOM e 10 0.1 (TestTweaker 0)
 --           (_, bmuDiff, _, _) = classify s (TestPattern 0)
@@ -214,15 +216,15 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
   [
     testProperty "prop_makeSimilar_works - TestPattern"
       (prop_makeSimilar_works testPatternDiff makeTestPatternSimilar),
-    testProperty "prop_serialize_round_trippable - Exponential"
+    testProperty "prop_serialize_round_trippable - LearningFunction"
       (prop_serialize_round_trippable
-        :: ExponentialParams -> Property),
-    testProperty "prop_genetic_round_trippable - Exponential"
-      (prop_genetic_round_trippable equivExponential
-        :: ExponentialParams -> Property),
-    testProperty "prop_diploid_identity - Exponential"
+        :: LearningParams -> Property),
+    testProperty "prop_genetic_round_trippable - LearningFunction"
+      (prop_genetic_round_trippable equivLearningFunction
+        :: LearningParams -> Property),
+    testProperty "prop_diploid_identity - LearningFunction"
       (prop_diploid_identity (==)
-        :: ExponentialParams -> Property),
+        :: LearningParams -> Property),
 
     testProperty "prop_serialize_round_trippable - GeneticSOM"
       (prop_serialize_round_trippable :: TestGSOM -> Property),
@@ -239,18 +241,18 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       (prop_diploid_readable
         :: TestGSOM -> TestGSOM -> Property),
 
-    testProperty "prop_decayingExponential_valid"
-      prop_decayingExponential_valid,
-    testProperty "prop_random_decayingExponential_valid"
-      prop_random_decayingExponential_valid,
+    testProperty "prop_learningFunction_valid"
+      prop_learningFunction_valid,
+    testProperty "prop_random_learningFunction_valid"
+      prop_random_learningFunction_valid,
     testProperty "prop_random_learning_rate_always_in_range"
       prop_random_learning_rate_always_in_range,
-    testProperty "prop_express_decayingExponential_valid"
-      prop_express_decayingExponential_valid,
-    testProperty "prop_random_express_decayingExponential_valid"
-      prop_random_express_decayingExponential_valid,
-    testProperty "prop_diploid_decayingExponential_valid"
-      prop_diploid_decayingExponential_valid,
+    testProperty "prop_express_learningFunction_valid"
+      prop_express_learningFunction_valid,
+    testProperty "prop_random_express_learningFunction_valid"
+      prop_random_express_learningFunction_valid,
+    testProperty "prop_diploid_learningFunction_valid"
+      prop_diploid_learningFunction_valid,
     testProperty "prop_train_never_causes_error"
       prop_train_never_causes_error,
     testProperty "prop_novelty_btw_0_and_1"

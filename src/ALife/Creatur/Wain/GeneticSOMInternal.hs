@@ -44,63 +44,81 @@ type Label = Word16
 -- | A measure of the difference between an input pattern and a model.
 type Difference = UIDouble
 
--- | @'ExponentialParams' r0 d@ defines the first two parameters for
---     an exponential learning function.
---   See @'Data.Datamining.Clustering.SOS.exponential'@ for more
---   information.
-data ExponentialParams = ExponentialParams UIDouble UIDouble
+-- | @'LearningParams' r0 d@ defines the first two parameters for
+--     a learning function.
+--   When t = 0, the learning rate is r0.
+--   Over time the learning rate decays,
+--   so that when t = tf, the learning rate is rf.
+--   Normally the parameters are chosen such that:
+--     0 < r0 <= 1
+--     0 < rf <= r0
+data LearningParams = LearningParams UIDouble UIDouble Word16
   deriving (Eq, Show, Generic, NFData)
-  -- Since the initial learning rate and decay rate are UIDoubles,
-  -- we know they're valid.
 
-instance S.Serialize ExponentialParams
-instance Genetic ExponentialParams
-instance Diploid ExponentialParams
+mkLearningParams :: UIDouble -> UIDouble -> Word16 -> LearningParams
+mkLearningParams r0 rf tf
+  | r0 == 0   = error "r0 must be > 0"
+  | rf > r0   = error "rf must be <= r0"
+  | otherwise = LearningParams r0 rf tf
 
-instance Statistical ExponentialParams where
-  stats (ExponentialParams r0 d)
-    = [dStat "r0" (uiToDouble r0), dStat "d" (uiToDouble d)]
+instance S.Serialize LearningParams
+instance Genetic LearningParams
+instance Diploid LearningParams
 
--- @'toExponential' p t@ returns the learning rate at time @t@,
+instance Statistical LearningParams where
+  stats (LearningParams r0 rf tf)
+    = [dStat "r0" (uiToDouble r0), dStat "rf" (uiToDouble rf),
+       iStat "tf" tf]
+
+-- @'toLearningFunction' p t@ returns the learning rate at time @t@,
 -- given an exponential learning function with parameters @p@.
-toExponential :: ExponentialParams -> Word16 -> UIDouble
-toExponential (ExponentialParams r0 d)
-  = doubleToUI . SOM.exponential (uiToDouble r0) (uiToDouble d)
+toLearningFunction :: LearningParams -> Word16 -> UIDouble
+toLearningFunction (LearningParams r0 rf tf) t
+  = doubleToUI $ r0' * ((rf'/r0')**a)
+  where a = fromIntegral t / fromIntegral tf
+        r0' = uiToDouble r0
+        rf' = uiToDouble rf
 
-data RandomExponentialParams = RandomExponentialParams
+data RandomLearningParams = RandomLearningParams
   {
     _r0Range :: (UIDouble, UIDouble),
-    _dRange :: (UIDouble, UIDouble)
+    _rfRange :: (UIDouble, UIDouble),
+    _tfRange :: (Word16, Word16)
   } deriving Show
-makeLenses ''RandomExponentialParams
+makeLenses ''RandomLearningParams
 
 r0RangeLimits :: (UIDouble, UIDouble)
-r0RangeLimits = (doubleToUI (1/65535), doubleToUI 1)
+r0RangeLimits = (doubleToUI (1/65535), 1)
 
-dRangeLimits :: (UIDouble, UIDouble)
-dRangeLimits = (doubleToUI (1/65535), doubleToUI 1)
+rfRangeLimits :: (UIDouble, UIDouble)
+rfRangeLimits = (doubleToUI (1/65535), 1)
+
+tfRangeLimits :: (Word16, Word16)
+tfRangeLimits = (1, maxBound)
 
 -- | Returns a set of parameters which will permit the broadest possible
 --   set of random decaying gaussian functions for a SOM.
-randomExponentialParams :: RandomExponentialParams
-randomExponentialParams =
-  RandomExponentialParams r0RangeLimits dRangeLimits
+randomLearningParams :: RandomLearningParams
+randomLearningParams =
+  RandomLearningParams r0RangeLimits rfRangeLimits tfRangeLimits
 
--- | @'randomExponential' ('RandomExponentialParams' r0Range dRange)@
---   returns a random decaying
---   exponential that can be used as the learning function for a SOM.
+-- | @'randomLearningFunction' ('RandomLearningParams' r0Range dRange)@
+--   returns a random decaying function that can be used as the
+--   learning function for an SOS.
 --   The parameters of the gaussian will be chosen such that:
 --
---   * r0 is in the /intersection/ of the range r0Range and (0, 1)
---   * d is in the /intersection/ of the range dRange and (0, 1)
-randomExponential
+--   * r0 is in r0Range, but also 0 < r0 <= 1
+--   * rf is in rfRange, but also 0 < rf <= 1
+--   * tf is in tfRange, but also 0 < tf
+randomLearningFunction
   :: RandomGen g
-    => RandomExponentialParams
-      -> Rand g ExponentialParams
-randomExponential p = do
+    => RandomLearningParams
+      -> Rand g LearningParams
+randomLearningFunction p = do
   r0 <- getRandomR . intersection r0RangeLimits . _r0Range $ p
-  d <- getRandomR . intersection dRangeLimits . _dRange $ p
-  return $ ExponentialParams r0 d
+  rf <- getRandomR . intersection (0, r0) . intersection rfRangeLimits . _rfRange $ p
+  tf <- getRandomR . intersection tfRangeLimits . _tfRange $ p
+  return $ mkLearningParams r0 rf tf
 
 instance (Genetic k, Ord k, Genetic p)
     => Genetic (M.Map k p) where
@@ -138,7 +156,7 @@ data GeneticSOM p t =
   GeneticSOM
     {
       _patternMap :: SOM.SOS Word16 UIDouble Label p,
-      _exponentialParams :: ExponentialParams,
+      _learningParams :: LearningParams,
       _tweaker :: t
     } deriving (Generic, NFData)
 makeLenses ''GeneticSOM
@@ -149,17 +167,17 @@ makeLenses ''GeneticSOM
 --   and "tweaker" @t@.
 buildGeneticSOM
   :: (Tweaker t, p ~ Pattern t)
-    => ExponentialParams -> Word16 -> UIDouble -> t -> GeneticSOM p t
+    => LearningParams -> Word16 -> UIDouble -> t -> GeneticSOM p t
 buildGeneticSOM e maxSz dt t
   = GeneticSOM som e t
   where som = SOM.makeSOS lrf (fromIntegral maxSz) dt False df af
-        lrf = toExponential e
+        lrf = toLearningFunction e
         df = diff t
         af = adjust t
 
 instance (Eq p, Eq t) => Eq (GeneticSOM p t) where
   (==) x y = (SOM.toMap . _patternMap $ x) == (SOM.toMap . _patternMap $ y)
-             && _exponentialParams x == _exponentialParams y
+             && _learningParams x == _learningParams y
              && _tweaker x == _tweaker y
 
 instance (Show p, Show t) => Show (GeneticSOM p t) where
@@ -167,15 +185,15 @@ instance (Show p, Show t) => Show (GeneticSOM p t) where
              ++ ") (" ++ show e
              ++ ") (" ++ show t ++ ")"
     where s = _patternMap x
-          e = _exponentialParams x
+          e = _learningParams x
           t = _tweaker x
 
 -- | Formats a genetic SOM for display.
 showSOS
   :: (Show p, Show t)
-    => SOM.SOS Word16 UIDouble Label p -> ExponentialParams -> t -> String
+    => SOM.SOS Word16 UIDouble Label p -> LearningParams -> t -> String
 showSOS s e t = "SOS (" ++ show (SOM.toMap s)
-                   ++ ") (toExponential (" ++ show e
+                   ++ ") (toLearningFunction (" ++ show e
                    ++ ")) " ++ show (SOM.maxSize s)
                    ++ " " ++ show (SOM.diffThreshold s)
                    ++ " " ++ show (SOM.allowDeletion s)
@@ -186,28 +204,28 @@ showSOS s e t = "SOS (" ++ show (SOM.toMap s)
 instance (S.Serialize p, S.Serialize t, Tweaker t, p ~ Pattern t)
     => S.Serialize (GeneticSOM p t) where
   put s = S.put (SOM.toMap . _patternMap $ s)
-            >> S.put (_exponentialParams s)
+            >> S.put (_learningParams s)
             >> S.put (SOM.maxSize . _patternMap $ s)
             >> S.put (SOM.diffThreshold . _patternMap $ s)
             >> S.put (_tweaker s)
             >> S.put (SOM.nextIndex . _patternMap $ s)
   get = do
     gm <- S.get
-    eps <- S.get
+    lps <- S.get
     maxSz <- S.get
     dt <- S.get
     tr <- S.get
     kNext <- S.get
-    let lrf = toExponential eps
+    let lrf = toLearningFunction lps
     let df = diff tr
     let af = adjust tr
     let s = SOM.SOS gm lrf maxSz dt False df af kNext
-    return $ GeneticSOM s eps tr
+    return $ GeneticSOM s lps tr
 
 instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
     => G.Genetic (GeneticSOM p t) where
   put s = G.put (M.elems . SOM.toMap . _patternMap $ s)
-            >> G.put (_exponentialParams s)
+            >> G.put (_learningParams s)
             >> G.put (fromIntegral . SOM.maxSize . _patternMap $ s :: Word16)
             >> G.put (SOM.diffThreshold . _patternMap $ s)
             >> G.put (_tweaker s)
@@ -215,25 +233,25 @@ instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
     nodes <- G.get
     let newLabels = [minBound..] :: [Word16]
     let gm = M.fromList . zip newLabels <$> nodes
-    eps <- G.get
+    lps <- G.get
     maxSz <- fmap fromIntegral <$> (G.get :: G.Reader (Either [String] Word16))
     dt <- G.get
     tr <- G.get
-    let lrf = toExponential <$> eps
+    let lrf = toLearningFunction <$> lps
     let df = diff <$> tr
     let af = adjust <$> tr
     let kNext = toEnum . length <$> nodes
     let s = SOM.SOS <$> gm <*> lrf <*> maxSz <*> dt <*> pure False <*> df <*> af <*> kNext
-    return $ GeneticSOM <$> s <*> eps <*> tr
+    return $ GeneticSOM <$> s <*> lps <*> tr
 
 instance (Diploid p, Diploid t, Tweaker t, p ~ Pattern t)
     => Diploid (GeneticSOM p t) where
-  express x y = GeneticSOM s eps tr
+  express x y = GeneticSOM s lps tr
     where s = SOM.SOS gm lrf maxSz dt False df af kNext
           gm = M.fromList $
                  express (M.toList . SOM.toMap . _patternMap $ x)
                          (M.toList . SOM.toMap . _patternMap $ y)
-          lrf = toExponential eps
+          lrf = toLearningFunction lps
           maxSz = express (SOM.maxSize . _patternMap $ x)
                           (SOM.maxSize . _patternMap $ y)
           dt = express (SOM.diffThreshold . _patternMap $ x)
@@ -242,7 +260,7 @@ instance (Diploid p, Diploid t, Tweaker t, p ~ Pattern t)
           af = adjust tr
           kNext = express (SOM.nextIndex . _patternMap $ x)
                           (SOM.nextIndex . _patternMap $ y)
-          eps = express (_exponentialParams x) (_exponentialParams y)
+          lps = express (_learningParams x) (_learningParams y)
           tr = express (_tweaker x) (_tweaker y)
 
 instance Statistical (GeneticSOM p t) where
@@ -251,7 +269,7 @@ instance Statistical (GeneticSOM p t) where
       :(iStat "max. size" . SOM.maxSize . _patternMap $ s)
       :(dStat "threshold" . SOM.diffThreshold . _patternMap $ s)
       :(iStat "SQ" . schemaQuality $ s)
-      :(stats . _exponentialParams $ s)
+      :(stats . _learningParams $ s)
 
 -- -- | @'learn' p l s@ adjusts the model at the index (grid location) @l@
 -- --   in @s@ to more closely match the pattern @p@.

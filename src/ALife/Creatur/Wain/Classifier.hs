@@ -23,7 +23,7 @@ module ALife.Creatur.Wain.Classifier
   ) where
 
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Difference,
-  ExponentialParams(..), Tweaker(..), Label, buildGeneticSOM,
+  LearningParams, Tweaker(..), Label, buildGeneticSOM,
   classify, train)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Data.List (foldl')
@@ -32,12 +32,12 @@ import Data.Word (Word16)
 type Classifier = GeneticSOM
 
 -- | @'buildClassifier' p n dt t@ returns a genetic SOM, using an
---   exponential function with the parameters @p@ as a learning
+--   learning function with the parameters @p@ as a learning
 --   function, maximum number of models @n@, difference threshold @dt@,
 --   and "tweaker" @t@.
 buildClassifier
   :: (Tweaker t, p ~ Pattern t)
-    => ExponentialParams -> Word16 -> UIDouble -> t -> Classifier p t
+    => LearningParams -> Word16 -> UIDouble -> t -> Classifier p t
 buildClassifier = buildGeneticSOM
 
 -- | Updates the classifier models based on the stimulus (set of

@@ -30,7 +30,8 @@ module ALife.Creatur.Wain.Util
     forceIntToWord16,
     word16ToInt,
     intersection,
-    unitVectors
+    unitVectors,
+    thirdOfTriple
   ) where
 
 import Data.Word (Word16, Word8)
@@ -152,3 +153,6 @@ intersection (a, b) (c, d)
 unitVectors :: Num a => Int -> [[a]]
 unitVectors n = map f [0..n-1]
   where f k = replicate k 0 ++ 1 : replicate (n-k-1) 0
+
+thirdOfTriple :: (a, b, c) -> c
+thirdOfTriple (_, _, x) = x

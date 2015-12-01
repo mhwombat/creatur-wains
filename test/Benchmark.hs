@@ -30,7 +30,7 @@ import System.IO.Temp (withSystemTempDirectory)
 
 makePredictor :: Word16 -> UIDouble -> Predictor TestAction
 makePredictor n dt = buildGeneticSOM e n dt t
-  where e = ExponentialParams 1 1
+  where e = LearningParams 1 1
         t = PredictorTweaker (makeWeights [1,1,1])
               (makeWeights [1,1,1])
 
@@ -51,9 +51,9 @@ randomWain
 randomWain wName classifierSize classifierThreshold
     predictorSize predictorThreshold maxAgeOfMaturity = do
   wAppearance <- randomTestPattern
-  fc <- randomExponential randomExponentialParams
+  fc <- randomExponential randomLearningParams
   let c = buildGeneticSOM fc classifierSize classifierThreshold TestTweaker
-  fd <- randomExponential randomExponentialParams
+  fd <- randomExponential randomLearningParams
   let hw = makeWeights [1,1,1]
   let t = PredictorTweaker (makeWeights [1,1,1]) (makeWeights [1,1]) :: PredictorTweaker TestAction
   let d = buildGeneticSOM fd predictorSize predictorThreshold t

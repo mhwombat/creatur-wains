@@ -39,7 +39,8 @@ import ALife.Creatur.Wain.Probability (Probability)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI, forceDoubleToUI)
-import ALife.Creatur.Wain.Util (unitInterval, enforceRange)
+import ALife.Creatur.Wain.Util (unitInterval, enforceRange,
+  thirdOfTriple)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen)
 import Data.List (partition)
@@ -419,7 +420,7 @@ reflect ps r wBefore wAfter =
   (set litter litter' wReflected, err)
   where (wReflected, err) = reflect1 r wBefore wAfter
         a = R._action r
-        litter' = map (imprint ps a) (_litter wAfter)
+        litter' = map (thirdOfTriple . imprint ps a) (_litter wAfter)
 
 reflect1
   :: Eq a
@@ -434,9 +435,12 @@ reflect1 r wBefore wAfter = (set brain b' wAfter, err)
 imprint
   :: (Serialize p, Serialize t, Serialize a, Eq a, Ord a, Tweaker t,
     p ~ Pattern t)
-      => [p] -> a -> Wain p t a -> Wain p t a
-imprint ps a w = set brain b' w
-  where b' = B.imprint (_brain w) ps a
+      => [p] -> a -> Wain p t a
+        -> ( [[(Cl.Label, Cl.Difference)]],
+             [([Cl.Label], Probability)],
+             Wain p t a )
+imprint ps a w = (lds, sps, set brain b' w)
+  where (lds, sps, b') = B.imprint (_brain w) ps a
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.

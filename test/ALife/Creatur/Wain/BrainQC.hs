@@ -173,7 +173,7 @@ prop_imprint_works (ImprintTestData b ps a _) = not (null ps)
         s = fst . maximumBy (comparing snd) . hypothesise $ lds
         r = Response s a $ replicate nConditions 1
         ((rBefore, _, _, _):_) = predictAll bClassified [(r, 1)]
-        bImprinted = imprint bClassified ps a
+        (_, _, bImprinted) = imprint bClassified ps a
         ((rAfter, _, _, _):_) = predictAll bImprinted [(r, 1)]
         nConditions = length $ _imprintOutcomes b
 
@@ -208,7 +208,7 @@ prop_imprint_works2 (ImprintEmptyBrainTestData b ps a c) = not (null ps)
   where bModified = b { _muser = mModified }
         mModified = (_muser b) { _defaultOutcomes = replicate nConditions (-1) }
         nConditions = length $ _imprintOutcomes b
-        bImprinted = imprint bModified ps a
+        (_, _, bImprinted) = imprint bModified ps a
         (_, _, _, _, r, _) = chooseAction bImprinted ps c
 
 -- imprintAll :: TestBrain -> [([TestPattern], TestAction)] -> TestBrain

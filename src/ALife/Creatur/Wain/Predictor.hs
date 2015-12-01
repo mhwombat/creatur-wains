@@ -27,7 +27,7 @@ module ALife.Creatur.Wain.Predictor
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, ExponentialParams(..),
+import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, LearningParams,
   Label, Tweaker(..), buildGeneticSOM, classify, modelMap)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.Response (Response(..), outcomes,
@@ -59,12 +59,12 @@ instance (Eq a) => Tweaker (PredictorTweaker a) where
 type Predictor a = GeneticSOM (Response a) (PredictorTweaker a)
 
 -- | @'buildPredictor' e n dt@ returns a Predictor, using an
---   exponential function with the parameters @e@ as a learning
+--   learning function with the parameters @e@ as a learning
 --   function, maximum number of models @n@,
 --   and difference threshold @dt@.
 buildPredictor
   :: Eq a
-    => ExponentialParams -> Word16 -> UIDouble -> Predictor a
+    => LearningParams -> Word16 -> UIDouble -> Predictor a
 buildPredictor e n dt = buildGeneticSOM e n dt PredictorTweaker
 
 -- | @'predict' p r k@ uses the predictor @p@ to predict the outcome

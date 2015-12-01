@@ -18,7 +18,7 @@ import ALife.Creatur.Wain.BrainInternal (classifier, predictor,
   makeBrain, scenarioReport, responseReport, decisionReport,
   decisionQuality)
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
-import ALife.Creatur.Wain.GeneticSOMInternal (ExponentialParams(..),
+import ALife.Creatur.Wain.GeneticSOMInternal (LearningParams(..),
   buildGeneticSOM, modelMap, schemaQuality)
 import ALife.Creatur.Wain.Muser (makeMuser)
 import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1)
@@ -29,6 +29,7 @@ import ALife.Creatur.Wain.ResponseQC (TestAction(..))
 import ALife.Creatur.Wain.Statistics (stats)
 import ALife.Creatur.Wain.TestUtils (TestPattern(..))
 import ALife.Creatur.Wain.UnitInterval (uiToDouble)
+import ALife.Creatur.Wain.Util (thirdOfTriple)
 import ALife.Creatur.Wain.Weights (makeWeights)
 import Control.Lens
 import Control.Monad (foldM_)
@@ -51,11 +52,17 @@ energyFor (TestPattern p) a
 imprintAll
   :: Wain TestPattern TestTweaker TestAction
     -> Wain TestPattern TestTweaker TestAction
-imprintAll w = imprint [TestPattern 25] Walk
-                 . imprint [TestPattern 75] Run
-                 . imprint [TestPattern 125] Jump
-                 . imprint [TestPattern 175] Skip
-                 . imprint [TestPattern 225] Crawl $ w
+imprintAll w = imprint' [TestPattern 25] Walk
+                 . imprint' [TestPattern 75] Run
+                 . imprint' [TestPattern 125] Jump
+                 . imprint' [TestPattern 175] Skip
+                 . imprint' [TestPattern 225] Crawl $ w
+
+imprint'
+  :: [TestPattern] -> TestAction
+    -> Wain TestPattern TestTweaker TestAction
+    -> Wain TestPattern TestTweaker TestAction
+imprint' w ps a = thirdOfTriple $ imprint w ps a
 
 testWain :: Wain TestPattern TestTweaker TestAction
 testWain = imprintAll w'
@@ -71,11 +78,11 @@ testWain = imprintAll w'
         wIos = [doubleToPM1 reward, 0, 0, 0]
         wPredictor = buildGeneticSOM ep 50 0.1 PredictorTweaker
         wHappinessWeights = makeWeights [1, 0, 0, 0]
+        ec = LearningParams 1 0.001 10000
         -- This wain will be taught the correct actions up front.
         -- After storing those initial action models, it doesn't need to
         -- learn anything.
-        ec = ExponentialParams 0.01 0.01
-        ep = ExponentialParams 0.01 0.01
+        ep = LearningParams 1 0.001 10000
         w = buildWainAndGenerateGenome wName wAppearance wBrain
               wDevotion wAgeOfMaturity wPassionDelta wBoredomDelta
         (w', _) = adjustEnergy 0.5 w
