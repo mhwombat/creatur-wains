@@ -28,7 +28,7 @@ module ALife.Creatur.Wain.Predictor
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, LearningParams,
-  Label, Tweaker(..), buildGeneticSOM, classify, modelMap)
+  Label, Tweaker(..), buildGeneticSOM, modelMap, trainAndClassify)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.Response (Response(..), outcomes,
   responseDiff, makeResponseSimilar)
@@ -79,7 +79,7 @@ predict
   :: (Eq a) => Predictor a -> Response a -> Probability
     -> (Response a, Label, [PM1Double], Predictor a)
 predict p r prob = (r', bmu, rawOutcomes, p')
-  where (bmu, _, _, p') = classify p r
+  where (bmu, p') = classifyAndMaybeCreateNewModel p r
         model = modelMap p' M.! bmu
         rawOutcomes = view outcomes model
         -- Adjust the outcome based on how well the model
@@ -95,6 +95,15 @@ predict p r prob = (r', bmu, rawOutcomes, p')
         adjustedOutcomes
           = adjustPM1Vector rawOutcomes adjustment zeroes
         r' = set outcomes adjustedOutcomes r
+
+-- Don't modify existing models, but do permit a new one to be created.
+classifyAndMaybeCreateNewModel
+  :: (Eq a) => Predictor a -> Response a -> (Label, Predictor a)
+classifyAndMaybeCreateNewModel p r =
+  if bmu `elem` (M.keys . modelMap $ p)
+    then (bmu, p)
+    else (bmu, p')
+  where (bmu, _, _, p') = trainAndClassify p r
 
 scenarios :: Predictor a -> [[Cl.Label]]
 scenarios = map (_labels . snd) . M.toList . modelMap

@@ -15,30 +15,28 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module ALife.Creatur.Wain.Classifier
   (
-    Label,
-    Difference,
+    S.Label,
+    S.Difference,
     Classifier,
     buildClassifier,
     classifySetAndTrain
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, Difference,
-  LearningParams, Tweaker(..), Label, buildGeneticSOM,
-  classify, train)
+import qualified ALife.Creatur.Wain.GeneticSOM as S
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Data.List (foldl')
 import Data.Word (Word16)
 
-type Classifier = GeneticSOM
+type Classifier = S.GeneticSOM
 
 -- | @'buildClassifier' p n dt t@ returns a genetic SOM, using an
 --   learning function with the parameters @p@ as a learning
 --   function, maximum number of models @n@, difference threshold @dt@,
 --   and "tweaker" @t@.
 buildClassifier
-  :: (Tweaker t, p ~ Pattern t)
-    => LearningParams -> Word16 -> UIDouble -> t -> Classifier p t
-buildClassifier = buildGeneticSOM
+  :: (S.Tweaker t, p ~ S.Pattern t)
+    => S.LearningParams -> Word16 -> UIDouble -> t -> Classifier p t
+buildClassifier = S.buildGeneticSOM
 
 -- | Updates the classifier models based on the stimulus (set of
 --   input patterns).
@@ -47,13 +45,13 @@ buildClassifier = buildGeneticSOM
 --   and the updated classifier.
 classifySetAndTrain
   :: Classifier s t -> [s]
-    -> ([Label], [[(Label, Difference)]], Classifier s t)
+    -> ([S.Label], [[(S.Label, S.Difference)]], Classifier s t)
 classifySetAndTrain c ps = (reverse bmus, reverse diffs, c')
   where (bmus, diffs, c') = foldl' classifyNextAndTrain ([], [], c) ps
 
 classifyNextAndTrain
-  :: ([Label], [[(Label, Difference)]], Classifier s t)
-    -> s -> ([Label], [[(Label, Difference)]], Classifier s t)
+  :: ([S.Label], [[(S.Label, S.Difference)]], Classifier s t)
+    -> s -> ([S.Label], [[(S.Label, S.Difference)]], Classifier s t)
 classifyNextAndTrain (bmus, diffs, c) p = (bmu:bmus, d:diffs, c')
   where (bmu, d, c') = classifyAndTrain c p
 
@@ -62,7 +60,6 @@ classifyNextAndTrain (bmus, diffs, c) p = (bmu:bmus, d:diffs, c')
 --   and each model in the classifier) and the updated classifier.
 classifyAndTrain
   :: Classifier s t -> s
-    -> (Label, [(Label, Difference)], Classifier s t)
-classifyAndTrain c p = (bmu, diffs, c3)
-  where (bmu, _, diffs, c2) = classify c p
-        c3 = train c2 p
+    -> (S.Label, [(S.Label, S.Difference)], Classifier s t)
+classifyAndTrain c p = (bmu, diffs, c')
+  where (bmu, _, diffs, c') = S.trainAndClassify c p

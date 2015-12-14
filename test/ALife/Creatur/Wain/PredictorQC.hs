@@ -36,7 +36,7 @@ import ALife.Creatur.Wain.GeneticSOMInternal (patternMap)
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM,
   sizedArbEmptyGeneticSOM)
 import Control.Lens
-import Data.Datamining.Clustering.SOSInternal (diffThreshold)
+import Data.Datamining.Clustering.SGMInternal (diffThreshold)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck

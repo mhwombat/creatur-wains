@@ -33,6 +33,7 @@ module ALife.Creatur.Wain.GeneticSOM
     hasModel,
     counterMap,
     classify,
+    trainAndClassify,
     train,
     RandomLearningParams(..),
     randomLearningParams,

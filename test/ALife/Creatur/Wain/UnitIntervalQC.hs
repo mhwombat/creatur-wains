@@ -61,8 +61,8 @@ prop_max_uiVectorDiff_is_1 n = n > 0 ==> uiVectorDiff ones zeroes == 1
   where ones = map doubleToUI . replicate n $ 1
         zeroes = map doubleToUI . replicate n $ 0
 
-prop_max_uiVectorDiff_is_0 :: Int -> Property
-prop_max_uiVectorDiff_is_0 n = property $ uiVectorDiff ones ones == 0
+prop_min_uiVectorDiff_is_0 :: Int -> Property
+prop_min_uiVectorDiff_is_0 n = property $ uiVectorDiff ones ones == 0
   where ones = map doubleToUI . replicate n $ 1
 
 prop_uiVectorDiff_in_range :: [UIDouble] -> [UIDouble] -> Property
@@ -101,8 +101,8 @@ test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
       (prop_makeSimilar_works uiDiff adjustUIDouble),
     testProperty "prop_max_uiVectorDiff_is_1"
       prop_max_uiVectorDiff_is_1,
-    testProperty "prop_max_uiVectorDiff_is_0"
-      prop_max_uiVectorDiff_is_0,
+    testProperty "prop_min_uiVectorDiff_is_0"
+      prop_min_uiVectorDiff_is_0,
     testProperty "prop_uiVectorDiff_in_range"
       prop_uiVectorDiff_in_range,
     testProperty "prop_uiVectorDiff_is_symmetric"

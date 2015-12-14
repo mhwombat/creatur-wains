@@ -32,7 +32,7 @@ import ALife.Creatur.Wain.Util (intersection)
 import Control.DeepSeq (NFData)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
-import qualified Data.Datamining.Clustering.SOS as SOM
+import qualified Data.Datamining.Clustering.SGMInternal as SOM
 import qualified Data.Map.Strict as M
 import qualified Data.Serialize as S
 import Data.Word (Word16)
@@ -104,7 +104,7 @@ randomLearningParams =
 
 -- | @'randomLearningFunction' ('RandomLearningParams' r0Range dRange)@
 --   returns a random decaying function that can be used as the
---   learning function for an SOS.
+--   learning function for an SGM.
 --   The parameters of the gaussian will be chosen such that:
 --
 --   * r0 is in r0Range, but also 0 < r0 <= 1
@@ -155,7 +155,7 @@ class Tweaker t where
 data GeneticSOM p t =
   GeneticSOM
     {
-      _patternMap :: SOM.SOS Word16 UIDouble Label p,
+      _patternMap :: SOM.SGM Word16 UIDouble Label p,
       _learningParams :: LearningParams,
       _tweaker :: t
     } deriving (Generic, NFData)
@@ -170,7 +170,7 @@ buildGeneticSOM
     => LearningParams -> Word16 -> UIDouble -> t -> GeneticSOM p t
 buildGeneticSOM e maxSz dt t
   = GeneticSOM som e t
-  where som = SOM.makeSOS lrf (fromIntegral maxSz) dt False df af
+  where som = SOM.makeSGM lrf (fromIntegral maxSz) dt False df af
         lrf = toLearningFunction e
         df = diff t
         af = adjust t
@@ -181,7 +181,7 @@ instance (Eq p, Eq t) => Eq (GeneticSOM p t) where
              && _tweaker x == _tweaker y
 
 instance (Show p, Show t) => Show (GeneticSOM p t) where
-  show x = "GeneticSOM (" ++ showSOS s e t
+  show x = "GeneticSOM (" ++ showSGM s e t
              ++ ") (" ++ show e
              ++ ") (" ++ show t ++ ")"
     where s = _patternMap x
@@ -189,10 +189,10 @@ instance (Show p, Show t) => Show (GeneticSOM p t) where
           t = _tweaker x
 
 -- | Formats a genetic SOM for display.
-showSOS
+showSGM
   :: (Show p, Show t)
-    => SOM.SOS Word16 UIDouble Label p -> LearningParams -> t -> String
-showSOS s e t = "SOS (" ++ show (SOM.toMap s)
+    => SOM.SGM Word16 UIDouble Label p -> LearningParams -> t -> String
+showSGM s e t = "SGM (" ++ show (SOM.toMap s)
                    ++ ") (toLearningFunction (" ++ show e
                    ++ ")) " ++ show (SOM.maxSize s)
                    ++ " " ++ show (SOM.diffThreshold s)
@@ -219,7 +219,7 @@ instance (S.Serialize p, S.Serialize t, Tweaker t, p ~ Pattern t)
     let lrf = toLearningFunction lps
     let df = diff tr
     let af = adjust tr
-    let s = SOM.SOS gm lrf maxSz dt False df af kNext
+    let s = SOM.SGM gm lrf maxSz dt False df af kNext
     return $ GeneticSOM s lps tr
 
 instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
@@ -241,13 +241,13 @@ instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
     let df = diff <$> tr
     let af = adjust <$> tr
     let kNext = toEnum . length <$> nodes
-    let s = SOM.SOS <$> gm <*> lrf <*> maxSz <*> dt <*> pure False <*> df <*> af <*> kNext
+    let s = SOM.SGM <$> gm <*> lrf <*> maxSz <*> dt <*> pure False <*> df <*> af <*> kNext
     return $ GeneticSOM <$> s <*> lps <*> tr
 
 instance (Diploid p, Diploid t, Tweaker t, p ~ Pattern t)
     => Diploid (GeneticSOM p t) where
   express x y = GeneticSOM s lps tr
-    where s = SOM.SOS gm lrf maxSz dt False df af kNext
+    where s = SOM.SGM gm lrf maxSz dt False df af kNext
           gm = M.fromList $
                  express (M.toList . SOM.toMap . _patternMap $ x)
                          (M.toList . SOM.toMap . _patternMap $ y)
@@ -339,7 +339,6 @@ counterMap = SOM.counterMap . _patternMap
 
 -- | @'classify' s p@ identifies the model @s@ that most closely
 --   matches the pattern @p@.
---   If necessary, it will create a new node and model.
 --   Returns the ID of the node with the best matching model,
 --   the "novelty" of the the pattern @p@ (difference between it and
 --   the best matching model),
@@ -347,9 +346,16 @@ counterMap = SOM.counterMap . _patternMap
 --   and the (possibly updated) SOM.
 classify
   :: GeneticSOM p t -> p
+    -> (Label, Difference, [(Label, Difference)])
+classify gs p = (bmu, bmuDiff, diffs)
+  where (bmu, bmuDiff, diffs) = SOM.classify s p
+        s = view patternMap gs
+
+trainAndClassify
+  :: GeneticSOM p t -> p
     -> (Label, Difference, [(Label, Difference)], GeneticSOM p t)
-classify gs p = (bmu, bmuDiff, diffs, gs')
-  where (bmu, bmuDiff, diffs, s') = SOM.classify s p
+trainAndClassify gs p = (bmu, bmuDiff, diffs, gs')
+  where (bmu, bmuDiff, diffs, s') = SOM.trainAndClassify s p
         s = view patternMap gs
         gs' = set patternMap s' gs
 

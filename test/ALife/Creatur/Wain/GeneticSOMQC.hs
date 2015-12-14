@@ -34,7 +34,7 @@ import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
 import Control.Lens
 import Control.DeepSeq (NFData, deepseq)
 import Control.Monad.Random (evalRand, runRand)
-import Data.Datamining.Clustering.SOS (diffThreshold, toMap, trainBatch)
+import Data.Datamining.Clustering.SGM (diffThreshold, toMap, trainBatch)
 import Data.Map.Strict (keys, (!))
 import Data.Serialize (Serialize)
 import Data.Word (Word8, Word16)
@@ -169,7 +169,7 @@ prop_train_never_causes_error som p
 
 prop_novelty_btw_0_and_1 :: TestPattern -> TestGSOM -> Property
 prop_novelty_btw_0_and_1 p s = property $ 0 <= bmuDiff && bmuDiff <= 1
-    where (_, bmuDiff, _, _) = classify s p
+    where (_, bmuDiff, _, _) = trainAndClassify s p
 
 prop_familiar_patterns_have_min_novelty :: Int -> TestGSOM -> Property
 prop_familiar_patterns_have_min_novelty k s
@@ -177,7 +177,7 @@ prop_familiar_patterns_have_min_novelty k s
     where k' = k `mod` (fromIntegral $ numModels s)
           l = (keys . toMap . _patternMap $ s) !! k'
           p = modelMap s ! l
-          (_, bmuDiff, _, _) = classify s p
+          (_, bmuDiff, _) = classify s p
 
 -- This is impossible to test because the SOM will create a
 -- new model if the BMU difference (i.e., the novelty) exceeds a
@@ -192,15 +192,13 @@ prop_familiar_patterns_have_min_novelty k s
 -- isn't high enough.
 prop_novelty_decreases :: TestPattern -> TestGSOM -> Property
 prop_novelty_decreases p s = bmuDiff1 > 0.004 ==> bmuDiff2 <= bmuDiff1
-    where (_, bmuDiff1, _, s2) = classify s p
-          s3 = train s2 p
-          (_, bmuDiff2, _, _) = classify s3 p
+    where (_, bmuDiff1, _, s') = trainAndClassify s p
+          (_, bmuDiff2, _) = classify s' p
 
 prop_novelty_never_increases :: TestPattern -> TestGSOM -> Property
 prop_novelty_never_increases p s = property $ x2 <= x1
-    where (_, _, x1, s2) = classify s p
-          s3 = train s2 p
-          (_, _, x2, _) = classify s3 p
+    where (_, _, x1, s') = trainAndClassify s p
+          (_, _, x2) = classify s' p
 
 -- | WARNING: This can fail when two nodes are close enough in
 --   value so that after training they become identical.
@@ -208,8 +206,8 @@ prop_novelty_never_increases p s = property $ x2 <= x1
 prop_classification_is_consistent
   :: TestGSOM -> TestPattern -> Property
 prop_classification_is_consistent s p = property $ bmu == bmu'
-  where (bmu, _, _, s') = classify s p
-        (bmu', _, _, _) = classify s' p
+  where (bmu, _, _, s') = trainAndClassify s p
+        (bmu', _, _) = classify s' p
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
