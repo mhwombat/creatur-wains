@@ -30,7 +30,7 @@ module ALife.Creatur.Wain.GeneticSOM
     buildGeneticSOM,
     numModels,
     modelMap,
-    hasModel,
+    hasLabel,
     counterMap,
     classify,
     trainAndClassify,

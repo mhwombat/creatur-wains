@@ -366,5 +366,5 @@ train gs p = set patternMap s' gs
   where s' = SOM.train s p
         s = view patternMap gs
 
-hasModel :: GeneticSOM p t -> Label -> Bool
-hasModel gs l = M.member l (modelMap gs)
+hasLabel :: GeneticSOM p t -> Label -> Bool
+hasLabel gs l = M.member l (modelMap gs)

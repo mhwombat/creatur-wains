@@ -191,7 +191,7 @@ errorIfNull desc xs = if null xs
                         else xs
 
 onlyModelsIn :: Brain p t a -> [(Cl.Label, GSOM.Difference)] -> Bool
-onlyModelsIn b = and . map (GSOM.hasModel (_classifier b) . fst)
+onlyModelsIn b = and . map (GSOM.hasLabel (_classifier b) . fst)
 
 maximaBy :: Ord b => (a -> b) -> [a] -> [a]
 maximaBy _ [] = error "maximaBy: empty list"
@@ -301,8 +301,7 @@ reflect b r cBefore cAfter = (set predictor d' b, err)
                    - uiToDouble (happiness b cBefore)
         err = abs (deltaH - predictedDeltaH)
 
--- | Teaches the brain that the last action taken was a perfect one
---   (increased happiness by 1).
+-- | Teaches the brain that the last action taken was desirable.
 --   This can be used to help children learn by observing their parents.
 --   It can also be used to allow wains to learn from others.
 imprint
@@ -311,13 +310,24 @@ imprint
       -> ([[(Cl.Label, GSOM.Difference)]],
             [([Cl.Label], Probability)],
             Brain p t a)
-imprint b ps a = (lds, sps, set predictor d' b')
+imprint b ps a = (lds, sps, imprintPredictor b' ls a)
   where (_, lds, b') = classifyInputs b ps
         sps = errorIfNull "sps" $ hypothesise lds
-        d = _predictor b'
         ls = fst . maximumBy (comparing snd) $ sps
-        r = Response ls a (_imprintOutcomes b)
-        d' = GSOM.train d r
+
+imprintPredictor
+  :: Eq a
+    => Brain p t a -> [GSOM.Label] -> a -> Brain p t a
+imprintPredictor b ls a =
+  if d `GSOM.hasLabel` bmu
+    then set predictor d2 b
+    else set predictor d4 b
+  where d = _predictor b
+        (bmu, _, _, d2) = GSOM.trainAndClassify d rI
+        d3 = GSOM.train d r0
+        d4 = GSOM.train d3 rI
+        rI = Response ls a (_imprintOutcomes b)
+        r0 = Response ls a (map (const 0) (_outcomes rI))
 
 happiness :: Brain p t a -> Condition -> UIDouble
 happiness b = weightedSum (_happinessWeights b)

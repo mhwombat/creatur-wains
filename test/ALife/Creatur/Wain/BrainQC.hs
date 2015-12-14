@@ -57,7 +57,7 @@ arbTestBrain cSize nObjects nConditions pSize = do
   p <- D.arbTestPredictor nObjects nConditions pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
-  ios <- vectorOf nConditions $ choose (-0.99999, 1)
+  ios <- vectorOf nConditions $ choose (-0.9999, 1)
   let (Right b) = makeBrain c m p hw t ios
   return b
 
@@ -168,14 +168,18 @@ instance Show ImprintTestData where
 prop_imprint_works :: ImprintTestData -> Property
 prop_imprint_works (ImprintTestData b ps a _) = not (null ps)
     ==> and $ zipWith (>=) (_outcomes rAfter) (_outcomes rBefore)
-  where bModified = b { _imprintOutcomes = replicate nConditions 1 }
+  where goodOutcomes = map (const 1) $ _imprintOutcomes b
+        badOutcomes = map (const (-1)) $ _imprintOutcomes b
+        m = _muser b
+        mModified = m { _defaultOutcomes = badOutcomes }
+        bModified = b { _imprintOutcomes = goodOutcomes,
+                        _muser = mModified }
         (_, lds, bClassified) = classifyInputs bModified ps
         s = fst . maximumBy (comparing snd) . hypothesise $ lds
-        r = Response s a $ replicate nConditions 1
+        r = Response s a badOutcomes
         ((rBefore, _, _, _):_) = predictAll bClassified [(r, 1)]
         (_, _, bImprinted) = imprint bClassified ps a
         ((rAfter, _, _, _):_) = predictAll bImprinted [(r, 1)]
-        nConditions = length $ _imprintOutcomes b
 
 data ImprintEmptyBrainTestData
   = ImprintEmptyBrainTestData TestBrain [TestPattern] TestAction Condition
@@ -205,9 +209,9 @@ instance Show ImprintEmptyBrainTestData where
 prop_imprint_works2 :: ImprintEmptyBrainTestData -> Property
 prop_imprint_works2 (ImprintEmptyBrainTestData b ps a c) = not (null ps)
   ==> _action r == a
-  where bModified = b { _muser = mModified }
-        mModified = (_muser b) { _defaultOutcomes = replicate nConditions (-1) }
-        nConditions = length $ _imprintOutcomes b
+  where badOutcomes = map (const (-1)) $ _imprintOutcomes b
+        bModified = b { _muser = mModified }
+        mModified = (_muser b) { _defaultOutcomes = badOutcomes }
         (_, _, bImprinted) = imprint bModified ps a
         (_, _, _, _, r, _) = chooseAction bImprinted ps c
 
