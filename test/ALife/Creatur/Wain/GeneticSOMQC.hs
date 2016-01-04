@@ -37,7 +37,7 @@ import Control.Monad.Random (evalRand, runRand)
 import Data.Datamining.Clustering.SGM (diffThreshold, toMap, trainBatch)
 import Data.Map.Strict (keys, (!))
 import Data.Serialize (Serialize)
-import Data.Word (Word8, Word16)
+import Data.Word (Word8, Word64)
 import GHC.Generics (Generic)
 import System.Random (mkStdGen)
 import Test.Framework (Test, testGroup)
@@ -139,7 +139,7 @@ prop_random_learningFunction_valid seed params
         f = evalRand (randomLearningFunction params) g
 
 prop_random_learning_rate_always_in_range
-  :: LearningParams -> Word16 -> Property
+  :: LearningParams -> Word64 -> Property
 prop_random_learning_rate_always_in_range f t = t >= 0 ==> deepseq r True
   where r = toLearningFunction f t
 

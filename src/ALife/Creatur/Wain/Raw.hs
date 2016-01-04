@@ -16,7 +16,7 @@ module ALife.Creatur.Wain.Raw
     Raw(..)
   ) where
 
-import Data.Word (Word8, Word16)
+import Data.Word (Word8, Word16, Word32, Word64)
 
 class Raw a where
   -- Formats a value to make it easier to process with sed, etc.
@@ -32,6 +32,10 @@ instance Raw Double
 instance Raw Word8
 
 instance Raw Word16
+
+instance Raw Word32
+
+instance Raw Word64
 
 instance (Raw a) => Raw [a] where
   raw [] = ""

@@ -39,7 +39,7 @@ import Control.DeepSeq (NFData)
 import Control.Lens
 import qualified Data.Map.Strict as M
 import Data.Serialize (Serialize)
-import Data.Word (Word16)
+import Data.Word (Word64)
 import GHC.Generics (Generic)
 
 -- | @'PredictorTweaker'@ constructs an object which is
@@ -64,7 +64,7 @@ type Predictor a = GeneticSOM (Response a) (PredictorTweaker a)
 --   and difference threshold @dt@.
 buildPredictor
   :: Eq a
-    => LearningParams -> Word16 -> UIDouble -> Predictor a
+    => LearningParams -> Word64 -> UIDouble -> Predictor a
 buildPredictor e n dt = buildGeneticSOM e n dt PredictorTweaker
 
 -- | @'predict' p r k@ uses the predictor @p@ to predict the outcome

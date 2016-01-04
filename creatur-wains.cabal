@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           8.0.1
+Version:           8.1.0
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -53,7 +53,7 @@ library
                     bytestring ==0.10.*,
                     cereal ==0.4.*,
                     containers ==0.5.*,
-                    creatur ==5.9.*,
+                    creatur ==5.9.* && >=5.9.9,
                     deepseq ==1.4.*,
                     directory ==1.2.*,
                     -- factory ==0.2.*,
@@ -74,7 +74,7 @@ Test-suite wain-tests
                     base ==4.* && >=4.8.0,
                     cereal ==0.4.*,
                     containers ==0.5.*,
-                    creatur ==5.9.*,
+                    creatur ==5.9.* && >=5.9.9,
                     creatur-wains,
                     deepseq ==1.4.*,
                     -- factory ==0.2.*,
@@ -95,7 +95,7 @@ Test-suite wain-tests
 --                     base ==4.* && >=4.8.0,
 --                     cereal ==0.4.*,
 --                     containers ==0.5.*,
---                     creatur ==5.9.*,
+--                     creatur ==5.9.* && >=5.9.9,
 --                     creatur-wains,
 --                     deepseq ==1.4.*,
 --                     lens ==4.12.*,
@@ -117,7 +117,7 @@ Executable wain-learning-test
                     base ==4.* && >=4.8.0,
                     cereal ==0.4.*,
                     containers ==0.5.*,
-                    creatur ==5.9.*,
+                    creatur ==5.9.* && >=5.9.9,
                     creatur-wains,
                     deepseq ==1.4.*,
                     lens ==4.12.*,
@@ -136,7 +136,7 @@ Executable wain-teaching-test
                     base ==4.* && >=4.8.0,
                     cereal ==0.4.*,
                     containers ==0.5.*,
-                    creatur ==5.9.*,
+                    creatur ==5.9.* && >=5.9.9,
                     creatur-wains,
                     deepseq ==1.4.*,
                     lens ==4.12.*,

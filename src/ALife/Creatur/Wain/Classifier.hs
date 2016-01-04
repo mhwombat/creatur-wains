@@ -25,7 +25,7 @@ module ALife.Creatur.Wain.Classifier
 import qualified ALife.Creatur.Wain.GeneticSOM as S
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Data.List (foldl')
-import Data.Word (Word16)
+import Data.Word (Word64)
 
 type Classifier = S.GeneticSOM
 
@@ -35,7 +35,7 @@ type Classifier = S.GeneticSOM
 --   and "tweaker" @t@.
 buildClassifier
   :: (S.Tweaker t, p ~ S.Pattern t)
-    => S.LearningParams -> Word16 -> UIDouble -> t -> Classifier p t
+    => S.LearningParams -> Word64 -> UIDouble -> t -> Classifier p t
 buildClassifier = S.buildGeneticSOM
 
 -- | Updates the classifier models based on the stimulus (set of

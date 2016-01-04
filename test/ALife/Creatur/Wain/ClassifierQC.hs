@@ -20,16 +20,21 @@ module ALife.Creatur.Wain.ClassifierQC
   (
     test,
     equivClassifier,
-    TestTweaker(..)
+    TestTweaker(..),
+    TestClassifier
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.Classifier
-import ALife.Creatur.Wain.GeneticSOMInternal (Tweaker(..))
+import ALife.Creatur.Wain.GeneticSOMInternal (Tweaker(..), modelMap,
+  patternMap)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM, sizedArbGeneticSOM)
 import ALife.Creatur.Wain.TestUtils
 import Control.DeepSeq (NFData)
+import Control.Lens
+import qualified Data.Datamining.Clustering.SGMInternal as SOM
+import qualified Data.Map.Lazy as M
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 import Test.Framework (Test, testGroup)
@@ -60,6 +65,26 @@ classifySetAndTrain_label_count
 classifySetAndTrain_label_count c ps = property $ length xs == length ps
   where (_, xs, _) = classifySetAndTrain c ps
 
+prop_classifier_behaves_like_sgm
+  :: TestClassifier -> TestPattern -> Property
+prop_classifier_behaves_like_sgm c p =
+  property $ cModels == sModels
+  where s = view patternMap c
+        (_, _, c') = classifySetAndTrain c [p]
+        (_, _, _, s') = SOM.trainAndClassify s p
+        cModels = M.elems . modelMap $ c'
+        sModels = M.elems . SOM.modelMap $ s'
+
+prop_classifier_behaves_like_sgm2
+  :: TestClassifier -> [TestPattern] -> Property
+prop_classifier_behaves_like_sgm2 c ps =
+  property $ cModels == sModels
+  where s = view patternMap c
+        (_, _, c') = classifySetAndTrain c ps
+        s' = SOM.trainBatch s ps
+        cModels = M.elems . modelMap $ c'
+        sModels = M.elems . SOM.modelMap $ s'
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ClassifierQC"
   [
@@ -79,5 +104,9 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
       (prop_diploid_readable
         :: TestClassifier -> TestClassifier -> Property),
     testProperty "classifySetAndTrain_label_count"
-      classifySetAndTrain_label_count
+      classifySetAndTrain_label_count,
+    testProperty "prop_classifier_behaves_like_sgm"
+      prop_classifier_behaves_like_sgm,
+    testProperty "prop_classifier_behaves_like_sgm2"
+      prop_classifier_behaves_like_sgm2
   ]

@@ -16,7 +16,7 @@ module ALife.Creatur.Wain.Pretty
     Pretty(..)
   ) where
 
-import Data.Word (Word8, Word16)
+import Data.Word (Word8, Word16, Word32, Word64)
 import Text.Printf (printf)
 import Numeric (showHex)
 
@@ -38,6 +38,12 @@ instance Pretty Word8 where
   pretty = flip showHex ""
 
 instance Pretty Word16 where
+  pretty = flip showHex ""
+
+instance Pretty Word32 where
+  pretty = flip showHex ""
+
+instance Pretty Word64 where
   pretty = flip showHex ""
 
 instance (Pretty a) => Pretty [a] where

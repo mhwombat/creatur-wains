@@ -35,11 +35,11 @@ import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import qualified Data.Datamining.Clustering.SGMInternal as SOM
 import qualified Data.Map.Strict as M
 import qualified Data.Serialize as S
-import Data.Word (Word16)
+import Data.Word (Word64)
 import GHC.Generics (Generic)
 
 -- | A unique identifier for a model in a SOM.
-type Label = Word16
+type Label = Word64
 
 -- | A measure of the difference between an input pattern and a model.
 type Difference = UIDouble
@@ -52,10 +52,10 @@ type Difference = UIDouble
 --   Normally the parameters are chosen such that:
 --     0 < r0 <= 1
 --     0 < rf <= r0
-data LearningParams = LearningParams UIDouble UIDouble Word16
+data LearningParams = LearningParams UIDouble UIDouble Word64
   deriving (Eq, Show, Generic, NFData)
 
-mkLearningParams :: UIDouble -> UIDouble -> Word16 -> LearningParams
+mkLearningParams :: UIDouble -> UIDouble -> Word64 -> LearningParams
 mkLearningParams r0 rf tf
   | r0 == 0   = error "r0 must be > 0"
   | rf > r0   = error "rf must be <= r0"
@@ -72,7 +72,7 @@ instance Statistical LearningParams where
 
 -- @'toLearningFunction' p t@ returns the learning rate at time @t@,
 -- given an exponential learning function with parameters @p@.
-toLearningFunction :: LearningParams -> Word16 -> UIDouble
+toLearningFunction :: LearningParams -> Word64 -> UIDouble
 toLearningFunction (LearningParams r0 rf tf) t
   = doubleToUI $ r0' * ((rf'/r0')**a)
   where a = fromIntegral t / fromIntegral tf
@@ -83,7 +83,7 @@ data RandomLearningParams = RandomLearningParams
   {
     _r0Range :: (UIDouble, UIDouble),
     _rfRange :: (UIDouble, UIDouble),
-    _tfRange :: (Word16, Word16)
+    _tfRange :: (Word64, Word64)
   } deriving Show
 makeLenses ''RandomLearningParams
 
@@ -93,7 +93,7 @@ r0RangeLimits = (doubleToUI (1/65535), 1)
 rfRangeLimits :: (UIDouble, UIDouble)
 rfRangeLimits = (doubleToUI (1/65535), 1)
 
-tfRangeLimits :: (Word16, Word16)
+tfRangeLimits :: (Word64, Word64)
 tfRangeLimits = (1, maxBound)
 
 -- | Returns a set of parameters which will permit the broadest possible
@@ -155,7 +155,7 @@ class Tweaker t where
 data GeneticSOM p t =
   GeneticSOM
     {
-      _patternMap :: SOM.SGM Word16 UIDouble Label p,
+      _patternMap :: SOM.SGM Word64 UIDouble Label p,
       _learningParams :: LearningParams,
       _tweaker :: t
     } deriving (Generic, NFData)
@@ -167,7 +167,7 @@ makeLenses ''GeneticSOM
 --   and "tweaker" @t@.
 buildGeneticSOM
   :: (Tweaker t, p ~ Pattern t)
-    => LearningParams -> Word16 -> UIDouble -> t -> GeneticSOM p t
+    => LearningParams -> Word64 -> UIDouble -> t -> GeneticSOM p t
 buildGeneticSOM e maxSz dt t
   = GeneticSOM som e t
   where som = SOM.makeSGM lrf (fromIntegral maxSz) dt False df af
@@ -191,7 +191,7 @@ instance (Show p, Show t) => Show (GeneticSOM p t) where
 -- | Formats a genetic SOM for display.
 showSGM
   :: (Show p, Show t)
-    => SOM.SGM Word16 UIDouble Label p -> LearningParams -> t -> String
+    => SOM.SGM Word64 UIDouble Label p -> LearningParams -> t -> String
 showSGM s e t = "SGM (" ++ show (SOM.toMap s)
                    ++ ") (toLearningFunction (" ++ show e
                    ++ ")) " ++ show (SOM.maxSize s)
@@ -226,15 +226,15 @@ instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
     => G.Genetic (GeneticSOM p t) where
   put s = G.put (M.elems . SOM.toMap . _patternMap $ s)
             >> G.put (_learningParams s)
-            >> G.put (fromIntegral . SOM.maxSize . _patternMap $ s :: Word16)
+            >> G.put (fromIntegral . SOM.maxSize . _patternMap $ s :: Word64)
             >> G.put (SOM.diffThreshold . _patternMap $ s)
             >> G.put (_tweaker s)
   get = do
     nodes <- G.get
-    let newLabels = [minBound..] :: [Word16]
+    let newLabels = [minBound..] :: [Word64]
     let gm = M.fromList . zip newLabels <$> nodes
     lps <- G.get
-    maxSz <- fmap fromIntegral <$> (G.get :: G.Reader (Either [String] Word16))
+    maxSz <- fmap fromIntegral <$> (G.get :: G.Reader (Either [String] Word64))
     dt <- G.get
     tr <- G.get
     let lrf = toLearningFunction <$> lps
@@ -334,7 +334,7 @@ modelMap = SOM.modelMap . _patternMap
 
 -- | Returns a map from node label to counter (number of times the
 --   node's model has been the closest match to an input pattern).
-counterMap :: GeneticSOM p t -> M.Map Label Word16
+counterMap :: GeneticSOM p t -> M.Map Label Word64
 counterMap = SOM.counterMap . _patternMap
 
 -- | @'classify' s p@ identifies the model @s@ that most closely

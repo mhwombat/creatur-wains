@@ -129,16 +129,16 @@ prop_reflect_error_in_range b r cBefore cAfter
   = property $ -2 <= x && x <= 2
   where (_, x) = reflect b r cBefore cAfter
 
-data AFewPatterns = AFewPatterns [TestPattern]
-  deriving (Eq, Show)
+-- data AFewPatterns = AFewPatterns [TestPattern]
+--   deriving (Eq, Show)
 
-sizedArbAFewPatterns :: Int -> Gen AFewPatterns
-sizedArbAFewPatterns n = do
-  k <- choose (1, min 3 (n+1))
-  AFewPatterns <$> vectorOf k arbitrary
+-- sizedArbAFewPatterns :: Int -> Gen AFewPatterns
+-- sizedArbAFewPatterns n = do
+--   k <- choose (1, min 3 (n+1))
+--   AFewPatterns <$> vectorOf k arbitrary
 
-instance Arbitrary AFewPatterns where
-  arbitrary = sized sizedArbAFewPatterns
+-- instance Arbitrary AFewPatterns where
+--   arbitrary = sized sizedArbAFewPatterns
 
 data ImprintTestData
   = ImprintTestData TestBrain [TestPattern] TestAction Condition
@@ -272,6 +272,17 @@ prop_imprint_works2 (ImprintEmptyBrainTestData b ps a c) = not (null ps)
 --   show (ImprintTestData2 b ps a c imprintingInfo)
 --     = "ImprintTestData2 (" ++ show b ++ ") " ++ show ps ++ " "
 --       ++ show a ++ " " ++ show c ++ " \"" ++ imprintingInfo ++ "\""
+
+-- prop_classifier_behaves_like_sgm
+--   :: TestBrain -> [TestPattern] -> TestAction -> Property
+-- prop_classifier_behaves_like_sgm b ps a =
+--   property $ bModels == sModels
+--   where dummy = view classifier b :: C.TestClassifier
+--         s = view (patternMap . classifier) b :: SOM.SGM Word16 UIDouble Label TestPattern
+--         b' = imprint b ps a
+--         (_, _, _, s')  = SOM.trainAndClassify s ps
+--         bModels = M.elems . modelMap . view classifier $ b'
+--         sModels = M.elems . SOM.modelMap $ s'
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"

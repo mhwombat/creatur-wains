@@ -34,7 +34,7 @@ module ALife.Creatur.Wain.UnitInterval
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.Util (inRange, enforceRange,
-  scaleToWord8, scaleToWord16, scaleFromWord16)
+  scaleToWord8, scaleToWord64, scaleFromWord64)
 import Control.DeepSeq (NFData)
 import Data.Datamining.Pattern (adjustNum)
 import Data.List (intercalate)
@@ -119,9 +119,9 @@ instance Real UIDouble where
 
 -- | The initial sequences stored at birth are genetically determined.
 instance W8.Genetic UIDouble where
-  put x = W8.put . scaleToWord16 interval . enforceRange interval
+  put x = W8.put . scaleToWord64 interval . enforceRange interval
                     . uiToDouble $ x
-  get = fmap (fmap (UIDouble . scaleFromWord16 interval)) W8.get
+  get = fmap (fmap (UIDouble . scaleFromWord64 interval)) W8.get
 
 instance Diploid UIDouble where
   express (UIDouble x) (UIDouble y) = UIDouble $ (x + y)/2

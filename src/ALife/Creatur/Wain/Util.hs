@@ -20,8 +20,10 @@ module ALife.Creatur.Wain.Util
     enforceRange,
     scaleToWord8,
     scaleToWord16,
+    scaleToWord64,
     scaleFromWord8,
     scaleFromWord16,
+    scaleFromWord64,
     forceToWord8,
     scaleIntToWord8,
     scaleWord8ToInt,
@@ -34,7 +36,7 @@ module ALife.Creatur.Wain.Util
     thirdOfTriple
   ) where
 
-import Data.Word (Word16, Word8)
+import Data.Word (Word8, Word16, Word64)
 
 -- | The range [0,1], endpoints included.
 unitInterval :: Num a => (a, a)
@@ -62,6 +64,12 @@ scaleToWord8 (a, b) x = round (255*(x-a)/(b-a))
 scaleToWord16 :: RealFrac a => (a, a) -> a -> Word16
 scaleToWord16 (a, b) x = round (65535*(x-a)/(b-a))
 
+-- | @'scaleToWord64' (a, b) x@ scales @x@ to create a @Word64@ value,
+--   such that @scaleToWord64 (a, b) a@ = 0 and
+--   @scaleToWord64 (a, b) b@ = 255.
+scaleToWord64 :: RealFrac a => (a, a) -> a -> Word64
+scaleToWord64 (a, b) x = round (65535*(x-a)/(b-a))
+
 -- | This function is the inverse of @'scaleToWord8'@.
 --   @'scaleFromWord8' (a, b) 0@ = a and
 --   @'scaleFromWord8' (a, b) 255@ = b.
@@ -73,6 +81,12 @@ scaleFromWord8 (a, b) x = a + fromIntegral x * (b-a)/255
 --   @'scaleFromWord16' (a, b) 255@ = b.
 scaleFromWord16 :: Fractional a => (a, a) -> Word16 -> a
 scaleFromWord16 (a, b) x = a + fromIntegral x * (b-a)/65535
+
+-- | This function is the inverse of @'scaleToWord64'@.
+--   @'scaleFromWord64' (a, b) 0@ = a and
+--   @'scaleFromWord64' (a, b) 255@ = b.
+scaleFromWord64 :: Fractional a => (a, a) -> Word64 -> a
+scaleFromWord64 (a, b) x = a + fromIntegral x * (b-a)/65535
 
 forceToWord8 :: (Num a, Ord a, RealFrac a) => a -> Word8
 forceToWord8 = round . min 255
