@@ -28,7 +28,7 @@ import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Wain.Statistics (Statistical, iStat, dStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
-import ALife.Creatur.Wain.Util (intersection)
+import ALife.Creatur.Wain.Util (intersection, inRange)
 import Control.DeepSeq (NFData)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
@@ -74,8 +74,15 @@ instance Statistical LearningParams where
 -- given an exponential learning function with parameters @p@.
 toLearningFunction :: LearningParams -> Word64 -> UIDouble
 toLearningFunction (LearningParams r0 rf tf) t
-  = doubleToUI $ r0' * ((rf'/r0')**a)
-  where a = fromIntegral t / fromIntegral tf
+  | inRange (0,1) r = doubleToUI r
+  | otherwise       = error $ "toLearningFunction: out of bounds"
+                                ++ " r0=" ++ show r0
+                                ++ " rf=" ++ show rf
+                                ++ " tf=" ++ show tf
+                                ++ " t=" ++ show t
+                                ++ " r=" ++ show r
+  where r = r0' * ((rf'/r0')**a)
+        a = fromIntegral t / fromIntegral tf
         r0' = uiToDouble r0
         rf' = uiToDouble rf
 

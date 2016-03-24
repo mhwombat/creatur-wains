@@ -39,7 +39,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI)
 import ALife.Creatur.Wain.Util (enforceRange, scaleToWord64,
-  scaleFromWord64, scaleToWord8)
+  scaleFromWord64, scaleToWord8, inRange)
 import Control.DeepSeq (NFData)
 import Data.Datamining.Pattern (adjustNum)
 import Data.List (intercalate)
@@ -78,7 +78,12 @@ pm1Apply f (PM1Double x) = doubleToPM1 (f x)
 
 adjustPM1Double :: PM1Double -> UIDouble -> PM1Double -> PM1Double
 adjustPM1Double (PM1Double target) r (PM1Double x)
-  = doubleToPM1 $ adjustNum target (uiToDouble r) x
+  | inRange interval x' = doubleToPM1 x'
+  | otherwise           = error $ "adjustPM1Double: out of bounds"
+                            ++ " target=" ++ show target
+                            ++ " r=" ++ show r
+                            ++ " x=" ++ show x
+  where x' = adjustNum target (uiToDouble r) x
 
 instance Show PM1Double where
   show (PM1Double a) = show a

@@ -73,7 +73,12 @@ uiApply f (UIDouble x) = doubleToUI (f x)
 
 adjustUIDouble :: UIDouble -> UIDouble -> UIDouble -> UIDouble
 adjustUIDouble (UIDouble target) (UIDouble r) (UIDouble x)
-  = doubleToUI $ adjustNum target r x
+  | inRange interval x' = doubleToUI x'
+  | otherwise           = error $ "adjustUIDouble: out of bounds"
+                            ++ " target=" ++ show target
+                            ++ " r=" ++ show r
+                            ++ " x=" ++ show x
+  where x' = adjustNum target r x
 
 instance Show UIDouble where
   show (UIDouble a) = show a
