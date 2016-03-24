@@ -146,12 +146,12 @@ pm1Diff (PM1Double x) (PM1Double y) = doubleToUI $ abs (x - y)/2
 
 pm1VectorDiff :: [PM1Double] -> [PM1Double] -> UIDouble
 pm1VectorDiff xs ys
-  | null xs && null ys = doubleToUI 0
-  | null xs || null ys = doubleToUI 1
-  | inRange interval d = doubleToUI diff
-  | otherwise          = error $ "pm1VectorDiff: out of bounds"
-                            ++ " xs=" ++ show xs
-                            ++ " ys=" ++ show ys
+  | null xs && null ys     = doubleToUI 0
+  | null xs || null ys     = doubleToUI 1
+  | inRange interval diff = doubleToUI diff
+  | otherwise             = error $ "pm1VectorDiff: out of bounds"
+                               ++ " xs=" ++ show xs
+                               ++ " ys=" ++ show ys
   where diff = d / fromIntegral (length deltas)
         deltas = zipWith pm1Diff xs ys
         d = sum $ map uiToDouble deltas
