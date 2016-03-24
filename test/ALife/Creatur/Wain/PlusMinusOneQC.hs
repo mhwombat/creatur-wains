@@ -23,9 +23,10 @@ import ALife.Creatur.Wain.PlusMinusOne
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity,
-  prop_makeSimilar_works)
+  prop_genetic_round_trippable, prop_genetic_round_trippable2,
+  prop_diploid_identity, prop_makeSimilar_works)
 import Control.DeepSeq (deepseq)
+import Data.Word (Word8)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -85,6 +86,8 @@ test = testGroup "ALife.Creatur.Wain.PlusMinusOneQC"
       (prop_serialize_round_trippable :: PM1Double -> Property),
     testProperty "prop_genetic_round_trippable - PM1Double"
       (prop_genetic_round_trippable equivPM1Double :: PM1Double -> Property),
+    testProperty "prop_genetic_round_trippable2 - PM1Double"
+      (prop_genetic_round_trippable2 8 :: [Word8] -> PM1Double -> Property),
     testProperty "prop_diploid_identity - PM1Double"
       (prop_diploid_identity (==) :: PM1Double -> Property),
     testProperty "prop_serialize_round_trippable - [PM1Double]"

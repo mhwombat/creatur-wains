@@ -22,6 +22,7 @@ module ALife.Creatur.Wain.TestUtils
     arb8BitInt,
     prop_serialize_round_trippable,
     prop_genetic_round_trippable,
+    prop_genetic_round_trippable2,
     prop_diploid_identity,
     prop_diploid_expressable,
     prop_diploid_readable,
@@ -54,21 +55,29 @@ import Test.QuickCheck
 --   difference = euclideanDistanceSquared
 --   makeSimilar = adjustVector
 
+-- IMPORTANT: Keep the code for this function in sync with the 
+-- version in creatur-wains-test-utils
 arb8BitDouble :: (Double, Double) -> Gen Double
 arb8BitDouble interval = do
   x <- arbitrary :: Gen Word8
   return $ scaleFromWord8 interval x
 
+-- IMPORTANT: Keep the code for this function in sync with the 
+-- version in creatur-wains-test-utils
 arb8BitInt :: (Int, Int) -> Gen Int
 arb8BitInt interval = do
   x <- arbitrary :: Gen Word8
   return $ scaleWord8ToInt interval x
 
+-- IMPORTANT: Keep the code for this function in sync with the 
+-- version in creatur-wains-test-utils
 prop_serialize_round_trippable :: (Eq a, Serialize a) => a -> Property
 prop_serialize_round_trippable x = property $ x' == Right x
   where bs = encode x
         x' = decode bs
 
+-- IMPORTANT: Keep the code for this function in sync with the 
+-- version in creatur-wains-test-utils
 prop_genetic_round_trippable :: (Eq g, W8.Genetic g, Show g) =>
   (g -> g -> Bool) -> g -> Property
 prop_genetic_round_trippable eq g = property $
@@ -78,9 +87,22 @@ prop_genetic_round_trippable eq g = property $
         leftover = drop i x
         g' = fromEither (error "read returned Nothing") $ result
 
+-- IMPORTANT: Keep the code for this function in sync with the 
+-- version in creatur-wains-test-utils
+prop_genetic_round_trippable2
+  :: W8.Genetic g => Int -> [Word8] -> g -> Property
+prop_genetic_round_trippable2 n xs dummy = length xs >= n
+  ==> xs' == take n xs
+  where Right g = W8.read xs
+        xs' = W8.write (g `asTypeOf` dummy)
+
+-- IMPORTANT: Keep the code for this function in sync with the 
+-- version in creatur-wains-test-utils
 prop_diploid_identity :: Diploid g => (g -> g -> Bool) -> g -> Property
 prop_diploid_identity eq g = property $ express g g `eq` g
 
+-- IMPORTANT: Keep the code for this function in sync with the 
+-- version in creatur-wains-test-utils
 prop_show_read_round_trippable
   :: (Read a, Show a) => (a -> a -> Bool) -> a -> Property
 prop_show_read_round_trippable eq x

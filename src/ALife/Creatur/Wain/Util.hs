@@ -56,37 +56,45 @@ enforceRange (a,b) = max a . min b
 --   such that @scaleToWord8 (a, b) a@ = 0 and
 --   @scaleToWord8 (a, b) b@ = 255.
 scaleToWord8 :: RealFrac a => (a, a) -> a -> Word8
-scaleToWord8 (a, b) x = round (255*(x-a)/(b-a))
+scaleToWord8 (a, b) x = round (m*(x-a)/(b-a))
+  where m = fromIntegral (maxBound :: Word8)
 
 -- | @'scaleToWord16' (a, b) x@ scales @x@ to create a @Word16@ value,
 --   such that @scaleToWord16 (a, b) a@ = 0 and
 --   @scaleToWord16 (a, b) b@ = 255.
 scaleToWord16 :: RealFrac a => (a, a) -> a -> Word16
-scaleToWord16 (a, b) x = round (65535*(x-a)/(b-a))
+scaleToWord16 (a, b) x = round (m*(x-a)/(b-a))
+  where m = fromIntegral (maxBound :: Word16)
 
 -- | @'scaleToWord64' (a, b) x@ scales @x@ to create a @Word64@ value,
 --   such that @scaleToWord64 (a, b) a@ = 0 and
 --   @scaleToWord64 (a, b) b@ = 255.
 scaleToWord64 :: RealFrac a => (a, a) -> a -> Word64
-scaleToWord64 (a, b) x = round (65535*(x-a)/(b-a))
+scaleToWord64 (a, b) x = round (m*(x-a)/(b-a))
+  where m = 18446744073709551615
+  -- where m = fromIntegral (maxBound :: Word64)
 
 -- | This function is the inverse of @'scaleToWord8'@.
 --   @'scaleFromWord8' (a, b) 0@ = a and
 --   @'scaleFromWord8' (a, b) 255@ = b.
 scaleFromWord8 :: Fractional a => (a, a) -> Word8 -> a
-scaleFromWord8 (a, b) x = a + fromIntegral x * (b-a)/255
+scaleFromWord8 (a, b) x = a + fromIntegral x * (b-a)/m
+  where m = fromIntegral (maxBound :: Word8)
 
 -- | This function is the inverse of @'scaleToWord16'@.
 --   @'scaleFromWord16' (a, b) 0@ = a and
 --   @'scaleFromWord16' (a, b) 255@ = b.
 scaleFromWord16 :: Fractional a => (a, a) -> Word16 -> a
-scaleFromWord16 (a, b) x = a + fromIntegral x * (b-a)/65535
+scaleFromWord16 (a, b) x = a + fromIntegral x * (b-a)/m
+  where m = fromIntegral (maxBound :: Word16)
 
 -- | This function is the inverse of @'scaleToWord64'@.
 --   @'scaleFromWord64' (a, b) 0@ = a and
 --   @'scaleFromWord64' (a, b) 255@ = b.
 scaleFromWord64 :: Fractional a => (a, a) -> Word64 -> a
-scaleFromWord64 (a, b) x = a + fromIntegral x * (b-a)/65535
+scaleFromWord64 (a, b) x = a + fromIntegral x * (b-a)/m
+  where m = 18446744073709551615
+  -- where m = fromIntegral (maxBound :: Word64)
 
 forceToWord8 :: (Num a, Ord a, RealFrac a) => a -> Word8
 forceToWord8 = round . min 255

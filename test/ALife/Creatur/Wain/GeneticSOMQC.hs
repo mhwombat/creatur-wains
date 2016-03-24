@@ -163,6 +163,11 @@ prop_diploid_learningFunction_valid a b = property . validLearningFunction $ c
         g2 = W8.write b
         Right c = W8.runDiploidReader W8.getAndExpress (g1, g2)
 
+prop_learningFunction_always_valid
+  :: LearningParams -> Word64 -> Property
+prop_learningFunction_always_valid f t = property $ r >= 0 && r <= 1
+  where r = toLearningFunction f t
+
 prop_train_never_causes_error :: TestGSOM -> TestPattern -> Property
 prop_train_never_causes_error som p
   = property $ deepseq (train som p) True
@@ -251,6 +256,8 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       prop_random_express_learningFunction_valid,
     testProperty "prop_diploid_learningFunction_valid"
       prop_diploid_learningFunction_valid,
+    testProperty "prop_learningFunction_always_valid"
+      prop_learningFunction_always_valid,
     testProperty "prop_train_never_causes_error"
       prop_train_never_causes_error,
     testProperty "prop_novelty_btw_0_and_1"
