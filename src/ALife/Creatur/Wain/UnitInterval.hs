@@ -142,10 +142,14 @@ uiDiff (UIDouble x) (UIDouble y) = doubleToUI $ abs (x - y)
 
 uiVectorDiff :: [UIDouble] -> [UIDouble] -> UIDouble
 uiVectorDiff xs ys
-  | null xs && null ys = UIDouble 0
-  | null xs || null ys = UIDouble 1
-  | otherwise         = doubleToUI $ d / fromIntegral (length deltas)
-  where deltas = zipWith uiDiff xs ys
+  | null xs && null ys  = UIDouble 0
+  | null xs || null ys  = UIDouble 1
+  | inRange interval d = doubleToUI diff
+  | otherwise          = error $ "uiVectorDiff: out of bounds"
+                            ++ " xs=" ++ show xs
+                            ++ " ys=" ++ show ys
+  where diff = d / fromIntegral (length deltas)
+        deltas = zipWith uiDiff xs ys
         d = sum $ map uiToDouble deltas
 
 -- | @'adjustVector' target amount vector@ adjusts each element of

@@ -148,8 +148,12 @@ pm1VectorDiff :: [PM1Double] -> [PM1Double] -> UIDouble
 pm1VectorDiff xs ys
   | null xs && null ys = doubleToUI 0
   | null xs || null ys = doubleToUI 1
-  | otherwise          = doubleToUI $ d / fromIntegral (length deltas)
-  where deltas = zipWith pm1Diff xs ys
+  | inRange interval d = doubleToUI diff
+  | otherwise          = error $ "pm1VectorDiff: out of bounds"
+                            ++ " xs=" ++ show xs
+                            ++ " ys=" ++ show ys
+  where diff = d / fromIntegral (length deltas)
+        deltas = zipWith pm1Diff xs ys
         d = sum $ map uiToDouble deltas
 
 -- | @'adjustVector' target amount vector@ adjusts each element of
