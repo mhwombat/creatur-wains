@@ -90,7 +90,7 @@ test = testGroup "ALife.Creatur.Wain.WeightsQC"
     testProperty "prop_genetic_round_trippable - Weights"
       (prop_genetic_round_trippable equivWeights :: Weights -> Property),
     testProperty "prop_diploid_identity - Weights"
-      (prop_diploid_identity (==) :: Weights -> Property),
+      (prop_diploid_identity equivWeights :: Weights -> Property),
     testProperty "prop_diploid_expressable - Weights"
       (prop_diploid_expressable :: Weights -> Weights -> Property),
     testProperty "prop_diploid_readable - Weights"
