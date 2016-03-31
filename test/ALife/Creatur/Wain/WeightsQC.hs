@@ -18,6 +18,7 @@ module ALife.Creatur.Wain.WeightsQC
     sizedArbWeights
   ) where
 
+import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Wain.WeightsInternal
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
@@ -68,6 +69,13 @@ prop_weighted_sum_in_range :: Weights -> [UIDouble] -> Property
 prop_weighted_sum_in_range ws xs
   = property $ seq (weightedSum ws xs) True
 
+prop_genetic_weights_are_normalised :: [UIDouble] -> Property
+prop_genetic_weights_are_normalised xs = (not . null) xs ==>
+  abs (1 - sum ys) <= 1e-10
+  where xs' = W8.write (Weights xs) -- possibly unnormalised
+        Right w = W8.read xs'
+        ys = toUIDoubles w
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.WeightsQC"
   [
@@ -87,5 +95,8 @@ test = testGroup "ALife.Creatur.Wain.WeightsQC"
       (prop_diploid_expressable :: Weights -> Weights -> Property),
     testProperty "prop_diploid_readable - Weights"
       (prop_diploid_readable :: Weights -> Weights -> Property),
-    testProperty "prop_weighted_sum_in_range" prop_weighted_sum_in_range
+    testProperty "prop_weighted_sum_in_range"
+      prop_weighted_sum_in_range,
+    testProperty "prop_genetic_weights_are_normalised"
+      prop_genetic_weights_are_normalised
   ]

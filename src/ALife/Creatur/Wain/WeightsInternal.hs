@@ -16,8 +16,8 @@
 {-# LANGUAGE DeriveGeneric #-}
 module ALife.Creatur.Wain.WeightsInternal where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
-import ALife.Creatur.Genetics.Diploid (Diploid)
+import ALife.Creatur.Genetics.BRGCWord8 (Genetic, get)
+import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiApply, uiToDouble,
   doubleToUI, uiDiff)
 import Control.DeepSeq (NFData)
@@ -25,9 +25,17 @@ import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 
 data Weights = Weights [UIDouble]
-  deriving (Eq, Show, Generic, Ord, Serialize, Genetic, Diploid, NFData)
+  deriving (Eq, Show, Generic, Ord, Serialize, NFData)
   -- NOTE: Regarding Diploid instance, sum of weights will never be >1,
   -- because "express" chooses the smaller value.
+
+instance Genetic Weights where
+  -- use default put
+  get = fmap (fmap makeWeights) get
+
+instance Diploid Weights where
+  express (Weights xs) (Weights ys) = makeWeights zs
+    where zs = express xs ys
 
 makeWeights :: [UIDouble] -> Weights
 makeWeights [] = Weights []
