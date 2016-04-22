@@ -24,7 +24,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.GeneticSOM (Difference, Label)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble,
-  adjustPM1Vector)
+  adjustPM1Vector, forceDoubleToPM1)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI)
 import Control.DeepSeq (NFData)
 import Control.Lens
@@ -94,3 +94,9 @@ makeResponseSimilar target r x =
 -- | Updates the outcomes in the second response to match the first.
 copyOutcomesTo :: Response a -> Response a -> Response a
 copyOutcomesTo source = set outcomes (_outcomes source)
+
+addToOutcomes :: [PM1Double] -> Response a -> Response a
+addToOutcomes deltas r = set outcomes ys r
+  where xs = map pm1ToDouble . _outcomes $ r
+        deltas' = map pm1ToDouble deltas
+        ys = map forceDoubleToPM1 $ zipWith (+) xs deltas'

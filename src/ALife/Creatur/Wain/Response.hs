@@ -20,7 +20,8 @@ module ALife.Creatur.Wain.Response
     outcomes,
     copyOutcomesTo,
     responseDiff,
-    makeResponseSimilar
+    makeResponseSimilar,
+    addToOutcomes
   ) where
 
 import ALife.Creatur.Wain.ResponseInternal

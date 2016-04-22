@@ -66,10 +66,13 @@ data Brain p t a = Brain
     _happinessWeights :: Weights,
     -- | Used to break ties when actions seem equally promising
     _tiebreaker :: Word8,
-    -- | When a wain is taught a response, or learns it by observing
-    --   another wain (rather than through personal experience),
+    -- | When a wain observes a response that it has never seen before,
     --   it will assume the action has the following outcomes.
     _imprintOutcomes :: [PM1Double],
+    -- | when a wain observes a response that it already knows, it will
+    --   reinforce the response using these delta outcomes to augment
+    --   its model response.
+    _reinforcementDeltas :: [PM1Double],
     -- | Number of times each action has been used
     _actionCounts :: M.Map a Int
   } deriving (Generic, Eq, NFData)
@@ -77,8 +80,8 @@ makeLenses ''Brain
 
 makeBrain
   :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights -> Word8
-    -> [PM1Double] -> Either [String] (Brain p t a)
-makeBrain c m p hw t ios
+    -> [PM1Double] -> [PM1Double] -> Either [String] (Brain p t a)
+makeBrain c m p hw t ios rds
   | numWeights hw /= 4
       = Left ["incorrect number of happiness weights"]
   | length (_defaultOutcomes m) /= 4
@@ -86,7 +89,7 @@ makeBrain c m p hw t ios
   | length ios /= 4
       = Left ["incorrect number of imprint outcomes"]
   | otherwise
-      = Right $ Brain c m p hw t ios M.empty
+      = Right $ Brain c m p hw t ios rds M.empty
 
 instance (Serialize p, Serialize t, Serialize a, Eq a, Ord a,
   GSOM.Tweaker t, p ~ GSOM.Pattern t)
@@ -98,7 +101,8 @@ instance (Diploid p, Diploid t, Diploid a, Eq a, Ord a, GSOM.Tweaker t,
 
 instance (Eq a, Ord a)
       => Statistical (Brain p t a) where
-  stats b@(Brain c m p hw t ios _) = map (prefix "classifier ") (stats c)
+  stats b@(Brain c m p hw t ios rds _) =
+    map (prefix "classifier ") (stats c)
     ++ (stats m)
     ++ map (prefix "predictor ") (stats p)
     ++ [ iStat "DQ" $ decisionQuality b,
@@ -110,19 +114,23 @@ instance (Eq a, Ord a)
          dStat "passionImprint" . pm1ToDouble $ ios !! 1,
          dStat "boredomImprint" . pm1ToDouble $ ios !! 2,
          dStat "litterSizeImprint" . pm1ToDouble $ ios !! 3,
+         dStat "energyReinforcement" . pm1ToDouble $ rds !! 0,
+         dStat "passionReinforcement" . pm1ToDouble $ rds !! 1,
+         dStat "boredomReinforcement" . pm1ToDouble $ rds !! 2,
+         dStat "litterSizeReinforcement" . pm1ToDouble $ rds !! 3,
          iStat "tiebreaker" t ]
 
 instance (Show p, Show a, Show t, Eq a)
       => Show (Brain p t a) where
-  show (Brain c m p hw t ios ks) = "Brain (" ++ show c ++ ") ("
+  show (Brain c m p hw t ios rds ks) = "Brain (" ++ show c ++ ") ("
     ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") "
-    ++ show t ++ " " ++ show ios ++ " (" ++ show ks ++ ")"
+    ++ show t ++ " " ++ show ios ++ show rds ++ " (" ++ show ks ++ ")"
 
 instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
           p ~ GSOM.Pattern t)
     => Genetic (Brain p t a) where
-    put (Brain c m p hw t ios _)
-      = put c >> put m >> put p >> put hw >> put t >> put ios
+    put (Brain c m p hw t ios rds _)
+      = put c >> put m >> put p >> put hw >> put t >> put ios >> put rds
     get = do
       c <- get
       m <- get
@@ -130,8 +138,9 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
       hw <- get
       t <- get
       ios <- get
+      rds <- get
       -- Use the safe constructor!
-      case (makeBrain <$> c <*> m <*> p <*> hw <*> t <*> ios) of
+      case (makeBrain <$> c <*> m <*> p <*> hw <*> t <*> ios <*> rds) of
         Left msgs -> return $ Left msgs
         Right b   -> return b
 
@@ -318,16 +327,11 @@ imprint b ps a = (lds, sps, imprintPredictor b' ls a)
 imprintPredictor
   :: Eq a
     => Brain p t a -> [GSOM.Label] -> a -> Brain p t a
-imprintPredictor b ls a =
-  if d `GSOM.hasLabel` bmu
-    then set predictor d2 b
-    else set predictor d4 b
+imprintPredictor b ls a = set predictor d2 b
   where d = _predictor b
-        (bmu, _, _, d2) = GSOM.trainAndClassify d rI
-        d3 = GSOM.train d r0
-        d4 = GSOM.train d3 rI
-        rI = Response ls a (_imprintOutcomes b)
-        r0 = Response ls a (map (const 0) (_outcomes rI))
+        d2 = P.imprintOrReinforce d ls a os deltas
+        os = _imprintOutcomes b
+        deltas = _reinforcementDeltas b
 
 happiness :: Brain p t a -> Condition -> UIDouble
 happiness b = weightedSum (_happinessWeights b)

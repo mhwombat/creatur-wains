@@ -68,7 +68,7 @@ testWain :: Wain TestPattern TestTweaker TestAction
 testWain = imprintAll w'
   where wName = "Fred"
         wAppearance = TestPattern 0
-        (Right wBrain) = makeBrain wClassifier wMuser wPredictor wHappinessWeights 1 wIos
+        (Right wBrain) = makeBrain wClassifier wMuser wPredictor wHappinessWeights 1 wIos wRds
         wDevotion = 0.1
         wAgeOfMaturity = 100
         wPassionDelta = 0
@@ -76,6 +76,7 @@ testWain = imprintAll w'
         wClassifier = buildGeneticSOM ec 10 0.02 TestTweaker
         wMuser = makeMuser [0, 0, 0, 0] 2
         wIos = [doubleToPM1 reward, 0, 0, 0]
+        wRds = [doubleToPM1 reward, 0, 0, 0]
         wPredictor = buildGeneticSOM ep 50 0.1 PredictorTweaker
         wHappinessWeights = makeWeights [1, 0, 0, 0]
         ec = LearningParams 1 0.001 10000

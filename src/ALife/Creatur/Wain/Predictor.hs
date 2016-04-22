@@ -14,6 +14,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module ALife.Creatur.Wain.Predictor
   (
     Label,
@@ -22,16 +23,18 @@ module ALife.Creatur.Wain.Predictor
     buildPredictor,
     predict,
     scenarios,
-    hasScenario
+    hasScenario,
+    imprintOrReinforce
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM, LearningParams,
-  Label, Tweaker(..), buildGeneticSOM, modelMap, trainAndClassify)
+  Label, Tweaker(..), buildGeneticSOM, modelMap, trainAndClassify,
+  hasLabel, train)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.Response (Response(..), outcomes,
-  responseDiff, makeResponseSimilar)
+  responseDiff, makeResponseSimilar, addToOutcomes)
 import ALife.Creatur.Wain.Probability (Probability)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, adjustPM1Vector)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
@@ -95,6 +98,20 @@ predict p r prob = (r', bmu, rawOutcomes, p')
         adjustedOutcomes
           = adjustPM1Vector rawOutcomes adjustment zeroes
         r' = set outcomes adjustedOutcomes r
+
+imprintOrReinforce
+  :: (Eq a)
+    => Predictor a -> [Label] -> a -> [PM1Double] -> [PM1Double]
+      -> Predictor a
+imprintOrReinforce d ls a os deltas =
+  if d `hasLabel` bmu
+    then dReinforced
+    else dImprinted
+  where (bmu, _, _, dImprinted) = trainAndClassify d rImprinted
+        r = (modelMap d) M.! bmu
+        rImprinted = Response ls a os
+        rReinforced = deltas `addToOutcomes` r
+        dReinforced = train d rReinforced
 
 -- Don't modify existing models, but do permit a new one to be created.
 classifyAndMaybeCreateNewModel
