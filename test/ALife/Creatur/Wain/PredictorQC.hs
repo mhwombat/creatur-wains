@@ -21,25 +21,28 @@ module ALife.Creatur.Wain.PredictorQC
     equivPredictor,
     arbTestPredictor,
     arbEmptyTestPredictor,
-    TrainingTestData(..)
+    TrainingTestData(..),
+    ImprintTestData(..)
   ) where
 
-import ALife.Creatur.Wain.Predictor
+import ALife.Creatur.Wain.PredictorInternal
 import ALife.Creatur.Wain.GeneticSOM (train)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
-import ALife.Creatur.Wain.Response (Response(..))
+import ALife.Creatur.Wain.Response (Response(..), labels, action,
+  outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
   arbTestResponse)
 import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.GeneticSOMInternal (patternMap)
+import ALife.Creatur.Wain.GeneticSOMInternal (patternMap, numModels,
+  maxSize)
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM,
   sizedArbEmptyGeneticSOM)
 import Control.Lens
 import Data.Datamining.Clustering.SGMInternal (diffThreshold)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import Test.QuickCheck hiding (labels, maxSize)
 
 type TestTweaker = PredictorTweaker TestAction
 
@@ -112,6 +115,42 @@ rawDiff :: [PM1Double] ->  [PM1Double] -> Double
 rawDiff xs ys =
   sum $ zipWith (\x y -> abs $ pm1ToDouble x - pm1ToDouble y) xs ys
 
+data ImprintTestData
+  = ImprintTestData
+      {
+        iPredictor :: TestPredictor,
+        iResponse :: TestResponse,
+        iOutcomes :: [PM1Double],
+        iDeltas :: [PM1Double]
+      } deriving (Eq, Show)
+
+sizedArbImprintTestData :: Int -> Gen ImprintTestData
+sizedArbImprintTestData n = do
+  nSize <- choose (1, max 1 n)
+  nObjects <- choose (1, min 3 (max 1 (n - nSize)))
+  let nConditions = max 1 (n - nSize - nObjects)
+  p <- arbTestPredictor nObjects nConditions nSize
+  let pm = view patternMap p
+  let pm' = pm { diffThreshold=0.1 }
+  let p' = set patternMap pm' p
+  r <- arbTestResponse nObjects nConditions
+  os <- map getPositive <$> vectorOf nConditions (arbitrary :: Gen (Positive PM1Double))
+  ds <- map getPositive <$> vectorOf nConditions (arbitrary :: Gen (Positive PM1Double))
+  return $ ImprintTestData p' r os ds
+
+instance Arbitrary ImprintTestData where
+  arbitrary = sized sizedArbImprintTestData
+
+prop_imprintOrReinforce_works :: ImprintTestData -> Property
+prop_imprintOrReinforce_works (ImprintTestData d r os ds) =
+  numModels d < maxSize d ==>
+    and $ zipWith (>) (_outcomes r2) (_outcomes r1)
+  where os0 = map (const (-1)) os
+        r0 = set outcomes os0 r
+        (r1, _, _, _) = predict d r0 1
+        d2 = imprintOrReinforce d (view labels r) (view action r) os ds
+        (r2, _, _, _) = predict d2 r 1
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.PredictorQC"
   [
@@ -136,5 +175,7 @@ test = testGroup "ALife.Creatur.Wain.PredictorQC"
     testProperty "prop_diploid_readable - Predictor"
       (prop_diploid_readable :: TestPredictor -> TestPredictor -> Property),
     testProperty "prop_training_makes_predictions_more_accurate"
-      prop_training_makes_predictions_more_accurate
+      prop_training_makes_predictions_more_accurate,
+    testProperty "prop_imprintOrReinforce_works"
+      prop_imprintOrReinforce_works
   ]
