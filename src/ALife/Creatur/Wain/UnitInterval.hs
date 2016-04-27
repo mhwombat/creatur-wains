@@ -44,10 +44,11 @@ import System.Random (Random(..), randomR)
 import Text.Printf (printf)
 import Text.Read (readPrec)
 
+-- | The unit interval (0 to 1, inclusive)
 interval :: (Double, Double)
 interval = (0, 1)
 
--- | A number on the unit interval 0 to 1, inclusive.
+-- | A number on the unit interval
 newtype UIDouble = UIDouble Double
   deriving (Eq, Ord, Generic, Serialize, NFData)
 
@@ -71,6 +72,13 @@ forceDoubleToUI = doubleToUI . max 0 . min 1
 uiApply :: (Double -> Double) -> UIDouble -> UIDouble
 uiApply f (UIDouble x) = doubleToUI (f x)
 
+-- | @'adjustUIDouble' target r pattern@ returns a modified copy
+  --   of @pattern@ that is more similar to @target@ than @pattern@ is.
+  --   The magnitude of the adjustment is controlled by the @r@
+  --   parameter, which should be a number between 0 and 1. Larger
+  --   values for @r@ permit greater adjustments. If @r@=1,
+  --   the result should be identical to the @target@. If @r@=0,
+  --   the result should be the unmodified @pattern@.
 adjustUIDouble :: UIDouble -> UIDouble -> UIDouble -> UIDouble
 adjustUIDouble (UIDouble target) (UIDouble r) (UIDouble x)
   | inRange interval x' = doubleToUI x'
@@ -137,9 +145,15 @@ instance Random UIDouble where
   random = f <$> randomR (0,1)
     where f (x, y) = (doubleToUI x, y)
 
+-- | Returns a number between 0 and 1 which indicates how different
+--   the two inputs are. A result of 0 indicates that the
+--   inputs are identical.
 uiDiff :: UIDouble -> UIDouble -> UIDouble
 uiDiff (UIDouble x) (UIDouble y) = doubleToUI $ abs (x - y)
 
+-- | Returns a number between 0 and 1 which indicates how different
+--   the two input vectors are.  A result of 0 indicates that the
+--   inputs are identical.
 uiVectorDiff :: [UIDouble] -> [UIDouble] -> UIDouble
 uiVectorDiff xs ys
   | null xs && null ys     = UIDouble 0

@@ -39,8 +39,7 @@ import ALife.Creatur.Wain.Probability (Probability)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI, forceDoubleToUI)
-import ALife.Creatur.Wain.Util (unitInterval, enforceRange,
-  thirdOfTriple)
+import ALife.Creatur.Wain.Util (unitInterval, enforceRange, fifthOfFive)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen)
 import Data.List (partition)
@@ -54,6 +53,7 @@ import Paths_creatur_wains (version)
 packageVersion :: String
 packageVersion = "creatur-wains-" ++ showVersion version
 
+-- | A data mining agent that can learn, reproduce, and evolve.
 data Wain p t a = Wain
   {
     -- | Each wain should have a unique name.
@@ -97,6 +97,7 @@ data Wain p t a = Wain
   } deriving (Eq, Generic)
 makeLenses ''Wain
 
+-- | Internal method
 buildWain
   :: (Genetic p, Genetic t, Genetic a, Eq a, Tweaker t, p ~ Pattern t,
     Serialize p, Serialize t, Serialize a, Ord a)
@@ -292,16 +293,24 @@ happiness w = B.happiness (_brain w) (condition w)
 
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
---   Returns the classifier labels assigned to each input pattern,
---   the classifier signature of each input pattern,
---   the predictor model on which the response is based,
---   the responses it considered (with outcome predictions filled in,
---   and paired with predictor model labels),
---   the chosen response, and the updated wain.
+--   Returns:
 --
---   NOTE: that the response chosen might be a response modelled on
+--   * for each object in the stimuli, the difference between that
+--     object and each classifier model paired with the model's label
+--   * the hypotheses considered, together with the probability that
+--     each hypothesis is true
+--   * the responses considered (with predicted outcomes filled in)
+--     together with the estimated probability that each response
+--     is based on a correct hypothesis, the label of the predictor
+--     model upon which the response is based, and the expected
+--     condition after the response
+--   * the actions considered, paired with the expected condition after
+--     the action
+--   * the chosen response
+--   * the updated brain
+--
+--   NOTE: The response chosen might be a response modelled on
 --   a different scenario than the one we think we're in.
---   I.e., @cBMUs@ may not equal @view (scenario . labels) r@.
 --   This might happen, for example, if the ideal response to the
 --   most likely scenario has a somewhat good outcome, but the ideal
 --   response to a somewhat likely alternative scenario has a really
@@ -362,6 +371,7 @@ adjustBoredom
 adjustBoredom delta w = (w', delta')
   where (w', delta', _) = adjustBoredom1 delta w
 
+-- | Internal method
 adjustBoredom1
   :: Double -> Wain p t a -> (Wain p t a, Double, Double)
 adjustBoredom1 delta w = (wAfter, delta', leftover)
@@ -396,10 +406,12 @@ coolPassion = set passion 0
 incAge :: Wain p t a -> Wain p t a
 incAge = incAge1 . incLitterAge
 
+-- | Internal method
 incLitterAge :: Wain p t a -> Wain p t a
 incLitterAge w = set litter litter' w
   where litter' = map incAge1 $ _litter w
 
+-- | Internal method
 incAge1 :: Wain p t a -> Wain p t a
 incAge1 = age +~ 1
 
@@ -420,8 +432,9 @@ reflect ps r wBefore wAfter =
   (set litter litter' wReflected, err)
   where (wReflected, err) = reflect1 r wBefore wAfter
         a = R._action r
-        litter' = map (thirdOfTriple . imprint ps a) (_litter wAfter)
+        litter' = map (fifthOfFive . imprint ps a) (_litter wAfter)
 
+-- | Internal method
 reflect1
   :: Eq a
     => R.Response a -> Wain p t a -> Wain p t a -> (Wain p t a, Double)
@@ -429,18 +442,25 @@ reflect1 r wBefore wAfter = (set brain b' wAfter, err)
   where (b', err) = B.reflect (_brain wAfter) r (condition wBefore)
                       (condition wAfter)
 
--- | Teaches the wain that the last action taken was a perfect one
---   (increased happiness by 1).
+-- | Teaches the wain a desirable action to take in response to a
+--   stimulus.
 --   This can be used to help children learn by observing their parents.
+--   It can also be used to allow wains to learn from others.
+--   Returns the classifier labels paired with the difference of
+--   the associated model and the input patterns,
+--   the scenarios that were considered paired with their estimated
+--   probability, the label of the new or adjusted predictor model,
+--   the new or adjusted predictor model itself,
+--   and the updated wain.
 imprint
   :: (Serialize p, Serialize t, Serialize a, Eq a, Ord a, Tweaker t,
     p ~ Pattern t)
       => [p] -> a -> Wain p t a
         -> ( [[(Cl.Label, Cl.Difference)]],
              [([Cl.Label], Probability)],
-             Wain p t a )
-imprint ps a w = (lds, sps, set brain b' w)
-  where (lds, sps, b') = B.imprint (_brain w) ps a
+             P.Label, R.Response a, Wain p t a )
+imprint ps a w = (lds, sps, bmu, r, set brain b' w)
+  where (lds, sps, bmu, r, b') = B.imprint (_brain w) ps a
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.
@@ -463,6 +483,7 @@ mate a b babyName
       = return ([a, b], [_name b ++ " already has a litter"], 0, 0)
   | otherwise = mate' a b babyName
 
+-- | Internal method
 mate'
   :: (RandomGen r, Diploid p, Diploid t, Diploid a,
     Genetic p, Genetic t, Genetic a,
@@ -483,6 +504,7 @@ mate' a b babyName = do
       return ([a4, b3], [], aContribution, bContribution)
     Left msgs -> return ([a2, b2], msgs, 0, 0)
 
+-- | Internal method
 donateParentEnergy
   :: Wain p t a -> Wain p t a -> Wain p t a
      -> (Wain p t a, Wain p t a, Wain p t a, Double, Double)

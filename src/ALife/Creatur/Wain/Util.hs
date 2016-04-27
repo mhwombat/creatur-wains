@@ -33,7 +33,8 @@ module ALife.Creatur.Wain.Util
     word16ToInt,
     intersection,
     unitVectors,
-    thirdOfTriple
+    thirdOfTriple,
+    fifthOfFive
   ) where
 
 import Data.Word (Word8, Word16, Word64)
@@ -96,6 +97,9 @@ scaleFromWord64 (a, b) x = a + fromIntegral x * (b-a)/m
   where m = 18446744073709551615
   -- where m = fromIntegral (maxBound :: Word64)
 
+
+-- | @'forceToWord8' x@ returns 255 or the rounded value of @x@,
+--   whichever is smaller.
 forceToWord8 :: (Num a, Ord a, RealFrac a) => a -> Word8
 forceToWord8 = round . min 255
 
@@ -176,5 +180,10 @@ unitVectors :: Num a => Int -> [[a]]
 unitVectors n = map f [0..n-1]
   where f k = replicate k 0 ++ 1 : replicate (n-k-1) 0
 
+-- | Returns the third element of a triple.
 thirdOfTriple :: (a, b, c) -> c
 thirdOfTriple (_, _, x) = x
+
+-- | Returns the fifth element of a quintuple.
+fifthOfFive :: (a, b, c, d, e) -> e
+fifthOfFive (_, _, _, _, x) = x

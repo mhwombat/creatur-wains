@@ -20,8 +20,9 @@ import Data.Word (Word8, Word16, Word32, Word64)
 import Text.Printf (printf)
 import Numeric (showHex)
 
+-- | Values that have a pretty format.
 class Pretty a where
-  -- Formats a value to make it easier for humans to read.
+  -- | Formats a value to make it easier for humans to read.
   pretty :: a -> String
 
   default pretty :: (Show a) => a -> String

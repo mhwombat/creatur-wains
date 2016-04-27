@@ -27,6 +27,9 @@ import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Data.List (foldl')
 import Data.Word (Word64)
 
+-- | Maintains a set of models to represent the input patterns
+--   encountered, and classifies the input patterns according to the
+--   models.
 type Classifier = S.GeneticSOM
 
 -- | @'buildClassifier' p n dt t@ returns a genetic SOM, using an

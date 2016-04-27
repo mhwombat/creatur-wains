@@ -49,6 +49,7 @@ instance (Eq a) => Tweaker (PredictorTweaker a) where
   diff _ = responseDiff
   adjust _ = makeResponseSimilar
 
+-- | A predictor predicts the outcome of a response to a scenario.
 type Predictor a = GeneticSOM (Response a) (PredictorTweaker a)
 
 -- | @'buildPredictor' e n dt@ returns a Predictor, using an
@@ -89,21 +90,34 @@ predict p r prob = (r', bmu, rawOutcomes, p')
           = adjustPM1Vector rawOutcomes adjustment zeroes
         r' = set outcomes adjustedOutcomes r
 
+-- | @'imprintOrReinforce' d ls a os deltas@ teaches the predictor that
+--   the action @a@ is a good response when facing the scenario @ls@.
+--   If this response is new to the predictor, it will store it as a
+--   model with outcomes @os@. If the response is known, the predictor
+--   will learn (reinforce) the model with @deltas@ added to its
+--   outcomes.
+--   Returns the label of the new or adjusted response model,
+--   the new or adjusted response model itself,
+--   and the updated predictor.
+--   Note: The current learning rate applies when reinforcing a model,
+--   so do not expect the new model to have new outcomes = previous
+--   outcomes + @deltas@.
 imprintOrReinforce
   :: (Eq a)
     => Predictor a -> [Label] -> a -> [PM1Double] -> [PM1Double]
-      -> Predictor a
+      -> (Label, Response a, Predictor a)
 imprintOrReinforce d ls a os deltas =
   if d `hasLabel` bmu
-    then dReinforced
-    else dImprinted
+    then (bmu, rReinforced, dReinforced)
+    else (bmu, rImprinted, dImprinted)
   where (bmu, dImprinted) = classifyAndMaybeCreateNewModel d rImprinted
         r = (modelMap d) M.! bmu
         rImprinted = Response ls a os
         rReinforced = deltas `addToOutcomes` r
         dReinforced = train d rReinforced
 
--- Don't modify existing models, but do permit a new one to be created.
+-- | Don't modify existing models, but do permit a new one to be
+--   created.
 classifyAndMaybeCreateNewModel
   :: (Eq a) => Predictor a -> Response a -> (Label, Predictor a)
 classifyAndMaybeCreateNewModel p r =
@@ -112,8 +126,12 @@ classifyAndMaybeCreateNewModel p r =
     else (bmu, p')
   where (bmu, _, _, p') = trainAndClassify p r
 
+-- | Returns the set of scenarios for which this predictor has response
+--   models.
 scenarios :: Predictor a -> [[Cl.Label]]
 scenarios = map (_labels . snd) . M.toList . modelMap
 
+-- | Returns @True@ if the predictor has a response for the scenarion;
+--   returns @False@ otherwise.
 hasScenario :: Predictor a -> [Cl.Label] -> Bool
 hasScenario p ls = ls `elem` (scenarios p)

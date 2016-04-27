@@ -33,14 +33,14 @@ import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 import Text.Printf (printf)
 
--- | A model of a scenario that a wain might encounter.
+-- | A model of a scenario that a wain might encounter
 data Response a = Response
   {
     -- | The classifier labels for the objects we're responding to
     _labels :: [Label],
     -- | Action
     _action :: a,
-    -- | Happiness level change (predicted or actual).
+    -- | Happiness level change (predicted or actual)
     _outcomes :: [PM1Double]
   } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Diploid,
                NFData )
@@ -65,6 +65,7 @@ responseDiff x y =
     then 1 - labelSimilarity (_labels x) (_labels y)
     else 1
 
+-- | Internal method
 labelSimilarity :: [Label] -> [Label] -> UIDouble
 labelSimilarity xs ys =
   if count == 0
@@ -74,12 +75,20 @@ labelSimilarity xs ys =
         count = length comparisons
         matchCount = length $ filter id comparisons
 
+-- | Internal method
 labelSimilarity' :: [Label] -> [Label] -> [Bool]
 labelSimilarity' (x:xs) (y:ys) = (x == y) : (labelSimilarity' xs ys)
 labelSimilarity' (_:xs) [] = False : (labelSimilarity' xs [])
 labelSimilarity' [] (_:ys) = False : (labelSimilarity' [] ys)
 labelSimilarity' [] [] = []
 
+-- | @'makeResponseSimilar' target r pattern@ returns a modified copy
+--   of @pattern@ that is more similar to @target@ than @pattern@ is.
+--   The magnitude of the adjustment is controlled by the @r@
+--   parameter, which should be a number between 0 and 1. Larger
+--   values for @r@ permit greater adjustments. If @r@=1,
+--   the result should be identical to the @target@. If @r@=0,
+--   the result should be the unmodified @pattern@.
 makeResponseSimilar
   :: Eq a
     => Response a -> UIDouble -> Response a -> Response a
@@ -95,6 +104,8 @@ makeResponseSimilar target r x =
 copyOutcomesTo :: Response a -> Response a -> Response a
 copyOutcomesTo source = set outcomes (_outcomes source)
 
+-- | Increment the outcomes in a response by the specified amount.
+--   Note: Outcomes are capped at 1.
 addToOutcomes :: [PM1Double] -> Response a -> Response a
 addToOutcomes deltas r = set outcomes ys r
   where xs = map pm1ToDouble . _outcomes $ r

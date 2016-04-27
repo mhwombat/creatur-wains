@@ -32,6 +32,9 @@ import Data.Serialize (Serialize)
 import Data.Word (Word8)
 import GHC.Generics (Generic)
 
+
+-- | Object responsible for generating potential responses for
+--   consideration.
 data Muser = Muser
   {
     -- | If a wain has no model for a response it's considering, it
@@ -57,6 +60,7 @@ instance Statistical Muser where
          dStat "default boredom outcome" . pm1ToDouble $ os !! 2,
          dStat "default litterSize outcome" . pm1ToDouble $ os !! 3]
 
+-- | Constructor
 makeMuser :: [PM1Double] -> Word8 -> Muser
 makeMuser os d =
   if d == 0
@@ -67,6 +71,8 @@ makeMuser os d =
 --   scenario is true, returns a list of responses to consider paired
 --   with the probability that the response is based on the correct
 --   scenario.
+--   This method only generates responses; it does not evaluate how
+--   suitable the response is.
 generateResponses
   :: (Bounded a, Enum a)
     => Muser -> [([Label], Probability)] -> [(Response a, Probability)]
@@ -74,12 +80,14 @@ generateResponses m sps = concatMap (generateResponses' m sps') as
   where sps' = bestHypotheses m sps
         as = [minBound .. maxBound]
 
+-- | Internal method
 generateResponses'
   :: (Bounded a, Enum a)
     => Muser -> [([Label], Probability)] -> a
       -> [(Response a, Probability)]
 generateResponses' m sps a = map (generateResponse m a) sps
 
+-- | Internal method
 generateResponse
   :: (Bounded a, Enum a)
     => Muser -> a -> ([Label], Probability)

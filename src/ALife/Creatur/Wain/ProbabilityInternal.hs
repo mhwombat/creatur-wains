@@ -24,10 +24,13 @@ import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
 -- | Estimated probability that a set of labels is accurate.
 type Probability = UIDouble
 
+-- | Returns a set of hypotheses about the scenario the wain is facing,
+--   paired with the estimated probability that each hypothesis is true.
 hypothesise
   :: [[(Label, Difference)]] -> [([Label], Probability)]
 hypothesise = map jointProbability . permute . diffsToProbs
 
+-- | Internal method.
 permute :: [[a]] -> [[a]]
 permute (xs:[]) = [ [y] | y <- xs ]
 permute (xs:xss) = [ y:ys | y <- xs, ys <- permute xss]

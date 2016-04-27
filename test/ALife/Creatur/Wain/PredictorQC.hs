@@ -28,6 +28,7 @@ module ALife.Creatur.Wain.PredictorQC
 import ALife.Creatur.Wain.PredictorInternal
 import ALife.Creatur.Wain.GeneticSOM (train)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM)
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
 import ALife.Creatur.Wain.Response (Response(..), labels, action,
   outcomes)
@@ -121,7 +122,8 @@ data ImprintTestData
         iPredictor :: TestPredictor,
         iResponse :: TestResponse,
         iOutcomes :: [PM1Double],
-        iDeltas :: [PM1Double]
+        iDeltas :: [PM1Double],
+        iProb :: UIDouble
       } deriving (Eq, Show)
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
@@ -134,22 +136,23 @@ sizedArbImprintTestData n = do
   let pm' = pm { diffThreshold=0.1 }
   let p' = set patternMap pm' p
   r <- arbTestResponse nObjects nConditions
-  os <- map getPositive <$> vectorOf nConditions (arbitrary :: Gen (Positive PM1Double))
-  ds <- map getPositive <$> vectorOf nConditions (arbitrary :: Gen (Positive PM1Double))
-  return $ ImprintTestData p' r os ds
+  os <- vectorOf nConditions $ choose (0.00001, 1)
+  ds <- vectorOf nConditions $ choose (0.00001, 1)
+  prob <- choose (0.1, 1)
+  return $ ImprintTestData p' r os ds prob
 
 instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
 
 prop_imprintOrReinforce_works :: ImprintTestData -> Property
-prop_imprintOrReinforce_works (ImprintTestData d r os ds) =
+prop_imprintOrReinforce_works (ImprintTestData d r os ds prob) =
   numModels d < maxSize d ==>
     and $ zipWith (>) (_outcomes r2) (_outcomes r1)
   where os0 = map (const (-1)) os
         r0 = set outcomes os0 r
-        (r1, _, _, _) = predict d r0 1
-        d2 = imprintOrReinforce d (view labels r) (view action r) os ds
-        (r2, _, _, _) = predict d2 r 1
+        (r1, _, _, _) = predict d r0 prob
+        (_, _, d2) = imprintOrReinforce d (view labels r) (view action r) os ds
+        (r2, _, _, _) = predict d2 r prob
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.PredictorQC"

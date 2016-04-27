@@ -18,8 +18,9 @@ module ALife.Creatur.Wain.Raw
 
 import Data.Word (Word8, Word16, Word32, Word64)
 
+-- | Values that have a "raw" format.
 class Raw a where
-  -- Formats a value to make it easier to process with sed, etc.
+  -- | Formats a value to make it easier to process with sed, etc.
   raw :: a -> String
 
   default raw :: (Show a) => a -> String

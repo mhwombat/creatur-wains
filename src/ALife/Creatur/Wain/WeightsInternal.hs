@@ -24,6 +24,7 @@ import Control.DeepSeq (NFData)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 
+-- | A sequence of weights for calculating weighted sums.
 data Weights = Weights [UIDouble]
   deriving (Eq, Show, Generic, Ord, Serialize, NFData)
   -- NOTE: Regarding Diploid instance, sum of weights will never be >1,
@@ -37,10 +38,13 @@ instance Diploid Weights where
   express (Weights xs) (Weights ys) = makeWeights zs
     where zs = express xs ys
 
+-- | Constructs a sequence of weights based on the input vector, but
+--   normalised so that the sum of the weights is 1.
 makeWeights :: [UIDouble] -> Weights
 makeWeights [] = Weights []
 makeWeights ws = Weights . normalise $ ws
 
+-- | Internal method
 normalise :: [UIDouble] -> [UIDouble]
 normalise ws
   | k == 0    = replicate n (doubleToUI (1 / fromIntegral n))
@@ -48,18 +52,22 @@ normalise ws
   where k = sum . map uiToDouble $ ws
         n = length ws
 
+-- | Internal method
 tweak :: [UIDouble] -> [UIDouble]
 tweak (x:xs) = if excess > 0 then (x - excess):xs else x:xs
   where excess = doubleToUI . max 0 $ s - 1
         s = sum . map uiToDouble $ (x:xs)
 tweak [] = error "tweak should not have been called"
 
+-- | Number of weights in a sequence.
 numWeights :: Weights -> Int
 numWeights (Weights xs) = length xs
 
+-- | Calculates the weighted sum of a sequence of values.
 weightedSum :: Weights -> [UIDouble] -> UIDouble
 weightedSum ws xs = sum $ zipWith (*) (toUIDoubles ws) xs
 
+-- | Extract the weights from a @Weights@ object.
 toUIDoubles :: Weights -> [UIDouble]
 toUIDoubles (Weights xs) = xs
 
@@ -76,8 +84,8 @@ toUIDoubles (Weights xs) = xs
 --         then randomWeights n -- try again
 --         else return $ Weights zs
 
--- If a weight isn't present in the list, the effect is the same as if
--- the weight were set to 0.
+-- | Returns the weight at a specified index in the sequence,
+--   or zero if there is no weight at that index.
 -- Weights are short lists, so the call to length isn't too
 -- inefficient.
 weightAt :: Weights -> Int -> UIDouble
@@ -86,6 +94,10 @@ weightAt w n = if length ws > n
                else 0
   where ws = toUIDoubles w
 
+-- | Calculates the weighted difference between two sequences of
+--   numbers.
+--   Returns a number between 0 and 1.
+--   A result of 0 indicates that the inputs are identical.
 weightedUIVectorDiff
   :: Weights -> [UIDouble] -> [UIDouble] -> UIDouble
 weightedUIVectorDiff ws xs ys

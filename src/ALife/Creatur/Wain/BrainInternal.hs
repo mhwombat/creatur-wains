@@ -54,6 +54,8 @@ import Text.Printf (printf)
 -- | A wain's condition
 type Condition = [UIDouble]
 
+-- | A brain which recommends reponses to stimuli, and learns from the
+--   outcomes.
 data Brain p t a = Brain
   {
     -- | Component that categorises and identifies patterns
@@ -68,16 +70,22 @@ data Brain p t a = Brain
     _tiebreaker :: Word8,
     -- | When a wain observes a response that it has never seen before,
     --   it will assume the action has the following outcomes.
+    --   Normally these values should all be positive.
     _imprintOutcomes :: [PM1Double],
     -- | when a wain observes a response that it already knows, it will
     --   reinforce the response using these delta outcomes to augment
     --   its model response.
+    --   Normally these values should all be positive.
     _reinforcementDeltas :: [PM1Double],
     -- | Number of times each action has been used
     _actionCounts :: M.Map a Int
   } deriving (Generic, Eq, NFData)
 makeLenses ''Brain
 
+-- | @'makeBrain' c m p hw t ios rds@ returns a brain with
+--   classifier @c@, muser @m@, predictor @p@, happiness weights @hw@,
+--   tiebreaker @t@, imprint outcomes @ios@, and reinforcement deltas
+--   @rds@. See @Brain@ for an explanation of these parameters.
 makeBrain
   :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights -> Word8
     -> [PM1Double] -> [PM1Double] -> Either [String] (Brain p t a)
@@ -149,15 +157,15 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
 --   Returns:
 --
 --   * for each object in the stimuli, the difference between that
---     object and each classifier model
+--     object and each classifier model paired with the model's label
 --   * the hypotheses considered, together with the probability that
 --     each hypothesis is true
 --   * the responses considered (with predicted outcomes filled in)
---     together with the probability that each response is based on a
---     correct hypothesis, the label of the predictor model upon which
---     the response is based, and the expected happiness after the
---     response
---   * the actions considered, paired with the expected happiness after
+--     together with the estimated probability that each response
+--     is based on a correct hypothesis, the label of the predictor
+--     model upon which the response is based, and the expected
+--     condition after the response
+--   * the actions considered, paired with the expected condition after
 --     the action
 --   * the chosen response
 --   * the updated brain
@@ -194,37 +202,45 @@ chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
         b3 = adjustActionCounts b2 r
         r = Response cBmus a os
 
+-- | Internal method
 errorIfNull :: String -> [a] -> [a]
 errorIfNull desc xs = if null xs
                         then error ("null " ++ desc)
                         else xs
 
+-- | Internal method
 onlyModelsIn :: Brain p t a -> [(Cl.Label, GSOM.Difference)] -> Bool
 onlyModelsIn b = and . map (GSOM.hasLabel (_classifier b) . fst)
 
+-- | Internal method
 maximaBy :: Ord b => (a -> b) -> [a] -> [a]
 maximaBy _ [] = error "maximaBy: empty list"
 maximaBy f xs = map snd . head . reverse . groupBy ((==) `on` fst)
                . sortBy (comparing fst) . map (\x -> (f x, x)) $ xs
 
+-- | Internal method
 chooseAny :: Brain p t a -> [x] -> x
 chooseAny b xs = xs !! (seed `mod` n)
   where seed = fromIntegral $ _tiebreaker b
         n = length xs -- the list will be short
 
+-- | Internal method
 fillInAdjustedHappiness
   :: Brain p t a -> Condition -> (a, [PM1Double])
     -> (a, [PM1Double], UIDouble)
 fillInAdjustedHappiness b c (a, os) = (a, os, adjustedHappiness b c os)
 
+-- | Internal method
 adjustedHappiness :: Brain p t a -> Condition -> [PM1Double] -> UIDouble
 adjustedHappiness b c = happiness b . adjustCondition c
 
+-- | Internal method
 adjustCondition :: Condition -> [PM1Double] -> Condition
 adjustCondition c os =
   map forceDoubleToUI $
     zipWith (+) (map uiToDouble c) (map pm1ToDouble os)
 
+-- | Internal method
 adjustActionCounts :: Ord a => Brain p t a -> Response a -> Brain p t a
 adjustActionCounts b r = set actionCounts cs' b
   where a = _action r
@@ -245,17 +261,20 @@ classifyInputs b ps = (bmus, ds, b')
   where (bmus, ds, c') = Cl.classifySetAndTrain (_classifier b) ps
         b' = set classifier c' b
 
+-- | Internal method
 sumByAction :: Eq a => [Response a] -> [(a, [PM1Double])]
 sumByAction rs = map sumByAction' rss
   where rss = groupBy sameAction rs
         sameAction x y = _action x == _action y
 
+-- | Internal method
 sumByAction' :: [Response a] -> (a, [PM1Double])
 sumByAction' [] = error "no responses to sum"
 sumByAction' rs = (a, os)
   where a = _action $ head rs
         os = sumTermByTerm $ map _outcomes rs
 
+-- | Internal method
 sumTermByTerm :: Num a => [[a]] -> [a]
 sumTermByTerm [] = []
 sumTermByTerm (xs:[]) = xs
@@ -281,6 +300,7 @@ predictAll
       -> [(Response a, Probability, P.Label, [PM1Double])]
 predictAll b rps = foldl' (predictOne b) [] rps
 
+-- | Internal method
 predictOne
   :: Eq a
     => Brain p t a
@@ -310,39 +330,53 @@ reflect b r cBefore cAfter = (set predictor d' b, err)
                    - uiToDouble (happiness b cBefore)
         err = abs (deltaH - predictedDeltaH)
 
--- | Teaches the brain that the last action taken was desirable.
+-- | Teaches the brain a desirable action to take in response to a
+--   stimulus.
 --   This can be used to help children learn by observing their parents.
 --   It can also be used to allow wains to learn from others.
+--   Returns the classifier labels paired with the difference of
+--   the associated model and the input patterns,
+--   the scenarios that were considered paired with their estimated
+--   probability, the label of the new or adjusted predictor model,
+--   the new or adjusted predictor model itself,
+--   and the updated brain.
 imprint
   :: Eq a
     => Brain p t a -> [p] -> a
       -> ([[(Cl.Label, GSOM.Difference)]],
             [([Cl.Label], Probability)],
-            Brain p t a)
-imprint b ps a = (lds, sps, imprintPredictor b' ls a)
-  where (_, lds, b') = classifyInputs b ps
+            P.Label, Response a, Brain p t a)
+imprint b ps a = (lds, sps, bmu, r, b3)
+  where (_, lds, b2) = classifyInputs b ps
         sps = errorIfNull "sps" $ hypothesise lds
         ls = fst . maximumBy (comparing snd) $ sps
+        (bmu, r, b3) = imprintPredictor b2 ls a
 
+-- | Internal method
 imprintPredictor
   :: Eq a
-    => Brain p t a -> [GSOM.Label] -> a -> Brain p t a
-imprintPredictor b ls a = set predictor d2 b
+    => Brain p t a -> [GSOM.Label] -> a
+      -> (P.Label, Response a, Brain p t a)
+imprintPredictor b ls a = (bmu, r, set predictor d2 b)
   where d = _predictor b
-        d2 = P.imprintOrReinforce d ls a os deltas
+        (bmu, r, d2) = P.imprintOrReinforce d ls a os deltas
         os = _imprintOutcomes b
         deltas = _reinforcementDeltas b
 
+-- | Evaluates a condition and reports the resulting happiness.
 happiness :: Brain p t a -> Condition -> UIDouble
 happiness b = weightedSum (_happinessWeights b)
 
+-- | A metric for how flexible a brain is at making decisions.
 decisionQuality :: Brain p t a -> Int
 decisionQuality = GSOM.discrimination . M.elems . _actionCounts
 
+-- | Generates a human readable summary of a stimulus.
 scenarioReport :: [([Cl.Label], Probability)] -> [String]
 scenarioReport = map f
   where f (s, p) = show s ++ " prob: " ++ prettyProbability p
 
+-- | Generates a human readable summary of a set of responses.
 responseReport
   :: Show a
     => [(Response a, Probability, P.Label, [PM1Double])] -> [String]
@@ -351,6 +385,7 @@ responseReport = map f
           ++ " based on model " ++ show l ++ " raw outcomes: "
           ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
 
+-- | Generates a human readable summary of a decision.
 decisionReport :: Show a => [(a, [PM1Double], UIDouble)] -> [String]
 decisionReport = map f
   where f (a, os, h) = "predicted outcomes of " ++ show a ++ " are "
@@ -358,6 +393,7 @@ decisionReport = map f
           ++ " with resulting happiness "
           ++ printf "%.3f" (uiToDouble h)
 
+-- | Internal method
 prettyProbability :: Probability -> String
 prettyProbability p = printf "%.3f" (uiToDouble p * 100) ++ "%"
 

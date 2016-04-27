@@ -103,12 +103,14 @@ applyToColumn :: ([Double] -> Double) -> [Statistic] -> Statistic
 applyToColumn f xs@(y:_) = y { sVal=f (map sVal xs) }
 applyToColumn _ [] = error "no data"
 
+-- | Lookup a value in a set of statistics by its key.
 lookup :: String -> [Statistic] -> Maybe Double
 lookup _ [] = Nothing
 lookup key (x:xs) = if key == sName x
                       then Just (sVal x)
                       else lookup key xs
 
+-- | Calculate the mean of a set of values.
 -- mean :: (Eq a, Fractional a, Foldable t) => t a -> a
 mean :: (Fractional a, Eq a) => [a] -> a
 mean xs
@@ -117,6 +119,7 @@ mean xs
   where (total, count) = foldr f (0, 0) xs
         f x (y, n) = (y+x, n+1)
 
+-- | Calculate the population variance of a set of values.
 -- popVariance :: (Eq a, Fractional a, Foldable t) => t a -> a
 popVariance :: (Fractional a, Eq a) => [a] -> a
 popVariance xs
@@ -126,6 +129,7 @@ popVariance xs
         f x (y, n) = (y + (x - mu)*(x - mu), n+1)
         mu = mean xs
 
+-- | Calculate the population standard deviation of a set of values.
 -- popStdDev :: (Eq a, Fractional a, Floating a, Foldable t) => t a -> a
 popStdDev :: [Double] -> Double
 popStdDev = sqrt . popVariance

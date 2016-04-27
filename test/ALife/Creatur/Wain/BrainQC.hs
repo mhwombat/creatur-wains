@@ -62,6 +62,22 @@ arbTestBrain cSize nObjects nConditions pSize = do
   let (Right b) = makeBrain c m p hw t ios rds
   return b
 
+-- Like arbTestBrain, except that imprint outcomes and reinforcement
+-- deltas are positive
+arbSensibleTestBrain :: Int -> Int -> Int -> Int -> Gen TestBrain
+arbSensibleTestBrain cSize nObjects nConditions pSize = do
+  c <- sizedArbGeneticSOM arbitrary cSize
+  os <- vectorOf nConditions arbitrary
+  d <- max 1 <$> arbitrary
+  let m = makeMuser os d
+  p <- D.arbTestPredictor nObjects nConditions pSize
+  hw <- makeWeights <$> vectorOf nConditions arbitrary
+  t <- arbitrary
+  ios <- vectorOf nConditions $ choose (0.0001, 1)
+  rds <- vectorOf nConditions $ choose (0.0001, 1)
+  let (Right b) = makeBrain c m p hw t ios rds
+  return b
+
 instance Arbitrary TestBrain where
   arbitrary = sized sizedArbTestBrain
 
@@ -153,7 +169,7 @@ sizedArbImprintTestData n = do
   -- nConditions <- choose (1, max 1 (n - cSize - nObjects))
   let nConditions = 4
   let pSize = n + 1
-  b <- arbTestBrain cSize nObjects nConditions pSize
+  b <- arbSensibleTestBrain cSize nObjects nConditions pSize
   ps <- vectorOf nObjects arbitrary
   a <- arbitrary
   c <- vectorOf nConditions arbitrary
@@ -180,7 +196,7 @@ prop_imprint_works (ImprintTestData b ps a _) = not (null ps)
         s = fst . maximumBy (comparing snd) . hypothesise $ lds
         r = Response s a badOutcomes
         ((rBefore, _, _, _):_) = predictAll bClassified [(r, 1)]
-        (_, _, bImprinted) = imprint bClassified ps a
+        (_, _, _, _, bImprinted) = imprint bClassified ps a
         ((rAfter, _, _, _):_) = predictAll bImprinted [(r, 1)]
 
 data ImprintEmptyBrainTestData
@@ -214,7 +230,7 @@ prop_imprint_works2 (ImprintEmptyBrainTestData b ps a c) = not (null ps)
   where badOutcomes = map (const (-1)) $ _imprintOutcomes b
         bModified = b { _muser = mModified }
         mModified = (_muser b) { _defaultOutcomes = badOutcomes }
-        (_, _, bImprinted) = imprint bModified ps a
+        (_, _, _, _, bImprinted) = imprint bModified ps a
         (_, _, _, _, r, _) = chooseAction bImprinted ps c
 
 -- imprintAll :: TestBrain -> [([TestPattern], TestAction)] -> TestBrain

@@ -49,6 +49,7 @@ import System.Random (Random(..), randomR)
 import Text.Printf (printf)
 import Text.Read (readPrec)
 
+-- | The interval -1 to 1, inclusive.
 interval :: (Double, Double)
 interval = (-1, 1)
 
@@ -76,6 +77,13 @@ forceDoubleToPM1 = doubleToPM1 . max (-1) . min 1
 pm1Apply :: (Double -> Double) -> PM1Double -> PM1Double
 pm1Apply f (PM1Double x) = doubleToPM1 (f x)
 
+-- | @'adjustPM1Double' target r pattern@ returns a modified copy
+  --   of @pattern@ that is more similar to @target@ than @pattern@ is.
+  --   The magnitude of the adjustment is controlled by the @r@
+  --   parameter, which should be a number between 0 and 1. Larger
+  --   values for @r@ permit greater adjustments. If @r@=1,
+  --   the result should be identical to the @target@. If @r@=0,
+  --   the result should be the unmodified @pattern@.
 adjustPM1Double :: PM1Double -> UIDouble -> PM1Double -> PM1Double
 adjustPM1Double (PM1Double target) r (PM1Double x)
   | inRange interval x' = doubleToPM1 x'
@@ -141,9 +149,15 @@ instance Random PM1Double where
   random = f <$> randomR (0,1)
     where f (x, y) = (doubleToPM1 x, y)
 
+-- | Returns a number between 0 and 1 which indicates how different
+--   the two inputs are. A result of 0 indicates that the
+--   inputs are identical.
 pm1Diff :: PM1Double -> PM1Double -> UIDouble
 pm1Diff (PM1Double x) (PM1Double y) = doubleToUI $ abs (x - y)/2
 
+-- | Returns a number between 0 and 1 which indicates how different
+--   the two input vectors are. A result of 0 indicates that the
+--   inputs are identical.
 pm1VectorDiff :: [PM1Double] -> [PM1Double] -> UIDouble
 pm1VectorDiff xs ys
   | null xs && null ys     = doubleToUI 0

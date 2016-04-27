@@ -44,7 +44,8 @@ type Label = Word64
 -- | A measure of the difference between an input pattern and a model.
 type Difference = UIDouble
 
--- | @'LearningParams' r0 d@ defines the first two parameters for
+-- | Private constructor.
+--   @'LearningParams' r0 d@ defines the first two parameters for
 --     a learning function.
 --   When t = 0, the learning rate is r0.
 --   Over time the learning rate decays,
@@ -55,6 +56,14 @@ type Difference = UIDouble
 data LearningParams = LearningParams UIDouble UIDouble Word64
   deriving (Eq, Show, Generic, NFData)
 
+-- | @'mkLearningParams' r0 d@ defines the first two parameters for
+--     a learning function.
+--   When t = 0, the learning rate is r0.
+--   Over time the learning rate decays,
+--   so that when t = tf, the learning rate is rf.
+--   Normally the parameters are chosen such that:
+--     0 < r0 <= 1
+--     0 < rf <= r0
 mkLearningParams :: UIDouble -> UIDouble -> Word64 -> LearningParams
 mkLearningParams r0 rf tf
   | r0 == 0   = error "r0 must be > 0"
@@ -70,8 +79,8 @@ instance Statistical LearningParams where
     = [dStat "r0" (uiToDouble r0), dStat "rf" (uiToDouble rf),
        iStat "tf" tf]
 
--- @'toLearningFunction' p t@ returns the learning rate at time @t@,
--- given an exponential learning function with parameters @p@.
+-- | @'toLearningFunction' p t@ returns the learning rate at time @t@,
+--   given an exponential learning function with parameters @p@.
 toLearningFunction :: LearningParams -> Word64 -> UIDouble
 toLearningFunction (LearningParams r0 rf tf) t
   | inRange (0,1) r = doubleToUI r
@@ -86,20 +95,30 @@ toLearningFunction (LearningParams r0 rf tf) t
         r0' = uiToDouble r0
         rf' = uiToDouble rf
 
+-- | A set of parameters to constrain the result when generating
+--   random learning functions.
 data RandomLearningParams = RandomLearningParams
   {
+    -- | The range from which the initial learning rate (at t=0)
+    --   should be chosen.
     _r0Range :: (UIDouble, UIDouble),
+    -- | The range from which the final learning rate (at t=@tf@)
+    --   should be chosen.
     _rfRange :: (UIDouble, UIDouble),
+    -- | The range from which the final time should be chosen.
     _tfRange :: (Word64, Word64)
   } deriving Show
 makeLenses ''RandomLearningParams
 
+-- | Range of values permitted for @r0@
 r0RangeLimits :: (UIDouble, UIDouble)
 r0RangeLimits = (doubleToUI (1/65535), 1)
 
+-- | Range of values permitted for @rf@
 rfRangeLimits :: (UIDouble, UIDouble)
 rfRangeLimits = (doubleToUI (1/65535), 1)
 
+-- | Range of values permitted for @rf@
 tfRangeLimits :: (Word64, Word64)
 tfRangeLimits = (1, maxBound)
 
@@ -139,7 +158,7 @@ instance (Ord k, Diploid p) => Diploid (M.Map k p) where
     where ks = M.keys gm1
           vs = express (M.elems gm1) (M.elems gm2)
 
--- | A "tweaker" is responsible for comparing and adjusting patterns.
+-- | A "tweaker" is responsible for comparing and adjusting models.
 class Tweaker t where
   type Pattern t
   -- | Compares two patterns and returns a /non-negative/ number
@@ -162,8 +181,11 @@ class Tweaker t where
 data GeneticSOM p t =
   GeneticSOM
     {
+      -- | The models
       _patternMap :: SOM.SGM Word64 UIDouble Label p,
+      -- | The parameters that define the learning function
       _learningParams :: LearningParams,
+      -- | The object responsible for comparing and adjusting models.
       _tweaker :: t
     } deriving (Generic, NFData)
 makeLenses ''GeneticSOM
@@ -323,11 +345,12 @@ currentLearningRate s
 schemaQuality :: GeneticSOM p t -> Int
 schemaQuality = discrimination . M.elems . SOM.counterMap . _patternMap
 
+-- | Internal method.
 discrimination :: Integral a => [a] -> Int
 discrimination xs = length $ filter (>k) xs
   where k = sum xs `div` fromIntegral (2 * length xs)
 
--- | Returns true if the SOM has no models, false otherwise.
+-- | Returns @True@ if the SOM has no models, @False@ otherwise.
 isEmpty :: GeneticSOM p t -> Bool
 isEmpty = SOM.isEmpty . _patternMap
 
@@ -373,5 +396,8 @@ train gs p = set patternMap s' gs
   where s' = SOM.train s p
         s = view patternMap gs
 
+
+-- | Returns @True@ if the SOM has a model with the specified label;
+--   returns @False@ otherwise.
 hasLabel :: GeneticSOM p t -> Label -> Bool
 hasLabel gs l = M.member l (modelMap gs)

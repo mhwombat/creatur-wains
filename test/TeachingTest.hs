@@ -29,7 +29,7 @@ import ALife.Creatur.Wain.ResponseQC (TestAction(..))
 import ALife.Creatur.Wain.Statistics (stats)
 import ALife.Creatur.Wain.TestUtils (TestPattern(..))
 import ALife.Creatur.Wain.UnitInterval (uiToDouble)
-import ALife.Creatur.Wain.Util (thirdOfTriple)
+import ALife.Creatur.Wain.Util (fifthOfFive)
 import ALife.Creatur.Wain.Weights (makeWeights)
 import Control.Lens
 import Control.Monad (foldM_)
@@ -62,7 +62,7 @@ imprint'
   :: [TestPattern] -> TestAction
     -> Wain TestPattern TestTweaker TestAction
     -> Wain TestPattern TestTweaker TestAction
-imprint' w ps a = thirdOfTriple $ imprint w ps a
+imprint' w ps a = fifthOfFive $ imprint w ps a
 
 testWain :: Wain TestPattern TestTweaker TestAction
 testWain = imprintAll w'
