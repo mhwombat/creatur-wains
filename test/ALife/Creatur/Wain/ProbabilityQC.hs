@@ -20,10 +20,11 @@ module ALife.Creatur.Wain.ProbabilityQC
   ) where
 
 import ALife.Creatur.Wain.ProbabilityInternal
-import ALife.Creatur.Wain.GeneticSOMInternal (Difference)
+import ALife.Creatur.Wain.GeneticSOMInternal (Difference, Label)
 import ALife.Creatur.Wain.UnitInterval (uiToDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
 import Data.List (nub)
+import Data.Word (Word8)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -73,13 +74,13 @@ sizedArbTestSignatures n = do
 instance Arbitrary TestSignatures where
   arbitrary = sized sizedArbTestSignatures
 
-prop_hypothesis_probabilities_eq_1 :: TestSignatures -> Property
-prop_hypothesis_probabilities_eq_1 (TestSignatures lds) = property $
+prop_hypothesis_probabilities_eq_1 :: Word8 -> TestSignatures -> Property
+prop_hypothesis_probabilities_eq_1 s (TestSignatures lds) = s >= 1 ==>
   (sum . map (uiToDouble . snd) $ hps) `equiv` 1
-  where hps = hypothesise lds
+  where hps = hypothesise s lds
 
 test :: Test
-test = testGroup "ALife.Creatur.Wain.ResponseQC"
+test = testGroup "ALife.Creatur.Wain.ProbabilityQC"
   [
     testProperty "prop_number_of_permutations_is_correct"
       prop_number_of_permutations_is_correct,

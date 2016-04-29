@@ -68,6 +68,10 @@ data Brain p t a = Brain
     _happinessWeights :: Weights,
     -- | Used to break ties when actions seem equally promising
     _tiebreaker :: Word8,
+    -- | Controls how willing the wain is to consider alternative
+    --   classifications when making decisions.
+    --   Must be >= 1.
+    _strictness :: Word8,
     -- | When a wain observes a response that it has never seen before,
     --   it will assume the action has the following outcomes.
     --   Normally these values should all be positive.
@@ -88,8 +92,11 @@ makeLenses ''Brain
 --   @rds@. See @Brain@ for an explanation of these parameters.
 makeBrain
   :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights -> Word8
-    -> [PM1Double] -> [PM1Double] -> Either [String] (Brain p t a)
-makeBrain c m p hw t ios rds
+     -> Word8 -> [PM1Double] -> [PM1Double]
+     -> Either [String] (Brain p t a)
+makeBrain c m p hw t x ios rds
+  | x < 1
+      = Left ["strictness < 1"]
   | numWeights hw /= 4
       = Left ["incorrect number of happiness weights"]
   | length (_defaultOutcomes m) /= 4
@@ -97,7 +104,7 @@ makeBrain c m p hw t ios rds
   | length ios /= 4
       = Left ["incorrect number of imprint outcomes"]
   | otherwise
-      = Right $ Brain c m p hw t ios rds M.empty
+      = Right $ Brain c m p hw t x ios rds M.empty
 
 instance (Serialize p, Serialize t, Serialize a, Eq a, Ord a,
   GSOM.Tweaker t, p ~ GSOM.Pattern t)
@@ -109,7 +116,7 @@ instance (Diploid p, Diploid t, Diploid a, Eq a, Ord a, GSOM.Tweaker t,
 
 instance (Eq a, Ord a)
       => Statistical (Brain p t a) where
-  stats b@(Brain c m p hw t ios rds _) =
+  stats b@(Brain c m p hw t s ios rds _) =
     map (prefix "classifier ") (stats c)
     ++ (stats m)
     ++ map (prefix "predictor ") (stats p)
@@ -126,29 +133,34 @@ instance (Eq a, Ord a)
          dStat "passionReinforcement" . pm1ToDouble $ rds !! 1,
          dStat "boredomReinforcement" . pm1ToDouble $ rds !! 2,
          dStat "litterSizeReinforcement" . pm1ToDouble $ rds !! 3,
-         iStat "tiebreaker" t ]
+         iStat "tiebreaker" t,
+         iStat "strictness" s]
 
 instance (Show p, Show a, Show t, Eq a)
       => Show (Brain p t a) where
-  show (Brain c m p hw t ios rds ks) = "Brain (" ++ show c ++ ") ("
+  show (Brain c m p hw t s ios rds ks) = "Brain (" ++ show c ++ ") ("
     ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") "
-    ++ show t ++ " " ++ show ios ++ show rds ++ " (" ++ show ks ++ ")"
+    ++ show t ++ " " ++ show s ++ " " ++ show ios ++ show rds
+    ++ " (" ++ show ks ++ ")"
 
 instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
           p ~ GSOM.Pattern t)
     => Genetic (Brain p t a) where
-    put (Brain c m p hw t ios rds _)
-      = put c >> put m >> put p >> put hw >> put t >> put ios >> put rds
+    put (Brain c m p hw t s ios rds _)
+      = put c >> put m >> put p >> put hw >> put t >> put s >> put ios
+          >> put rds
     get = do
       c <- get
       m <- get
       p <- get
       hw <- get
       t <- get
+      s <- get
       ios <- get
       rds <- get
       -- Use the safe constructor!
-      case (makeBrain <$> c <*> m <*> p <*> hw <*> t <*> ios <*> rds) of
+      case (makeBrain <$> c <*> m <*> p <*> hw <*> t <*> s <*> ios
+             <*> rds) of
         Left msgs -> return $ Left msgs
         Right b   -> return b
 
@@ -188,7 +200,7 @@ chooseAction
             Brain p t a)
 chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
   where (cBmus, lds, b2) = classifyInputs b ps
-        sps = errorIfNull "sps" $ hypothesise lds
+        sps = errorIfNull "sps" $ hypothesise (_strictness b) lds
         sps' = filter (P.hasScenario (_predictor b) . fst) sps
         spsSafe = if null sps'
                     then sps -- nothing to base estimate on; have to guess
@@ -348,7 +360,7 @@ imprint
             P.Label, Response a, Brain p t a)
 imprint b ps a = (lds, sps, bmu, r, b3)
   where (_, lds, b2) = classifyInputs b ps
-        sps = errorIfNull "sps" $ hypothesise lds
+        sps = errorIfNull "sps" $ hypothesise 1 lds
         ls = fst . maximumBy (comparing snd) $ sps
         (bmu, r, b3) = imprintPredictor b2 ls a
 

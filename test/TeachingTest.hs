@@ -19,15 +19,14 @@ import ALife.Creatur.Wain.BrainInternal (classifier, predictor,
   decisionQuality)
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (LearningParams(..),
-  buildGeneticSOM, modelMap, schemaQuality)
+  buildGeneticSOM, modelMap, schemaQuality, currentLearningRate)
 import ALife.Creatur.Wain.Muser (makeMuser)
-import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1)
 import ALife.Creatur.Wain.Predictor (PredictorTweaker(..))
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Response (action, outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction(..))
 import ALife.Creatur.Wain.Statistics (stats)
-import ALife.Creatur.Wain.TestUtils (TestPattern(..))
+import ALife.Creatur.Wain.TestUtils (TestPattern(..), testPatternDiff)
 import ALife.Creatur.Wain.UnitInterval (uiToDouble)
 import ALife.Creatur.Wain.Util (fifthOfFive)
 import ALife.Creatur.Wain.Weights (makeWeights)
@@ -68,22 +67,23 @@ testWain :: Wain TestPattern TestTweaker TestAction
 testWain = imprintAll w'
   where wName = "Fred"
         wAppearance = TestPattern 0
-        (Right wBrain) = makeBrain wClassifier wMuser wPredictor wHappinessWeights 1 wIos wRds
+        (Right wBrain) = makeBrain wClassifier wMuser wPredictor wHappinessWeights 1 32 wIos wRds
         wDevotion = 0.1
         wAgeOfMaturity = 100
         wPassionDelta = 0
         wBoredomDelta = 0
-        wClassifier = buildGeneticSOM ec 10 0.02 TestTweaker
+        threshold = testPatternDiff (TestPattern 25) (TestPattern 74)
+        wClassifier = buildGeneticSOM ec 10 threshold TestTweaker
         wMuser = makeMuser [0, 0, 0, 0] 2
-        wIos = [doubleToPM1 reward, 0, 0, 0]
-        wRds = [doubleToPM1 reward, 0, 0, 0]
+        wIos = [0.01, 0, 0, 0]
+        wRds = [0.01, 0, 0, 0]
         wPredictor = buildGeneticSOM ep 50 0.1 PredictorTweaker
         wHappinessWeights = makeWeights [1, 0, 0, 0]
-        ec = LearningParams 1 0.001 10000
+        ec = LearningParams 0.01 0.0001 10000
         -- This wain will be taught the correct actions up front.
         -- After storing those initial action models, it doesn't need to
         -- learn anything.
-        ep = LearningParams 1 0.001 10000
+        ep = LearningParams 0.01 0.0001 10000
         w = buildWainAndGenerateGenome wName wAppearance wBrain
               wDevotion wAgeOfMaturity wPassionDelta wBoredomDelta
         (w', _) = adjustEnergy 0.5 w
@@ -98,8 +98,10 @@ tryOne w p = do
   describeClassifierModels w
   putStrLn "Initial decision models"
   describePredictorModels w
+  putStrLn $ "Wain sees " ++ show p
   let (lds, sps, rplos, aos, r, wainAfterDecision) = chooseAction [p] w
-  let (cBMU, cDiff) = minimumBy (comparing snd) . head $ lds
+  putStrLn $ "lds=" ++ show lds
+  let (cBMU, _) = minimumBy (comparing snd) . head $ lds
   mapM_ putStrLn $ scenarioReport sps
   mapM_ putStrLn $ responseReport rplos
   mapM_ putStrLn $ decisionReport aos
@@ -108,7 +110,7 @@ tryOne w p = do
   -- describePredictorModels wainAfterDecision
   let a = view action r
   let deltaE = energyFor p a
-  putStrLn $ "Wain sees " ++ show p ++ ", classifies it as "
+  putStrLn $ "Wain classifies " ++ show p ++ " as "
     ++ show cBMU ++ " and chooses to " ++ show a
     ++ " predicting the outcomes " ++ show (view outcomes r)
   let (wainRewarded, _) = adjustEnergy deltaE wainAfterDecision
@@ -124,8 +126,10 @@ tryOne w p = do
   -- keep the wain's energy constant
   let restorationEnergy = uiToDouble (view energy w) - uiToDouble (view energy wainRewarded)
   let (wainFinal, _) = adjustEnergy restorationEnergy wainAfterReflection
+  putStrLn $ "classifier learning rate=" ++ show (currentLearningRate $ view (brain . classifier) w)
   putStrLn "Final classifier models"
   describeClassifierModels wainFinal
+  putStrLn $ "predictor learning rate=" ++ show (currentLearningRate $ view (brain . predictor) w)
   putStrLn "Final decision models"
   describePredictorModels wainFinal
   putStrLn $ "classifier SQ=" ++ show (schemaQuality . view (brain . classifier) $ w)

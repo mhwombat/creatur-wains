@@ -51,7 +51,7 @@ data Muser = Muser
 makeLenses ''Muser
 
 instance Show Muser where
-  show (Muser o d) = "makeMuser (" ++ show o ++ ") " ++ show d
+  show (Muser o d) = "makeMuser " ++ show o ++ " " ++ show d
 
 instance Statistical Muser where
   stats (Muser os d) = [iStat "depth" d,
@@ -62,10 +62,9 @@ instance Statistical Muser where
 
 -- | Constructor
 makeMuser :: [PM1Double] -> Word8 -> Muser
-makeMuser os d =
-  if d == 0
-    then error "zero depth"
-    else Muser os d
+makeMuser os d
+ | d == 0     = error "zero depth"
+ | otherwise =  Muser os d
 
 -- | Given a set of scenarios paired with the probability that each
 --   scenario is true, returns a list of responses to consider paired

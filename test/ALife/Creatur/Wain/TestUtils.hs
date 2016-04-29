@@ -137,8 +137,8 @@ instance Arbitrary TestPattern where
   arbitrary = TestPattern <$> arbitrary
 
 testPatternDiff :: TestPattern -> TestPattern -> UIDouble
-testPatternDiff (TestPattern x) (TestPattern y) = d*d
-  where d = doubleToUI $ abs (fromIntegral x - fromIntegral y) / 255
+testPatternDiff (TestPattern x) (TestPattern y)
+  = doubleToUI $ abs (fromIntegral x - fromIntegral y) / 255
 
 makeTestPatternSimilar
   :: TestPattern -> UIDouble -> TestPattern -> TestPattern

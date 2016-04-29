@@ -131,7 +131,7 @@ classifyAndMaybeCreateNewModel p r =
 scenarios :: Predictor a -> [[Cl.Label]]
 scenarios = map (_labels . snd) . M.toList . modelMap
 
--- | Returns @True@ if the predictor has a response for the scenarion;
+-- | Returns @True@ if the predictor has a response for the scenario;
 --   returns @False@ otherwise.
 hasScenario :: Predictor a -> [Cl.Label] -> Bool
 hasScenario p ls = ls `elem` (scenarios p)

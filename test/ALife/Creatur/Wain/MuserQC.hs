@@ -44,17 +44,17 @@ equivMuser x y
       && _depth x == _depth y
 
 test :: Test
-test = testGroup "ALife.Creatur.Wain.ResponseQC"
+test = testGroup "ALife.Creatur.Wain.MuserQC"
   [
-    testProperty "prop_serialize_round_trippable - Response"
+    testProperty "prop_serialize_round_trippable - Muser"
       (prop_serialize_round_trippable :: Muser -> Property),
-    testProperty "prop_genetic_round_trippable - Response"
+    testProperty "prop_genetic_round_trippable - Muser"
       (prop_genetic_round_trippable equivMuser :: Muser -> Property),
-    testProperty "prop_diploid_identity - Response"
+    testProperty "prop_diploid_identity - Muser"
       (prop_diploid_identity (==) :: Muser -> Property),
-    testProperty "prop_diploid_expressable - Response"
+    testProperty "prop_diploid_expressable - Muser"
       (prop_diploid_expressable
        :: Muser -> Muser -> Property),
-    testProperty "prop_diploid_readable - Response"
+    testProperty "prop_diploid_readable - Muser"
       (prop_diploid_readable :: Muser -> Muser -> Property)
   ]

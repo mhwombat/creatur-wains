@@ -20,6 +20,7 @@ module ALife.Creatur.Wain.ProbabilityInternal where
 import ALife.Creatur.Wain.GeneticSOM (Difference, Label)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
+import Data.Word (Word8)
 
 -- | Estimated probability that a set of labels is accurate.
 type Probability = UIDouble
@@ -27,8 +28,8 @@ type Probability = UIDouble
 -- | Returns a set of hypotheses about the scenario the wain is facing,
 --   paired with the estimated probability that each hypothesis is true.
 hypothesise
-  :: [[(Label, Difference)]] -> [([Label], Probability)]
-hypothesise = map jointProbability . permute . diffsToProbs
+  :: Word8 -> [[(Label, Difference)]] -> [([Label], Probability)]
+hypothesise x = map jointProbability . permute . diffsToProbs x
 
 -- | Internal method.
 permute :: [[a]] -> [[a]]
@@ -45,25 +46,36 @@ jointProbability xs = (ls, prob)
         prob = product . map snd $ xs
 
 -- | Make the sum of the probabilities be one.
-normalise :: Fractional a => [a] -> [a]
-normalise xs = map (/x) xs
+normalise :: (Eq a, Fractional a) => [a] -> [a]
+normalise xs
+  | x == 0     = map (const (1/fromIntegral (length xs))) xs
+  | otherwise = map (/x) xs
   where x = sum xs
 
 -- | Given the signature for one input pattern, calculate the
 --   probability that the pattern should match each classifier model.
-diffsToProbs :: [[(Label, Difference)]] -> [[(Label, Probability)]]
-diffsToProbs = map diffsToProbs2
+diffsToProbs :: Word8 -> [[(Label, Difference)]] -> [[(Label, Probability)]]
+diffsToProbs x = map (diffsToProbs2 x)
 
 -- | Given the signature for one input pattern, calculate the
 --   probability that the pattern should match each classifier model.
-diffsToProbs2 :: [(Label, Difference)] -> [(Label, Probability)]
-diffsToProbs2 lds = zip ls ps
+diffsToProbs2 :: Word8 -> [(Label, Difference)] -> [(Label, Probability)]
+diffsToProbs2 x lds = zip ls ps
   where ls = map fst lds
         ds = map snd lds
-        ps = diffsToProbs1 ds
+        ps = diffsToProbs1 x ds
 
 -- | Given a set of differences between an input pattern and a model,
 --   calculate the probability that the pattern should match each model.
-diffsToProbs1 :: [Difference] -> [Probability]
-diffsToProbs1 ds = map doubleToUI . normalise . map uiToDouble $ ps
-  where ps = map (\d -> 1 - d) ds
+diffsToProbs1 :: Word8 -> [Difference] -> [Probability]
+diffsToProbs1 x ds = map doubleToUI . normalise . map uiToDouble $ ps
+  where ps = map (diffToProb x) ds
+
+-- | @'diffToProb' x d@ converts a difference metric @d@
+--   into an estimated probability that the classification is "sound".
+--   The parameter @x@ controls how quickly the probability falls as
+--   the difference increases.
+diffToProb :: Word8 -> UIDouble -> UIDouble
+diffToProb x d = doubleToUI $ 1 - exp(1 - 1/(1 - (1 - d')^x'))
+  where x' = fromIntegral x :: Int
+        d' = uiToDouble d

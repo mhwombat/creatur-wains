@@ -57,9 +57,10 @@ arbTestBrain cSize nObjects nConditions pSize = do
   p <- D.arbTestPredictor nObjects nConditions pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
+  s <- choose (1, 255)
   ios <- vectorOf nConditions $ choose (-0.9999, 1)
   rds <- vectorOf nConditions $ choose (-0.9999, 1)
-  let (Right b) = makeBrain c m p hw t ios rds
+  let (Right b) = makeBrain c m p hw t s ios rds
   return b
 
 -- Like arbTestBrain, except that imprint outcomes and reinforcement
@@ -73,9 +74,10 @@ arbSensibleTestBrain cSize nObjects nConditions pSize = do
   p <- D.arbTestPredictor nObjects nConditions pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
+  s <- choose (1, 255)
   ios <- vectorOf nConditions $ choose (0.0001, 1)
   rds <- vectorOf nConditions $ choose (0.0001, 1)
-  let (Right b) = makeBrain c m p hw t ios rds
+  let (Right b) = makeBrain c m p hw t s ios rds
   return b
 
 instance Arbitrary TestBrain where
@@ -102,9 +104,10 @@ arbEmptyTestBrain cSize nConditions pSize = do
   p <- D.arbEmptyTestPredictor pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
+  s <- choose (1, 255)
   ios <- vectorOf nConditions $ choose (0.01, 1)
   rds <- vectorOf nConditions $ choose (0.01, 1)
-  let (Right b) = makeBrain c m p hw t ios rds
+  let (Right b) = makeBrain c m p hw t s ios rds
   return b
 
 data ReflectionTestData
@@ -193,7 +196,7 @@ prop_imprint_works (ImprintTestData b ps a _) = not (null ps)
         bModified = b { _imprintOutcomes = goodOutcomes,
                         _muser = mModified }
         (_, lds, bClassified) = classifyInputs bModified ps
-        s = fst . maximumBy (comparing snd) . hypothesise $ lds
+        s = fst . maximumBy (comparing snd) . hypothesise (_strictness b) $ lds
         r = Response s a badOutcomes
         ((rBefore, _, _, _):_) = predictAll bClassified [(r, 1)]
         (_, _, _, _, bImprinted) = imprint bClassified ps a
