@@ -67,7 +67,7 @@ testWain :: Wain TestPattern TestTweaker TestAction
 testWain = imprintAll w'
   where wName = "Fred"
         wAppearance = TestPattern 0
-        (Right wBrain) = makeBrain wClassifier wMuser wPredictor wHappinessWeights 1 32 wIos wRds
+        (Right wBrain) = makeBrain wClassifier wMuser wPredictor wHappinessWeights 1 128 wIos wRds
         wDevotion = 0.1
         wAgeOfMaturity = 100
         wPassionDelta = 0

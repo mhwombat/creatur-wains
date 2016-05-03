@@ -24,7 +24,7 @@ import ALife.Creatur.Wain.GeneticSOMInternal (Difference, Label)
 import ALife.Creatur.Wain.UnitInterval (uiToDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
 import Data.List (nub)
-import Data.Word (Word8)
+import Data.Word (Word64)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -74,7 +74,7 @@ sizedArbTestSignatures n = do
 instance Arbitrary TestSignatures where
   arbitrary = sized sizedArbTestSignatures
 
-prop_hypothesis_probabilities_eq_1 :: Word8 -> TestSignatures -> Property
+prop_hypothesis_probabilities_eq_1 :: Word64 -> TestSignatures -> Property
 prop_hypothesis_probabilities_eq_1 s (TestSignatures lds) = s >= 1 ==>
   (sum . map (uiToDouble . snd) $ hps) `equiv` 1
   where hps = hypothesise s lds

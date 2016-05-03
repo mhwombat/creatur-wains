@@ -20,7 +20,7 @@ module ALife.Creatur.Wain.ProbabilityInternal where
 import ALife.Creatur.Wain.GeneticSOM (Difference, Label)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
-import Data.Word (Word8)
+import Data.Word (Word64)
 
 -- | Estimated probability that a set of labels is accurate.
 type Probability = UIDouble
@@ -28,7 +28,7 @@ type Probability = UIDouble
 -- | Returns a set of hypotheses about the scenario the wain is facing,
 --   paired with the estimated probability that each hypothesis is true.
 hypothesise
-  :: Word8 -> [[(Label, Difference)]] -> [([Label], Probability)]
+  :: Word64 -> [[(Label, Difference)]] -> [([Label], Probability)]
 hypothesise x = map jointProbability . permute . diffsToProbs x
 
 -- | Internal method.
@@ -54,12 +54,12 @@ normalise xs
 
 -- | Given the signature for one input pattern, calculate the
 --   probability that the pattern should match each classifier model.
-diffsToProbs :: Word8 -> [[(Label, Difference)]] -> [[(Label, Probability)]]
+diffsToProbs :: Word64 -> [[(Label, Difference)]] -> [[(Label, Probability)]]
 diffsToProbs x = map (diffsToProbs2 x)
 
 -- | Given the signature for one input pattern, calculate the
 --   probability that the pattern should match each classifier model.
-diffsToProbs2 :: Word8 -> [(Label, Difference)] -> [(Label, Probability)]
+diffsToProbs2 :: Word64 -> [(Label, Difference)] -> [(Label, Probability)]
 diffsToProbs2 x lds = zip ls ps
   where ls = map fst lds
         ds = map snd lds
@@ -67,7 +67,7 @@ diffsToProbs2 x lds = zip ls ps
 
 -- | Given a set of differences between an input pattern and a model,
 --   calculate the probability that the pattern should match each model.
-diffsToProbs1 :: Word8 -> [Difference] -> [Probability]
+diffsToProbs1 :: Word64 -> [Difference] -> [Probability]
 diffsToProbs1 x ds = map doubleToUI . normalise . map uiToDouble $ ps
   where ps = map (diffToProb x) ds
 
@@ -75,7 +75,7 @@ diffsToProbs1 x ds = map doubleToUI . normalise . map uiToDouble $ ps
 --   into an estimated probability that the classification is "sound".
 --   The parameter @x@ controls how quickly the probability falls as
 --   the difference increases.
-diffToProb :: Word8 -> UIDouble -> UIDouble
+diffToProb :: Word64 -> UIDouble -> UIDouble
 diffToProb x d = doubleToUI $ 1 - exp(1 - 1/(1 - (1 - d')^x'))
   where x' = fromIntegral x :: Int
         d' = uiToDouble d

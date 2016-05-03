@@ -47,7 +47,7 @@ import Data.List (intercalate, maximumBy, groupBy, sortBy, foldl')
 import qualified Data.Map.Strict as M
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
-import Data.Word (Word8)
+import Data.Word (Word8, Word64)
 import GHC.Generics (Generic)
 import Text.Printf (printf)
 
@@ -71,14 +71,14 @@ data Brain p t a = Brain
     -- | Controls how willing the wain is to consider alternative
     --   classifications when making decisions.
     --   Must be >= 1.
-    _strictness :: Word8,
+    _strictness :: Word64,
     -- | When a wain observes a response that it has never seen before,
     --   it will assume the action has the following outcomes.
     --   Normally these values should all be positive.
     _imprintOutcomes :: [PM1Double],
-    -- | when a wain observes a response that it already knows, it will
-    --   reinforce the response using these delta outcomes to augment
-    --   its model response.
+    -- | When a wain observes a response that it already knows, it will
+    --   reinforce it by re-learning the model augmented with these
+    --   delta outcomes.
     --   Normally these values should all be positive.
     _reinforcementDeltas :: [PM1Double],
     -- | Number of times each action has been used
@@ -92,7 +92,7 @@ makeLenses ''Brain
 --   @rds@. See @Brain@ for an explanation of these parameters.
 makeBrain
   :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights -> Word8
-     -> Word8 -> [PM1Double] -> [PM1Double]
+     -> Word64 -> [PM1Double] -> [PM1Double]
      -> Either [String] (Brain p t a)
 makeBrain c m p hw t x ios rds
   | x < 1
