@@ -43,7 +43,7 @@ import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum,
 import Control.DeepSeq (NFData)
 import Control.Lens
 import Data.Function (on)
-import Data.List (intercalate, maximumBy, groupBy, sortBy, foldl')
+import Data.List (intercalate, groupBy, sortBy, foldl')
 import qualified Data.Map.Strict as M
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
@@ -270,7 +270,8 @@ classifyInputs
     -> ([Cl.Label], [[(Cl.Label, GSOM.Difference)]],
         Brain p t a)
 classifyInputs b ps = (bmus, ds, b')
-  where (bmus, ds, c') = Cl.classifySetAndTrain (_classifier b) ps
+  where (bmus, ds, c')
+          = Cl.classifySetAndTrain (_classifier b) ps
         b' = set classifier c' b
 
 -- | Internal method
@@ -361,7 +362,7 @@ imprint
 imprint b ps a = (lds, sps, bmu, r, b3)
   where (_, lds, b2) = classifyInputs b ps
         sps = errorIfNull "sps" $ hypothesise 1 lds
-        ls = fst . maximumBy (comparing snd) $ sps
+        ls = fst . head $ sps
         (bmu, r, b3) = imprintPredictor b2 ls a
 
 -- | Internal method

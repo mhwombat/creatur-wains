@@ -43,24 +43,34 @@ buildClassifier = S.buildGeneticSOM
 
 -- | Updates the classifier models based on the stimulus (set of
 --   input patterns).
---   Returns the "signature" (differences between the input pattern
---   and each model in the classifier) of each input pattern,
---   and the updated classifier.
+--   Returns the labels of the (possibly new) models that are closest
+--   to each input pattern,
+--   the SGM labels paired with the difference between the
+--   inputs and the corresponding model,
+--   the labels of the already existing models that are closest to each
+--   input, and the updated classifier.
 classifySetAndTrain
   :: Classifier s t -> [s]
     -> ([S.Label], [[(S.Label, S.Difference)]], Classifier s t)
-classifySetAndTrain c ps = (reverse bmus, reverse diffs, c')
-  where (bmus, diffs, c') = foldl' classifyNextAndTrain ([], [], c) ps
+classifySetAndTrain c ps
+  = (reverse bmus, reverse diffs, c')
+  where (bmus, diffs, c')
+          = foldl' classifyNextAndTrain ([], [], c) ps
 
 classifyNextAndTrain
   :: ([S.Label], [[(S.Label, S.Difference)]], Classifier s t)
-    -> s -> ([S.Label], [[(S.Label, S.Difference)]], Classifier s t)
-classifyNextAndTrain (bmus, diffs, c) p = (bmu:bmus, d:diffs, c')
+    -> s
+    -> ([S.Label], [[(S.Label, S.Difference)]], Classifier s t)
+classifyNextAndTrain (bmus, diffs, c) p
+  = (bmu:bmus, d:diffs, c')
   where (bmu, d, c') = classifyAndTrain c p
 
 -- | Updates the classifier models based on the input pattern.
---   Returns the "signature" (differences between the input pattern
---   and each model in the classifier) and the updated classifier.
+--   Returns the label of the closest (possibly new) model,
+--   the SGM labels paired  with the difference between the
+--   input and the corresponding model,
+--   the label of the closest already existing model,
+--   and the updated classifier.
 classifyAndTrain
   :: Classifier s t -> s
     -> (S.Label, [(S.Label, S.Difference)], Classifier s t)

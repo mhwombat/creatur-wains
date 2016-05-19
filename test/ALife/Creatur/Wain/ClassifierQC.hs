@@ -76,8 +76,16 @@ prop_classifier_behaves_like_sgm c p =
         sModels = M.elems . SOM.modelMap $ s'
 
 prop_classifier_behaves_like_sgm2
+  :: TestClassifier -> TestPattern -> Property
+prop_classifier_behaves_like_sgm2 c p =
+  property $ cLds == [sLds]
+  where s = view patternMap c
+        (cLds, _, _) = classifySetAndTrain c [p]
+        (sLds, _, _, _) = SOM.trainAndClassify s p
+
+prop_classifier_behaves_like_sgm3
   :: TestClassifier -> [TestPattern] -> Property
-prop_classifier_behaves_like_sgm2 c ps =
+prop_classifier_behaves_like_sgm3 c ps =
   property $ cModels == sModels
   where s = view patternMap c
         (_, _, c') = classifySetAndTrain c ps
@@ -108,5 +116,7 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
     testProperty "prop_classifier_behaves_like_sgm"
       prop_classifier_behaves_like_sgm,
     testProperty "prop_classifier_behaves_like_sgm2"
-      prop_classifier_behaves_like_sgm2
+      prop_classifier_behaves_like_sgm2,
+    testProperty "prop_classifier_behaves_like_sgm3"
+      prop_classifier_behaves_like_sgm3
   ]
