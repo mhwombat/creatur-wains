@@ -30,7 +30,7 @@ import Test.QuickCheck
 
 sizedArbMuser :: Int -> Gen Muser
 sizedArbMuser n = do
-  o <- arbitrary
+  o <- vectorOf 4 arbitrary
   d <- choose (1, min 3 (fromIntegral n + 1))
   return $ makeMuser o d
 

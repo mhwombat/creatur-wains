@@ -54,17 +54,19 @@ instance Show Muser where
   show (Muser o d) = "makeMuser " ++ show o ++ " " ++ show d
 
 instance Statistical Muser where
-  stats (Muser os d) = [iStat "depth" d,
-         dStat "default energy outcome" . pm1ToDouble $ os !! 0,
-         dStat "default passion outcome" . pm1ToDouble $ os !! 1,
-         dStat "default boredom outcome" . pm1ToDouble $ os !! 2,
-         dStat "default litterSize outcome" . pm1ToDouble $ os !! 3]
+  stats (Muser (eo:po:bo:lso:_) d) = [iStat "depth" d,
+         dStat "default energy outcome" . pm1ToDouble $ eo,
+         dStat "default passion outcome" . pm1ToDouble $ po,
+         dStat "default boredom outcome" . pm1ToDouble $ bo,
+         dStat "default litterSize outcome" . pm1ToDouble $ lso]
+  stats _ = error "default outcome list is too short"
 
 -- | Constructor
 makeMuser :: [PM1Double] -> Word8 -> Muser
 makeMuser os d
- | d == 0     = error "zero depth"
- | otherwise =  Muser os d
+ | d == 0         = error "zero depth"
+ | length os < 4 = error "default outcome list is too short"
+ | otherwise     =  Muser os d
 
 -- | Given a set of scenarios paired with the probability that each
 --   scenario is true, returns a list of responses to consider paired
