@@ -32,7 +32,8 @@ sizedArbMuser :: Int -> Gen Muser
 sizedArbMuser n = do
   o <- vectorOf 4 arbitrary
   d <- choose (1, min 3 (fromIntegral n + 1))
-  return $ makeMuser o d
+  let (Right m) = makeMuser o d
+  return m
 
 instance Arbitrary Muser where
   arbitrary = sized sizedArbMuser

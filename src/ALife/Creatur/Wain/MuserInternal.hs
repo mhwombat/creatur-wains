@@ -17,7 +17,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module ALife.Creatur.Wain.MuserInternal where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
+import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.GeneticSOM (Label)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
@@ -46,8 +46,7 @@ data Muser = Muser
     -- | Number of possible scenarios a wain will evaluate before
     --   choosing an action.
     _depth :: Word8
-  } deriving ( Eq, Read, Generic, Ord, Serialize, Genetic,
-               Diploid, NFData )
+  } deriving ( Eq, Read, Generic, Ord, Serialize, Diploid, NFData )
 makeLenses ''Muser
 
 instance Show Muser where
@@ -61,12 +60,23 @@ instance Statistical Muser where
          dStat "default litterSize outcome" . pm1ToDouble $ lso]
   stats _ = error "default outcome list is too short"
 
+
+instance G.Genetic Muser where
+  put (Muser o d) = G.put o >> G.put d
+  get = do
+    o <- G.get
+    d <- G.get
+    -- Use the safe constructor!
+    case (makeMuser <$> o <*> d) of
+      Left msgs -> return $ Left msgs
+      Right b   -> return b
+
 -- | Constructor
-makeMuser :: [PM1Double] -> Word8 -> Muser
+makeMuser :: [PM1Double] -> Word8 -> Either [String] Muser
 makeMuser os d
- | d == 0         = error "zero depth"
- | length os < 4 = error "default outcome list is too short"
- | otherwise     =  Muser os d
+ | d == 0         = Left ["zero depth"]
+ | length os < 4 = Left ["default outcome list is too short"]
+ | otherwise     = Right $ Muser os d
 
 -- | Given a set of scenarios paired with the probability that each
 --   scenario is true, returns a list of responses to consider paired

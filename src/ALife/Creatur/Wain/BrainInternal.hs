@@ -103,6 +103,8 @@ makeBrain c m p hw t x ios rds
       = Left ["incorrect number of default outcomes"]
   | length ios /= 4
       = Left ["incorrect number of imprint outcomes"]
+  | length rds /= 4
+      = Left ["incorrect number of reinforcement deltas"]
   | otherwise
       = Right $ Brain c m p hw t x ios rds M.empty
 

@@ -53,7 +53,7 @@ arbTestBrain cSize nObjects nConditions pSize = do
   c <- sizedArbGeneticSOM arbitrary cSize
   os <- vectorOf nConditions arbitrary
   d <- max 1 <$> arbitrary
-  let m = makeMuser os d
+  let (Right m) = makeMuser os d
   p <- D.arbTestPredictor nObjects nConditions pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
@@ -70,7 +70,7 @@ arbSensibleTestBrain cSize nObjects nConditions pSize = do
   c <- sizedArbGeneticSOM arbitrary cSize
   os <- vectorOf nConditions arbitrary
   d <- max 1 <$> arbitrary
-  let m = makeMuser os d
+  let (Right m) = makeMuser os d
   p <- D.arbTestPredictor nObjects nConditions pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
@@ -100,7 +100,7 @@ arbEmptyTestBrain cSize nConditions pSize = do
   c <- sizedArbEmptyGeneticSOM cSize
   os <- vectorOf nConditions arbitrary
   d <- max 1 <$> arbitrary
-  let m = makeMuser os d
+  let (Right m) = makeMuser os d
   p <- D.arbEmptyTestPredictor pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
