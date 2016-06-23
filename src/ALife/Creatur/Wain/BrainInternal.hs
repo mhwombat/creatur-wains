@@ -116,25 +116,28 @@ instance (Diploid p, Diploid t, Diploid a, Eq a, Ord a, GSOM.Tweaker t,
 
 instance (Eq a, Ord a)
       => Statistical (Brain p t a) where
-  stats b@(Brain c m p hw t s ios rds _) =
-    map (prefix "classifier ") (stats c)
-    ++ (stats m)
-    ++ map (prefix "predictor ") (stats p)
-    ++ [ iStat "DQ" $ decisionQuality b,
-         dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
-         dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
-         dStat "boredomWeight" . uiToDouble $ hw `weightAt` 2,
-         dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 3,
-         dStat "energyImprint" . pm1ToDouble $ ios !! 0,
-         dStat "passionImprint" . pm1ToDouble $ ios !! 1,
-         dStat "boredomImprint" . pm1ToDouble $ ios !! 2,
-         dStat "litterSizeImprint" . pm1ToDouble $ ios !! 3,
-         dStat "energyReinforcement" . pm1ToDouble $ rds !! 0,
-         dStat "passionReinforcement" . pm1ToDouble $ rds !! 1,
-         dStat "boredomReinforcement" . pm1ToDouble $ rds !! 2,
-         dStat "litterSizeReinforcement" . pm1ToDouble $ rds !! 3,
-         iStat "tiebreaker" t,
-         iStat "strictness" s]
+  stats b@(Brain c m p hw t s ios rds _)
+    | length ios < 4 = error "ios not long enough"
+    | length rds < 4 = error "rds not long enough"
+    | otherwise =
+      map (prefix "classifier ") (stats c)
+      ++ (stats m)
+      ++ map (prefix "predictor ") (stats p)
+      ++ [ iStat "DQ" $ decisionQuality b,
+           dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
+           dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
+           dStat "boredomWeight" . uiToDouble $ hw `weightAt` 2,
+           dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 3,
+           dStat "energyImprint" . pm1ToDouble $ ios !! 0,
+           dStat "passionImprint" . pm1ToDouble $ ios !! 1,
+           dStat "boredomImprint" . pm1ToDouble $ ios !! 2,
+           dStat "litterSizeImprint" . pm1ToDouble $ ios !! 3,
+           dStat "energyReinforcement" . pm1ToDouble $ rds !! 0,
+           dStat "passionReinforcement" . pm1ToDouble $ rds !! 1,
+           dStat "boredomReinforcement" . pm1ToDouble $ rds !! 2,
+           dStat "litterSizeReinforcement" . pm1ToDouble $ rds !! 3,
+           iStat "tiebreaker" t,
+           iStat "strictness" s]
 
 instance (Show p, Show a, Show t, Eq a)
       => Show (Brain p t a) where
