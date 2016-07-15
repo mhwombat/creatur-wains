@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.TeachingTest
--- Copyright   :  (c) Amy de Buitléir 2013-2015
+-- Copyright   :  (c) Amy de Buitléir 2013-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -21,10 +21,10 @@ import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (LearningParams(..),
   buildGeneticSOM, modelMap, schemaQuality, currentLearningRate)
 import ALife.Creatur.Wain.Muser (makeMuser)
-import ALife.Creatur.Wain.Predictor (PredictorTweaker(..))
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Response (action, outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.Statistics (stats)
 import ALife.Creatur.Wain.TestUtils (TestPattern(..), testPatternDiff)
 import ALife.Creatur.Wain.UnitInterval (uiToDouble)
@@ -49,8 +49,8 @@ energyFor (TestPattern p) a
   | otherwise = if a == Crawl then reward else -reward
 
 imprintAll
-  :: Wain TestPattern TestTweaker TestAction
-    -> Wain TestPattern TestTweaker TestAction
+  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
+    -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
 imprintAll w = imprint' [TestPattern 25] Walk
                  . imprint' [TestPattern 75] Run
                  . imprint' [TestPattern 125] Jump
@@ -59,11 +59,11 @@ imprintAll w = imprint' [TestPattern 25] Walk
 
 imprint'
   :: [TestPattern] -> TestAction
-    -> Wain TestPattern TestTweaker TestAction
-    -> Wain TestPattern TestTweaker TestAction
+    -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
+    -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
 imprint' w ps a = fifthOfFive $ imprint w ps a
 
-testWain :: Wain TestPattern TestTweaker TestAction
+testWain :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
 testWain = imprintAll w'
   where wName = "Fred"
         wAppearance = TestPattern 0
@@ -77,7 +77,7 @@ testWain = imprintAll w'
         (Right wMuser) = makeMuser [0, 0, 0, 0] 1
         wIos = [0.01, 0, 0, 0]
         wRds = [0.01, 0, 0, 0]
-        wPredictor = buildGeneticSOM ep 50 0.1 PredictorTweaker
+        wPredictor = buildGeneticSOM ep 50 0.1 ResponseTweaker
         wHappinessWeights = makeWeights [1, 0, 0, 0]
         ec = LearningParams 0.01 0.0001 10000
         -- This wain will be taught the correct actions up front.
@@ -89,8 +89,8 @@ testWain = imprintAll w'
         (w', _) = adjustEnergy 0.5 w
 
 tryOne
-  :: Wain TestPattern TestTweaker TestAction -> TestPattern
-    -> IO (Wain TestPattern TestTweaker TestAction)
+  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> TestPattern
+    -> IO (Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction)
 tryOne w p = do
   putStrLn $ "-----"
   putStrLn $ "stats=" ++ show (stats w)
@@ -137,13 +137,13 @@ tryOne w p = do
   putStrLn $ "DQ=" ++ show (decisionQuality . view brain $ w)
   return wainFinal
 
-describeClassifierModels :: Wain TestPattern TestTweaker TestAction -> IO ()
+describeClassifierModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> IO ()
 describeClassifierModels w = mapM_ (putStrLn . f) ms
   where ms = M.toList . modelMap . view (brain . classifier) $ w
         f (l, r) = view name w ++ "'s classifier model " ++ show l ++ ": "
                      ++ show r
 
-describePredictorModels :: Wain TestPattern TestTweaker TestAction -> IO ()
+describePredictorModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> IO ()
 describePredictorModels w = mapM_ (putStrLn . f) ms
   where ms = M.toList . modelMap . view (brain . predictor) $ w
         f (l, r) = view name w ++ "'s predictor model " ++ show l ++ ": "

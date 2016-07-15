@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.UnitInterval
--- Copyright   :  (c) Amy de Buitléir 2013-2015
+-- Copyright   :  (c) Amy de Buitléir 2013-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -12,8 +12,9 @@
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.UnitInterval
   (
     interval,
@@ -28,7 +29,9 @@ module ALife.Creatur.Wain.UnitInterval
     adjustUIVector,
     adjustUIVectorPreserveLength,
     uiDoublesTo8BitHex,
-    uiDoubleTo8BitHex
+    uiDoubleTo8BitHex,
+    diffIntegral,
+    adjustIntegral
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
@@ -203,3 +206,17 @@ uiDoublesTo8BitHex = intercalate ":" . map uiDoubleTo8BitHex
 uiDoubleTo8BitHex :: UIDouble -> String
 uiDoubleTo8BitHex
   = printf "%.2X" . scaleToWord8 interval . uiToDouble
+
+diffIntegral :: (Integral a, Bounded a) => a -> a -> UIDouble
+diffIntegral x y = doubleToUI $ numerator / denominator
+  where numerator = abs (fromIntegral x - fromIntegral y) :: Double
+        denominator = fromIntegral (maxBound `asTypeOf` x) :: Double
+
+adjustIntegral :: Integral a => a -> UIDouble -> a -> a
+adjustIntegral t r x
+  | r < 0     = error "Negative learning rate"
+  | r > 1     = error "Learning rate > 1"
+  | otherwise = round(x' + r'*(t' - x'))
+  where t' = fromIntegral t :: Double
+        x' = fromIntegral x :: Double
+        r' = uiToDouble r

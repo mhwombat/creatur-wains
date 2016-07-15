@@ -1,7 +1,7 @@
 -----------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.BrainInternal
--- Copyright   :  (c) Amy de Buitléir 2012-2015
+-- Copyright   :  (c) Amy de Buitléir 2012-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -56,14 +56,14 @@ type Condition = [UIDouble]
 
 -- | A brain which recommends reponses to stimuli, and learns from the
 --   outcomes.
-data Brain p t a = Brain
+data Brain p ct pt a = Brain
   {
     -- | Component that categorises and identifies patterns
-    _classifier :: Cl.Classifier p t,
+    _classifier :: Cl.Classifier p ct,
     -- | Component that generates response models for consideration
     _muser :: Muser,
     -- | Component that decides what actions to take
-    _predictor :: P.Predictor a,
+    _predictor :: P.Predictor a pt,
     -- | Weights for evaluating happiness
     _happinessWeights :: Weights,
     -- | Used to break ties when actions seem equally promising
@@ -91,9 +91,9 @@ makeLenses ''Brain
 --   tiebreaker @t@, imprint outcomes @ios@, and reinforcement deltas
 --   @rds@. See @Brain@ for an explanation of these parameters.
 makeBrain
-  :: Cl.Classifier p t -> Muser -> P.Predictor a -> Weights -> Word8
+  :: Cl.Classifier p ct -> Muser -> P.Predictor a pt -> Weights -> Word8
      -> Word64 -> [PM1Double] -> [PM1Double]
-     -> Either [String] (Brain p t a)
+     -> Either [String] (Brain p ct pt a)
 makeBrain c m p hw t x ios rds
   | x < 1
       = Left ["strictness < 1"]
@@ -108,16 +108,18 @@ makeBrain c m p hw t x ios rds
   | otherwise
       = Right $ Brain c m p hw t x ios rds M.empty
 
-instance (Serialize p, Serialize t, Serialize a, Eq a, Ord a,
-  GSOM.Tweaker t, p ~ GSOM.Pattern t)
-    => Serialize (Brain p t a)
+instance (Serialize p, Serialize ct, Serialize pt, Serialize a, Eq a,
+  Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+  Response a ~ GSOM.Pattern pt)
+    => Serialize (Brain p ct pt a)
 
-instance (Diploid p, Diploid t, Diploid a, Eq a, Ord a, GSOM.Tweaker t,
-  p ~ GSOM.Pattern t)
-    => Diploid (Brain p t a)
+instance (Diploid p, Diploid ct, Diploid pt, Diploid a, Eq a, Ord a,
+  GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+  Response a ~ GSOM.Pattern pt)
+    => Diploid (Brain p ct pt a)
 
 instance (Eq a, Ord a)
-      => Statistical (Brain p t a) where
+      => Statistical (Brain p ct pt a) where
   stats b@(Brain c m p hw t s ios rds _)
     | length ios < 4 = error "ios not long enough"
     | length rds < 4 = error "rds not long enough"
@@ -141,16 +143,17 @@ instance (Eq a, Ord a)
            iStat "tiebreaker" t,
            iStat "strictness" s]
 
-instance (Show p, Show a, Show t, Eq a)
-      => Show (Brain p t a) where
+instance (Show p, Show a, Show ct, Show pt, Eq a)
+      => Show (Brain p ct pt a) where
   show (Brain c m p hw t s ios rds ks) = "Brain (" ++ show c ++ ") ("
     ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") "
     ++ show t ++ " " ++ show s ++ " " ++ show ios ++ show rds
     ++ " (" ++ show ks ++ ")"
 
-instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
-          p ~ GSOM.Pattern t)
-    => Genetic (Brain p t a) where
+instance (Genetic p, Genetic ct, Genetic pt, Genetic a, Eq a, Ord a,
+          GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+          Response a ~ GSOM.Pattern pt)
+    => Genetic (Brain p ct pt a) where
     put (Brain c m p hw t s ios rds _)
       = put c >> put m >> put p >> put hw >> put t >> put s >> put ios
           >> put rds
@@ -195,14 +198,15 @@ instance (Genetic p, Genetic t, Genetic a, Eq a, Ord a, GSOM.Tweaker t,
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: (Eq a, Enum a, Bounded a, Ord a)
-      => Brain p t a -> [p] -> Condition
+  :: (Eq a, Enum a, Bounded a, Ord a, GSOM.Tweaker pt,
+    Response a ~ GSOM.Pattern pt)
+      => Brain p ct pt a -> [p] -> Condition
         -> ([[(Cl.Label, GSOM.Difference)]],
             [([Cl.Label], Probability)],
             [(Response a, Probability, P.Label, [PM1Double])],
             [(a, [PM1Double], UIDouble)],
             Response a,
-            Brain p t a)
+            Brain p ct pt a)
 chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
   where (cBmus, lds, b2) = classifyInputs b ps
         sps = errorIfNull "sps" $ hypothesise (_strictness b) lds
@@ -226,7 +230,7 @@ errorIfNull desc xs = if null xs
                         else xs
 
 -- | Internal method
-onlyModelsIn :: Brain p t a -> [(Cl.Label, GSOM.Difference)] -> Bool
+onlyModelsIn :: Brain p ct pt a -> [(Cl.Label, GSOM.Difference)] -> Bool
 onlyModelsIn b = and . map (GSOM.hasLabel (_classifier b) . fst)
 
 -- | Internal method
@@ -236,19 +240,20 @@ maximaBy f xs = map snd . head . reverse . groupBy ((==) `on` fst)
                . sortBy (comparing fst) . map (\x -> (f x, x)) $ xs
 
 -- | Internal method
-chooseAny :: Brain p t a -> [x] -> x
+chooseAny :: Brain p ct pt a -> [x] -> x
 chooseAny b xs = xs !! (seed `mod` n)
   where seed = fromIntegral $ _tiebreaker b
         n = length xs -- the list will be short
 
 -- | Internal method
 fillInAdjustedHappiness
-  :: Brain p t a -> Condition -> (a, [PM1Double])
+  :: Brain p ct pt a -> Condition -> (a, [PM1Double])
     -> (a, [PM1Double], UIDouble)
 fillInAdjustedHappiness b c (a, os) = (a, os, adjustedHappiness b c os)
 
 -- | Internal method
-adjustedHappiness :: Brain p t a -> Condition -> [PM1Double] -> UIDouble
+adjustedHappiness
+  :: Brain p ct pt a -> Condition -> [PM1Double] -> UIDouble
 adjustedHappiness b c = happiness b . adjustCondition c
 
 -- | Internal method
@@ -258,7 +263,8 @@ adjustCondition c os =
     zipWith (+) (map uiToDouble c) (map pm1ToDouble os)
 
 -- | Internal method
-adjustActionCounts :: Ord a => Brain p t a -> Response a -> Brain p t a
+adjustActionCounts
+  :: Ord a => Brain p ct pt a -> Response a -> Brain p ct pt a
 adjustActionCounts b r = set actionCounts cs' b
   where a = _action r
         cs = _actionCounts b
@@ -271,9 +277,9 @@ adjustActionCounts b r = set actionCounts cs' b
 --   and each model in the classifier) of each input pattern,
 --   and the updated brain.
 classifyInputs
-  :: Brain p t a -> [p]
+  :: Brain p ct pt a -> [p]
     -> ([Cl.Label], [[(Cl.Label, GSOM.Difference)]],
-        Brain p t a)
+        Brain p ct pt a)
 classifyInputs b ps = (bmus, ds, b')
   where (bmus, ds, c')
           = Cl.classifySetAndTrain (_classifier b) ps
@@ -313,15 +319,15 @@ sumTermByTerm (xs:ys:zss) = sumTermByTerm (ws:zss)
 --   somewhat good outcome, to an action with a low probability of a
 --   really bad outcome.
 predictAll
-  :: Eq a
-    => Brain p t a -> [(Response a, Probability)]
+  :: (Eq a, GSOM.Tweaker pt, Response a ~ GSOM.Pattern pt)
+    => Brain p ct pt a -> [(Response a, Probability)]
       -> [(Response a, Probability, P.Label, [PM1Double])]
 predictAll b rps = foldl' (predictOne b) [] rps
 
 -- | Internal method
 predictOne
-  :: Eq a
-    => Brain p t a
+  :: (Eq a, GSOM.Tweaker pt, Response a ~ GSOM.Pattern pt)
+    => Brain p ct pt a
       -> [(Response a, Probability, P.Label,  [PM1Double])]
         -> (Response a, Probability)
           -> ([(Response a, Probability, P.Label, [PM1Double])])
@@ -334,8 +340,8 @@ predictOne b rplos (r, p) = (r', p, l, os):rplos
 --   prediction of the outcome.
 reflect
   :: Eq a
-    => Brain p t a -> Response a -> Condition -> Condition
-      -> (Brain p t a, Double)
+    => Brain p ct pt a -> Response a -> Condition -> Condition
+      -> (Brain p ct pt a, Double)
 reflect b r cBefore cAfter = (set predictor d' b, err)
   where osActual = map doubleToPM1 $ zipWith (-) (map uiToDouble cAfter)
           (map uiToDouble cBefore)
@@ -360,10 +366,10 @@ reflect b r cBefore cAfter = (set predictor d' b, err)
 --   and the updated brain.
 imprint
   :: Eq a
-    => Brain p t a -> [p] -> a
+    => Brain p ct pt a -> [p] -> a
       -> ([[(Cl.Label, GSOM.Difference)]],
             [([Cl.Label], Probability)],
-            P.Label, Response a, Brain p t a)
+            P.Label, Response a, Brain p ct pt a)
 imprint b ps a = (lds, sps, bmu, r, b3)
   where (_, lds, b2) = classifyInputs b ps
         sps = errorIfNull "sps" $ hypothesise 1 lds
@@ -373,8 +379,8 @@ imprint b ps a = (lds, sps, bmu, r, b3)
 -- | Internal method
 imprintPredictor
   :: Eq a
-    => Brain p t a -> [GSOM.Label] -> a
-      -> (P.Label, Response a, Brain p t a)
+    => Brain p ct pt a -> [GSOM.Label] -> a
+      -> (P.Label, Response a, Brain p ct pt a)
 imprintPredictor b ls a = (bmu, r, set predictor d2 b)
   where d = _predictor b
         (bmu, r, d2) = P.imprintOrReinforce d ls a os deltas
@@ -382,11 +388,11 @@ imprintPredictor b ls a = (bmu, r, set predictor d2 b)
         deltas = _reinforcementDeltas b
 
 -- | Evaluates a condition and reports the resulting happiness.
-happiness :: Brain p t a -> Condition -> UIDouble
+happiness :: Brain p ct pt a -> Condition -> UIDouble
 happiness b = weightedSum (_happinessWeights b)
 
 -- | A metric for how flexible a brain is at making decisions.
-decisionQuality :: Brain p t a -> Int
+decisionQuality :: Brain p ct pt a -> Int
 decisionQuality = GSOM.discrimination . M.elems . _actionCounts
 
 -- | Generates a human readable summary of a stimulus.

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.BrainQC
--- Copyright   :  (c) Amy de Buitléir 2013-2015
+-- Copyright   :  (c) Amy de Buitléir 2013-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -25,10 +25,11 @@ import qualified ALife.Creatur.Wain.PredictorQC as D
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM,
   sizedArbEmptyGeneticSOM)
 import ALife.Creatur.Wain.Muser (makeMuser, _defaultOutcomes)
+import ALife.Creatur.Wain.Probability (hypothesise)
 import ALife.Creatur.Wain.Response (Response(..), _outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
   arbTestResponse)
-import ALife.Creatur.Wain.Probability (hypothesise)
+import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Weights (makeWeights)
 import Data.List (maximumBy)
@@ -37,7 +38,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
-type TestBrain = Brain TestPattern C.TestTweaker TestAction
+type TestBrain = Brain TestPattern C.TestTweaker (ResponseTweaker TestAction) TestAction
 
 sizedArbTestBrain :: Int -> Gen TestBrain
 sizedArbTestBrain n = do

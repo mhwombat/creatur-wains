@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.WainQC
--- Copyright   :  (c) Amy de Buitléir 2013-2015
+-- Copyright   :  (c) Amy de Buitléir 2013-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -22,6 +22,7 @@ import ALife.Creatur.WainInternal
 import qualified ALife.Creatur.Wain.BrainQC as BQC
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker)
 import ALife.Creatur.Wain.ResponseQC (TestAction)
+import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
 import ALife.Creatur.Wain.UnitInterval (doubleToUI)
@@ -32,8 +33,9 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
 equiv
-  :: Wain TestPattern TestTweaker TestAction
-    -> Wain TestPattern TestTweaker TestAction -> Bool
+  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
+    -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
+      -> Bool
 equiv a1 a2 =
   _appearance a1 == _appearance a2
   && _brain a1 `BQC.equivBrain` _brain a2
@@ -42,7 +44,7 @@ equiv a1 a2 =
   && _passionDelta a1 `equivUIDouble` _passionDelta a2
 --  && genome a1 == genome a2
 
-strawMan :: Gen (Wain TestPattern TestTweaker TestAction)
+strawMan :: Gen (Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction)
 strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- appearance
                 <*> arbitrary     -- brain
@@ -61,7 +63,7 @@ strawMan = Wain <$> pure ""       -- name
 
 -- | Can't just generate an arbitrary genome and build an agent from
 --   it, because random genomes tend to be invalid.
-arbWain :: Gen (Wain TestPattern TestTweaker TestAction)
+arbWain :: Gen (Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction)
 arbWain = do
   n <- arbitrary
   a1 <- strawMan
@@ -73,7 +75,7 @@ arbWain = do
     (Left s)   -> error . show $ s
     (Right r') -> return r'
 
-sizedArbWain :: Int -> Gen (Wain TestPattern TestTweaker TestAction)
+sizedArbWain :: Int -> Gen (Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction)
 sizedArbWain n = do
   w <- arbWain
   if n > 1
@@ -83,11 +85,11 @@ sizedArbWain n = do
       return $ set litter cs w
     else return w
 
-instance Arbitrary (Wain TestPattern TestTweaker TestAction) where
+instance Arbitrary (Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction) where
   arbitrary = sized sizedArbWain
 
 prop_adjustEnergy_balances_energy
-  :: Double -> Wain TestPattern TestTweaker TestAction -> Property
+  :: Double -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> Property
 prop_adjustEnergy_balances_energy e w
   = property $ _energy w' == _energy w + doubleToUI used
   where (w', used) = adjustEnergy e w
@@ -97,13 +99,13 @@ test = testGroup "ALife.Creatur.WainQC"
   [
     testProperty "prop_serialize_round_trippable - Wain"
       (prop_serialize_round_trippable
-        :: Wain TestPattern TestTweaker TestAction -> Property),
+        :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> Property),
     testProperty "prop_genetic_round_trippable - Wain"
       (prop_genetic_round_trippable equiv
-        :: Wain TestPattern TestTweaker TestAction -> Property),
+        :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> Property),
     testProperty "prop_diploid_identity - Wain"
       (prop_diploid_identity equiv
-        :: Wain TestPattern TestTweaker TestAction -> Property),
+        :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> Property),
     testProperty "prop_adjustEnergy_balances_energy"
       prop_adjustEnergy_balances_energy
   ]

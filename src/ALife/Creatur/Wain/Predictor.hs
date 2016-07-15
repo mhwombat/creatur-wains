@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Predictor
--- Copyright   :  (c) Amy de Buitléir 2013-2015
+-- Copyright   :  (c) Amy de Buitléir 2013-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -14,7 +14,6 @@ module ALife.Creatur.Wain.Predictor
   (
     Label,
     Predictor,
-    PredictorTweaker(..),
     buildPredictor,
     predict,
     scenarios,

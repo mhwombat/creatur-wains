@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.GeneticSOMInternal
--- Copyright   :  (c) Amy de Buitléir 2013-2015
+-- Copyright   :  (c) Amy de Buitléir 2013-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -64,14 +64,26 @@ data LearningParams = LearningParams UIDouble UIDouble Word64
 --   Normally the parameters are chosen such that:
 --     0 < r0 <= 1
 --     0 < rf <= r0
-mkLearningParams :: UIDouble -> UIDouble -> Word64 -> LearningParams
+mkLearningParams
+  :: UIDouble -> UIDouble -> Word64 -> Either [String] LearningParams
 mkLearningParams r0 rf tf
-  | r0 == 0   = error "r0 must be > 0"
-  | rf > r0   = error "rf must be <= r0"
-  | otherwise = LearningParams r0 rf tf
+  | r0 == 0   = Left ["r0 must be > 0"]
+  | rf > r0   = Left ["rf must be <= r0"]
+  | otherwise = Right $ LearningParams r0 rf tf
+
+instance G.Genetic LearningParams where
+  put (LearningParams r0 rf tf)
+    = G.put r0 >> G.put rf >> G.put tf
+  get = do
+    r0 <- G.get
+    rf <- G.get
+    tf <- G.get
+    -- Use the safe constructor!
+    case (mkLearningParams <$> r0 <*> rf <*> tf) of
+      Left msgs -> return $ Left msgs
+      Right p   -> return p
 
 instance S.Serialize LearningParams
-instance Genetic LearningParams
 instance Diploid LearningParams
 
 instance Statistical LearningParams where
@@ -144,7 +156,8 @@ randomLearningFunction p = do
   r0 <- getRandomR . intersection r0RangeLimits . _r0Range $ p
   rf <- getRandomR . intersection (0, r0) . intersection rfRangeLimits . _rfRange $ p
   tf <- getRandomR . intersection tfRangeLimits . _tfRange $ p
-  return $ mkLearningParams r0 rf tf
+  let Right x = mkLearningParams r0 rf tf
+  return x
 
 instance (Genetic k, Ord k, Genetic p)
     => Genetic (M.Map k p) where

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.TestUtils
--- Copyright   :  (c) Amy de Buitléir 2013-2015
+-- Copyright   :  (c) Amy de Buitléir 2013-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -150,3 +150,4 @@ makeTestPatternSimilar (TestPattern target) r (TestPattern x)
 
 randomTestPattern :: RandomGen r => Rand r TestPattern
 randomTestPattern = fmap (TestPattern) getRandom
+

@@ -21,6 +21,7 @@ import ALife.Creatur.Wain.MuserQC (test)
 import ALife.Creatur.Wain.PlusMinusOneQC (test)
 import ALife.Creatur.Wain.ProbabilityQC (test)
 import ALife.Creatur.Wain.ResponseQC (test)
+import ALife.Creatur.Wain.SimpleResponseTweakerQC (test)
 import ALife.Creatur.Wain.UnitIntervalQC (test)
 import ALife.Creatur.Wain.UtilQC (test)
 import ALife.Creatur.Wain.WeightsQC (test)
@@ -37,6 +38,7 @@ tests =
     ALife.Creatur.Wain.WeightsQC.test,
     ALife.Creatur.Wain.ProbabilityQC.test,
     ALife.Creatur.Wain.ResponseQC.test,
+    ALife.Creatur.Wain.SimpleResponseTweakerQC.test,
     ALife.Creatur.Wain.MuserQC.test,
     ALife.Creatur.Wain.GeneticSOMQC.test,
     ALife.Creatur.Wain.ClassifierQC.test,

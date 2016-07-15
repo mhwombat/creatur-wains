@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Response
--- Copyright   :  (c) Amy de Buitléir 2013-2015
+-- Copyright   :  (c) Amy de Buitléir 2013-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -19,8 +19,9 @@ module ALife.Creatur.Wain.Response
     action,
     outcomes,
     copyOutcomesTo,
-    responseDiff,
-    makeResponseSimilar,
+    -- responseDiff,
+    labelSimilarity,
+    -- makeResponseSimilar,
     addToOutcomes
   ) where
 

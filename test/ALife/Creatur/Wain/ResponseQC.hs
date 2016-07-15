@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.ResponseQC
--- Copyright   :  (c) Amy de Buitléir 2013-2015
+-- Copyright   :  (c) Amy de Buitléir 2013-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -28,7 +28,6 @@ import ALife.Creatur.Wain.GeneticSOM (Label)
 import ALife.Creatur.Wain.ResponseInternal
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
 import Control.DeepSeq (NFData)
 import Data.Serialize (Serialize)
@@ -102,25 +101,25 @@ prop_labelSimilarity_can_be_0 xs
   where x = labelSimilarity xs ys
         ys = map (+255) xs
 
--- prop_responseDiff_can_be_1 :: Weights -> Property
--- prop_responseDiff_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8
---   where x = responseDiff w (Response [0] [0] (Condition 0 0 0))
---               (Response [1] [1] (Condition 1 1 1))
---         ws = toDoubles w
+-- -- prop_responseDiff_can_be_1 :: Weights -> Property
+-- -- prop_responseDiff_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8
+-- --   where x = responseDiff w (Response [0] [0] (Condition 0 0 0))
+-- --               (Response [1] [1] (Condition 1 1 1))
+-- --         ws = toDoubles w
 
-prop_responseDiff_can_be_0 :: TestResponse -> Property
-prop_responseDiff_can_be_0 r = property $ abs (x - 0) < 1e-8
-  where x = responseDiff r r
+-- prop_responseDiff_can_be_0 :: TestResponse -> Property
+-- prop_responseDiff_can_be_0 r = property $ abs (x - 0) < 1e-8
+--   where x = responseDiff r r
 
-prop_responseDiff_in_range
-  :: TestResponse -> TestResponse -> Property
-prop_responseDiff_in_range a b = property $ 0 <= x && x <= 1
-  where x = responseDiff a b
+-- prop_responseDiff_in_range
+--   :: TestResponse -> TestResponse -> Property
+-- prop_responseDiff_in_range a b = property $ 0 <= x && x <= 1
+--   where x = responseDiff a b
 
-prop_makeResponseSimilar_works
-  :: TestResponse -> UIDouble -> TestResponse -> Property
-prop_makeResponseSimilar_works
-  = prop_makeSimilar_works responseDiff makeResponseSimilar
+-- prop_makeResponseSimilar_works
+--   :: TestResponse -> UIDouble -> TestResponse -> Property
+-- prop_makeResponseSimilar_works
+--   = prop_makeSimilar_works responseDiff makeResponseSimilar
 
 
 test :: Test
@@ -140,13 +139,13 @@ test = testGroup "ALife.Creatur.Wain.ResponseQC"
     testProperty "prop_labelSimilarity_can_be_1"
       prop_labelSimilarity_can_be_1,
     testProperty "prop_labelSimilarity_can_be_0"
-      prop_labelSimilarity_can_be_0,
-    -- testProperty "prop_responseDiff_can_be_1"
-    --   prop_responseDiff_can_be_1,
-    testProperty "prop_responseDiff_can_be_0"
-      prop_responseDiff_can_be_0,
-    testProperty "prop_responseDiff_in_range"
-      prop_responseDiff_in_range,
-    testProperty "prop_makeResponseSimilar_works"
-      prop_makeResponseSimilar_works
+      prop_labelSimilarity_can_be_0
+    -- -- testProperty "prop_responseDiff_can_be_1"
+    -- --   prop_responseDiff_can_be_1,
+    -- testProperty "prop_responseDiff_can_be_0"
+    --   prop_responseDiff_can_be_0,
+    -- testProperty "prop_responseDiff_in_range"
+    --   prop_responseDiff_in_range,
+    -- testProperty "prop_makeResponseSimilar_works"
+    --   prop_makeResponseSimilar_works
   ]

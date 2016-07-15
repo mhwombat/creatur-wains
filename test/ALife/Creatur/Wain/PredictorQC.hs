@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.PredictorQC
--- Copyright   :  (c) Amy de Buitléir 2013-2015
+-- Copyright   :  (c) Amy de Buitléir 2013-2016
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -34,6 +34,7 @@ import ALife.Creatur.Wain.Response (Response(..), labels, action,
   outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
   arbTestResponse)
+import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.GeneticSOMInternal (patternMap, numModels,
   maxSize)
@@ -45,15 +46,15 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding (labels, maxSize)
 
-type TestTweaker = PredictorTweaker TestAction
+type TestTweaker = ResponseTweaker TestAction
 
 instance Arbitrary TestTweaker where
-  arbitrary = return PredictorTweaker
+  arbitrary = return ResponseTweaker
 
 equivTweaker :: TestTweaker -> TestTweaker -> Bool
 equivTweaker _ _ = True
 
-type TestPredictor = Predictor TestAction
+type TestPredictor = Predictor TestAction (ResponseTweaker TestAction)
 
 sizedArbTestPredictor :: Int -> Gen TestPredictor
 sizedArbTestPredictor n = do
