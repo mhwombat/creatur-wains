@@ -140,9 +140,9 @@ prop_reflect_makes_predictions_more_accurate
 prop_reflect_makes_predictions_more_accurate
   (ReflectionTestData b r cBefore cAfter)
     = property $ errAfter <= errBefore
-  where ((r2, _, _, _):_) = predictAll b . zip [r] $ repeat 1
+  where ((r2, _, _, _, _):_) = predictAll b . zip [r] $ repeat 1
         (b2, errBefore) = reflect b r2 cBefore cAfter
-        ((r3, _, _, _):_) = predictAll b . zip [r] $ repeat 1
+        ((r3, _, _, _, _):_) = predictAll b . zip [r] $ repeat 1
         (_, errAfter) = reflect b2 r3 cBefore cAfter
 
 prop_reflect_error_in_range
@@ -199,9 +199,9 @@ prop_imprint_works (ImprintTestData b ps a _) = not (null ps)
         (_, lds, bClassified) = classifyInputs bModified ps
         s = fst . maximumBy (comparing snd) . hypothesise (_strictness b) $ lds
         r = Response s a badOutcomes
-        ((rBefore, _, _, _):_) = predictAll bClassified [(r, 1)]
+        ((rBefore, _, _, _, _):_) = predictAll bClassified [(r, 1)]
         (_, _, _, _, bImprinted) = imprint bClassified ps a
-        ((rAfter, _, _, _):_) = predictAll bImprinted [(r, 1)]
+        ((rAfter, _, _, _, _):_) = predictAll bImprinted [(r, 1)]
 
 data ImprintEmptyBrainTestData
   = ImprintEmptyBrainTestData TestBrain [TestPattern] TestAction Condition

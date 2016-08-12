@@ -323,7 +323,8 @@ chooseAction
       => [p] -> Wain p ct pt a
         -> ([[(Cl.Label, Cl.Difference)]],
             [([Cl.Label], Probability)],
-            [(R.Response a, Probability, P.Label, [PM1Double])],
+            [(R.Response a, Probability, Probability, P.Label,
+              [PM1Double])],
             [(a, [PM1Double], UIDouble)],
             R.Response a,
             Wain p ct pt a)

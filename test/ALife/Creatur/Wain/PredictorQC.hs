@@ -106,11 +106,11 @@ prop_training_makes_predictions_more_accurate
   :: TrainingTestData -> Property
 prop_training_makes_predictions_more_accurate (TrainingTestData d r os)
   = property $ errAfter < 0.1 || errAfter <= errBefore
-  where (r2, _, _, d2) = predict d r 1
+  where (r2, _, _, _, d2) = predict d r 1
         errBefore = rawDiff os (_outcomes r2)
         rActual = r { _outcomes = os }
         d3 = train d2 rActual
-        (r4, _, _, _) = predict d3 r 1
+        (r4, _, _, _, _) = predict d3 r 1
         errAfter = rawDiff os (_outcomes r4)
 
 rawDiff :: [PM1Double] ->  [PM1Double] -> Double
@@ -151,9 +151,9 @@ prop_imprintOrReinforce_works (ImprintTestData d r os ds prob) =
     and $ zipWith (>) (_outcomes r2) (_outcomes r1)
   where os0 = map (const (-1)) os
         r0 = set outcomes os0 r
-        (r1, _, _, _) = predict d r0 prob
+        (r1, _, _, _, _) = predict d r0 prob
         (_, _, d2) = imprintOrReinforce d (view labels r) (view action r) os ds
-        (r2, _, _, _) = predict d2 r prob
+        (r2, _, _, _, _) = predict d2 r prob
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.PredictorQC"

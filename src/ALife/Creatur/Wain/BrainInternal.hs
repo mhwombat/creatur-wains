@@ -203,7 +203,8 @@ chooseAction
       => Brain p ct pt a -> [p] -> Condition
         -> ([[(Cl.Label, GSOM.Difference)]],
             [([Cl.Label], Probability)],
-            [(Response a, Probability, P.Label, [PM1Double])],
+            [(Response a, Probability, Probability, P.Label,
+              [PM1Double])],
             [(a, [PM1Double], UIDouble)],
             Response a,
             Brain p ct pt a)
@@ -216,7 +217,7 @@ chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
                     else sps'
         rps = errorIfNull "rps" $ generateResponses (_muser b2) spsSafe
         rplos = errorIfNull "rplos" $ predictAll b2 rps
-        rs = errorIfNull "rs" $ map (\(r1, _, _, _) -> r1) rplos
+        rs = errorIfNull "rs" $ map (\(r1, _, _, _, _) -> r1) rplos
         aos = errorIfNull "aos" $ sumByAction $ rs
         aohs = errorIfNull "aohs" $ map (fillInAdjustedHappiness b2 c) aos
         (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aohs
@@ -321,18 +322,19 @@ sumTermByTerm (xs:ys:zss) = sumTermByTerm (ws:zss)
 predictAll
   :: (Eq a, GSOM.Tweaker pt, Response a ~ GSOM.Pattern pt)
     => Brain p ct pt a -> [(Response a, Probability)]
-      -> [(Response a, Probability, P.Label, [PM1Double])]
+      -> [(Response a, Probability, Probability, P.Label, [PM1Double])]
 predictAll b rps = foldl' (predictOne b) [] rps
 
 -- | Internal method
 predictOne
   :: (Eq a, GSOM.Tweaker pt, Response a ~ GSOM.Pattern pt)
     => Brain p ct pt a
-      -> [(Response a, Probability, P.Label,  [PM1Double])]
+      -> [(Response a, Probability, Probability, P.Label,  [PM1Double])]
         -> (Response a, Probability)
-          -> ([(Response a, Probability, P.Label, [PM1Double])])
-predictOne b rplos (r, p) = (r', p, l, os):rplos
-  where (r', l, os, _) = P.predict (_predictor b) r p
+          -> ([(Response a, Probability, Probability, P.Label,
+               [PM1Double])])
+predictOne b rplos (r, p) = (r', p, p', l, os):rplos
+  where (r', p', l, os, _) = P.predict (_predictor b) r p
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
@@ -403,9 +405,11 @@ scenarioReport = map f
 -- | Generates a human readable summary of a set of responses.
 responseReport
   :: Show a
-    => [(Response a, Probability, P.Label, [PM1Double])] -> [String]
+    => [(Response a, Probability, Probability, P.Label, [PM1Double])] -> [String]
 responseReport = map f
-  where f (r, p, l, os) = pretty r ++ " prob: " ++ prettyProbability p
+  where f (r, p, p', l, os) = pretty r
+          ++ " prob: " ++ prettyProbability p'
+          ++ "(" ++ prettyProbability p ++ ")"
           ++ " based on model " ++ show l ++ " raw outcomes: "
           ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
 

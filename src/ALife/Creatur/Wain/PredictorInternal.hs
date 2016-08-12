@@ -51,8 +51,8 @@ buildPredictor e n dt tw = buildGeneticSOM e n dt tw
 predict
   :: (Eq a, Tweaker t, Pattern t ~ Response a)
     => Predictor a t -> Response a -> Probability
-    -> (Response a, Label, [PM1Double], Predictor a t)
-predict p r prob = (r', bmu, rawOutcomes, p')
+    -> (Response a, Probability, Label, [PM1Double], Predictor a t)
+predict p r prob = (r', adjustment, bmu, rawOutcomes, p')
   where (bmu, p') = classifyAndMaybeCreateNewModel p r
         model = modelMap p' M.! bmu
         rawOutcomes = view outcomes model
