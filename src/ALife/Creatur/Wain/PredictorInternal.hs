@@ -56,19 +56,20 @@ predict p r prob = (r', adjustment, bmu, rawOutcomes, p')
   where (bmu, p') = classifyAndMaybeCreateNewModel p r
         model = modelMap p' M.! bmu
         rawOutcomes = view outcomes model
+        defaultOutcomes = view outcomes r
         modelDiff = diff (view tweaker p) model r
         -- Adjust the outcome based on how well the model
         -- matches the proposed response. Specifically, we're comparing
         -- the classifications and the conditions, in the model and the
         -- proposed response.
         adjustment = prob * (1 - modelDiff)
-        -- Adjust from zero because, depending on the similarity
-        -- between the true scenario and the model, the action may have
-        -- less of an effect (positive or negative) than predicted by
-        -- the model.
-        zeroes = map (const 0) rawOutcomes
+        -- -- Adjust from zero because, depending on the similarity
+        -- -- between the true scenario and the model, the action may have
+        -- -- less of an effect (positive or negative) than predicted by
+        -- -- the model.
+        -- zeroes = map (const 0) rawOutcomes
         adjustedOutcomes
-          = adjustPM1Vector rawOutcomes adjustment zeroes
+          = adjustPM1Vector rawOutcomes adjustment defaultOutcomes
         r' = set outcomes adjustedOutcomes r
 
 -- | @'imprintOrReinforce' d ls a os deltas@ teaches the predictor that
