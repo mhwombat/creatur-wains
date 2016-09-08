@@ -20,18 +20,24 @@ module ALife.Creatur.Wain.Brain
     Condition,
     -- * Lenses
     _classifier,
-    _muser,
     _predictor,
     _happinessWeights,
     _tiebreaker,
+    _responseWeights,
+    _decisionDiffThreshold,
+    _defaultOutcomes,
     _imprintOutcomes,
+    _reinforcementDeltas,
     _actionCounts,
     classifier,
-    muser,
     predictor,
     happinessWeights,
     tiebreaker,
+    responseWeights,
+    decisionDiffThreshold,
+    defaultOutcomes,
     imprintOutcomes,
+    reinforcementDeltas,
     actionCounts,
     -- * Making decisions
     chooseAction,
@@ -40,8 +46,6 @@ module ALife.Creatur.Wain.Brain
     -- * Miscellaneous
     happiness,
     decisionQuality,
-    scenarioReport,
-    responseReport,
     decisionReport
   ) where
 

@@ -103,7 +103,7 @@ instance Num PM1Double where
  (+) (PM1Double x) (PM1Double y) = doubleToPM1 (x + y)
  (-) (PM1Double x) (PM1Double y) = doubleToPM1 (x - y)
  (*) (PM1Double x) (PM1Double y) = doubleToPM1 (x * y)
- abs x = x
+ abs (PM1Double x) = doubleToPM1 (abs x)
  signum (PM1Double x) = doubleToPM1 (signum x)
  fromInteger = doubleToPM1 . fromInteger
  negate (PM1Double x) = PM1Double (-x)

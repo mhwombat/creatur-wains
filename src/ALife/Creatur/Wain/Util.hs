@@ -34,6 +34,7 @@ module ALife.Creatur.Wain.Util
     intersection,
     unitVectors,
     thirdOfTriple,
+    fourthOfFour,
     fifthOfFive
   ) where
 
@@ -183,6 +184,10 @@ unitVectors n = map f [0..n-1]
 -- | Returns the third element of a triple.
 thirdOfTriple :: (a, b, c) -> c
 thirdOfTriple (_, _, x) = x
+
+-- | Returns the fifth element of a quintuple.
+fourthOfFour :: (a, b, c, d) -> d
+fourthOfFour (_, _, _, x) = x
 
 -- | Returns the fifth element of a quintuple.
 fifthOfFive :: (a, b, c, d, e) -> e

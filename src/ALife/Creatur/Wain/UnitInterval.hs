@@ -31,7 +31,8 @@ module ALife.Creatur.Wain.UnitInterval
     uiDoublesTo8BitHex,
     uiDoubleTo8BitHex,
     diffIntegral,
-    adjustIntegral
+    adjustIntegral,
+    normalise
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
@@ -220,3 +221,22 @@ adjustIntegral t r x
   where t' = fromIntegral t :: Double
         x' = fromIntegral x :: Double
         r' = uiToDouble r
+
+-- | Internal method
+normalise :: [UIDouble] -> [UIDouble]
+normalise ws
+  | k == 0     = replicate n (doubleToUI (1 / fromIntegral n))
+  | otherwise = tweak $ map (uiApply (/k)) ws
+  where k = sum . map uiToDouble $ ws
+        n = length ws
+
+-- | Internal method
+tweak :: [UIDouble] -> [UIDouble]
+tweak (x:xs)
+  | excess > 0 && x > excess = (x - excess):xs
+  | excess > 0              = 0 : tweak xs
+  | otherwise               = x:xs
+  where excess = doubleToUI . max 0 $ s - 1
+        s = sum . map uiToDouble $ (x:xs)
+tweak [] = error "tweak should not have been called"
+

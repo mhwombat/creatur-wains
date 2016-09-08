@@ -21,15 +21,13 @@ module ALife.Creatur.Wain.PredictorQC
     equivPredictor,
     arbTestPredictor,
     arbEmptyTestPredictor,
-    TrainingTestData(..),
+    -- TrainingTestData(..),
     ImprintTestData(..)
   ) where
 
 import ALife.Creatur.Wain.PredictorInternal
-import ALife.Creatur.Wain.GeneticSOM (train)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM)
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import ALife.Creatur.Wain.Response (Response(..), labels, action,
   outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
@@ -37,11 +35,12 @@ import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
 import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.GeneticSOMInternal (patternMap, numModels,
-  maxSize)
+  maxSize, modelMap)
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM,
   sizedArbEmptyGeneticSOM)
 import Control.Lens
 import Data.Datamining.Clustering.SGMInternal (diffThreshold)
+import Data.Map.Strict ((!))
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding (labels, maxSize)
@@ -77,45 +76,44 @@ equivPredictor = equivGSOM equivTweaker
 arbEmptyTestPredictor :: Int -> Gen TestPredictor
 arbEmptyTestPredictor nSize = sizedArbEmptyGeneticSOM nSize
 
-data TrainingTestData
-  = TrainingTestData
-      {
-        xPredictor :: TestPredictor,
-        xResponse :: TestResponse,
-        xOutcomes :: [PM1Double]
-      } deriving (Eq, Show)
+-- data TrainingTestData
+--   = TrainingTestData
+--       {
+--         xPredictor :: TestPredictor,
+--         xWeights :: Weights,
+--         xDefaultOutcomes :: [PM1Double],
+--         xLdss :: [[(Cl.Label, Cl.Difference)]],
+--         xAction :: TestAction
+--       } deriving (Eq, Show)
 
-sizedArbTrainingTestData :: Int -> Gen TrainingTestData
-sizedArbTrainingTestData n = do
-  nSize <- choose (1, max 1 n)
-  nObjects <- choose (1, min 3 (max 1 (n - nSize)))
-  let nConditions = max 1 (n - nSize - nObjects)
-  p <- arbTestPredictor nObjects nConditions nSize
-  let pm = view patternMap p
-  let pm' = pm { diffThreshold=0.1 }
-  let p' = set patternMap pm' p
-  r <- arbTestResponse nObjects nConditions
-  os <- vectorOf nConditions arbitrary
-  return $ TrainingTestData p' r os
+-- sizedArbTrainingTestData :: Int -> Gen TrainingTestData
+-- sizedArbTrainingTestData n = do
+--   nSize <- choose (1, max 1 n)
+--   nObjects <- choose (1, min 3 (max 1 (n - nSize)))
+--   let nConditions = max 1 (n - nSize - nObjects)
+--   p <- arbTestPredictor nObjects nConditions nSize
+--   ws <- sizedArbWeights (nObjects + 1)
+--   let pm = view patternMap p
+--   let pm' = pm { diffThreshold=0.1 }
+--   let p' = set patternMap pm' p
+--   dos <- vectorOf nConditions arbitrary
+--   ldss <- vectorOf nObjects arbitrary
+--   a <- arbitrary
+--   return $ TrainingTestData p' ws dos ldss a
 
-instance Arbitrary TrainingTestData where
-  arbitrary = sized sizedArbTrainingTestData
+-- instance Arbitrary TrainingTestData where
+--   arbitrary = sized sizedArbTrainingTestData
 
--- NOTE: I've tested this with maxSuccess=10000!
-prop_training_makes_predictions_more_accurate
-  :: TrainingTestData -> Property
-prop_training_makes_predictions_more_accurate (TrainingTestData d r os)
-  = property $ errAfter < 0.1 || errAfter <= errBefore
-  where (r2, _, _, _, d2) = predict d r 1
-        errBefore = rawDiff os (_outcomes r2)
-        rActual = r { _outcomes = os }
-        d3 = train d2 rActual
-        (r4, _, _, _, _) = predict d3 r 1
-        errAfter = rawDiff os (_outcomes r4)
-
-rawDiff :: [PM1Double] ->  [PM1Double] -> Double
-rawDiff xs ys =
-  sum $ zipWith (\x y -> abs $ pm1ToDouble x - pm1ToDouble y) xs ys
+-- prop_evaluateResponse_extrapolates_for_new_action
+--   :: TrainingTestData -> TestAction -> Property
+-- prop_evaluateResponse_extrapolates_for_new_action
+--   (TrainingTestData p ws _ ldss a1) a2 =
+--     a1 `elem` knownActions && not (a2 `elem` knownActions) ==>
+--       and (zipWith (\a b -> abs a < abs b) os2 os1)
+--   where knownActions = map _action . elems . modelMap $ p
+--         (_, os1) = evaluateResponse ws testActionDiff2 undefined p ldss a1
+--         (_, os2) = evaluateResponse ws testActionDiff2 undefined p ldss a2
+--         -- have to use testActionDiff2!!!
 
 data ImprintTestData
   = ImprintTestData
@@ -123,8 +121,7 @@ data ImprintTestData
         iPredictor :: TestPredictor,
         iResponse :: TestResponse,
         iOutcomes :: [PM1Double],
-        iDeltas :: [PM1Double],
-        iProb :: UIDouble
+        iDeltas :: [PM1Double]
       } deriving (Eq, Show)
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
@@ -139,21 +136,22 @@ sizedArbImprintTestData n = do
   r <- arbTestResponse nObjects nConditions
   os <- vectorOf nConditions $ choose (0.00001, 1)
   ds <- vectorOf nConditions $ choose (0.00001, 1)
-  prob <- choose (0.1, 1)
-  return $ ImprintTestData p' r os ds prob
+  return $ ImprintTestData p' r os ds
 
 instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
 
 prop_imprintOrReinforce_works :: ImprintTestData -> Property
-prop_imprintOrReinforce_works (ImprintTestData d r os ds prob) =
-  numModels d < maxSize d ==>
+prop_imprintOrReinforce_works (ImprintTestData p r os ds) =
+  numModels p < maxSize p ==>
     and $ zipWith (>) (_outcomes r2) (_outcomes r1)
   where os0 = map (const (-1)) os
         r0 = set outcomes os0 r
-        (r1, _, _, _, _) = predict d r0 prob
-        (_, _, d2) = imprintOrReinforce d (view labels r) (view action r) os ds
-        (r2, _, _, _, _) = predict d2 r prob
+        (bmu0, p1) = classifyAndMaybeCreateNewModel p r0
+        r1 = modelMap p1 ! bmu0
+        (_, _, p2) = imprintOrReinforce p (view labels r) (view action r) os ds
+        (bmu2, p3) = classifyAndMaybeCreateNewModel p2 r0
+        r2 = modelMap p3 ! bmu2
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.PredictorQC"
@@ -178,8 +176,6 @@ test = testGroup "ALife.Creatur.Wain.PredictorQC"
       (prop_diploid_expressable :: TestPredictor -> TestPredictor -> Property),
     testProperty "prop_diploid_readable - Predictor"
       (prop_diploid_readable :: TestPredictor -> TestPredictor -> Property),
-    testProperty "prop_training_makes_predictions_more_accurate"
-      prop_training_makes_predictions_more_accurate,
     testProperty "prop_imprintOrReinforce_works"
       prop_imprintOrReinforce_works
   ]

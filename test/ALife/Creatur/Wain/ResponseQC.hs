@@ -19,6 +19,8 @@ module ALife.Creatur.Wain.ResponseQC
     TestResponse,
     equivResponse,
     TestAction(..),
+    testActionDiff,
+    testActionDiff2,
     arbTestResponse
   ) where
 
@@ -28,6 +30,7 @@ import ALife.Creatur.Wain.GeneticSOM (Label)
 import ALife.Creatur.Wain.ResponseInternal
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
 import Control.DeepSeq (NFData)
 import Data.Serialize (Serialize)
@@ -41,9 +44,25 @@ data TestAction = Walk | Run | Jump | Skip | Crawl
   deriving ( Show, Read, Eq, Ord, Generic, Enum, Bounded, Serialize,
              Genetic, Diploid, NFData )
 
-
 instance Arbitrary TestAction where
   arbitrary = elements [minBound .. maxBound]
+
+testActionDiff :: TestAction -> TestAction -> UIDouble
+testActionDiff Walk Walk = 0
+testActionDiff Run Run = 0
+testActionDiff Jump Jump = 0
+testActionDiff Skip Skip = 0
+testActionDiff Crawl Crawl = 0
+testActionDiff Walk Run = 0.1
+testActionDiff Run Walk = 0.1
+testActionDiff Jump Skip = 0.25
+testActionDiff Skip Jump = 0.25
+testActionDiff _ _ = 1
+
+testActionDiff2 :: TestAction -> TestAction -> UIDouble
+testActionDiff2 a b
+  | a == b     = 0
+  | otherwise = 1
 
 type TestResponse = Response TestAction
 

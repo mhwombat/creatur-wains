@@ -18,8 +18,7 @@ module ALife.Creatur.Wain.WeightsInternal where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, get)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiApply, uiToDouble,
-  doubleToUI, uiDiff)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiDiff, normalise)
 import Control.DeepSeq (NFData)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
@@ -43,21 +42,6 @@ instance Diploid Weights where
 makeWeights :: [UIDouble] -> Weights
 makeWeights [] = Weights []
 makeWeights ws = Weights . normalise $ ws
-
--- | Internal method
-normalise :: [UIDouble] -> [UIDouble]
-normalise ws
-  | k == 0    = replicate n (doubleToUI (1 / fromIntegral n))
-  | otherwise = tweak $ map (uiApply (/k)) ws
-  where k = sum . map uiToDouble $ ws
-        n = length ws
-
--- | Internal method
-tweak :: [UIDouble] -> [UIDouble]
-tweak (x:xs) = if excess > 0 then (x - excess):xs else x:xs
-  where excess = doubleToUI . max 0 $ s - 1
-        s = sum . map uiToDouble $ (x:xs)
-tweak [] = error "tweak should not have been called"
 
 -- | Number of weights in a sequence.
 numWeights :: Weights -> Int

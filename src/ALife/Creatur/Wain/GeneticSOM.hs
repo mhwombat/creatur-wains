@@ -39,6 +39,7 @@ module ALife.Creatur.Wain.GeneticSOM
     randomLearningParams,
     randomLearningFunction,
     maxSize,
+    diffThreshold,
     currentLearningRate,
     schemaQuality,
     discrimination

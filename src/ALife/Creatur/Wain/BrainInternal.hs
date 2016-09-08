@@ -25,31 +25,26 @@ import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import qualified ALife.Creatur.Wain.Predictor as P
-import ALife.Creatur.Wain.Muser (Muser, generateResponses,
-  _defaultOutcomes)
 import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
-import ALife.Creatur.Wain.Response (Response(..))
-import ALife.Creatur.Wain.Probability (Probability, hypothesise)
-import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix,
-  iStat, dStat)
+import ALife.Creatur.Wain.Response (Response(..), action, outcomes)
+import ALife.Creatur.Wain.Statistics (Statistical, Statistic, stats,
+  prefix, iStat, dStat, dStats)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, doubleToPM1,
   pm1ToDouble)
-import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   forceDoubleToUI)
-import ALife.Creatur.Wain.Util (thirdOfTriple)
 import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum,
-  numWeights)
+  numWeights, toUIDoubles)
 import Control.DeepSeq (NFData)
 import Control.Lens
 import Data.Function (on)
-import Data.List (intercalate, groupBy, sortBy, foldl')
+import Data.List (groupBy, sortBy)
 import qualified Data.Map.Strict as M
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
-import Data.Word (Word8, Word64)
+import Data.Word (Word8)
 import GHC.Generics (Generic)
-import Text.Printf (printf)
+-- import Text.Printf (printf)
 
 -- | A wain's condition
 type Condition = [UIDouble]
@@ -60,18 +55,25 @@ data Brain p ct pt a = Brain
   {
     -- | Component that categorises and identifies patterns
     _classifier :: Cl.Classifier p ct,
-    -- | Component that generates response models for consideration
-    _muser :: Muser,
-    -- | Component that decides what actions to take
+    -- | Component that predicts the outcome of possible actions
     _predictor :: P.Predictor a pt,
     -- | Weights for evaluating happiness
     _happinessWeights :: Weights,
     -- | Used to break ties when actions seem equally promising
     _tiebreaker :: Word8,
-    -- | Controls how willing the wain is to consider alternative
-    --   classifications when making decisions.
-    --   Must be >= 1.
-    _strictness :: Word64,
+    -- | Used to determine how similar a response model is to the
+    --   response we're considering.
+    _responseWeights :: Weights,
+    -- If the difference between a predictor model and a response we're
+    -- considering exceeds this, we won't use it to predict the
+    -- the outcome of an action.
+    _decisionDiffThreshold :: UIDouble,
+    -- | If a wain has no model for a response it's considering, it
+    --   will use these values as a prediction.
+    --   Positive values make the wain optimistic and more likely to
+    --   take risks. A negative value makes the wain pessimistic and
+    --   risk-averse.
+    _defaultOutcomes :: [PM1Double],
     -- | When a wain observes a response that it has never seen before,
     --   it will assume the action has the following outcomes.
     --   Normally these values should all be positive.
@@ -91,22 +93,23 @@ makeLenses ''Brain
 --   tiebreaker @t@, imprint outcomes @ios@, and reinforcement deltas
 --   @rds@. See @Brain@ for an explanation of these parameters.
 makeBrain
-  :: Cl.Classifier p ct -> Muser -> P.Predictor a pt -> Weights -> Word8
-     -> Word64 -> [PM1Double] -> [PM1Double]
+  :: Cl.Classifier p ct -> P.Predictor a pt -> Weights -> Word8
+     -> Weights -> UIDouble -> [PM1Double] -> [PM1Double] -> [PM1Double]
      -> Either [String] (Brain p ct pt a)
-makeBrain c m p hw t x ios rds
-  | x < 1
-      = Left ["strictness < 1"]
+makeBrain c p hw t rw ddt dos ios rds
   | numWeights hw /= 4
       = Left ["incorrect number of happiness weights"]
-  | length (_defaultOutcomes m) /= 4
+  -- TODO Check number of response weights = #objects + 1
+  | numWeights rw < 2
+      = Left ["incorrect number of response weights"]
+  | length dos /= 4
       = Left ["incorrect number of default outcomes"]
   | length ios /= 4
       = Left ["incorrect number of imprint outcomes"]
   | length rds /= 4
       = Left ["incorrect number of reinforcement deltas"]
   | otherwise
-      = Right $ Brain c m p hw t x ios rds M.empty
+      = Right $ Brain c p hw t rw ddt dos ios rds M.empty
 
 instance (Serialize p, Serialize ct, Serialize pt, Serialize a, Eq a,
   Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
@@ -120,18 +123,23 @@ instance (Diploid p, Diploid ct, Diploid pt, Diploid a, Eq a, Ord a,
 
 instance (Eq a, Ord a)
       => Statistical (Brain p ct pt a) where
-  stats b@(Brain c m p hw t s ios rds _)
+  stats b@(Brain c p hw t rw ddt dos ios rds _)
+    | length dos < 4 = error "dos not long enough"
     | length ios < 4 = error "ios not long enough"
     | length rds < 4 = error "rds not long enough"
     | otherwise =
       map (prefix "classifier ") (stats c)
-      ++ (stats m)
       ++ map (prefix "predictor ") (stats p)
       ++ [ iStat "DQ" $ decisionQuality b,
            dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
            dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
            dStat "boredomWeight" . uiToDouble $ hw `weightAt` 2,
            dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 3,
+           dStat "decisionDiffThreshold" ddt,
+           dStat "energyDefault" . pm1ToDouble $ dos !! 0,
+           dStat "passionDefault" . pm1ToDouble $ dos !! 1,
+           dStat "boredomDefault" . pm1ToDouble $ dos !! 2,
+           dStat "litterSizeDefault" . pm1ToDouble $ dos !! 3,
            dStat "energyImprint" . pm1ToDouble $ ios !! 0,
            dStat "passionImprint" . pm1ToDouble $ ios !! 1,
            dStat "boredomImprint" . pm1ToDouble $ ios !! 2,
@@ -140,35 +148,42 @@ instance (Eq a, Ord a)
            dStat "passionReinforcement" . pm1ToDouble $ rds !! 1,
            dStat "boredomReinforcement" . pm1ToDouble $ rds !! 2,
            dStat "litterSizeReinforcement" . pm1ToDouble $ rds !! 3,
-           iStat "tiebreaker" t,
-           iStat "strictness" s]
+           iStat "tiebreaker" t]
+      ++ responseWeightStats rw
+
+responseWeightStats :: Weights -> [Statistic]
+responseWeightStats ws
+  = dStat "actionWeight" (head xs)
+    : dStats "labelWeight" (tail xs)
+  where xs = map uiToDouble $ toUIDoubles ws
 
 instance (Show p, Show a, Show ct, Show pt, Eq a)
       => Show (Brain p ct pt a) where
-  show (Brain c m p hw t s ios rds ks) = "Brain (" ++ show c ++ ") ("
-    ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") "
-    ++ show t ++ " " ++ show s ++ " " ++ show ios ++ show rds
-    ++ " (" ++ show ks ++ ")"
+  show (Brain c p hw t rw ddt dos ios rds ks) = "Brain (" ++ show c ++ ") ("
+    ++ show p ++ ") (" ++ show hw ++ ") "
+    ++ show t ++ " (" ++ show rw ++ ") " ++ show ddt ++ show dos ++ " "
+    ++ show ios ++ show rds ++ " (" ++ show ks ++ ")"
 
 instance (Genetic p, Genetic ct, Genetic pt, Genetic a, Eq a, Ord a,
           GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
           Response a ~ GSOM.Pattern pt)
     => Genetic (Brain p ct pt a) where
-    put (Brain c m p hw t s ios rds _)
-      = put c >> put m >> put p >> put hw >> put t >> put s >> put ios
-          >> put rds
+    put (Brain c p hw t rw ddt dos ios rds _)
+      = put c >> put p >> put hw >> put t >> put rw >> put ddt
+          >> put dos >> put ios >> put rds
     get = do
       c <- get
-      m <- get
       p <- get
       hw <- get
       t <- get
-      s <- get
+      rw <- get
+      ddt <- get
+      dos <- get
       ios <- get
       rds <- get
       -- Use the safe constructor!
-      case (makeBrain <$> c <*> m <*> p <*> hw <*> t <*> s <*> ios
-             <*> rds) of
+      case (makeBrain <$> c <*> p <*> hw <*> t <*> rw <*> ddt <*> dos
+             <*> ios <*> rds) of
         Left msgs -> return $ Left msgs
         Right b   -> return b
 
@@ -198,41 +213,67 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic a, Eq a, Ord a,
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: (Eq a, Enum a, Bounded a, Ord a, GSOM.Tweaker pt,
-    Response a ~ GSOM.Pattern pt)
-      => Brain p ct pt a -> [p] -> Condition
-        -> ([[(Cl.Label, GSOM.Difference)]],
-            [([Cl.Label], Probability)],
-            [(Response a, Probability, Probability, P.Label,
-              [PM1Double])],
-            [(a, [PM1Double], UIDouble)],
-            Response a,
-            Brain p ct pt a)
-chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
-  where (cBmus, lds, b2) = classifyInputs b ps
-        sps = errorIfNull "sps" $ hypothesise (_strictness b) lds
-        sps' = filter (P.hasScenario (_predictor b) . fst) sps
-        spsSafe = if null sps'
-                    then sps -- nothing to base estimate on; have to guess
-                    else sps'
-        rps = errorIfNull "rps" $ generateResponses (_muser b2) spsSafe
-        rplos = errorIfNull "rplos" $ predictAll b2 rps
-        rs = errorIfNull "rs" $ map (\(r1, _, _, _, _) -> r1) rplos
-        aos = errorIfNull "aos" $ sumByAction $ rs
-        aohs = errorIfNull "aohs" $ map (fillInAdjustedHappiness b2 c) aos
-        (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aohs
+  :: (Eq a, Enum a, Bounded a, Ord a)
+      => (a -> a -> UIDouble) -> Brain p ct pt a -> [p] -> Condition
+        -> ( [[(Cl.Label, GSOM.Difference)]],
+             [([(Response a, Cl.Difference, UIDouble, [PM1Double])],
+               Response a, UIDouble)],
+             Response a,
+             Brain p ct pt a)
+chooseAction actionDiff b ps c = (ldss, xrhs, r, b3)
+  where (ls, ldss, b2) = classifyInputs b ps
+        as = [minBound ..maxBound]
+        (xss, rs) = unzip $ map (evaluateResponse actionDiff b ls ldss) as
+        rhs = errorIfNull "rs" $ map (fillInAdjustedHappiness b2 c) rs
+        hs = map snd rhs
+        xrhs = zip3 xss rs hs
+        (r, _) = chooseAny b . maximaBy snd $ rhs
         b3 = adjustActionCounts b2 r
-        r = Response cBmus a os
+
+evaluateResponse
+  :: (Bounded a, Enum a, Ord a)
+    => (a -> a -> GSOM.Difference)
+      -> Brain p ct t a -> [GSOM.Label]
+        -> [[(GSOM.Label, GSOM.Difference)]] -> a
+          -> ([(Response a, GSOM.Difference, UIDouble, [PM1Double])],
+                            Response a)
+evaluateResponse actionDiff b ls ldss a = (xs, Response ls a os)
+  where ws = _responseWeights b
+        dos = _defaultOutcomes b
+        p = _predictor b
+        ddt = _decisionDiffThreshold b
+        (xs, os) = P.evaluateResponse ddt ws actionDiff dos p ldss a
+
+decisionReport
+  :: Show a
+    => ([(Response a, GSOM.Difference, UIDouble, [PM1Double])],
+         Response a, UIDouble) -> [String]
+decisionReport (xs, r, h) = msg:msgs
+  where msg = "Predicted output of action " ++ show a ++ " is "
+                ++ show os ++ " with happiness " ++ show h
+                ++ " based on the following models"
+        msgs = P.decisionReport xs
+        a = view action r
+        os = view outcomes r
+
+-- | Evaluates the input patterns and the current condition.
+--   Returns the "signature" (differences between the input pattern
+--   and each model in the classifier) of each input pattern,
+--   and the updated brain.
+classifyInputs
+  :: Brain p ct pt a -> [p]
+    -> ([Cl.Label], [[(Cl.Label, GSOM.Difference)]],
+        Brain p ct pt a)
+classifyInputs b ps = (bmus, ldss, b')
+  where (bmus, ldss, c')
+          = Cl.classifySetAndTrain (_classifier b) ps
+        b' = set classifier c' b
 
 -- | Internal method
 errorIfNull :: String -> [a] -> [a]
 errorIfNull desc xs = if null xs
                         then error ("null " ++ desc)
                         else xs
-
--- | Internal method
-onlyModelsIn :: Brain p ct pt a -> [(Cl.Label, GSOM.Difference)] -> Bool
-onlyModelsIn b = and . map (GSOM.hasLabel (_classifier b) . fst)
 
 -- | Internal method
 maximaBy :: Ord b => (a -> b) -> [a] -> [a]
@@ -248,14 +289,15 @@ chooseAny b xs = xs !! (seed `mod` n)
 
 -- | Internal method
 fillInAdjustedHappiness
-  :: Brain p ct pt a -> Condition -> (a, [PM1Double])
-    -> (a, [PM1Double], UIDouble)
-fillInAdjustedHappiness b c (a, os) = (a, os, adjustedHappiness b c os)
+  :: Brain p ct pt a -> Condition -> Response a
+    -> (Response a, UIDouble)
+fillInAdjustedHappiness b c r = (r, adjustedHappiness b c r)
 
 -- | Internal method
 adjustedHappiness
-  :: Brain p ct pt a -> Condition -> [PM1Double] -> UIDouble
-adjustedHappiness b c = happiness b . adjustCondition c
+  :: Brain p ct pt a -> Condition -> Response a -> UIDouble
+adjustedHappiness b c r
+  = happiness b $ adjustCondition c (view outcomes r)
 
 -- | Internal method
 adjustCondition :: Condition -> [PM1Double] -> Condition
@@ -272,69 +314,6 @@ adjustActionCounts b r = set actionCounts cs' b
         cs' = M.alter inc a cs
         inc Nothing = Just 1
         inc (Just n) = Just (n+1)
-
--- | Evaluates the input patterns and the current condition.
---   Returns the "signature" (differences between the input pattern
---   and each model in the classifier) of each input pattern,
---   and the updated brain.
-classifyInputs
-  :: Brain p ct pt a -> [p]
-    -> ([Cl.Label], [[(Cl.Label, GSOM.Difference)]],
-        Brain p ct pt a)
-classifyInputs b ps = (bmus, ds, b')
-  where (bmus, ds, c')
-          = Cl.classifySetAndTrain (_classifier b) ps
-        b' = set classifier c' b
-
--- | Internal method
-sumByAction :: Eq a => [Response a] -> [(a, [PM1Double])]
-sumByAction rs = map sumByAction' rss
-  where rss = groupBy sameAction rs
-        sameAction x y = _action x == _action y
-
--- | Internal method
-sumByAction' :: [Response a] -> (a, [PM1Double])
-sumByAction' [] = error "no responses to sum"
-sumByAction' rs = (a, os)
-  where a = _action $ head rs
-        os = sumTermByTerm $ map _outcomes rs
-
--- | Internal method
-sumTermByTerm :: Num a => [[a]] -> [a]
-sumTermByTerm [] = []
-sumTermByTerm (xs:[]) = xs
-sumTermByTerm (xs:ys:zss) = sumTermByTerm (ws:zss)
-  where ws = zipWith (+) xs ys
-
--- | Predicts the outcomes of a set of responses based on the Predictor
---   models, and updates the outcome field in each response.
---   Some of the responses we're considering are in response to the
---   scenario we're most likely facing, and some are in response to
---   alternative scenarios we want to consider.
---   Each predicted outcome is scaled by how close it is to the
---   scenario we think we're facing.
---   So each input response is paired with the likelihood that the
---   scenario it describes is actually the one we're facing.
---   This approach allows us to weigh risks and outcomes.
---   We can compare, for example, an action with a high probability of a
---   somewhat good outcome, to an action with a low probability of a
---   really bad outcome.
-predictAll
-  :: (Eq a, GSOM.Tweaker pt, Response a ~ GSOM.Pattern pt)
-    => Brain p ct pt a -> [(Response a, Probability)]
-      -> [(Response a, Probability, Probability, P.Label, [PM1Double])]
-predictAll b rps = foldl' (predictOne b) [] rps
-
--- | Internal method
-predictOne
-  :: (Eq a, GSOM.Tweaker pt, Response a ~ GSOM.Pattern pt)
-    => Brain p ct pt a
-      -> [(Response a, Probability, Probability, P.Label,  [PM1Double])]
-        -> (Response a, Probability)
-          -> ([(Response a, Probability, Probability, P.Label,
-               [PM1Double])])
-predictOne b rplos (r, p) = (r', p, p', l, os):rplos
-  where (r', p', l, os, _) = P.predict (_predictor b) r p
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
@@ -370,12 +349,9 @@ imprint
   :: Eq a
     => Brain p ct pt a -> [p] -> a
       -> ([[(Cl.Label, GSOM.Difference)]],
-            [([Cl.Label], Probability)],
             P.Label, Response a, Brain p ct pt a)
-imprint b ps a = (lds, sps, bmu, r, b3)
-  where (_, lds, b2) = classifyInputs b ps
-        sps = errorIfNull "sps" $ hypothesise 1 lds
-        ls = fst . head $ sps
+imprint b ps a = (lds, bmu, r, b3)
+  where (ls, lds, b2) = classifyInputs b ps
         (bmu, r, b3) = imprintPredictor b2 ls a
 
 -- | Internal method
@@ -396,32 +372,3 @@ happiness b = weightedSum (_happinessWeights b)
 -- | A metric for how flexible a brain is at making decisions.
 decisionQuality :: Brain p ct pt a -> Int
 decisionQuality = GSOM.discrimination . M.elems . _actionCounts
-
--- | Generates a human readable summary of a stimulus.
-scenarioReport :: [([Cl.Label], Probability)] -> [String]
-scenarioReport = map f
-  where f (s, p) = show s ++ " prob: " ++ prettyProbability p
-
--- | Generates a human readable summary of a set of responses.
-responseReport
-  :: Show a
-    => [(Response a, Probability, Probability, P.Label, [PM1Double])] -> [String]
-responseReport = map f
-  where f (r, p, p', l, os) = pretty r
-          ++ " prob: " ++ prettyProbability p'
-          ++ "(" ++ prettyProbability p ++ ")"
-          ++ " based on model " ++ show l ++ " raw outcomes: "
-          ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
-
--- | Generates a human readable summary of a decision.
-decisionReport :: Show a => [(a, [PM1Double], UIDouble)] -> [String]
-decisionReport = map f
-  where f (a, os, h) = "predicted outcomes of " ++ show a ++ " are "
-          ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
-          ++ " with resulting happiness "
-          ++ printf "%.3f" (uiToDouble h)
-
--- | Internal method
-prettyProbability :: Probability -> String
-prettyProbability p = printf "%.3f" (uiToDouble p * 100) ++ "%"
-

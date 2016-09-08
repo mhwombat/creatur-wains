@@ -46,11 +46,6 @@ sizedArbWeights n = fmap makeWeights $ vectorOf n arbitrary
 instance Arbitrary Weights where
   arbitrary = sized sizedArbWeights
 
-prop_normalise_works :: [UIDouble] -> Property
-prop_normalise_works xs
-  = not (null ys) ==> sum ys <= 1 && (sum ys - 1) < 1e-10
-  where ys = map uiToDouble $ normalise xs
-
 prop_sum_of_weights_is_1 :: Weights -> Property
 prop_sum_of_weights_is_1 w
   = not (null ws) ==> sum ws <= 1 && (sum ws - 1) < 1e-10
@@ -79,8 +74,6 @@ prop_genetic_weights_are_normalised xs = (not . null) xs ==>
 test :: Test
 test = testGroup "ALife.Creatur.Wain.WeightsQC"
   [
-    testProperty "prop_normalise_works"
-      prop_normalise_works,
     testProperty "prop_sum_of_weights_is_1"
       prop_sum_of_weights_is_1,
     testProperty "prop_weights_are_positive"

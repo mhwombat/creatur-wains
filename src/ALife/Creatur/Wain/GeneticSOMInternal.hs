@@ -371,6 +371,9 @@ isEmpty = SOM.isEmpty . _patternMap
 maxSize :: GeneticSOM p t -> Int
 maxSize = SOM.maxSize . _patternMap
 
+diffThreshold :: GeneticSOM p t -> UIDouble
+diffThreshold = SOM.diffThreshold . _patternMap
+
 -- | Returns a map from node ID to model.
 modelMap :: GeneticSOM p t -> M.Map Label p
 modelMap = SOM.modelMap . _patternMap

@@ -16,6 +16,7 @@ module ALife.Creatur.Wain.Weights
     makeWeights,
     weightedSum,
     weightAt,
+    toUIDoubles,
     weightedUIVectorDiff,
     numWeights
   ) where

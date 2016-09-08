@@ -34,7 +34,7 @@ import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
 import Control.Lens
 import Control.DeepSeq (NFData, deepseq)
 import Control.Monad.Random (evalRand, runRand)
-import Data.Datamining.Clustering.SGM (diffThreshold, toMap, trainBatch)
+import Data.Datamining.Clustering.SGM (toMap, trainBatch)
 import Data.Map.Strict (keys, (!))
 import Data.Serialize (Serialize)
 import Data.Word (Word8, Word64)
@@ -114,8 +114,7 @@ equivGSOM :: (t -> t -> Bool) -> GeneticSOM p t -> GeneticSOM p t -> Bool
 equivGSOM equivT x y =
   -- TODO when initial models are made genetic: models x == models y
   maxSize x == maxSize y
-    && equivUIDouble ((diffThreshold . view patternMap) x)
-        ((diffThreshold . view patternMap) y)
+    && equivUIDouble (diffThreshold x) (diffThreshold y)
     && equivLearningFunction (view learningParams x)
         (view learningParams y)
     &&  equivT (view tweaker x) (view tweaker y)

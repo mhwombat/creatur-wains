@@ -22,6 +22,7 @@ module ALife.Creatur.Wain.Response
     -- responseDiff,
     labelSimilarity,
     -- makeResponseSimilar,
+    -- scaleOutcomes,
     addToOutcomes
   ) where
 

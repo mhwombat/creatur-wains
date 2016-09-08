@@ -73,6 +73,11 @@ prop_uiVectorDiff_is_symmetric :: [UIDouble] -> [UIDouble] -> Property
 prop_uiVectorDiff_is_symmetric x y = property $
   uiVectorDiff x y == uiVectorDiff y x
 
+prop_normalise_works :: [UIDouble] -> Property
+prop_normalise_works xs
+  = not (null ys) ==> sum ys <= 1 && (sum ys - 1) < 1e-10
+  where ys = map uiToDouble $ normalise xs
+
 test :: Test
 test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
   [
@@ -110,5 +115,7 @@ test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
     testProperty "prop_uiVectorDiff_is_symmetric"
       prop_uiVectorDiff_is_symmetric,
     testProperty "prop_makeSimilar_works - UI Vector"
-      (prop_makeSimilar_works uiVectorDiff adjustUIVector)
+      (prop_makeSimilar_works uiVectorDiff adjustUIVector),
+    testProperty "prop_normalise_works"
+      prop_normalise_works
   ]

@@ -32,14 +32,13 @@ import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
 import qualified ALife.Creatur.Wain.Brain as B
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.GeneticSOM (Tweaker, Pattern)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import qualified ALife.Creatur.Wain.Predictor as P
 import qualified ALife.Creatur.Wain.Response as R
-import ALife.Creatur.Wain.Probability (Probability)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI, forceDoubleToUI)
-import ALife.Creatur.Wain.Util (unitInterval, enforceRange, fifthOfFive)
+import ALife.Creatur.Wain.Util (unitInterval, enforceRange, fourthOfFour)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen)
 import Data.List (partition)
@@ -320,17 +319,15 @@ happiness w = B.happiness (_brain w) (condition w)
 chooseAction
   :: (Eq a, Enum a, Bounded a, Ord a, Tweaker pt,
      R.Response a ~ Pattern pt)
-      => [p] -> Wain p ct pt a
+      => (a -> a -> UIDouble) -> [p] -> Wain p ct pt a
         -> ([[(Cl.Label, Cl.Difference)]],
-            [([Cl.Label], Probability)],
-            [(R.Response a, Probability, Probability, P.Label,
-              [PM1Double])],
-            [(a, [PM1Double], UIDouble)],
+            [([(R.Response a, Cl.Difference, UIDouble, [PM1Double])],
+               R.Response a, UIDouble)],
             R.Response a,
             Wain p ct pt a)
-chooseAction ps w = (lds, sps, rplos, aohs, r, w')
-  where (lds, sps, rplos, aohs, r, b')
-          = B.chooseAction (_brain w) ps (condition w)
+chooseAction actionDiff ps w = (ldss, xss, r, w')
+  where (ldss, xss, r, b')
+          = B.chooseAction actionDiff (_brain w) ps (condition w)
         w' = set brain b' w
 
 -- | Adjusts the energy of a wain.
@@ -411,7 +408,7 @@ reflect ps r wBefore wAfter =
   (set litter litter' wReflected, err)
   where (wReflected, err) = reflect1 r wBefore wAfter
         a = R._action r
-        litter' = map (fifthOfFive . imprint ps a) (_litter wAfter)
+        litter' = map (fourthOfFour . imprint ps a) (_litter wAfter)
 
 -- | Internal method
 reflect1
@@ -437,10 +434,9 @@ imprint
     Tweaker ct, Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt)
       => [p] -> a -> Wain p ct pt a
         -> ( [[(Cl.Label, Cl.Difference)]],
-             [([Cl.Label], Probability)],
              P.Label, R.Response a, Wain p ct pt a )
-imprint ps a w = (lds, sps, bmu, r, set brain b' w)
-  where (lds, sps, bmu, r, b') = B.imprint (_brain w) ps a
+imprint ps a w = (lds, bmu, r, set brain b' w)
+  where (lds, bmu, r, b') = B.imprint (_brain w) ps a
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.

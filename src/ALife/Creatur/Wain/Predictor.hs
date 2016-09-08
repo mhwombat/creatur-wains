@@ -15,10 +15,9 @@ module ALife.Creatur.Wain.Predictor
     Label,
     Predictor,
     buildPredictor,
-    predict,
-    scenarios,
-    hasScenario,
-    imprintOrReinforce
+    evaluateResponse,
+    imprintOrReinforce,
+    decisionReport
   ) where
 
 import ALife.Creatur.Wain.PredictorInternal

@@ -15,16 +15,14 @@ module Main where
 
 import ALife.Creatur.Wain
 import ALife.Creatur.Wain.BrainInternal (classifier, predictor,
-  makeBrain, scenarioReport, responseReport, decisionReport,
-  decisionQuality)
+  makeBrain, decisionQuality, decisionReport)
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (LearningParams(..),
   buildGeneticSOM, modelMap, schemaQuality)
-import ALife.Creatur.Wain.Muser (makeMuser)
 import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Response (action, outcomes)
-import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+import ALife.Creatur.Wain.ResponseQC (TestAction(..), testActionDiff2)
 import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.Statistics (stats)
 import ALife.Creatur.Wain.TestUtils (TestPattern(..))
@@ -37,35 +35,45 @@ import qualified Data.Map.Strict as M
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 
+nTests :: Int
+nTests = 1000
+
 reward :: Double
 reward = 0.1
 
+correctAnswer :: TestPattern -> TestAction
+correctAnswer (TestPattern p)
+  | p < 50    = Walk
+  | p < 100   = Run
+  | p < 150   = Jump
+  | p < 200   = Skip
+  | otherwise = Crawl
+
 energyFor :: TestPattern -> TestAction -> Double
-energyFor (TestPattern p) a
-  | p < 50   = if a == Walk then reward else -reward
-  | p < 100   = if a == Run then reward else -reward
-  | p < 150   = if a == Jump then reward else -reward
-  | p < 200   = if a == Skip then reward else -reward
-  | otherwise = if a == Crawl then reward else -reward
+energyFor p a
+  = if a == correctAnswer p then reward else -reward
 
 testWain :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
 testWain = w'
   where wName = "Fred"
         wAppearance = TestPattern 0
-        (Right wBrain) = makeBrain wClassifier wMuser wPredictor wHappinessWeights 1 16 wIos wRds
+        wRw = makeWeights [0.2, 0.8]
+        (Right wBrain) = makeBrain wClassifier wPredictor
+                           wHappinessWeights 1 wRw 0.085
+                           [doubleToPM1 reward, 0, 0, 0]
+                           wIos wRds
         wDevotion = 0.1
         wAgeOfMaturity = 100
         wPassionDelta = 0
         wBoredomDelta = 0
         wClassifierSize = 10
-        wClassifier = buildGeneticSOM ec wClassifierSize 0.02 TestTweaker
-        (Right wMuser) = makeMuser [0, 0, 0, 0] 1
+        wClassifier = buildGeneticSOM ec wClassifierSize 0.145 TestTweaker
         wIos = [doubleToPM1 reward, 0, 0, 0]
         wRds = [doubleToPM1 reward, 0, 0, 0]
         wPredictor = buildGeneticSOM ep (wClassifierSize*5) 0.1 ResponseTweaker
         wHappinessWeights = makeWeights [1, 0, 0, 0]
-        ec = LearningParams 1 0.001 10000
-        ep = LearningParams 1 0.001 10000
+        ec = LearningParams 0.5 0.000000001 (fromIntegral nTests)
+        ep = LearningParams 0.1 0.000000001 (fromIntegral nTests)
         w = buildWainAndGenerateGenome wName wAppearance wBrain
               wDevotion wAgeOfMaturity wPassionDelta wBoredomDelta
         (w', _) = adjustEnergy 0.5 w
@@ -80,11 +88,11 @@ tryOne w p = do
   describeClassifierModels w
   putStrLn "Initial decision models"
   describePredictorModels w
-  let (lds, sps, rplos, aohs, r, wainAfterDecision) = chooseAction [p] w
-  let (cBMU, cDiff) = minimumBy (comparing snd) . head $ lds
-  mapM_ putStrLn $ scenarioReport sps
-  mapM_ putStrLn $ responseReport rplos
-  mapM_ putStrLn $ decisionReport aohs
+  putStrLn $ "Wain sees " ++ show p
+  let (ldss, xss, r, wainAfterDecision) = chooseAction testActionDiff2 [p] w
+  putStrLn $ "ldss=" ++ show ldss
+  let (cBMU, cDiff) = minimumBy (comparing snd) . head $ ldss
+  mapM_ putStrLn $ concatMap decisionReport xss
   putStrLn $ "DEBUG classifier SQ=" ++ show (schemaQuality . view (brain . classifier) $ wainAfterDecision)
   -- describeClassifierModels wainAfterDecision
   -- describePredictorModels wainAfterDecision
@@ -118,8 +126,9 @@ tryOne w p = do
 describeClassifierModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> IO ()
 describeClassifierModels w = mapM_ (putStrLn . f) ms
   where ms = M.toList . modelMap . view (brain . classifier) $ w
-        f (l, r) = view name w ++ "'s classifier model " ++ show l ++ ": "
-                     ++ show r
+        f (l, x) = view name w ++ "'s classifier model " ++ show l
+                     ++ ": " ++ show x
+                     ++ " (" ++ show (correctAnswer x) ++ ")"
 
 describePredictorModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> IO ()
 describePredictorModels w = mapM_ (putStrLn . f) ms
@@ -139,6 +148,6 @@ main = do
   putStrLn "After round 500, the only mistakes the wain should make are"
   putStrLn "near boundary values (50, 100, 150, 200)."
   let g = mkStdGen 263167 -- seed
-  let ps = map TestPattern . take 1000 $ evalRand getRandoms g
+  let ps = map TestPattern . take nTests $ evalRand getRandoms g
   foldM_ tryOne testWain ps
   putStrLn "test complete"
