@@ -27,8 +27,7 @@ module ALife.Creatur.Wain.Statistics
     lookup,
     mean,
     popVariance,
-    popStdDev,
-    dStats
+    popStdDev
   ) where
 
 import Prelude hiding (lookup)
@@ -134,8 +133,3 @@ popVariance xs
 -- popStdDev :: (Eq a, Fractional a, Floating a, Foldable t) => t a -> a
 popStdDev :: [Double] -> Double
 popStdDev = sqrt . popVariance
-
-dStats :: Real a => String -> [a] -> [Statistic]
-dStats s xs = zipWith f ns xs
-  where f n x = dStat (s ++ "[" ++ show n ++ "]") x
-        ns = [0..] :: [Int]

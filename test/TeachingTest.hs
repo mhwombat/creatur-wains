@@ -15,19 +15,20 @@ module Main where
 
 import ALife.Creatur.Wain
 import ALife.Creatur.Wain.BrainInternal (classifier, predictor,
-  makeBrain, decisionQuality, decisionReport)
+  makeBrain, scenarioReport, responseReport, decisionReport,
+  decisionQuality)
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (LearningParams(..),
   buildGeneticSOM, modelMap, schemaQuality, currentLearningRate)
-import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1)
+import ALife.Creatur.Wain.Muser (makeMuser)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Response (action, outcomes)
-import ALife.Creatur.Wain.ResponseQC (TestAction(..), testActionDiff2)
+import ALife.Creatur.Wain.ResponseQC (TestAction(..))
 import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.Statistics (stats)
 import ALife.Creatur.Wain.TestUtils (TestPattern(..), testPatternDiff)
 import ALife.Creatur.Wain.UnitInterval (uiToDouble)
-import ALife.Creatur.Wain.Util (fourthOfFour)
+import ALife.Creatur.Wain.Util (fifthOfFive)
 import ALife.Creatur.Wain.Weights (makeWeights)
 import Control.Lens
 import Control.Monad (foldM_)
@@ -60,22 +61,20 @@ imprint'
   :: [TestPattern] -> TestAction
     -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
     -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
-imprint' w ps a = fourthOfFour $ imprint w ps a
+imprint' w ps a = fifthOfFive $ imprint w ps a
 
 testWain :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
 testWain = imprintAll w'
   where wName = "Fred"
         wAppearance = TestPattern 0
-        wRw = makeWeights [0.5, 0.5]
-        (Right wBrain) = makeBrain wClassifier wPredictor
-                           wHappinessWeights 1 wRw 0.1 [0, 0, 0, 0]
-                           wIos wRds
+        (Right wBrain) = makeBrain wClassifier wMuser wPredictor wHappinessWeights 1 128 wIos wRds
         wDevotion = 0.1
         wAgeOfMaturity = 100
         wPassionDelta = 0
         wBoredomDelta = 0
         threshold = testPatternDiff (TestPattern 25) (TestPattern 74)
         wClassifier = buildGeneticSOM ec 10 threshold TestTweaker
+        (Right wMuser) = makeMuser [0, 0, 0, 0] 1
         wIos = [0.01, 0, 0, 0]
         wRds = [0.01, 0, 0, 0]
         wPredictor = buildGeneticSOM ep 50 0.1 ResponseTweaker
@@ -100,10 +99,12 @@ tryOne w p = do
   putStrLn "Initial decision models"
   describePredictorModels w
   putStrLn $ "Wain sees " ++ show p
-  let (ldss, xss, r, wainAfterDecision) = chooseAction testActionDiff2 [p] w
-  putStrLn $ "ldss=" ++ show ldss
-  let (cBMU, _) = minimumBy (comparing snd) . head $ ldss
-  mapM_ putStrLn $ concatMap decisionReport xss
+  let (lds, sps, rplos, aos, r, wainAfterDecision) = chooseAction [p] w
+  putStrLn $ "lds=" ++ show lds
+  let (cBMU, _) = minimumBy (comparing snd) . head $ lds
+  mapM_ putStrLn $ scenarioReport sps
+  mapM_ putStrLn $ responseReport rplos
+  mapM_ putStrLn $ decisionReport aos
   putStrLn $ "DEBUG classifier SQ=" ++ show (schemaQuality . view (brain . classifier) $ wainAfterDecision)
   -- describeClassifierModels wainAfterDecision
   -- describePredictorModels wainAfterDecision

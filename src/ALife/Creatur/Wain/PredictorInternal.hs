@@ -15,22 +15,18 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module ALife.Creatur.Wain.PredictorInternal where
 
-import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.GeneticSOM (GeneticSOM,
   LearningParams, Label, Tweaker(..), buildGeneticSOM, modelMap,
-  trainAndClassify, hasLabel, train)
-import ALife.Creatur.Wain.Response (Response(..), labels, action,
-  outcomes, addToOutcomes)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1Apply)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
-  doubleToUI, normalise)
-import ALife.Creatur.Wain.Weights (Weights, weightedSum, numWeights)
+  trainAndClassify, hasLabel, train, tweaker)
+import qualified ALife.Creatur.Wain.Classifier as Cl
+import ALife.Creatur.Wain.Response (Response(..), outcomes,
+  addToOutcomes)
+import ALife.Creatur.Wain.Probability (Probability)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double, adjustPM1Vector)
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Control.Lens
-import Data.List (transpose, zip4)
-import Data.Maybe (fromMaybe)
 import qualified Data.Map.Strict as M
 import Data.Word (Word64)
-import Text.Printf (printf)
 
 -- | A predictor predicts the outcome of a response to a scenario.
 type Predictor a t = GeneticSOM (Response a) t
@@ -44,88 +40,46 @@ buildPredictor
     => LearningParams -> Word64 -> UIDouble -> t -> Predictor a t
 buildPredictor e n dt tw = buildGeneticSOM e n dt tw
 
--- | @'evaluateResponse' ws actionDiff p ldss a@ predicts the outcome of
---   a proposed action,
---   where
---   @ws@ are the weights placed on the similarity of a model action to
---   the proposed action, and the model labels to the assigned labels;
---   @actionDiff@ is a function that returns the difference between two
---   actions;
---   @p@ is the predictor;
---   @ldss@ contains the labels and classifier model differences for
---   each object being responded to; and
---   @a@ is the proposed action.
---   It returns the set of predictor models paired with their
---   differences, similarities, and contributions;
---   and the predicted outcome.
-evaluateResponse
-  :: (Eq a, Enum a, Bounded a, Ord a)
-      => UIDouble -> Weights -> (a -> a -> Cl.Difference)
-        -> [PM1Double] -> Predictor a t
-          -> [[(Cl.Label, Cl.Difference)]] -> a
-            -> ([(Response a, Cl.Difference, UIDouble, [PM1Double])],
-                 [PM1Double])
-evaluateResponse dt ws actionDiff dos p ldss a
-  | null rs   = ([], dos)
-  | otherwise = (zip4 rs' ds ss oss', os)
-  where rs = M.elems . modelMap $ p
-        ls = map (fst . head) ldss
-        rs' = if hasModel rs a ls
-                then rs
-                else (Response ls a dos):rs
-        drs = map (\r -> (responseDiff ws actionDiff ldss a r, r)) rs'
-        (ds, rs3) = unzip . filter (\(d, _) -> d < dt) $ drs
-        -- n = length ds
-        -- ss = map (\x -> doubleToUI $ (1 - uiToDouble x)/fromIntegral n) ds
-        ss = normalise $ map (\x -> doubleToUI (1 - uiToDouble x)) ds
-        oss = map (view outcomes) rs3
-        oss' = zipWith contribution ss oss
-        os = sumColumns oss'
-        
-hasModel :: Eq a => [Response a] -> a -> [Label] -> Bool
-hasModel [] _ _ = False
-hasModel (r:rs) a ls = if (_labels r == ls) && (_action r == a)
-                         then True
-                         else hasModel rs a ls
+-- | @'predict' p r k@ uses the predictor @p@ to predict the outcome
+--   of the response @r@, given the probability @k@ that the scenario
+--   associated with the response is the one we're actually facing.
+--   Returns the updated response (with the predicted outcome filled
+--   in), the label of the predictor model that best matches the
+--   response, and the (possibly updated) predictor.
+--   If the Predictor has no model for this response, it creates a new
+--   predictor model and returns the response unmodified.
+predict
+  :: (Eq a, Tweaker t, Pattern t ~ Response a)
+    => Predictor a t -> Response a -> Probability
+    -> (Response a, Probability, Label, [PM1Double], Predictor a t)
+predict p r prob = (r', adjustment, bmu, rawOutcomes, p')
+  where (bmu, p') = classifyAndMaybeCreateNewModel p r
+        model = modelMap p' M.! bmu
+        rawOutcomes = view outcomes model
+        modelDiff = diff (view tweaker p) model r
+        -- Adjust the outcome based on how well the model
+        -- matches the proposed response. Specifically, we're comparing
+        -- the classifications and the conditions, in the model and the
+        -- proposed response.
+        adjustment = prob * (1 - modelDiff)
+        -- Adjust from zero because, depending on the similarity
+        -- between the true scenario and the model, the action may have
+        -- less of an effect (positive or negative) than predicted by
+        -- the model.
+        zeroes = map (const 0) rawOutcomes
+        adjustedOutcomes
+          = adjustPM1Vector rawOutcomes adjustment zeroes
+        r' = set outcomes adjustedOutcomes r
 
--- | Internal method.
---   Although this function is similar to
---   @'ALife.Creatur.Wain.SimpleResponseTweaker.responseDiff'@, it has a
---   different purpose.
---   This function is used when evaluating potential actions.
---   The other function is used to construct the SGM.
-responseDiff
-  :: Weights -> (a -> a -> Cl.Difference)
-    -> [[(Cl.Label, Cl.Difference)]] -> a -> Response a -> Cl.Difference
-responseDiff ws f ldss a r
-  | numWeights ws < length ldss + 1 = error "Too few response weights"
-  | otherwise                   = weightedSum ws (ad:lds)
-  where lds = zipWith lookupOr1 (view labels r) ldss
-        ad = f a (view action r)
-
--- | Internal method
-lookupOr1 :: (Eq a, Num b) => a -> [(a, b)] -> b
-lookupOr1 x xys = fromMaybe 1 $ lookup x xys
-
--- | Internal method
-contribution :: UIDouble -> [PM1Double] -> [PM1Double]
-contribution s os = map (pm1Apply (uiToDouble s *)) os
-
--- | Internal method
-sumColumns :: Num a => [[a]] -> [a]
-sumColumns = map sum . transpose
-
--- | @'imprintOrReinforce' p ls a os deltas@ teaches the predictor @p@
---   that the action @a@ is a good response when facing the scenario
---   @ls@.
+-- | @'imprintOrReinforce' d ls a os deltas@ teaches the predictor that
+--   the action @a@ is a good response when facing the scenario @ls@.
 --   If this response is new to the predictor, it will store it as a
---   model with outcomes @os@.
---   If the response is known, the predictor
+--   model with outcomes @os@. If the response is known, the predictor
 --   will learn (reinforce) the model with @deltas@ added to its
 --   outcomes.
 --   Returns the label of the new or adjusted response model,
---   the new or adjusted response model itself, and the updated
---   predictor.
+--   the new or adjusted response model itself,
+--   and the updated predictor.
 --   Note: The current learning rate applies when reinforcing a model,
 --   so do not expect the new model to have new outcomes = previous
 --   outcomes + @deltas@.
@@ -133,15 +87,15 @@ imprintOrReinforce
   :: (Eq a)
     => Predictor a t -> [Label] -> a -> [PM1Double] -> [PM1Double]
       -> (Label, Response a, Predictor a t)
-imprintOrReinforce p ls a os deltas =
-  if p `hasLabel` bmu
-    then (bmu, rReinforced, pReinforced)
-    else (bmu, rImprinted, pImprinted)
-  where (bmu, pImprinted) = classifyAndMaybeCreateNewModel p rImprinted
-        r = (modelMap p) M.! bmu
+imprintOrReinforce d ls a os deltas =
+  if d `hasLabel` bmu
+    then (bmu, rReinforced, dReinforced)
+    else (bmu, rImprinted, dImprinted)
+  where (bmu, dImprinted) = classifyAndMaybeCreateNewModel d rImprinted
+        r = (modelMap d) M.! bmu
         rImprinted = Response ls a os
         rReinforced = deltas `addToOutcomes` r
-        pReinforced = train p rReinforced
+        dReinforced = train d rReinforced
 
 -- | Don't modify existing models, but do permit a new one to be
 --   created.
@@ -153,17 +107,12 @@ classifyAndMaybeCreateNewModel p r =
     else (bmu, p')
   where (bmu, _, _, p') = trainAndClassify p r
 
-decisionReport
-  :: Show a
-    => [(Response a, Cl.Difference, UIDouble, [PM1Double])] -> [String]
-decisionReport [] = ["No response models, used default outcomes"]
-decisionReport xs = concat $ map decisionReport2 xs
+-- | Returns the set of scenarios for which this predictor has response
+--   models.
+scenarios :: Predictor a t -> [[Cl.Label]]
+scenarios = map (_labels . snd) . M.toList . modelMap
 
-decisionReport2
-  :: Show a
-    => (Response a, Cl.Difference, UIDouble, [PM1Double]) -> [String]
-decisionReport2 (r, d, s, os) =
-  [ "Based on predictor response model " ++ show r,
-    "diff=" ++ (printf "%.2f" .  uiToDouble $ d)
-      ++ ", normalised similarity=" ++ (printf "%.2f" .  uiToDouble $ s),
-    "contribution is " ++ show os ]
+-- | Returns @True@ if the predictor has a response for the scenario;
+--   returns @False@ otherwise.
+hasScenario :: Predictor a t -> [Cl.Label] -> Bool
+hasScenario p ls = ls `elem` (scenarios p)

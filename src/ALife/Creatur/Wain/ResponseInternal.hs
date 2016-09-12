@@ -50,9 +50,8 @@ instance (Genetic a) => Genetic (Response a)
 
 instance (Show a) => Pretty (Response a) where
   pretty (Response ls a os) =
-    intercalate "," (map show ls) ++ "|" ++ show a ++ "|" ++ format os
-    where format xs =  intercalate "|" .
-                         map (printf "%.3f" .  pm1ToDouble) $ xs
+    intercalate "|" (map show ls) ++ '|':show a ++ '|':format os
+    where format xs =  intercalate "|" . map (printf "%.3f" .  pm1ToDouble) $ xs
 
 -- | Internal method
 labelSimilarity :: [Label] -> [Label] -> UIDouble
@@ -74,13 +73,6 @@ labelSimilarity' [] [] = []
 -- | Updates the outcomes in the second response to match the first.
 copyOutcomesTo :: Response a -> Response a -> Response a
 copyOutcomesTo source = set outcomes (_outcomes source)
-
--- -- | Updates the outcomes in the second response to match the first.
--- scaleOutcomes :: UIDouble -> Response a -> Response a
--- scaleOutcomes x r = set outcomes (map doubleToPM1 os') r
---   where os = map pm1ToDouble . _outcomes $ r
---         x' = uiToDouble x
---         os' = map (x'*) os
 
 -- | Increment the outcomes in a response by the specified amount.
 --   Note: Outcomes are capped at 1.

@@ -1,5 +1,5 @@
 Name:              creatur-wains
-Version:           8.6.1
+Version:           8.7.0
 Stability:         experimental
 Description:       An artificial agent called the "Wain", designed to
                    run in the Créatúr framework. Wains have sufficient
@@ -31,6 +31,8 @@ library
                     ALife.Creatur.Wain.Classifier,
                     ALife.Creatur.Wain.GeneticSOM,
                     ALife.Creatur.Wain.GeneticSOMInternal,
+                    ALife.Creatur.Wain.Muser,
+                    ALife.Creatur.Wain.MuserInternal,
                     ALife.Creatur.Wain.PlusMinusOne,
                     ALife.Creatur.Wain.PersistentStatistics,
                     ALife.Creatur.Wain.Predictor,
@@ -39,6 +41,8 @@ library
                     ALife.Creatur.Wain.Raw,
                     ALife.Creatur.Wain.Response,
                     ALife.Creatur.Wain.ResponseInternal,
+                    ALife.Creatur.Wain.Probability,
+                    ALife.Creatur.Wain.ProbabilityInternal,
                     ALife.Creatur.Wain.SimpleResponseTweaker,
                     ALife.Creatur.Wain.Statistics,
                     ALife.Creatur.Wain.UnitInterval,
