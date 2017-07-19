@@ -1,174 +1,184 @@
-Name:              creatur-wains
-Version:           8.7.0
-Stability:         experimental
-Description:       An artificial agent called the "Wain", designed to
-                   run in the Créatúr framework. Wains have sufficient
-                   intelligence to discover patterns in data and make
-                   survival decisions based on those patterns.
-                   .
-                   About the name: \"Wain\" (rhymes with “rain”, or
-                   alternatively, with “mean”) is a word for “child”,
-                   commonly used in Donegal and Northern Ireland.
-                   .
-Synopsis:          Artificial agent specialised for for pattern
-                   discovery.
-License:           BSD3
-License-file:      LICENSE
-Copyright:         (c) Amy de Buitléir 2010-2016
-Author:            Amy de Buitléir
-Maintainer:        amy@nualeargais.ie
-Build-Type:        Simple
-Cabal-Version:     >=1.8
+name:                creatur-wains
+version:             9.0.0
+synopsis:            Artificial agent specialised for for pattern
+                     discovery.
+description:         An artificial agent called the "Wain", designed to
+                     run in the Créatúr framework. Wains have sufficient
+                     intelligence to discover patterns in data and make
+                     survival decisions based on those patterns.
+                     .
+                     About the name: \"Wain\" (rhymes with “rain”, or
+                     alternatively, with “mean”) is a word for “child”,
+                     commonly used in Donegal and Northern Ireland.
+                     .
+homepage:            https://github.com/mhwombat/creatur-wains#readme
+bug-reports:         https://github.com/mhwombat/creatur-wains/issues
+license:             BSD3
+license-file:        LICENSE
+author:              Amy de Buitléir
+maintainer:          amy@nualeargais.ie
+copyright:           (c) 2010-2017 Amy de Buitléir
+category:            AI
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
 
 library
-  GHC-Options:      -Wall -Werror
-  Hs-source-dirs:   src
-  exposed-modules:  ALife.Creatur.Wain,
-                    ALife.Creatur.WainInternal,
-                    ALife.Creatur.Wain.Brain,
-                    ALife.Creatur.Wain.BrainInternal,
-                    ALife.Creatur.Wain.Checkpoint,
-                    ALife.Creatur.Wain.Classifier,
-                    ALife.Creatur.Wain.GeneticSOM,
-                    ALife.Creatur.Wain.GeneticSOMInternal,
-                    ALife.Creatur.Wain.Muser,
-                    ALife.Creatur.Wain.MuserInternal,
-                    ALife.Creatur.Wain.PlusMinusOne,
-                    ALife.Creatur.Wain.PersistentStatistics,
-                    ALife.Creatur.Wain.Predictor,
-                    ALife.Creatur.Wain.PredictorInternal,
-                    ALife.Creatur.Wain.Pretty,
-                    ALife.Creatur.Wain.Raw,
-                    ALife.Creatur.Wain.Response,
-                    ALife.Creatur.Wain.ResponseInternal,
-                    ALife.Creatur.Wain.Probability,
-                    ALife.Creatur.Wain.ProbabilityInternal,
-                    ALife.Creatur.Wain.SimpleResponseTweaker,
-                    ALife.Creatur.Wain.Statistics,
-                    ALife.Creatur.Wain.UnitInterval,
-                    ALife.Creatur.Wain.Util,
-                    ALife.Creatur.Wain.Weights,
-                    ALife.Creatur.Wain.WeightsInternal
-  Other-modules:    Paths_creatur_wains
-  Build-Depends:
-                    base ==4.* && >=4.8.0,
-                    bytestring ==0.10.*,
-                    cereal ==0.5.*,
-                    containers ==0.5.*,
-                    creatur ==5.9.* && >=5.9.9,
-                    deepseq ==1.4.*,
-                    directory ==1.2.*,
-                    -- factory ==0.2.*,
-                    filepath ==1.4.*,
-                    lens ==4.13.*,
-                    MonadRandom ==0.4.*,
-                    mtl ==2.2.*,
-                    random ==1.1.*,
-                    som ==9.0.*,
-                    transformers ==0.5.*
+  hs-source-dirs:      src
+  exposed-modules:     ALife.Creatur.Wain
+                       ALife.Creatur.WainInternal
+                       ALife.Creatur.Wain.Brain
+                       ALife.Creatur.Wain.BrainInternal
+                       ALife.Creatur.Wain.Checkpoint
+                       ALife.Creatur.Wain.Classifier
+                       ALife.Creatur.Wain.GeneticSOM
+                       ALife.Creatur.Wain.GeneticSOMInternal
+                       ALife.Creatur.Wain.Muser
+                       ALife.Creatur.Wain.PlusMinusOne
+                       ALife.Creatur.Wain.PersistentStatistics
+                       ALife.Creatur.Wain.Predictor
+                       ALife.Creatur.Wain.PredictorInternal
+                       ALife.Creatur.Wain.Pretty
+                       ALife.Creatur.Wain.Raw
+                       ALife.Creatur.Wain.Response
+                       ALife.Creatur.Wain.ResponseInternal
+                       ALife.Creatur.Wain.Probability
+                       ALife.Creatur.Wain.ProbabilityInternal
+                       ALife.Creatur.Wain.SimpleMuser
+                       ALife.Creatur.Wain.SimpleResponseTweaker
+                       ALife.Creatur.Wain.Statistics
+                       ALife.Creatur.Wain.UnitInterval
+                       ALife.Creatur.Wain.Util
+                       ALife.Creatur.Wain.Weights
+                       ALife.Creatur.Wain.WeightsInternal
+  ghc-options:         -Wall -Werror
+  build-depends:       base,
+                       bytestring,
+                       cereal,
+                       containers,
+                       creatur,
+                       deepseq,
+                       directory,
+                       filepath,
+                       lens,
+                       MonadRandom,
+                       mtl,
+                       random,
+                       som,
+                       transformers
+  default-language:    Haskell2010
+  other-modules:    Paths_creatur_wains
 
-Test-suite wain-tests
-  Type:             exitcode-stdio-1.0
-  Main-is:          Main.hs
-  GHC-Options:      -Wall -Werror
-  Hs-source-dirs:   test
-  Build-Depends:
-                    base ==4.* && >=4.8.0,
-                    cereal ==0.5.*,
-                    containers ==0.5.*,
-                    creatur ==5.9.* && >=5.9.9,
-                    creatur-wains,
-                    deepseq ==1.4.*,
-                    -- factory ==0.2.*,
-                    lens ==4.13.*,
-                    random ==1.1.*,
-                    MonadRandom ==0.4.*,
-                    mtl ==2.2.*,
-                    som ==9.0.*,
-                    transformers ==0.5.*,
-                    test-framework ==0.8.*,
-                    test-framework-quickcheck2 ==0.3.*,
-                    QuickCheck ==2.8.*
+test-suite creatur-wains-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Main.hs
+  build-depends:       base,
+                       cereal,
+                       containers,
+                       creatur,
+                       creatur-wains,
+                       deepseq,
+                       lens,
+                       random,
+                       MonadRandom,
+                       mtl,
+                       som,
+                       transformers,
+                       test-framework,
+                       test-framework-quickcheck2,
+                       QuickCheck
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
+  default-language:    Haskell2010
+  other-modules:       ALife.Creatur.Wain.BrainQC
+                       ALife.Creatur.Wain.ClassifierQC
+                       ALife.Creatur.Wain.GeneticSOMQC
+                       ALife.Creatur.Wain.PlusMinusOneQC
+                       ALife.Creatur.Wain.PredictorQC
+                       ALife.Creatur.Wain.ProbabilityQC
+                       ALife.Creatur.Wain.ResponseQC
+                       ALife.Creatur.Wain.SimpleMuserQC
+                       ALife.Creatur.Wain.SimpleResponseTweakerQC
+                       ALife.Creatur.Wain.TestUtils
+                       ALife.Creatur.Wain.UnitIntervalQC
+                       ALife.Creatur.Wain.UtilQC
+                       ALife.Creatur.Wain.WeightsQC
+                       ALife.Creatur.WainQC
 
--- Executable wain-benchmark
---   Main-is:          Benchmark.hs
---   Hs-source-dirs:   test
---   Build-Depends:
---                     base ==4.* && >=4.8.0,
---                     cereal ==0.5.*,
---                     containers ==0.5.*,
---                     creatur ==5.9.* && >=5.9.9,
---                     creatur-wains,
---                     deepseq ==1.4.*,
---                     lens ==4.13.*,
---                     random ==1.1.*,
---                     MonadRandom ==0.4.*,
---                     mtl ==2.2.*,
---                     som ==9.0.*,
---                     temporary ==1.2.*,
---                     time ==1.5.*,
---                     transformers ==0.5.*,
---                     test-framework ==0.8.*,
---                     test-framework-quickcheck2 ==0.3.*,
---                     QuickCheck ==2.8.*
+executable wain-learning-test
+  hs-source-dirs:      test
+  main-is:             LearningTest.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
+  build-depends:       base,
+                       cereal,
+                       containers,
+                       creatur,
+                       creatur-wains,
+                       deepseq,
+                       lens,
+                       random,
+                       MonadRandom,
+                       mtl,
+                       som,
+                       test-framework,
+                       test-framework-quickcheck2,
+                       QuickCheck
+  default-language:    Haskell2010
+  other-modules:       ALife.Creatur.Wain.ClassifierQC
+                       ALife.Creatur.Wain.GeneticSOMQC
+                       ALife.Creatur.Wain.PlusMinusOneQC
+                       ALife.Creatur.Wain.ResponseQC
+                       ALife.Creatur.Wain.TestUtils
+                       ALife.Creatur.Wain.UnitIntervalQC
 
-Executable wain-learning-test
-  Main-is:          LearningTest.hs
-  Hs-source-dirs:   test
-  Build-Depends:
-                    base ==4.* && >=4.8.0,
-                    cereal ==0.5.*,
-                    containers ==0.5.*,
-                    creatur ==5.9.* && >=5.9.9,
-                    creatur-wains,
-                    deepseq ==1.4.*,
-                    lens ==4.13.*,
-                    random ==1.1.*,
-                    MonadRandom ==0.4.*,
-                    mtl ==2.2.*,
-                    som ==9.0.*,
-                    test-framework ==0.8.*,
-                    test-framework-quickcheck2 ==0.3.*,
-                    QuickCheck ==2.8.*
+executable wain-teaching-test
+  hs-source-dirs:      test
+  main-is:             TeachingTest.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
+  build-depends:       base,
+                       cereal,
+                       containers,
+                       creatur,
+                       creatur-wains,
+                       deepseq,
+                       lens,
+                       random,
+                       MonadRandom,
+                       mtl,
+                       som,
+                       test-framework,
+                       test-framework-quickcheck2,
+                       QuickCheck
+  default-language:    Haskell2010
+  other-modules:       ALife.Creatur.Wain.ClassifierQC
+                       ALife.Creatur.Wain.GeneticSOMQC
+                       ALife.Creatur.Wain.PlusMinusOneQC
+                       ALife.Creatur.Wain.ResponseQC
+                       ALife.Creatur.Wain.TestUtils
+                       ALife.Creatur.Wain.UnitIntervalQC
 
-Executable wain-teaching-test
-  Main-is:          TeachingTest.hs
-  Hs-source-dirs:   test
-  Build-Depends:
-                    base ==4.* && >=4.8.0,
-                    cereal ==0.5.*,
-                    containers ==0.5.*,
-                    creatur ==5.9.* && >=5.9.9,
-                    creatur-wains,
-                    deepseq ==1.4.*,
-                    lens ==4.13.*,
-                    random ==1.1.*,
-                    MonadRandom ==0.4.*,
-                    mtl ==2.2.*,
-                    som ==9.0.*,
-                    test-framework ==0.8.*,
-                    test-framework-quickcheck2 ==0.3.*,
-                    QuickCheck ==2.8.*
+-- executable assessment-diagram
+--   hs-source-dirs:      src
+--   main-is:             ALife/Creatur/Wain/Util/AssessmentDiagram.hs
+--   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
+--   build-depends:       base,
+--                        colour,
+--                        diagrams-lib,
+--                        diagrams-svg,
+--                        split
+--   default-language:    Haskell2010
 
--- Commented out until the diagrams package is updated to work with GHC 7.10
--- Executable assessment-diagram
---   Main-Is:          ALife/Creatur/Wain/Util/AssessmentDiagram.hs
---   GHC-Options:      -Wall -rtsopts
---   Hs-source-dirs:   src
---   build-depends:
---                     base ==4.* && >=4.8.0,
---                     colour ==2.3.*,
---                     diagrams-lib ==1.2.*,
---                     diagrams-svg ==1.0.* || ==1.1.*,
---                     split ==0.2.*
+-- executable predictor-diagram
+--   hs-source-dirs:      src
+--   main-is:             ALife/Creatur/Wain/Util/PredictorDiagram.hs
+--   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
+--   build-depends:       base,
+--                        colour,
+--                        diagrams-lib,
+--                        diagrams-svg,
+--                        split
+--   default-language:    Haskell2010
 
--- Executable predictor-diagram
---   Main-Is:          ALife/Creatur/Wain/Util/PredictorDiagram.hs
---   GHC-Options:      -Wall -rtsopts
---   Hs-source-dirs:   src
---   build-depends:
---                     base ==4.* && >=4.8.0,
---                     colour ==2.3.*,
---                     diagrams-lib ==1.2.*,
---                     diagrams-svg ==1.0.* || ==1.1.*,
---                     split ==0.2.*
+source-repository head
+  type:     git
+  location: https://github.com/mhwombat/creatur-wains
