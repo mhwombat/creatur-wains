@@ -11,6 +11,9 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main where
 
 import ALife.Creatur.Wain
@@ -20,11 +23,13 @@ import ALife.Creatur.Wain.BrainInternal (classifier, predictor,
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (LearningParams(..),
   buildGeneticSOM, modelMap, schemaQuality)
-import ALife.Creatur.Wain.Muser (makeMuser)
+import qualified ALife.Creatur.Wain.Muser as M
 import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Response (action, outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+import ALife.Creatur.Wain.SimpleMuser (SimpleMuser, makeMuser,
+  generateResponses, defaultOutcomes)
 import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.Statistics (stats)
 import ALife.Creatur.Wain.TestUtils (TestPattern(..))
@@ -37,6 +42,11 @@ import qualified Data.Map.Strict as M
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 
+instance M.Muser SimpleMuser where
+  type Action SimpleMuser = TestAction
+  generateResponses = generateResponses
+  defaultOutcomes = view defaultOutcomes
+  
 reward :: Double
 reward = 0.1
 
@@ -48,7 +58,9 @@ energyFor (TestPattern p) a
   | p < 200   = if a == Skip then reward else -reward
   | otherwise = if a == Crawl then reward else -reward
 
-testWain :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
+testWain
+  :: M.Muser SimpleMuser
+    => Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
 testWain = w'
   where wName = "Fred"
         wAppearance = TestPattern 0
@@ -64,15 +76,16 @@ testWain = w'
         wRds = [doubleToPM1 reward, 0, 0, 0]
         wPredictor = buildGeneticSOM ep (wClassifierSize*5) 0.1 ResponseTweaker
         wHappinessWeights = makeWeights [1, 0, 0, 0]
-        ec = LearningParams 1 0.001 10000
-        ep = LearningParams 1 0.001 10000
+        ec = LearningParams 1 0.0001 1000
+        ep = LearningParams 1 0.0001 1000
         w = buildWainAndGenerateGenome wName wAppearance wBrain
               wDevotion wAgeOfMaturity wPassionDelta wBoredomDelta
         (w', _) = adjustEnergy 0.5 w
 
 tryOne
-  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> TestPattern
-    -> IO (Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction)
+  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
+    -> TestPattern
+      -> IO (Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction)
 tryOne w p = do
   putStrLn $ "-----"
   putStrLn $ "stats=" ++ show (stats w)
@@ -81,7 +94,7 @@ tryOne w p = do
   putStrLn "Initial decision models"
   describePredictorModels w
   let (lds, sps, rplos, aohs, r, wainAfterDecision) = chooseAction [p] w
-  let (cBMU, cDiff) = minimumBy (comparing snd) . head $ lds
+  let (cBMU, _) = minimumBy (comparing snd) . head $ lds
   mapM_ putStrLn $ scenarioReport sps
   mapM_ putStrLn $ responseReport rplos
   mapM_ putStrLn $ decisionReport aohs
@@ -115,13 +128,13 @@ tryOne w p = do
   putStrLn $ "DQ=" ++ show (decisionQuality . view brain $ w)
   return wainFinal
 
-describeClassifierModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> IO ()
+describeClassifierModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction -> IO ()
 describeClassifierModels w = mapM_ (putStrLn . f) ms
   where ms = M.toList . modelMap . view (brain . classifier) $ w
         f (l, r) = view name w ++ "'s classifier model " ++ show l ++ ": "
                      ++ show r
 
-describePredictorModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> IO ()
+describePredictorModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction -> IO ()
 describePredictorModels w = mapM_ (putStrLn . f) ms
   where ms = M.toList . modelMap . view (brain . predictor) $ w
         f (l, r) = view name w ++ "'s predictor model " ++ show l ++ ": "

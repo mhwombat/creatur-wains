@@ -17,7 +17,7 @@ import ALife.Creatur.Wain.BrainQC (test)
 import ALife.Creatur.Wain.ClassifierQC (test)
 import ALife.Creatur.Wain.PredictorQC (test)
 import ALife.Creatur.Wain.GeneticSOMQC (test)
-import ALife.Creatur.Wain.MuserQC (test)
+import ALife.Creatur.Wain.SimpleMuserQC (test)
 import ALife.Creatur.Wain.PlusMinusOneQC (test)
 import ALife.Creatur.Wain.ProbabilityQC (test)
 import ALife.Creatur.Wain.ResponseQC (test)
@@ -39,7 +39,7 @@ tests =
     ALife.Creatur.Wain.ProbabilityQC.test,
     ALife.Creatur.Wain.ResponseQC.test,
     ALife.Creatur.Wain.SimpleResponseTweakerQC.test,
-    ALife.Creatur.Wain.MuserQC.test,
+    ALife.Creatur.Wain.SimpleMuserQC.test,
     ALife.Creatur.Wain.GeneticSOMQC.test,
     ALife.Creatur.Wain.ClassifierQC.test,
     ALife.Creatur.Wain.PredictorQC.test,

@@ -77,5 +77,5 @@ diffsToProbs1 x ds = map doubleToUI . normalise . map uiToDouble $ ps
 --   the difference increases.
 diffToProb :: Word64 -> UIDouble -> UIDouble
 diffToProb x d = doubleToUI $ 1 - exp(1 - 1/(1 - (1 - d')^x'))
-  where x' = fromIntegral x :: Int
+  where x' = fromIntegral x :: Integer
         d' = uiToDouble d

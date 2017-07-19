@@ -32,6 +32,7 @@ import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
 import qualified ALife.Creatur.Wain.Brain as B
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.GeneticSOM (Tweaker, Pattern)
+import ALife.Creatur.Wain.Muser (Muser, Action)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import qualified ALife.Creatur.Wain.Predictor as P
 import qualified ALife.Creatur.Wain.Response as R
@@ -54,7 +55,7 @@ packageVersion :: String
 packageVersion = "creatur-wains-" ++ showVersion version
 
 -- | A data mining agent that can learn, reproduce, and evolve.
-data Wain p ct pt a = Wain
+data Wain p ct pt m a = Wain
   {
     -- | Each wain should have a unique name.
     _name :: String,
@@ -63,7 +64,7 @@ data Wain p ct pt a = Wain
     _appearance :: p,
     -- | The wain's brain, which recognises patterns and makes
     --   decisions.
-    _brain :: B.Brain p ct pt a,
+    _brain :: B.Brain p ct pt m a,
     -- | The amount of energy the wain will give to offspring at birth.
     --   This is a number between 0 and 1, inclusive.
     _devotion :: UIDouble,
@@ -87,7 +88,7 @@ data Wain p ct pt a = Wain
     -- | The wain's current age.
     _age :: Word16,
     -- | The children this wain is currently rearing.
-    _litter :: [Wain p ct pt a],
+    _litter :: [Wain p ct pt m a],
     -- | The number of children this wain has borne.
     _childrenBorneLifetime :: Word16,
     -- | The number of children this wain has reared to maturity.
@@ -102,8 +103,8 @@ buildWain
   :: (Genetic p, Genetic ct, Genetic pt, Genetic a, Eq a,
     Tweaker ct, Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt, 
       Serialize p, Serialize ct, Serialize pt, Serialize a, Ord a)
-        => String -> p -> B.Brain p ct pt a -> UIDouble -> Word16
-          -> UIDouble -> UIDouble -> (Sequence, Sequence) -> Wain p ct pt a
+        => String -> p -> B.Brain p ct pt m a -> UIDouble -> Word16
+          -> UIDouble -> UIDouble -> (Sequence, Sequence) -> Wain p ct pt m a
 buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
   wPassionDelta wBoredomDelta g =
     Wain
@@ -129,12 +130,12 @@ buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
 --   corresponding (generated) genome. This would normally be used only
 --   for generating the initial population.
 buildWainAndGenerateGenome
-  :: (Genetic p, Genetic ct, Genetic pt, Genetic a,
+  :: (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
     Serialize p, Serialize ct, Serialize pt, Serialize a,
       Eq a, Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
-        R.Response a ~ Pattern pt)
-          => String -> p -> B.Brain p ct pt a -> UIDouble -> Word16
-            -> UIDouble -> UIDouble -> Wain p ct pt a
+        R.Response a ~ Pattern pt, Muser m)
+          => String -> p -> B.Brain p ct pt m a -> UIDouble -> Word16
+            -> UIDouble -> UIDouble -> Wain p ct pt m a
 buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
   wAgeOfMaturity wPassionDelta wBoredomDelta = set genome (g,g) strawMan
   where strawMan = buildWain wName wAppearance wBrain wDevotion
@@ -144,13 +145,13 @@ buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
 -- | Constructs a wain from its genome. This is used when a child is
 --   produced as the result of mating.
 buildWainFromGenome
-  :: (Genetic p, Genetic ct, Genetic pt, Genetic a,
-      Diploid p, Diploid ct, Diploid pt, Diploid a,
+  :: (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
+      Diploid p, Diploid ct, Diploid pt, Diploid m, Diploid a,
         Serialize p, Serialize ct, Serialize pt, Serialize a,
           Ord a, Eq a, Tweaker ct, Tweaker pt,
-            p ~ Pattern ct, R.Response a ~ Pattern pt)
+            p ~ Pattern ct, R.Response a ~ Pattern pt, Muser m)
               => Bool -> String
-                -> DiploidReader (Either [String] (Wain p ct pt a))
+                -> DiploidReader (Either [String] (Wain p ct pt m a))
 buildWainFromGenome truncateGenome wName = do
   wAppearance <- getAndExpress
   wBrain <- getAndExpress
@@ -163,17 +164,17 @@ buildWainFromGenome truncateGenome wName = do
              <*> wAgeOfMaturity <*> wPassionDelta <*> wBoredomDelta
              <*> pure g
 
-deriving instance (Show p, Show ct, Show pt, Show a, Eq a)
-    => Show (Wain p ct pt a)
+deriving instance (Show p, Show ct, Show pt, Show m, Show a, Eq a)
+    => Show (Wain p ct pt m a)
 
-instance Record (Wain p ct pt a) where
+instance Record (Wain p ct pt m a) where
   key = view name
 
-instance SizedRecord (Wain p ct pt a) where
+instance SizedRecord (Wain p ct pt m a) where
   size = const 1
 
-instance (Eq a, Ord a) =>
-  Statistical (Wain p ct pt a) where
+instance (Eq a, Ord a, Statistical m) =>
+  Statistical (Wain p ct pt m a) where
   stats w =
     iStat "age" (_age w)
       : stats (_brain w)
@@ -198,17 +199,18 @@ instance (Eq a, Ord a) =>
     where e = _energy w
           ec = sum . map (view energy) $ _litter w
 
-instance (Serialize p, Serialize ct, Serialize pt, Serialize a, Eq a,
-  Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
+instance (Serialize p, Serialize ct, Serialize pt, Serialize m,
+  Serialize a, Eq a, Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
     R.Response a ~ Pattern pt)
-      => Serialize (Wain p ct pt a)
+      => Serialize (Wain p ct pt m a)
 
 -- This implementation is useful for generating the genes in the
 -- initial population, and for testing
-instance (Genetic p, Genetic ct, Genetic pt, Genetic a, Eq a, Ord a,
-  Serialize p, Serialize ct, Serialize pt, Serialize a, Tweaker ct,
-    Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt)
-      => Genetic (Wain p ct pt a) where
+instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
+  Eq a, Ord a, Serialize p, Serialize ct, Serialize pt, Serialize a,
+    Tweaker ct, Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt,
+      Muser m)
+        => Genetic (Wain p ct pt m a) where
   put w = put (_appearance w)
             >> put (_brain w)
             >> put (_devotion w)
@@ -228,11 +230,11 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic a, Eq a, Ord a,
                <*> pure (g, g)
 
 -- This implementation is useful for testing
-instance (Diploid p, Diploid ct, Diploid pt, Diploid a,
-  Genetic p, Genetic ct, Genetic pt, Genetic a, Eq a, Ord a,
+instance (Diploid p, Diploid ct, Diploid pt, Diploid m, Diploid a,
+  Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a, Eq a, Ord a,
     Serialize p, Serialize ct, Serialize pt, Serialize a, Tweaker ct,
       Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt)
-        => Diploid (Wain p ct pt a) where
+        => Diploid (Wain p ct pt m a) where
   express x y = buildWain "" wAppearance wBrain wDevotion
                   wAgeOfMaturity wPassionDelta wBoredomDelta ([],[])
     where wAppearance     = express (_appearance x)    (_appearance y)
@@ -243,17 +245,17 @@ instance (Diploid p, Diploid ct, Diploid pt, Diploid a,
           wPassionDelta   = express (_passionDelta x)  (_passionDelta y)
           wBoredomDelta   = express (_boredomDelta x)  (_boredomDelta y)
 
-instance Agent (Wain p ct pt a) where
+instance Agent (Wain p ct pt m a) where
   agentId = view name
   isAlive w = _energy w > 0
 
-instance (Genetic p, Genetic ct, Genetic pt, Genetic a,
-  Diploid p, Diploid ct, Diploid pt, Diploid a,
+instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
+  Diploid p, Diploid ct, Diploid pt, Diploid m, Diploid a,
     Serialize p, Serialize ct, Serialize pt, Serialize a,
       Eq a, Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
-        R.Response a ~ Pattern pt)
-          => Reproductive (Wain p ct pt a) where
-  type Strand (Wain p ct pt a) = Sequence
+        R.Response a ~ Pattern pt, Muser m)
+          => Reproductive (Wain p ct pt m a) where
+  type Strand (Wain p ct pt m a) = Sequence
   produceGamete a =
     repeatWithProbability 0.1 randomCrossover (_genome a) >>=
     withProbability 0.01 randomCutAndSplice >>=
@@ -262,32 +264,32 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic a,
   build n = runDiploidReader (buildWainFromGenome False n)
 
 -- | Returns the total energy of all children in the litter.
-childEnergy :: Wain p ct pt a -> Double
+childEnergy :: Wain p ct pt m a -> Double
 childEnergy = sum . map (uiToDouble . view energy) . view litter
 
 -- | Returns @True@ if a wain is currently raising children; returns
 --   @False@ otherwise.
-hasLitter :: Wain p ct pt a -> Bool
+hasLitter :: Wain p ct pt m a -> Bool
 hasLitter = not . null . view litter
 
 -- | Returns the number of children that a wain is currently raising.
-litterSize :: Wain p ct pt a -> Int
+litterSize :: Wain p ct pt m a -> Int
 litterSize = length . view litter
 
 -- | Returns @True@ if the wain is mature; returns @False@ otherwise.
-mature :: Wain p ct pt a -> Bool
+mature :: Wain p ct pt m a -> Bool
 mature a = _age a >= _ageOfMaturity a
 
 -- | Returns the wain's current condition. This is useful for making
 --   decisions.
-condition :: Wain p ct pt a -> B.Condition
+condition :: Wain p ct pt m a -> B.Condition
 condition w = [ _energy w, 1 - _passion w, 1 - _boredom w,
                 if l > 0 then 1 else 0 ]
   where l = length . _litter $ w
 
 -- | Returns the wain's current happiness level.
 --   This is a number between 0 and 1, inclusive.
-happiness :: Wain p ct pt a -> UIDouble
+happiness :: Wain p ct pt m a -> UIDouble
 happiness w = B.happiness (_brain w) (condition w)
 
 --numModels . view B.classifier . view brain $ w
@@ -318,16 +320,16 @@ happiness w = B.happiness (_brain w) (condition w)
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: (Eq a, Enum a, Bounded a, Ord a, Tweaker pt,
+  :: (Muser m, Action m ~ a, Eq a, Enum a, Bounded a, Ord a, Tweaker pt,
      R.Response a ~ Pattern pt)
-      => [p] -> Wain p ct pt a
+      => [p] -> Wain p ct pt m a
         -> ([[(Cl.Label, Cl.Difference)]],
             [([Cl.Label], Probability)],
             [(R.Response a, Probability, Probability, P.Label,
               [PM1Double])],
             [(a, [PM1Double], UIDouble)],
             R.Response a,
-            Wain p ct pt a)
+            Wain p ct pt m a)
 chooseAction ps w = (lds, sps, rplos, aohs, r, w')
   where (lds, sps, rplos, aohs, r, b')
           = B.chooseAction (_brain w) ps (condition w)
@@ -336,7 +338,7 @@ chooseAction ps w = (lds, sps, rplos, aohs, r, w')
 -- | Adjusts the energy of a wain.
 --   NOTE: A wain's energy is capped to the range [0,1].
 adjustEnergy
-  :: Double -> Wain p ct pt a -> (Wain p ct pt a, Double)
+  :: Double -> Wain p ct pt m a -> (Wain p ct pt m a, Double)
 adjustEnergy delta w = (wAfter, delta')
   where eBefore = _energy w
         eAfter = forceDoubleToUI $ uiToDouble (_energy w) + delta
@@ -346,13 +348,13 @@ adjustEnergy delta w = (wAfter, delta')
 -- | Adjusts the boredom level of a wain.
 --   Note: A wain's boredom is capped to the range [0,1].
 adjustBoredom
-  :: Double -> Wain p ct pt a -> (Wain p ct pt a, Double)
+  :: Double -> Wain p ct pt m a -> (Wain p ct pt m a, Double)
 adjustBoredom delta w = (w', delta')
   where (w', delta', _) = adjustBoredom1 delta w
 
 -- | Internal method
 adjustBoredom1
-  :: Double -> Wain p ct pt a -> (Wain p ct pt a, Double, Double)
+  :: Double -> Wain p ct pt m a -> (Wain p ct pt m a, Double, Double)
 adjustBoredom1 delta w = (wAfter, delta', leftover)
   where bBefore = _boredom w
         bAfter = forceDoubleToUI $ uiToDouble (_boredom w) + delta
@@ -363,7 +365,7 @@ adjustBoredom1 delta w = (wAfter, delta', leftover)
 -- | Adjusts the wain's passion by the genetically-determined amount.
 --   NOTE: The passion is capped to the range [0,1]. The litter is not
 --   affected.
-autoAdjustPassion :: Wain p ct pt a -> Wain p ct pt a
+autoAdjustPassion :: Wain p ct pt m a -> Wain p ct pt m a
 autoAdjustPassion w = set passion p w
   where p = doubleToUI . enforceRange unitInterval $
               uiToDouble (_passion w) + uiToDouble (_passionDelta w)
@@ -371,27 +373,27 @@ autoAdjustPassion w = set passion p w
 -- | Adjusts the wain's boredom by the genetically-determined amount.
 --   Note: The boredom is capped to the range [0,1]. The litter is not
 --   affected.
-autoAdjustBoredom :: Wain p ct pt a -> Wain p ct pt a
+autoAdjustBoredom :: Wain p ct pt m a -> Wain p ct pt m a
 autoAdjustBoredom w = set boredom p w
   where p = doubleToUI . enforceRange unitInterval $
               uiToDouble (_boredom w) + uiToDouble (_boredomDelta w)
 
 -- | Resets the wain's passion to zero.
 --   This would normally be called immediately after mating.
-coolPassion :: Wain p ct pt a -> Wain p ct pt a
+coolPassion :: Wain p ct pt m a -> Wain p ct pt m a
 coolPassion = set passion 0
 
 -- | Increments the age of the wain, and its litter (if any).
-incAge :: Wain p ct pt a -> Wain p ct pt a
+incAge :: Wain p ct pt m a -> Wain p ct pt m a
 incAge = incAge1 . incLitterAge
 
 -- | Internal method
-incLitterAge :: Wain p ct pt a -> Wain p ct pt a
+incLitterAge :: Wain p ct pt m a -> Wain p ct pt m a
 incLitterAge w = set litter litter' w
   where litter' = map incAge1 $ _litter w
 
 -- | Internal method
-incAge1 :: Wain p ct pt a -> Wain p ct pt a
+incAge1 :: Wain p ct pt m a -> Wain p ct pt m a
 incAge1 = age +~ 1
 
 -- | Causes a wain to considers whether it is happier or not as a
@@ -405,8 +407,8 @@ incAge1 = age +~ 1
 reflect
   :: (Serialize p, Serialize ct, Serialize pt, Serialize a, Eq a, Ord a,
     Tweaker ct, Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt)
-      => [p] -> R.Response a -> Wain p ct pt a -> Wain p ct pt a
-        -> (Wain p ct pt a, Double)
+      => [p] -> R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
+        -> (Wain p ct pt m a, Double)
 reflect ps r wBefore wAfter =
   (set litter litter' wReflected, err)
   where (wReflected, err) = reflect1 r wBefore wAfter
@@ -416,8 +418,8 @@ reflect ps r wBefore wAfter =
 -- | Internal method
 reflect1
   :: Eq a
-    => R.Response a -> Wain p ct pt a -> Wain p ct pt a
-      -> (Wain p ct pt a, Double)
+    => R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
+      -> (Wain p ct pt m a, Double)
 reflect1 r wBefore wAfter = (set brain b' wAfter, err)
   where (b', err) = B.reflect (_brain wAfter) r (condition wBefore)
                       (condition wAfter)
@@ -435,10 +437,10 @@ reflect1 r wBefore wAfter = (set brain b' wAfter, err)
 imprint
   :: (Serialize p, Serialize ct, Serialize pt, Serialize a, Eq a, Ord a,
     Tweaker ct, Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt)
-      => [p] -> a -> Wain p ct pt a
+      => [p] -> a -> Wain p ct pt m a
         -> ( [[(Cl.Label, Cl.Difference)]],
              [([Cl.Label], Probability)],
-             P.Label, R.Response a, Wain p ct pt a )
+             P.Label, R.Response a, Wain p ct pt m a )
 imprint ps a w = (lds, sps, bmu, r, set brain b' w)
   where (lds, sps, bmu, r, b') = B.imprint (_brain w) ps a
 
@@ -450,13 +452,13 @@ imprint ps a w = (lds, sps, bmu, r, set brain b' w)
 --   that occurred when attempting to produce a child from the genome,
 --   and the energy contribution from each parent.
 mate
-  :: (RandomGen r, Diploid p, Diploid ct, Diploid pt, Diploid a,
-    Genetic p, Genetic ct, Genetic pt, Genetic a,
+  :: (RandomGen r, Diploid p, Diploid ct, Diploid pt, Diploid m,
+    Diploid a, Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
       Serialize p, Serialize ct, Serialize pt, Serialize a,
         Eq a, Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
-          R.Response a ~ Pattern pt)
-            => Wain p ct pt a -> Wain p ct pt a -> String
-              -> Rand r ([Wain p ct pt a], [String], Double, Double)
+          R.Response a ~ Pattern pt, Muser m)
+            => Wain p ct pt m a -> Wain p ct pt m a -> String
+              -> Rand r ([Wain p ct pt m a], [String], Double, Double)
 mate a b babyName
   | hasLitter a
       = return ([a, b], [_name a ++ " already has a litter"], 0, 0)
@@ -466,13 +468,13 @@ mate a b babyName
 
 -- | Internal method
 mate'
-  :: (RandomGen r, Diploid p, Diploid ct, Diploid pt, Diploid a,
-    Genetic p, Genetic ct, Genetic pt, Genetic a,
+  :: (RandomGen r, Diploid p, Diploid ct, Diploid pt, Diploid m,
+    Diploid a, Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
       Serialize p, Serialize ct, Serialize pt, Serialize a,
         Eq a, Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
-          R.Response a ~ Pattern pt)
-            => Wain p ct pt a -> Wain p ct pt a -> String
-              -> Rand r ([Wain p ct pt a], [String], Double, Double)
+          R.Response a ~ Pattern pt, Muser m)
+            => Wain p ct pt m a -> Wain p ct pt m a -> String
+              -> Rand r ([Wain p ct pt m a], [String], Double, Double)
 mate' a b babyName = do
   let a2 = coolPassion a
   let b2 = coolPassion b
@@ -488,8 +490,9 @@ mate' a b babyName = do
 
 -- | Internal method
 donateParentEnergy
-  :: Wain p ct pt a -> Wain p ct pt a -> Wain p ct pt a
-     -> (Wain p ct pt a, Wain p ct pt a, Wain p ct pt a, Double, Double)
+  :: Wain p ct pt m a -> Wain p ct pt m a -> Wain p ct pt m a
+     -> (Wain p ct pt m a, Wain p ct pt m a, Wain p ct pt m a,
+          Double, Double)
 donateParentEnergy a b c = (a', b', c', aContribution', bContribution')
   where aContribution = - uiToDouble (_devotion a * _energy a)
         bContribution = - uiToDouble (_devotion b * _energy b)
@@ -501,7 +504,7 @@ donateParentEnergy a b c = (a', b', c', aContribution', bContribution')
 -- | Removes any mature children from the wain's litter.
 --   Returns a list containing the (possibly modified) wain, together
 --   with any children that have just been weaned.
-weanMatureChildren :: Wain p ct pt a -> [Wain p ct pt a]
+weanMatureChildren :: Wain p ct pt m a -> [Wain p ct pt m a]
 weanMatureChildren a =
   if null (_litter a)
     then [a]
@@ -512,7 +515,7 @@ weanMatureChildren a =
                . (childrenWeanedLifetime +~ newWeanlings) $ a
 
 -- | Removes any dead children from the wain's litter.
-pruneDeadChildren :: Wain p ct pt a -> [Wain p ct pt a]
+pruneDeadChildren :: Wain p ct pt m a -> [Wain p ct pt m a]
 pruneDeadChildren a =
   if null (_litter a)
     then [a]

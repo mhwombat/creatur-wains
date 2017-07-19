@@ -13,18 +13,32 @@
 -- facing.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.Muser
   (
-    Muser,
-    makeMuser,
-    _defaultOutcomes,
-    defaultOutcomes,
-    depth,
-    _depth,
-    generateResponses
+    Muser(..)
   ) where
 
-import ALife.Creatur.Wain.MuserInternal
+import ALife.Creatur.Wain.GeneticSOM (Label)
+import ALife.Creatur.Wain.Response (Response(..))
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
+import ALife.Creatur.Wain.Probability (Probability)
+
+class Muser m where
+  type Action m
+  -- | Given a set of scenarios paired with the probability that each
+  --   scenario is true, returns a list of responses to consider paired
+  --   with the probability that the response is based on the correct
+  --   scenario.
+  --   This method only generates responses; it does not evaluate how
+  --   suitable the response is.
+  generateResponses
+    :: m
+      -> [([Label], Probability)]
+      -> [(Response (Action m), Probability)]
+  -- | If a wain has no model for a response it's considering, it
+  --   will use these values as a prediction.
+  --   Positive values make the wain optimistic and more likely to
+  --   take risks. A negative value makes the wain pessimistic and
+  --   risk-averse.
+  defaultOutcomes :: m -> [PM1Double]

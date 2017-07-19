@@ -24,11 +24,13 @@ import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.PredictorQC as D
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM,
   sizedArbEmptyGeneticSOM)
-import ALife.Creatur.Wain.Muser (makeMuser, _defaultOutcomes)
+import qualified ALife.Creatur.Wain.Muser as M
 import ALife.Creatur.Wain.Probability (hypothesise)
 import ALife.Creatur.Wain.Response (Response(..), _outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
   arbTestResponse)
+import ALife.Creatur.Wain.SimpleMuser (SimpleMuser, makeMuser,
+  _defaultOutcomes, generateResponses)
 import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Weights (makeWeights)
@@ -38,7 +40,12 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
-type TestBrain = Brain TestPattern C.TestTweaker (ResponseTweaker TestAction) TestAction
+instance M.Muser SimpleMuser where
+  type Action SimpleMuser = TestAction
+  generateResponses = generateResponses
+  defaultOutcomes = _defaultOutcomes
+
+type TestBrain = Brain TestPattern C.TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
 
 sizedArbTestBrain :: Int -> Gen TestBrain
 sizedArbTestBrain n = do

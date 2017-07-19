@@ -11,6 +11,9 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main where
 
 import ALife.Creatur.Wain
@@ -20,10 +23,12 @@ import ALife.Creatur.Wain.BrainInternal (classifier, predictor,
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (LearningParams(..),
   buildGeneticSOM, modelMap, schemaQuality, currentLearningRate)
-import ALife.Creatur.Wain.Muser (makeMuser)
+import qualified ALife.Creatur.Wain.Muser as M
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Response (action, outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+import ALife.Creatur.Wain.SimpleMuser (SimpleMuser, makeMuser,
+  generateResponses, defaultOutcomes)
 import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.Statistics (stats)
 import ALife.Creatur.Wain.TestUtils (TestPattern(..), testPatternDiff)
@@ -37,6 +42,11 @@ import qualified Data.Map.Strict as M
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 
+instance M.Muser SimpleMuser where
+  type Action SimpleMuser = TestAction
+  generateResponses = generateResponses
+  defaultOutcomes = view defaultOutcomes
+  
 reward :: Double
 reward = 0.1
 
@@ -49,8 +59,8 @@ energyFor (TestPattern p) a
   | otherwise = if a == Crawl then reward else -reward
 
 imprintAll
-  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
-    -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
+  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
+    -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
 imprintAll w = imprint' [TestPattern 25] Walk
                  . imprint' [TestPattern 75] Run
                  . imprint' [TestPattern 125] Jump
@@ -59,11 +69,13 @@ imprintAll w = imprint' [TestPattern 25] Walk
 
 imprint'
   :: [TestPattern] -> TestAction
-    -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
-    -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
+    -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
+    -> Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
 imprint' w ps a = fifthOfFive $ imprint w ps a
 
-testWain :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction
+testWain 
+  :: M.Muser SimpleMuser
+    => Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
 testWain = imprintAll w'
   where wName = "Fred"
         wAppearance = TestPattern 0
@@ -72,25 +84,26 @@ testWain = imprintAll w'
         wAgeOfMaturity = 100
         wPassionDelta = 0
         wBoredomDelta = 0
-        threshold = testPatternDiff (TestPattern 25) (TestPattern 74)
+        threshold = testPatternDiff (TestPattern 0) (TestPattern 49)
         wClassifier = buildGeneticSOM ec 10 threshold TestTweaker
         (Right wMuser) = makeMuser [0, 0, 0, 0] 1
-        wIos = [0.01, 0, 0, 0]
-        wRds = [0.01, 0, 0, 0]
+        wIos = [0.1, 0, 0, 0]
+        wRds = [0.1, 0, 0, 0]
         wPredictor = buildGeneticSOM ep 50 0.1 ResponseTweaker
         wHappinessWeights = makeWeights [1, 0, 0, 0]
-        ec = LearningParams 0.01 0.0001 10000
+        ec = LearningParams 0.001 0.0001 1000
         -- This wain will be taught the correct actions up front.
         -- After storing those initial action models, it doesn't need to
         -- learn anything.
-        ep = LearningParams 0.01 0.0001 10000
+        ep = LearningParams 1 0.0001 1000
         w = buildWainAndGenerateGenome wName wAppearance wBrain
               wDevotion wAgeOfMaturity wPassionDelta wBoredomDelta
         (w', _) = adjustEnergy 0.5 w
 
 tryOne
-  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> TestPattern
-    -> IO (Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction)
+  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction 
+    -> TestPattern
+      -> IO (Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction)
 tryOne w p = do
   putStrLn $ "-----"
   putStrLn $ "stats=" ++ show (stats w)
@@ -137,13 +150,13 @@ tryOne w p = do
   putStrLn $ "DQ=" ++ show (decisionQuality . view brain $ w)
   return wainFinal
 
-describeClassifierModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> IO ()
+describeClassifierModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction -> IO ()
 describeClassifierModels w = mapM_ (putStrLn . f) ms
   where ms = M.toList . modelMap . view (brain . classifier) $ w
         f (l, r) = view name w ++ "'s classifier model " ++ show l ++ ": "
                      ++ show r
 
-describePredictorModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) TestAction -> IO ()
+describePredictorModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction -> IO ()
 describePredictorModels w = mapM_ (putStrLn . f) ms
   where ms = M.toList . modelMap . view (brain . predictor) $ w
         f (l, r) = view name w ++ "'s predictor model " ++ show l ++ ": "
