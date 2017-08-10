@@ -26,6 +26,7 @@ import ALife.Creatur.Wain.PlusMinusOne (PM1Double, adjustPM1Vector)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Control.Lens
 import qualified Data.Map.Strict as M
+import Data.List (nub)
 import Data.Word (Word64)
 
 -- | A predictor predicts the outcome of a response to a scenario.
@@ -116,3 +117,6 @@ scenarios = map (_labels . snd) . M.toList . modelMap
 --   returns @False@ otherwise.
 hasScenario :: Predictor a t -> [Cl.Label] -> Bool
 hasScenario p ls = ls `elem` (scenarios p)
+
+actions :: Eq a => Predictor a t -> [a]
+actions = nub . map (_action . snd) . M.toList . modelMap

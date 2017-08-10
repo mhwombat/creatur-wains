@@ -11,6 +11,7 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -23,13 +24,11 @@ import ALife.Creatur.Wain.BrainInternal (classifier, predictor,
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
 import ALife.Creatur.Wain.GeneticSOMInternal (LearningParams(..),
   buildGeneticSOM, modelMap, schemaQuality)
-import qualified ALife.Creatur.Wain.Muser as M
 import ALife.Creatur.Wain.PlusMinusOne (doubleToPM1)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Response (action, outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction(..))
-import ALife.Creatur.Wain.SimpleMuser (SimpleMuser, makeMuser,
-  generateResponses, defaultOutcomes)
+import ALife.Creatur.Wain.SimpleMuser (SimpleMuser, makeMuser)
 import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.Statistics (stats)
 import ALife.Creatur.Wain.TestUtils (TestPattern(..))
@@ -42,11 +41,6 @@ import qualified Data.Map.Strict as M
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 
-instance M.Muser SimpleMuser where
-  type Action SimpleMuser = TestAction
-  generateResponses = generateResponses
-  defaultOutcomes = view defaultOutcomes
-  
 reward :: Double
 reward = 0.1
 
@@ -58,9 +52,10 @@ energyFor (TestPattern p) a
   | p < 200   = if a == Skip then reward else -reward
   | otherwise = if a == Crawl then reward else -reward
 
+type TestWain = Wain TestPattern TestTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
+
 testWain
-  :: M.Muser SimpleMuser
-    => Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
+  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
 testWain = w'
   where wName = "Fred"
         wAppearance = TestPattern 0
@@ -83,9 +78,7 @@ testWain = w'
         (w', _) = adjustEnergy 0.5 w
 
 tryOne
-  :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
-    -> TestPattern
-      -> IO (Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction)
+  :: TestWain -> TestPattern -> IO (TestWain)
 tryOne w p = do
   putStrLn $ "-----"
   putStrLn $ "stats=" ++ show (stats w)
@@ -128,13 +121,13 @@ tryOne w p = do
   putStrLn $ "DQ=" ++ show (decisionQuality . view brain $ w)
   return wainFinal
 
-describeClassifierModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction -> IO ()
+describeClassifierModels :: TestWain -> IO ()
 describeClassifierModels w = mapM_ (putStrLn . f) ms
   where ms = M.toList . modelMap . view (brain . classifier) $ w
         f (l, r) = view name w ++ "'s classifier model " ++ show l ++ ": "
                      ++ show r
 
-describePredictorModels :: Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction -> IO ()
+describePredictorModels :: TestWain -> IO ()
 describePredictorModels w = mapM_ (putStrLn . f) ms
   where ms = M.toList . modelMap . view (brain . predictor) $ w
         f (l, r) = view name w ++ "'s predictor model " ++ show l ++ ": "

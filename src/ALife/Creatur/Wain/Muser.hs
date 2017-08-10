@@ -34,6 +34,7 @@ class Muser m where
   --   suitable the response is.
   generateResponses
     :: m
+      -> [Action m]
       -> [([Label], Probability)]
       -> [(Response (Action m), Probability)]
   -- | If a wain has no model for a response it's considering, it

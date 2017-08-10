@@ -16,6 +16,7 @@ module ALife.Creatur.Wain.Predictor
     Predictor,
     buildPredictor,
     predict,
+    actions,
     scenarios,
     hasScenario,
     imprintOrReinforce

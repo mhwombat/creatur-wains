@@ -33,7 +33,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
-type TestWain = Wain TestPattern TestTweaker (ResponseTweaker TestAction) SimpleMuser TestAction
+type TestWain = Wain TestPattern TestTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
 
 equiv
   :: TestWain

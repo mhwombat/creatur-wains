@@ -216,7 +216,8 @@ chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
         spsSafe = if null sps'
                     then sps -- nothing to base estimate on; have to guess
                     else sps'
-        rps = errorIfNull "rps" $ generateResponses (_muser b2) spsSafe
+        as = P.actions $ _predictor b
+        rps = errorIfNull "rps" $ generateResponses (_muser b2) as spsSafe
         rplos = errorIfNull "rplos" $ predictAll b2 rps
         rs = errorIfNull "rs" $ map (\(r1, _, _, _, _) -> r1) rplos
         aos = errorIfNull "aos" $ sumByAction $ rs
@@ -425,4 +426,3 @@ decisionReport = map f
 -- | Internal method
 prettyProbability :: Probability -> String
 prettyProbability p = printf "%.3f" (uiToDouble p * 100) ++ "%"
-
