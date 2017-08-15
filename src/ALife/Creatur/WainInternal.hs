@@ -320,7 +320,7 @@ happiness w = B.happiness (_brain w) (condition w)
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: (Muser m, Action m ~ a, Eq a, Enum a, Bounded a, Ord a, Tweaker pt,
+  :: (Muser m, Action m ~ a, Eq a, Ord a, Tweaker pt,
      R.Response a ~ Pattern pt)
       => [p] -> Wain p ct pt m a
         -> ([[(Cl.Label, Cl.Difference)]],

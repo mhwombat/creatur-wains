@@ -199,7 +199,7 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: (Muser m, Eq a, Enum a, Bounded a, Ord a, GSOM.Tweaker pt,
+  :: (Muser m, Eq a, Ord a, GSOM.Tweaker pt,
     Action m ~ a, Response a ~ GSOM.Pattern pt)
       => Brain p ct pt m a -> [p] -> Condition
         -> ([[(Cl.Label, GSOM.Difference)]],
