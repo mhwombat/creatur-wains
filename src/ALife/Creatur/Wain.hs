@@ -24,6 +24,7 @@ module ALife.Creatur.Wain
     devotion,
     ageOfMaturity,
     passionDelta,
+    boredomDelta,
     energy,
     passion,
     boredom,
