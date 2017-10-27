@@ -27,7 +27,8 @@ import qualified Data.ByteString as BS
 import qualified Data.Serialize as DS
 import Control.Lens
 import Control.Monad (liftM, filterM)
-import System.Directory (getDirectoryContents)
+import System.Directory (listDirectory)
+import System.FilePath.Posix (combine)
 import System.Posix (isRegularFile, isDirectory)
 import System.Posix.Files (getFileStatus)
 import qualified Data.Map.Strict as M
@@ -44,7 +45,7 @@ fetchObjects f = do
 
 fetchAllObjects :: DS.Serialize b => FilePath -> IO [b]
 fetchAllObjects f =
-  getDirectoryContents f
+  map (combine f) <$> listDirectory f
     >>= filterM (liftM isRegularFile . getFileStatus)
     >>= mapM fetchObject
 
