@@ -1,5 +1,5 @@
 name:                creatur-wains
-version:             9.1.3
+version:             9.1.4
 synopsis:            Artificial agent specialised for for pattern
                      discovery.
 description:         An artificial agent called the "Wain", designed to
@@ -31,6 +31,7 @@ library
                        ALife.Creatur.Wain.BrainInternal
                        ALife.Creatur.Wain.Checkpoint
                        ALife.Creatur.Wain.Classifier
+                       ALife.Creatur.Wain.ExamineAgent
                        ALife.Creatur.Wain.GeneticSOM
                        ALife.Creatur.Wain.GeneticSOMInternal
                        ALife.Creatur.Wain.Muser
@@ -65,7 +66,8 @@ library
                        mtl,
                        random,
                        som,
-                       transformers
+                       transformers,
+                       unix
   default-language:    Haskell2010
   other-modules:    Paths_creatur_wains
 
