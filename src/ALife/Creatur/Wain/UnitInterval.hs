@@ -37,6 +37,7 @@ module ALife.Creatur.Wain.UnitInterval
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
+import ALife.Creatur.Wain.Pretty (Pretty(..))
 import ALife.Creatur.Wain.Util (inRange, enforceRange,
   scaleToWord8, scaleToWord64, scaleFromWord64)
 import Control.DeepSeq (NFData)
@@ -148,6 +149,9 @@ instance Random UIDouble where
     where (x, g') = randomR (a,b) g
   random = f <$> randomR (0,1)
     where f (x, y) = (doubleToUI x, y)
+
+instance Pretty UIDouble where
+  pretty (UIDouble x) = pretty x
 
 -- | Returns a number between 0 and 1 which indicates how different
 --   the two inputs are. A result of 0 indicates that the

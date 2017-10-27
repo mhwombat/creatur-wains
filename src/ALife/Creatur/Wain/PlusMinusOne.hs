@@ -36,6 +36,7 @@ module ALife.Creatur.Wain.PlusMinusOne
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
+import ALife.Creatur.Wain.Pretty (Pretty(..))
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI)
 import ALife.Creatur.Wain.Util (enforceRange, scaleToWord64,
@@ -148,6 +149,9 @@ instance Random PM1Double where
     where (x, g') = randomR (a,b) g
   random = f <$> randomR (0,1)
     where f (x, y) = (doubleToPM1 x, y)
+
+instance Pretty PM1Double where
+  pretty (PM1Double x) = pretty x
 
 -- | Returns a number between 0 and 1 which indicates how different
 --   the two inputs are. A result of 0 indicates that the
