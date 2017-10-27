@@ -55,53 +55,55 @@ fetchObject f = do
   let (Right w) = DS.decode x
   return w
 
-examine :: (Show a, Pretty p) => Wain p ct pt m a -> IO ()
+examine :: (Pretty p, Pretty a) => Wain p ct pt m a -> IO ()
 examine a = do
-  putStrLn $ "name: " ++ show (view name a)
+  putStrLn $ "name: " ++ pretty (view name a)
   -- appearance
   -- brain
   putStrLn $ "devotion: " ++ printf "%5.3f" (uiToDouble $ view devotion a)
-  putStrLn $ "ageOfMaturity: " ++ show (view ageOfMaturity a)
-  putStrLn $ "passionDelta: " ++ show (view passionDelta a)
-  putStrLn $ "boredomDelta: " ++ show (view boredomDelta a)
+  putStrLn $ "ageOfMaturity: " ++ pretty (view ageOfMaturity a)
+  putStrLn $ "passionDelta: " ++ pretty (view passionDelta a)
+  putStrLn $ "boredomDelta: " ++ pretty (view boredomDelta a)
   putStrLn $ "energy: " ++ printf "%5.3f" (uiToDouble $ view energy a)
   putStrLn $ "passion: " ++ printf "%5.3f" (uiToDouble $ view passion a)
-  putStrLn $ "age: " ++ show (view age a)
+  putStrLn $ "age: " ++ pretty (view age a)
   -- litter
   putStrLn $ "total # children borne: "
-    ++ show (view childrenBorneLifetime a)
+    ++ pretty (view childrenBorneLifetime a)
   putStrLn $ "total # children weaned: "
-    ++ show (view childrenWeanedLifetime a)
-  putStrLn $ "litter size: " ++ show (length . view litter $ a)
-  putStrLn $ "classifier SQ: " ++ show (schemaQuality . view classifier . view brain $ a)
-  putStrLn $ "predictor SQ: " ++ show (schemaQuality . view predictor . view brain $ a)
-  putStrLn $ "DSQ: " ++ show (decisionQuality . view brain $ a)
-  putStrLn $ "Max. number of classifier models: " ++ show (maxSize . view classifier . view brain $ a)
-  putStrLn $ "Number of classifier models: " ++ show (numModels . view classifier . view brain $ a)
-  putStrLn $ "Classifier learning function " ++ show (view learningParams . view classifier . view brain $ a)
-  putStrLn $ "Classifier counts: " ++ show (counterMap . view classifier . view brain $ a)
+    ++ pretty (view childrenWeanedLifetime a)
+  putStrLn $ "litter size: " ++ pretty (length . view litter $ a)
+  putStrLn $ "classifier SQ: " ++ pretty (schemaQuality . view classifier . view brain $ a)
+  putStrLn $ "predictor SQ: " ++ pretty (schemaQuality . view predictor . view brain $ a)
+  putStrLn $ "DSQ: " ++ pretty (decisionQuality . view brain $ a)
+  putStrLn $ "Max. number of classifier models: " ++ pretty (maxSize . view classifier . view brain $ a)
+  putStrLn $ "Number of classifier models: " ++ pretty (numModels . view classifier . view brain $ a)
+  putStrLn $ "Classifier learning function " ++ pretty (view learningParams . view classifier . view brain $ a)
+  putStrLn $ "Classifier counts: " ++ pretty (counterMap . view classifier . view brain $ a)
   mapM_ putStrLn $ describeClassifierModels a
-  putStrLn $ "Max. number of predictor models: " ++ show (maxSize . view predictor . view brain $ a)
-  putStrLn $ "Number of predictor models: " ++ show (numModels . view predictor . view brain $ a)
-  putStrLn $ "Predictor learning function " ++ show (view learningParams . view predictor . view brain $ a)
-  putStrLn $ "Predictor counts: " ++ show (counterMap . view predictor . view brain $ a)
+  putStrLn $ "Max. number of predictor models: " ++ pretty (maxSize . view predictor . view brain $ a)
+  putStrLn $ "Number of predictor models: " ++ pretty (numModels . view predictor . view brain $ a)
+  putStrLn $ "Predictor learning function " ++ pretty (view learningParams . view predictor . view brain $ a)
+  putStrLn $ "Predictor counts: " ++ pretty (counterMap . view predictor . view brain $ a)
   mapM_ putStrLn $ describePredictorModels a
   -- putStrLn "--------"
   -- putStrLn "Raw data"
   -- putStrLn "--------"
-  -- putStrLn $ show a
+  -- putStrLn $ pretty a
 
 describeClassifierModels :: Pretty p => Wain p ct pt m a -> [String]
 describeClassifierModels w = map f ms
   where ms = M.toList . modelMap . view (brain . classifier) $ w
         f (l, r) = agentId w ++ "'s classifier model "
-                     ++ show l ++ " " ++ pretty r
+                     ++ pretty l ++ " " ++ pretty r
 
-describePredictorModels :: (Show a, Pretty p) => Wain p ct pt m a -> [String]
+describePredictorModels
+  :: (Pretty p, Pretty a)
+    => Wain p ct pt m a -> [String]
 describePredictorModels w = map f ms
   where ms = M.toList . modelMap . view (brain . predictor) $ w
         f (l, r) = agentId w ++ "'s predictor model "
-                     ++ show l ++ ": " ++ pretty r
+                     ++ pretty l ++ ": " ++ pretty r
 
 -- formatVector :: String -> [Double] -> String
 -- formatVector fmt = unwords . map (printf fmt)

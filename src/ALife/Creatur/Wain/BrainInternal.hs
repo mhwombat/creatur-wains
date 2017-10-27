@@ -28,6 +28,7 @@ import qualified ALife.Creatur.Wain.Predictor as P
 import ALife.Creatur.Wain.Muser (Muser, Action, generateResponses,
   defaultOutcomes)
 import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
+import ALife.Creatur.Wain.Pretty (Pretty(..))
 import ALife.Creatur.Wain.Response (Response(..))
 import ALife.Creatur.Wain.Probability (Probability, hypothesise)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix,
@@ -406,8 +407,9 @@ scenarioReport = map f
 
 -- | Generates a human readable summary of a set of responses.
 responseReport
-  :: Show a
-    => [(Response a, Probability, Probability, P.Label, [PM1Double])] -> [String]
+  :: Pretty a
+    => [(Response a, Probability, Probability, P.Label, [PM1Double])]
+      -> [String]
 responseReport = map f
   where f (r, p, p', l, os) = pretty r
           ++ " prob: " ++ prettyProbability p'
@@ -416,9 +418,9 @@ responseReport = map f
           ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
 
 -- | Generates a human readable summary of a decision.
-decisionReport :: Show a => [(a, [PM1Double], UIDouble)] -> [String]
+decisionReport :: Pretty a => [(a, [PM1Double], UIDouble)] -> [String]
 decisionReport = map f
-  where f (a, os, h) = "predicted outcomes of " ++ show a ++ " are "
+  where f (a, os, h) = "predicted outcomes of " ++ pretty a ++ " are "
           ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
           ++ " with resulting happiness "
           ++ printf "%.3f" (uiToDouble h)

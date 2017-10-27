@@ -25,6 +25,7 @@ module ALife.Creatur.Wain.GeneticSOMInternal where
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
+import ALife.Creatur.Wain.Pretty (Pretty)
 import ALife.Creatur.Wain.Statistics (Statistical, iStat, dStat, stats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
@@ -54,7 +55,7 @@ type Difference = UIDouble
 --     0 < r0 <= 1
 --     0 < rf <= r0
 data LearningParams = LearningParams UIDouble UIDouble Word64
-  deriving (Eq, Show, Generic, NFData)
+  deriving (Eq, Show, Pretty, Generic, NFData)
 
 -- | @'mkLearningParams' r0 d@ defines the first two parameters for
 --     a learning function.

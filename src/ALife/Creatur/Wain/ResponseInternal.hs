@@ -48,9 +48,9 @@ makeLenses ''Response
 
 instance (Genetic a) => Genetic (Response a)
 
-instance (Show a) => Pretty (Response a) where
+instance (Pretty a) => Pretty (Response a) where
   pretty (Response ls a os) =
-    intercalate "|" (map show ls) ++ '|':show a ++ '|':format os
+    intercalate "|" (map show ls) ++ '|':pretty a ++ '|':format os
     where format xs =  intercalate "|" . map (printf "%.3f" .  pm1ToDouble) $ xs
 
 -- | Internal method

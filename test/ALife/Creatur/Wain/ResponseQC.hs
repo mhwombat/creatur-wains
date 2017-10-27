@@ -25,6 +25,7 @@ module ALife.Creatur.Wain.ResponseQC
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.GeneticSOM (Label)
+import ALife.Creatur.Wain.Pretty (Pretty)
 import ALife.Creatur.Wain.ResponseInternal
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
@@ -38,8 +39,8 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
 data TestAction = Walk | Run | Jump | Skip | Crawl
-  deriving ( Show, Read, Eq, Ord, Generic, Enum, Bounded, Serialize,
-             Genetic, Diploid, NFData )
+  deriving ( Show, Pretty, Read, Eq, Ord, Generic, Enum, Bounded,
+             Serialize, Genetic, Diploid, NFData )
 
 instance Arbitrary TestAction where
   arbitrary = elements [minBound .. maxBound]
