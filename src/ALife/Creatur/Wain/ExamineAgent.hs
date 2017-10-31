@@ -57,7 +57,7 @@ fetchObject f = do
 
 examine :: (Pretty p, Pretty a) => Wain p ct pt m a -> IO ()
 examine a = do
-  putStrLn $ "name: " ++ pretty (view name a)
+  putStrLn $ "name: " ++ view name a
   -- appearance
   -- brain
   putStrLn $ "devotion: " ++ printf "%5.3f" (uiToDouble $ view devotion a)
