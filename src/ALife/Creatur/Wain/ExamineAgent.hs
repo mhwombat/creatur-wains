@@ -80,13 +80,13 @@ examine a = do
   putStrLn $ "DSQ: " ++ pretty (decisionQuality . view brain $ a)
   putStrLn $ "Max. number of classifier models: " ++ pretty (maxSize . view classifier . view brain $ a)
   putStrLn $ "Number of classifier models: " ++ pretty (numModels . view classifier . view brain $ a)
-  putStrLn $ "Classifier learning function " ++ pretty (view learningParams . view classifier . view brain $ a)
+  putStrLn $ "Classifier learning function: " ++ pretty (view learningParams . view classifier . view brain $ a)
   putStrLn $ "Classifier tweaker: " ++ pretty (view tweaker . view classifier . view brain $ a)
   putStrLn $ "Classifier counts: " ++ pretty (counterMap . view classifier . view brain $ a)
   mapM_ putStrLn $ describeClassifierModels a
   putStrLn $ "Max. number of predictor models: " ++ pretty (maxSize . view predictor . view brain $ a)
   putStrLn $ "Number of predictor models: " ++ pretty (numModels . view predictor . view brain $ a)
-  putStrLn $ "Predictor learning function " ++ pretty (view learningParams . view predictor . view brain $ a)
+  putStrLn $ "Predictor learning function: " ++ pretty (view learningParams . view predictor . view brain $ a)
   putStrLn $ "Predictor tweaker: " ++ pretty (view tweaker . view predictor . view brain $ a)
   putStrLn $ "Predictor counts: " ++ pretty (counterMap . view predictor . view brain $ a)
   mapM_ putStrLn $ describePredictorModels a
@@ -99,7 +99,7 @@ describeClassifierModels :: Pretty p => Wain p ct pt m a -> [String]
 describeClassifierModels w = map f ms
   where ms = M.toList . modelMap . view (brain . classifier) $ w
         f (l, r) = agentId w ++ "'s classifier model "
-                     ++ pretty l ++ " " ++ pretty r
+                     ++ pretty l ++ ": " ++ pretty r
 
 describePredictorModels
   :: (Pretty p, Pretty a)
