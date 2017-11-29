@@ -45,9 +45,11 @@ buildPredictor e n dt tw = buildGeneticSOM e n dt tw
 --   of the response @r@, given the probability @k@ that the scenario
 --   associated with the response is the one we're actually facing.
 --   Returns the updated response (with the predicted outcome filled
---   in), the label of the predictor model that best matches the
---   response, and the (possibly updated) predictor.
---   If the Predictor has no model for this response, it creates a new
+--   in), the adjusted probability based on how well the model matches
+--   the proposed response, the label of the predictor model that best
+--   matches the response, the unadjusted outcomes from the model,
+--   and the (possibly updated) predictor.
+--   If the predictor has no model for this response, it creates a new
 --   predictor model and returns the response unmodified.
 predict
   :: (Eq a, Tweaker t, Pattern t ~ Response a)

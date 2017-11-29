@@ -56,7 +56,7 @@ fetchObject f = do
   return w
 
 examine
-  :: (Pretty p, Pretty a, Pretty ct, Pretty pt)
+  :: (Pretty p, Pretty m, Pretty a, Pretty ct, Pretty pt)
     => Wain p ct pt m a -> IO ()
 examine a = do
   putStrLn $ "name: " ++ view name a
@@ -75,6 +75,7 @@ examine a = do
   putStrLn $ "total # children weaned: "
     ++ pretty (view childrenWeanedLifetime a)
   putStrLn $ "litter size: " ++ pretty (length . view litter $ a)
+  putStrLn $ "muser: " ++ pretty (view muser . view brain $ a)
   putStrLn $ "classifier SQ: " ++ pretty (schemaQuality . view classifier . view brain $ a)
   putStrLn $ "predictor SQ: " ++ pretty (schemaQuality . view predictor . view brain $ a)
   putStrLn $ "DSQ: " ++ pretty (decisionQuality . view brain $ a)

@@ -212,18 +212,44 @@ chooseAction
             Brain p ct pt m a)
 chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
   where (cBmus, lds, b2) = classifyInputs b ps
+        -- cBmus = the labels of the (possibly new) models that are
+        --         closest to each input pattern
+        -- lds = the SGM labels paired with the difference between the
+        --       inputs and the corresponding model
+        -- b2  = the updated brain.
         sps = errorIfNull "sps" $ hypothesise (_strictness b) lds
+        --   sps = set of hypotheses about the scenario the wain is
+        --   facing, paired with the estimated probability that each
+        --   hypothesis is true. (A hypothesis is a set of labels.)
         sps' = filter (P.hasScenario (_predictor b) . fst) sps
         spsSafe = if null sps'
                     then sps -- nothing to base estimate on; have to guess
                     else sps'
         as = P.actions $ _predictor b
+        -- as = list of actions to evaluate
         rps = errorIfNull "rps" $ generateResponses (_muser b2) as spsSafe
+        -- rps = list of responses to consider, paired with the
+        --       probability that the response is based on the correct
+        --       scenario.
         rplos = errorIfNull "rplos" $ predictAll b2 rps
+        -- rplos = For each response, contains the updated response
+        --         (with the predicted outcome filled in),
+        --         the probability associated with the scenario,
+        --         the adjusted probability based on how well the
+        --         predictor model matches the proposed response,
+        --         the label of the predictor model that best matches
+        --         the response, and the unadjusted outcomes from
+        --         the model.
         rs = errorIfNull "rs" $ map (\(r1, _, _, _, _) -> r1) rplos
+        -- rs = just the updated responses
         aos = errorIfNull "aos" $ sumByAction $ rs
+        -- aos = for each action, the ouputs summed term-by-term
         aohs = errorIfNull "aohs" $ map (fillInAdjustedHappiness b2 c) aos
+        -- aohs = for each action, the expected outcomes and resulting
+        --        happiness
         (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aohs
+        -- a = the action that we predict will give the best outcome
+        -- os = the expected outcomes
         b3 = adjustActionCounts b2 r
         r = Response cBmus a os
 
@@ -277,8 +303,10 @@ adjustActionCounts b r = set actionCounts cs' b
         inc (Just n) = Just (n+1)
 
 -- | Evaluates the input patterns and the current condition.
---   Returns the "signature" (differences between the input pattern
---   and each model in the classifier) of each input pattern,
+--   Returns the labels of the (possibly new) models that are closest
+--   to each input pattern,
+--   the SGM labels paired with the difference between the
+--   inputs and the corresponding model,
 --   and the updated brain.
 classifyInputs
   :: Brain p ct pt m a -> [p]
@@ -322,6 +350,12 @@ sumTermByTerm (xs:ys:zss) = sumTermByTerm (ws:zss)
 --   We can compare, for example, an action with a high probability of a
 --   somewhat good outcome, to an action with a low probability of a
 --   really bad outcome.
+--   For each response, returns the updated response (with the predicted
+--   outcome filled in), the probability associated with the scenario,
+--   the adjusted probability based on how well the predictor model
+--   matches the proposed response, the label of the predictor model
+--   that best matches the response, and the unadjusted outcomes from
+--   the model.
 predictAll
   :: (Eq a, GSOM.Tweaker pt, Response a ~ GSOM.Pattern pt)
     => Brain p ct pt m a -> [(Response a, Probability)]

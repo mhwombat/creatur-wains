@@ -26,6 +26,7 @@ import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
 import ALife.Creatur.Wain.Response (Response(..))
 import ALife.Creatur.Wain.Probability (Probability)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
+import ALife.Creatur.Wain.Pretty (Pretty)
 import Control.DeepSeq (NFData)
 import Control.Lens
 import Data.List (sortBy, nub)
@@ -53,6 +54,8 @@ makeLenses ''SimpleMuser
 
 instance Show (SimpleMuser a) where
   show (SimpleMuser o d) = "makeSimpleMuser " ++ show o ++ " " ++ show d
+
+instance Pretty (SimpleMuser a)
 
 instance Statistical (SimpleMuser a) where
   stats (SimpleMuser (eo:po:bo:lso:_) d) = [iStat "depth" d,

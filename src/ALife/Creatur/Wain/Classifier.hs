@@ -47,8 +47,7 @@ buildClassifier = S.buildGeneticSOM
 --   to each input pattern,
 --   the SGM labels paired with the difference between the
 --   inputs and the corresponding model,
---   the labels of the already existing models that are closest to each
---   input, and the updated classifier.
+--   and the updated classifier.
 classifySetAndTrain
   :: Classifier s t -> [s]
     -> ([S.Label], [[(S.Label, S.Difference)]], Classifier s t)
