@@ -22,6 +22,7 @@ module ALife.Creatur.Wain.BrainQC
 import ALife.Creatur.Wain.BrainInternal
 import qualified ALife.Creatur.Wain.ClassifierQC as C
 import qualified ALife.Creatur.Wain.PredictorQC as D
+import ALife.Creatur.Wain.GeneticSOM (numModels)
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM,
   sizedArbEmptyGeneticSOM)
 import ALife.Creatur.Wain.Probability (hypothesise)
@@ -111,6 +112,35 @@ arbEmptyTestBrain cSize nConditions pSize = do
   rds <- vectorOf nConditions $ choose (0.01, 1)
   let (Right b) = makeBrain c m p hw t s ios rds
   return b
+
+data ChoosingTestData
+  = ChoosingTestData TestBrain [TestPattern] Condition
+
+instance Show ChoosingTestData where
+  show (ChoosingTestData b ps c)
+    = "ChoosingTestData (" ++ show b ++ ") " ++ show ps ++ " "
+      ++ show c
+
+sizedArbChoosingTestData :: Int -> Gen ChoosingTestData
+sizedArbChoosingTestData n = do
+  cSize <- choose (1, max 1 n)
+  nObjects <- choose (1, min 3 (max 1 (n - cSize)))
+  -- nConditions <- choose (0, n - cSize - nObjects)
+  let nConditions = 4
+  let pSize = n + 1
+  b <- arbSensibleTestBrain cSize nObjects nConditions pSize
+  ps <- vectorOf nObjects arbitrary
+  c <- vectorOf nConditions arbitrary
+  return $ ChoosingTestData b ps c
+
+instance Arbitrary ChoosingTestData where
+  arbitrary = sized sizedArbChoosingTestData
+
+prop_chooseAction_doesnt_add_predictor_models :: ChoosingTestData -> Property
+prop_chooseAction_doesnt_add_predictor_models (ChoosingTestData b ps c) = property $ n' == n
+  where n = numModels . _predictor $ b
+        (_, _, _, _, _, b') = chooseAction b ps c
+        n' = numModels . _predictor $ b'        
 
 data ReflectionTestData
   = ReflectionTestData TestBrain TestResponse Condition Condition
@@ -320,6 +350,8 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
       (prop_diploid_expressable :: TestBrain -> TestBrain -> Property),
     testProperty "prop_diploid_readable - Brain"
       (prop_diploid_readable :: TestBrain -> TestBrain -> Property),
+    testProperty "prop_chooseAction_doesnt_add_predictor_models"
+      prop_chooseAction_doesnt_add_predictor_models,
     testProperty "prop_reflect_makes_predictions_more_accurate"
       prop_reflect_makes_predictions_more_accurate,
     testProperty "prop_reflect_error_in_range"
