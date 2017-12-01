@@ -142,15 +142,15 @@ prop_reflect_makes_predictions_more_accurate
   (ReflectionTestData b r cBefore cAfter)
     = property $ errAfter <= errBefore
   where ((r2, _, _, _, _):_) = predictAll b . zip [r] $ repeat 1
-        (b2, errBefore) = reflect b r2 cBefore cAfter
+        (b2, _, errBefore) = reflect b r2 cBefore cAfter
         ((r3, _, _, _, _):_) = predictAll b . zip [r] $ repeat 1
-        (_, errAfter) = reflect b2 r3 cBefore cAfter
+        (_, _, errAfter) = reflect b2 r3 cBefore cAfter
 
 prop_reflect_error_in_range
   :: TestBrain -> TestResponse -> Condition -> Condition -> Property
 prop_reflect_error_in_range b r cBefore cAfter
   = property $ -2 <= x && x <= 2
-  where (_, x) = reflect b r cBefore cAfter
+  where (_, _, x) = reflect b r cBefore cAfter
 
 -- data AFewPatterns = AFewPatterns [TestPattern]
 --   deriving (Eq, Show)

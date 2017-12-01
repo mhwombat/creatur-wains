@@ -408,10 +408,10 @@ reflect
   :: (Serialize p, Serialize ct, Serialize pt, Serialize a, Eq a, Ord a,
     Tweaker ct, Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt)
       => [p] -> R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
-        -> (Wain p ct pt m a, Double)
+        -> (Wain p ct pt m a, R.Response a, Double)
 reflect ps r wBefore wAfter =
-  (set litter litter' wReflected, err)
-  where (wReflected, err) = reflect1 r wBefore wAfter
+  (set litter litter' wReflected, rReflect, err)
+  where (wReflected, rReflect, err) = reflect1 r wBefore wAfter
         a = R._action r
         litter' = map (fifthOfFive . imprint ps a) (_litter wAfter)
 
@@ -419,9 +419,9 @@ reflect ps r wBefore wAfter =
 reflect1
   :: Eq a
     => R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
-      -> (Wain p ct pt m a, Double)
-reflect1 r wBefore wAfter = (set brain b' wAfter, err)
-  where (b', err) = B.reflect (_brain wAfter) r (condition wBefore)
+      -> (Wain p ct pt m a, R.Response a, Double)
+reflect1 r wBefore wAfter = (set brain b' wAfter, rReflect, err)
+  where (b', rReflect, err) = B.reflect (_brain wAfter) r (condition wBefore)
                       (condition wAfter)
 
 -- | Teaches the wain a desirable action to take in response to a

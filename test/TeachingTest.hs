@@ -120,7 +120,7 @@ tryOne w p = do
   if deltaE < 0
     then putStrLn " was wrong"
     else putStrLn " was correct"
-  let (wainAfterReflection, err) = reflect [p] r w wainRewarded
+  let (wainAfterReflection, _, err) = reflect [p] r w wainRewarded
   putStrLn $ "err=" ++ show err
   -- keep the wain's energy constant
   let restorationEnergy = uiToDouble (view energy w) - uiToDouble (view energy wainRewarded)

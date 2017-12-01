@@ -380,11 +380,12 @@ predictOne b rplos (r, p) = (r', p, p', l, os):rplos
 reflect
   :: Eq a
     => Brain p ct pt m a -> Response a -> Condition -> Condition
-      -> (Brain p ct pt m a, Double)
-reflect b r cBefore cAfter = (set predictor d' b, err)
+      -> (Brain p ct pt m a, Response a, Double)
+reflect b r cBefore cAfter = (set predictor d' b, rReflect, err)
   where osActual = map doubleToPM1 $ zipWith (-) (map uiToDouble cAfter)
           (map uiToDouble cBefore)
-        d' = GSOM.train (_predictor b) (r {_outcomes = osActual})
+        rReflect = r {_outcomes = osActual}
+        d' = GSOM.train (_predictor b) rReflect
         osPredicted = _outcomes r
         cPredicted = adjustCondition cBefore osPredicted
         deltaH = uiToDouble (happiness b cAfter)
