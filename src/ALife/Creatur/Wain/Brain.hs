@@ -31,7 +31,9 @@ module ALife.Creatur.Wain.Brain
     predictor,
     happinessWeights,
     tiebreaker,
+    strictness,
     imprintOutcomes,
+    reinforcementDeltas,
     actionCounts,
     -- * Making decisions
     chooseAction,

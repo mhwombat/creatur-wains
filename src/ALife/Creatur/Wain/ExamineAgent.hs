@@ -95,6 +95,11 @@ examine a = do
   -- putStrLn "Raw data"
   -- putStrLn "--------"
   -- putStrLn $ pretty a
+  putStrLn $ "Happiness weights: " ++ pretty (view happinessWeights . view brain $ a)
+  putStrLn $ "Strictness: " ++ pretty (view strictness . view brain $ a)
+  putStrLn $ "Imprint outcomes: " ++ pretty (view imprintOutcomes . view brain $ a)
+  putStrLn $ "Reinforcement deltas: " ++ pretty (view reinforcementDeltas . view brain $ a)
+  putStrLn $ "Action counts: " ++ pretty (M.elems . view actionCounts . view brain $ a)
 
 describeClassifierModels :: Pretty p => Wain p ct pt m a -> [String]
 describeClassifierModels w = map f ms
