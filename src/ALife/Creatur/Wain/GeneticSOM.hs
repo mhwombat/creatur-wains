@@ -20,6 +20,7 @@ module ALife.Creatur.Wain.GeneticSOM
     _tweaker,
     patternMap,
     learningParams,
+    diffThreshold,
     tweaker,
     Label,
     Difference,
