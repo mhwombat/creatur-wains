@@ -20,7 +20,7 @@ module ALife.Creatur.Wain.Checkpoint
 import Prelude hiding (lookup)
 import ALife.Creatur.Task (requestShutdown)
 import ALife.Creatur.Universe (Universe, currentTime)
-import ALife.Creatur.Wain.Statistics (Statistic, lookup)
+import ALife.Creatur.Wain.Statistics (Statistic, lookup, iStat)
 import Control.Monad.State.Lazy (StateT)
 import Control.Monad (when, unless)
 
@@ -48,7 +48,10 @@ fails v l = not $ v `satisfies` l
 enforceAll
   :: (Universe u)
     => [Statistic] -> [Checkpoint] -> StateT u IO ()
-enforceAll xs = mapM_ (enforce xs)
+enforceAll xs cs = do
+  t <- currentTime
+  let x = iStat "time" t
+  mapM_ (enforce (x:xs)) cs
 
 enforce
   :: (Universe u)
