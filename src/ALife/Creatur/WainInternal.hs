@@ -182,8 +182,6 @@ instance (Eq a, Ord a, Statistical m) =>
       : iStat "maturity" (_ageOfMaturity w)
       : dStat "Δp" (_passionDelta w)
       : dStat "Δb" (_boredomDelta w)
-      : iStat "children borne (lifetime)" (_childrenBorneLifetime w)
-      : iStat "children reared (lifetime)" (_childrenWeanedLifetime w)
       : dStat "energy" (uiToDouble e + uiToDouble ec)
       : dStat "passion" (_passion w)
       : dStat "boredom" (_boredom w)
