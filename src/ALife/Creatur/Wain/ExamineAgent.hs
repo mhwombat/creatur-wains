@@ -68,6 +68,7 @@ examine a = do
   putStrLn $ "boredomDelta: " ++ pretty (view boredomDelta a)
   putStrLn $ "energy: " ++ printf "%5.3f" (uiToDouble $ view energy a)
   putStrLn $ "passion: " ++ printf "%5.3f" (uiToDouble $ view passion a)
+  putStrLn $ "boredom: " ++ printf "%5.3f" (uiToDouble $ view boredom a)
   putStrLn $ "age: " ++ pretty (view age a)
   -- litter
   putStrLn $ "total # children borne: "
