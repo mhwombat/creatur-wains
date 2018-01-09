@@ -18,6 +18,7 @@ module ALife.Creatur.Wain.Statistics
     Statistical,
     Statistic,
     name,
+    value,
     prefix,
     apply,
     stats,
@@ -74,9 +75,13 @@ prefix s x = x { sName = s ++ sName x }
 apply :: (Double -> Double) -> Statistic -> Statistic
 apply f x = x { sVal = f (sVal x) }
 
--- | Returns the value's "name".
+-- | Returns the name of the statistic
 name :: Statistic -> String
 name = sName
+
+-- | Returns the value of the statistic.
+value :: Statistic -> Double
+value = sVal
 
 -- | Typeclass for values that we can calculate statistics on.
 class Statistical a where

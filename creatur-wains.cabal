@@ -1,5 +1,5 @@
 name:                creatur-wains
-version:             9.2.3
+version:             9.2.4
 synopsis:            Artificial agent specialised for for pattern
                      discovery.
 description:         An artificial agent called the "Wain", designed to
@@ -27,6 +27,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     ALife.Creatur.Wain
                        ALife.Creatur.WainInternal
+                       ALife.Creatur.Wain.AgentCSV
                        ALife.Creatur.Wain.Brain
                        ALife.Creatur.Wain.BrainInternal
                        ALife.Creatur.Wain.Checkpoint
