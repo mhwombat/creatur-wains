@@ -55,4 +55,4 @@ agentToCSV
 agentToCSV a = mapM_ putStrLn $ map f ss
   where agentName = view name a
         ss = S.stats a
-        f s = agentName ++ S.name s ++ show (S.value s)
+        f s = agentName ++ "," ++ S.name s ++ "," ++ show (S.value s)
