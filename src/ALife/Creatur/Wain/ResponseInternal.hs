@@ -88,7 +88,7 @@ instance (Statistical a)
     => Statistical (Response a) where
   stats r = (stats . _action $ r)
               ++ [dStat "Δe" (head os),
-                  dStat "Δp" (os !! 2),
-                  dStat "Δb" (os !! 3),
-                  dStat "Δl" (os !! 4)]
+                  dStat "Δp" (os !! 1),
+                  dStat "Δb" (os !! 2),
+                  dStat "Δl" (os !! 3)]
     where os = _outcomes r
