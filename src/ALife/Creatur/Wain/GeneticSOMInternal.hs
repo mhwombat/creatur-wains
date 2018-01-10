@@ -18,6 +18,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOMInternal where
@@ -26,7 +27,8 @@ import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
 import ALife.Creatur.Wain.Pretty (Pretty)
-import ALife.Creatur.Wain.Statistics (Statistical, iStat, dStat, stats)
+import ALife.Creatur.Wain.Statistics (Statistical, iStat,
+  dStat, stats, prefix, kvToIStats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
 import ALife.Creatur.Wain.Util (intersection, inRange)
@@ -306,13 +308,17 @@ instance (Diploid p, Diploid t, Tweaker t, p ~ Pattern t)
           lps = express (_learningParams x) (_learningParams y)
           tr = express (_tweaker x) (_tweaker y)
 
-instance Statistical (GeneticSOM p t) where
+instance (Statistical t, Statistical [(Label, p)])
+  => Statistical (GeneticSOM p t) where
   stats s =
     (iStat "num models" . numModels $ s)
       :(iStat "max. size" . SOM.maxSize . _patternMap $ s)
       :(dStat "threshold" . SOM.diffThreshold . _patternMap $ s)
       :(iStat "SQ" . schemaQuality $ s)
       :(stats . _learningParams $ s)
+      ++ (map (prefix "model") . stats . M.toAscList . modelMap $ s)
+      ++ (map (prefix "counter") . kvToIStats . M.toAscList . counterMap $ s)
+      ++ (stats . _tweaker $ s)
 
 -- -- | @'learn' p l s@ adjusts the model at the index (grid location) @l@
 -- --   in @s@ to more closely match the pattern @p@.

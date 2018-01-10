@@ -31,7 +31,7 @@ import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
   produceGamete, build, makeOffspring)
 import qualified ALife.Creatur.Wain.Brain as B
 import qualified ALife.Creatur.Wain.Classifier as Cl
-import ALife.Creatur.Wain.GeneticSOM (Tweaker, Pattern)
+import ALife.Creatur.Wain.GeneticSOM (Tweaker, Pattern, Label)
 import ALife.Creatur.Wain.Muser (Muser, Action)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import qualified ALife.Creatur.Wain.Predictor as P
@@ -173,8 +173,11 @@ instance Record (Wain p ct pt m a) where
 instance SizedRecord (Wain p ct pt m a) where
   size = const 1
 
-instance (Eq a, Ord a, Statistical m) =>
-  Statistical (Wain p ct pt m a) where
+instance (Eq a, Ord a,
+          Statistical [(Label, p)], Statistical ct,
+          Statistical pt, Statistical m,
+          Statistical [(Label, R.Response a)])
+    => Statistical (Wain p ct pt m a) where
   stats w =
     iStat "age" (_age w)
       : stats (_brain w)

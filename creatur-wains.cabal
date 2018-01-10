@@ -1,5 +1,5 @@
 name:                creatur-wains
-version:             9.2.4
+version:             9.3.0
 synopsis:            Artificial agent specialised for for pattern
                      discovery.
 description:         An artificial agent called the "Wain", designed to
@@ -131,6 +131,7 @@ executable wain-learning-test
                        ALife.Creatur.Wain.GeneticSOMQC
                        ALife.Creatur.Wain.PlusMinusOneQC
                        ALife.Creatur.Wain.ResponseQC
+                       ALife.Creatur.Wain.SimpleResponseTweakerQC
                        ALife.Creatur.Wain.TestUtils
                        ALife.Creatur.Wain.UnitIntervalQC
 
@@ -157,6 +158,7 @@ executable wain-teaching-test
                        ALife.Creatur.Wain.GeneticSOMQC
                        ALife.Creatur.Wain.PlusMinusOneQC
                        ALife.Creatur.Wain.ResponseQC
+                       ALife.Creatur.Wain.SimpleResponseTweakerQC
                        ALife.Creatur.Wain.TestUtils
                        ALife.Creatur.Wain.UnitIntervalQC
 

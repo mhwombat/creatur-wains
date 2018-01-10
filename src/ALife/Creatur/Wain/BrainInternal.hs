@@ -120,8 +120,11 @@ instance (Diploid p, Diploid ct, Diploid pt, Diploid a, Diploid m,
   Response a ~ GSOM.Pattern pt)
     => Diploid (Brain p ct pt m a)
 
-instance (Eq a, Ord a, Statistical m)
-      => Statistical (Brain p ct pt m a) where
+instance (Eq a, Ord a,
+          Statistical [(GSOM.Label, p)], Statistical ct,
+          Statistical pt, Statistical m,
+          Statistical [(GSOM.Label, Response a)])
+    => Statistical (Brain p ct pt m a) where
   stats b@(Brain c m p hw t s ios rds _)
     | length ios < 4 = error "ios not long enough"
     | length rds < 4 = error "rds not long enough"

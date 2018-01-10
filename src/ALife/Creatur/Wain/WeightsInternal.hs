@@ -19,6 +19,7 @@ module ALife.Creatur.Wain.WeightsInternal where
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, get)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.Pretty (Pretty)
+import ALife.Creatur.Wain.Statistics (Statistical(..), dStats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiDiff, normalise)
 import Control.DeepSeq (NFData)
 import Data.Serialize (Serialize)
@@ -87,3 +88,6 @@ weightedUIVectorDiff
   :: Weights -> [UIDouble] -> [UIDouble] -> UIDouble
 weightedUIVectorDiff ws xs ys
   = sum . zipWith (*) (toUIDoubles ws) $ zipWith uiDiff xs ys
+
+instance Statistical Weights where
+  stats = dStats "" . toUIDoubles

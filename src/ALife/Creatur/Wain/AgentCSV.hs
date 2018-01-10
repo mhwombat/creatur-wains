@@ -10,6 +10,7 @@
 -- Analyse a wain and generate a report.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.AgentCSV
   (
@@ -18,6 +19,7 @@ module ALife.Creatur.Wain.AgentCSV
   ) where
 
 import ALife.Creatur.Wain
+import ALife.Creatur.Wain.Response (Response)
 import qualified ALife.Creatur.Wain.Statistics as S
 import qualified Data.ByteString as BS
 import qualified Data.Serialize as DS
@@ -50,7 +52,8 @@ fetchObject f = do
   return w
 
 agentToCSV
-  :: (S.Statistical m, Ord a)
+  :: (Ord a, S.Statistical ct, S.Statistical pt, S.Statistical m,
+     S.Statistical [(Label, p)], S.Statistical [(Label, Response a)])
     => Wain p ct pt m a -> IO ()
 agentToCSV a = mapM_ putStrLn $ map f ss
   where agentName = view name a

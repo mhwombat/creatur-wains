@@ -30,6 +30,7 @@ import ALife.Creatur.Wain.Classifier
 import ALife.Creatur.Wain.GeneticSOMInternal (Tweaker(..), modelMap,
   patternMap)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM, sizedArbGeneticSOM)
+import ALife.Creatur.Wain.Statistics (Statistical(..))
 import ALife.Creatur.Wain.TestUtils
 import Control.DeepSeq (NFData)
 import Control.Lens
@@ -56,6 +57,9 @@ type TestClassifier = Classifier TestPattern TestTweaker
 
 instance Arbitrary TestClassifier where
   arbitrary = sized (sizedArbGeneticSOM arbitrary)
+
+instance Statistical TestTweaker where
+  stats _ = []
 
 equivClassifier :: TestClassifier -> TestClassifier -> Bool
 equivClassifier = equivGSOM (==)

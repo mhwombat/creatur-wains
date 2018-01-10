@@ -27,6 +27,7 @@ import ALife.Creatur.Genetics.Diploid (Diploid)
 import ALife.Creatur.Wain.GeneticSOM (Label)
 import ALife.Creatur.Wain.Pretty (Pretty)
 import ALife.Creatur.Wain.ResponseInternal
+import ALife.Creatur.Wain.Statistics (Statistical(..))
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
 import ALife.Creatur.Wain.UnitIntervalQC ()
@@ -44,6 +45,9 @@ data TestAction = Walk | Run | Jump | Skip | Crawl
 
 instance Arbitrary TestAction where
   arbitrary = elements [minBound .. maxBound]
+
+instance Statistical [(Label, Response TestAction)] where
+  stats _ = []
 
 type TestResponse = Response TestAction
 

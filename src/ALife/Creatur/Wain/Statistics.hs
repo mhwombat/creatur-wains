@@ -24,6 +24,10 @@ module ALife.Creatur.Wain.Statistics
     stats,
     dStat,
     iStat,
+    dStats,
+    iStats,
+    kvToDStats,
+    kvToIStats,
     summarise,
     lookup,
     mean,
@@ -63,6 +67,17 @@ dStat s = DStatistic s . realToFrac
 iStat :: Integral a => String -> a -> Statistic
 iStat s v = IStatistic s (fromIntegral v)
 
+-- | Creates a sequence of values that will be displayed as doubles.
+dStats :: Real a => String -> [a] -> [Statistic]
+dStats s = map (prefix s) . kvToDStats . applyIndices
+
+-- | Creates a sequence of value that will be displayed as integers.
+iStats :: Integral a => String -> [a] -> [Statistic]
+iStats s = map (prefix s) . kvToIStats . applyIndices
+
+applyIndices :: [a] -> [(Int, a)]
+applyIndices = zip [1..]
+
 toDStat :: Statistic -> Statistic
 toDStat (IStatistic s x) = DStatistic s x
 toDStat x = x
@@ -86,6 +101,16 @@ value = sVal
 -- | Typeclass for values that we can calculate statistics on.
 class Statistical a where
   stats :: a -> [Statistic]
+
+kvToDStats :: (Show k, Real v) => [(k, v)] -> [Statistic]
+kvToDStats = map f
+    where f (k, v) = dStat (g k) v
+          g k = "[" ++ show k ++ "]"
+
+kvToIStats :: (Show k, Integral v) => [(k, v)] -> [Statistic]
+kvToIStats = map f
+    where f (k, v) = iStat (g k) v
+          g k = "[" ++ show k ++ "]"
 
 -- | Given a 2-dimensional table of values, reports some statistics.
 summarise :: [[Statistic]] -> [[Statistic]]
