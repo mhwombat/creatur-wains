@@ -37,9 +37,7 @@ module ALife.Creatur.Wain.TestUtils
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Util (fromEither)
-import ALife.Creatur.Wain (Label)
-import ALife.Creatur.Wain.Statistics (Statistical(..), kvToIStats,
-  prefix)
+import ALife.Creatur.Wain.Statistics (Statistical(..), iStat)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleWord8ToInt,
   forceToWord8)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
@@ -154,6 +152,5 @@ makeTestPatternSimilar (TestPattern target) r (TestPattern x)
 randomTestPattern :: RandomGen r => Rand r TestPattern
 randomTestPattern = fmap (TestPattern) getRandom
 
-instance Statistical [(Label, TestPattern)] where
-  stats = map (prefix "pattern") . kvToIStats . map f
-    where f (l, TestPattern x) = (l, x)
+instance Statistical TestPattern where
+  stats (TestPattern x) = [iStat "" x]

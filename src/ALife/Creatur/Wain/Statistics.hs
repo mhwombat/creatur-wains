@@ -102,6 +102,11 @@ value = sVal
 class Statistical a where
   stats :: a -> [Statistic]
 
+instance (Show k, Statistical v)
+    => Statistical [(k, v)] where
+  stats = concatMap f
+    where f (k, v) = map (prefix ("[" ++ show k ++ "]")) $ stats v
+
 kvToDStats :: (Show k, Real v) => [(k, v)] -> [Statistic]
 kvToDStats = map f
     where f (k, v) = dStat (g k) v

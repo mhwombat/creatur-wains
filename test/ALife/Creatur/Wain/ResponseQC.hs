@@ -46,7 +46,7 @@ data TestAction = Walk | Run | Jump | Skip | Crawl
 instance Arbitrary TestAction where
   arbitrary = elements [minBound .. maxBound]
 
-instance Statistical [(Label, Response TestAction)] where
+instance Statistical TestAction where
   stats _ = []
 
 type TestResponse = Response TestAction
