@@ -25,6 +25,7 @@ import ALife.Creatur.Wain.GeneticSOM (Label)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble,
   forceDoubleToPM1)
+import ALife.Creatur.Wain.Statistics (Statistical(..), dStat)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI)
 import Control.DeepSeq (NFData)
 import Control.Lens
@@ -81,3 +82,12 @@ addToOutcomes deltas r = set outcomes ys r
   where xs = map pm1ToDouble . _outcomes $ r
         deltas' = map pm1ToDouble deltas
         ys = map forceDoubleToPM1 $ zipWith (+) xs deltas'
+
+instance (Statistical a)
+    => Statistical (Response a) where
+  stats r = (stats . _action $ r)
+              ++ [dStat "Δe" (head os),
+                  dStat "Δp" (os !! 2),
+                  dStat "Δb" (os !! 3),
+                  dStat "Δl" (os !! 4)]
+    where os = _outcomes r
