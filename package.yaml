@@ -1,0 +1,121 @@
+name:                creatur-wains
+version:             9.4.0
+github:              "mhwombat/creatur-wains"
+license:             BSD3
+author:              "Amy de Buitléir"
+maintainer:          "amy@nualeargais.ie"
+copyright:           "2018 Amy de Buitléir"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+synopsis:            Artificial agent specialised for for pattern discovery.
+category:            AI
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/mhwombat/creatur-wains#readme>
+# description:         An artificial agent called the "Wain", designed to
+#                      run in the Créatúr framework. Wains have sufficient
+#                      intelligence to discover patterns in data and make
+#                      survival decisions based on those patterns.
+#                      .
+#                      About the name: \"Wain\" (rhymes with “rain”, or
+#                      alternatively, with “mean”) is a word for “child”,
+#                      commonly used in Donegal and Northern Ireland.
+#                      .
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+    source-dirs: src
+    dependencies:
+    - bytestring
+    - cereal
+    - containers
+    - creatur
+    - deepseq
+    - directory
+    - filepath
+    - lens
+    - MonadRandom
+    - mtl
+    - random
+    - som
+    - unix
+
+# executables:
+#   creatur-wains-learning-test-exe:
+#     main:                Main.hs
+#     source-dirs:
+#     - appLearningTest
+#     - test
+#     ghc-options:
+#     - -threaded
+#     - -rtsopts
+#     - -with-rtsopts=-N
+#     dependencies:
+#     - cereal
+#     - containers
+#     - creatur
+#     - creatur-wains
+#     - deepseq
+#     - lens
+#     - MonadRandom
+#     - mtl
+#     - QuickCheck
+#     - random
+#     - som
+#     - test-framework
+#     - test-framework-quickcheck2
+
+#   creatur-wains-teaching-test-exe:
+#     main:                Main.hs
+#     source-dirs:
+#     - appTeachingTest
+#     - test
+#     ghc-options:
+#     - -threaded
+#     - -rtsopts
+#     - -with-rtsopts=-N
+#     dependencies:
+#     - cereal
+#     - containers
+#     - creatur
+#     - creatur-wains
+#     - deepseq
+#     - lens
+#     - MonadRandom
+#     - mtl
+#     - QuickCheck
+#     - random
+#     - som
+#     - test-framework
+#     - test-framework-quickcheck2
+
+tests:
+  creatur-wains-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - cereal
+    - containers
+    - creatur
+    - creatur-wains
+    - deepseq
+    - MonadRandom
+    - lens
+    - mtl
+    - random
+    - som
+    - QuickCheck
+    - test-framework
+    - test-framework-quickcheck2

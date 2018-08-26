@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.AgentCSV
--- Copyright   :  (c) Amy de Buitléir 2018
+-- Copyright   :  (c) Amy de Buitléir 2018-2018
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental

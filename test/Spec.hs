@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  Main
--- Copyright   :  (c) Amy de Buitléir 2012-2013
+-- Copyright   :  (c) Amy de Buitléir 2012-2018
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -10,8 +10,6 @@
 -- Runs the QuickCheck tests.
 --
 ------------------------------------------------------------------------
-module Main where
-
 import ALife.Creatur.WainQC (test)
 import ALife.Creatur.Wain.BrainQC (test)
 import ALife.Creatur.Wain.ClassifierQC (test)

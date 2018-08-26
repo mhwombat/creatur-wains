@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Statistics
--- Copyright   :  (c) Amy de Buitléir 2013-2017
+-- Copyright   :  (c) Amy de Buitléir 2013-2018
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -38,7 +38,8 @@ module ALife.Creatur.Wain.Statistics
 import Prelude hiding (lookup)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Raw (Raw, raw)
-import Data.List (transpose)
+import Data.List (transpose, groupBy, sortBy)
+import Data.Ord (comparing)
 import Data.Serialize (Serialize)
 import GHC.Generics
 
@@ -48,8 +49,13 @@ data Statistic = DStatistic {sName :: String, sVal :: Double}
   deriving (Eq, Generic, Serialize)
 
 instance Show Statistic where
-  show (DStatistic s x) = "dStat \"" ++ s ++ "\" " ++ show x
-  show (IStatistic s x) = "iStat \"" ++ s ++ "\" " ++ show (round x :: Int)
+  show (DStatistic s x) = "dStat \"" ++ s ++ "\" " ++ v
+    where v = if x < 0 then "(" ++ show x ++ ")"
+                       else show x
+  show (IStatistic s x) = "iStat \"" ++ s ++ "\" " ++ v
+    where v = if x' < 0 then "(" ++ show x' ++ ")"
+                       else show x'
+          x' = round x :: Int
 
 instance Pretty Statistic where
   pretty (DStatistic s x) = s ++ "=" ++ pretty x
@@ -118,25 +124,30 @@ kvToIStats = map f
           g k = "[" ++ show k ++ "]"
 
 -- | Given a 2-dimensional table of values, reports some statistics.
+-- TODO: Revamp to use my spreadsheet class.
 summarise :: [[Statistic]] -> [[Statistic]]
 summarise xss = [maxima,minima,averages,stdDevs,sums]
-  where yss = transpose xss
+  where yss = groupByName $ concat xss
         maxima   = compile "max. " maximum yss
         minima   = compile "min. " minimum yss
-        averages = compile "avg. " mean $ map (map toDStat) yss
-        stdDevs  = compile "std. dev. " popStdDev $
-                     map (map toDStat) yss
+        averages = compile "avg. " mean yss
+        stdDevs  = compile "std. dev. " popStdDev yss
         sums     = compile "total " sum yss
 
-compile :: String -> ([Double] -> Double) -> [[Statistic]] -> [Statistic]
+groupByName :: [Statistic] -> [(String, [Double])]
+groupByName = map f . groupBy g . sortBy (comparing name)
+  where f xs = (name $ head xs, map value xs)
+        g a b = name a == name b
+
+compile :: String -> ([Double] -> Double) -> [(String, [Double])] -> [Statistic]
 compile s f yss = map (prefix s) $ applyToColumns f yss
 
-applyToColumns :: ([Double] -> Double) -> [[Statistic]] -> [Statistic]
+applyToColumns :: ([Double] -> Double) -> [(String, [Double])] -> [Statistic]
 applyToColumns f = map (applyToColumn f)
 
-applyToColumn :: ([Double] -> Double) -> [Statistic] -> Statistic
-applyToColumn f xs@(y:_) = y { sVal=f (map sVal xs) }
-applyToColumn _ [] = error "no data"
+applyToColumn :: ([Double] -> Double) -> (String, [Double]) -> Statistic
+applyToColumn _ (_, []) = error "no data"
+applyToColumn f (s, vs) = dStat s (f vs)
 
 -- | Lookup a value in a set of statistics by its key.
 lookup :: String -> [Statistic] -> Maybe Double
