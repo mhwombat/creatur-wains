@@ -31,8 +31,7 @@ import qualified ALife.Creatur.Wain.ClassifierQC as CQC
 import qualified ALife.Creatur.Wain.Predictor as P
 import qualified ALife.Creatur.Wain.PredictorQC as PQC
 import ALife.Creatur.Wain.GeneticSOM (numModels)
-import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM,
-  sizedArbEmptyGeneticSOM)
+import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import ALife.Creatur.Wain.Probability (hypothesise)
 import ALife.Creatur.Wain.Response (Response(..), _outcomes)
@@ -107,20 +106,20 @@ equivBrain b1 b2 = _classifier b1 `CQC.equivClassifier` _classifier b2
 --   let pSize = n - cSize - nObjects - nConditions
 --   arbTestBrain cSize nObjects nConditions pSize
 
-arbEmptyTestBrain :: Int -> Int -> Int -> Gen TestBrain
-arbEmptyTestBrain cSize nConditions pSize = do
-  c <- sizedArbEmptyGeneticSOM cSize
-  os <- vectorOf nConditions arbitrary
-  d <- max 1 <$> arbitrary
-  let (Right m) = makeMuser os d
-  p <- PQC.arbEmptyTestPredictor pSize
-  hw <- makeWeights <$> vectorOf nConditions arbitrary
-  t <- arbitrary
-  s <- choose (1, 255)
-  ios <- vectorOf nConditions $ choose (0.01, 1)
-  rds <- vectorOf nConditions $ choose (0.01, 1)
-  let (Right b) = makeBrain c m p hw t s ios rds
-  return b
+-- arbEmptyTestBrain :: Int -> Int -> Int -> Gen TestBrain
+-- arbEmptyTestBrain cSize nConditions pSize = do
+--   c <- sizedArbEmptyGeneticSOM cSize
+--   os <- vectorOf nConditions arbitrary
+--   d <- max 1 <$> arbitrary
+--   let (Right m) = makeMuser os d
+--   p <- PQC.arbEmptyTestPredictor pSize
+--   hw <- makeWeights <$> vectorOf nConditions arbitrary
+--   t <- arbitrary
+--   s <- choose (1, 255)
+--   ios <- vectorOf nConditions $ choose (0.01, 1)
+--   rds <- vectorOf nConditions $ choose (0.01, 1)
+--   let (Right b) = makeBrain c m p hw t s ios rds
+--   return b
 
 data ChoosingTestData
   = ChoosingTestData TestBrain [TestPattern] Condition
@@ -278,10 +277,10 @@ prop_imprint_makes_predictions_more_accurate
   where (report1, bClassified) = classifyInputs b ps
         ls = bmus report1
         r = Response ls a os
-        (report2:_) = predictAll b . zip [r] $ repeat 1
+        (report2:_) = predictAll bClassified . zip [r] $ repeat 1
         rBefore = P.pResponse report2
         (_, bImprinted) = imprint bClassified ps a
-        (report3:_) = predictAll b . zip [r] $ repeat 1
+        (report3:_) = predictAll bImprinted . zip [r] $ repeat 1
         rAfter = P.pResponse report3
         diffBefore = responseDiff rBefore r
         diffAfter = responseDiff rAfter r

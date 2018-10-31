@@ -30,12 +30,10 @@ import ALife.Creatur.Wain.GeneticSOMInternal (Label, patternMap,
   numModels, maxSize, trainAndClassify)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM, sizedArbGeneticSOM,
   sizedArbEmptyGeneticSOM)
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
 import ALife.Creatur.Wain.Probability (Probability)
-import ALife.Creatur.Wain.Response (Response(..), labels, action,
-  outcomes)
+import ALife.Creatur.Wain.Response (Response(..))
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
   arbTestResponse)
 import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..),
@@ -182,7 +180,7 @@ prop_imprintOrReinforce_works (ImprintTestData p ls a os ds) =
 
 prop_learn_never_causes_error
   :: ImprintTestData -> Property
-prop_learn_never_causes_error (ImprintTestData p ls a os ds)
+prop_learn_never_causes_error (ImprintTestData p ls a os _)
   = property $ deepseq x True
   where x = learn p r
         r = Response ls a os

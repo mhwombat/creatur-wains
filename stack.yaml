@@ -35,8 +35,6 @@ resolver: lts-12.7
 #  - wai
 packages:
 - .
-- ../creatur
-- ../som
 # - location:
 #     git: git@github.com:mhwombat/creatur.git
 #     commit: master
@@ -46,9 +44,11 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - assert-0.0.1.2
+- creatur-5.9.26
 - gray-extended-1.5.2
 - grid-7.8.9
 - numeric-tools-0.2.0.1
+- som-10.0.0
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
