@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6ff17a93d9f1140de30659a608f52f677179c403cd0064ba98979c73c6c3ce84
+-- hash: f68d1080af59c32037c5097f479fbdaa6a3160b57f3b84adb4f732395007fa31
 
 name:           creatur-wains
 version:        9.4.0
@@ -60,6 +60,7 @@ library
       Paths_creatur_wains
   hs-source-dirs:
       src
+  ghc-options: -Wall -Werror
   build-depends:
       MonadRandom
     , base >=4.7 && <5
@@ -110,6 +111,7 @@ test-suite creatur-wains-test
     , deepseq
     , lens
     , mtl
+    , numeric-tools
     , random
     , som
     , test-framework

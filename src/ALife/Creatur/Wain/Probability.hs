@@ -17,7 +17,8 @@
 module ALife.Creatur.Wain.Probability
   (
     Probability,
-    hypothesise
+    hypothesise,
+    prettyProbability
   ) where
 
 import ALife.Creatur.Wain.ProbabilityInternal

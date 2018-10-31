@@ -25,17 +25,16 @@ import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get)
 import ALife.Creatur.Genetics.Diploid (Diploid)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import qualified ALife.Creatur.Wain.Predictor as P
-import ALife.Creatur.Wain.Muser (Muser, Action, generateResponses,
-  defaultOutcomes)
+import qualified ALife.Creatur.Wain.Muser as M
 import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
-import ALife.Creatur.Wain.Pretty (Pretty(..))
+import ALife.Creatur.Wain.Pretty (Pretty, pretty)
+import ALife.Creatur.Wain.Probability (Probability, hypothesise,
+  prettyProbability)
 import ALife.Creatur.Wain.Response (Response(..))
-import ALife.Creatur.Wain.Probability (Probability, hypothesise)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix,
   iStat, dStat)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, doubleToPM1,
   pm1ToDouble)
-import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   forceDoubleToUI)
 import ALife.Creatur.Wain.Util (thirdOfTriple)
@@ -92,7 +91,7 @@ makeLenses ''Brain
 --   tiebreaker @t@, imprint outcomes @ios@, and reinforcement deltas
 --   @rds@. See @Brain@ for an explanation of these parameters.
 makeBrain
-  :: Muser m
+  :: M.Muser m
      => Cl.Classifier p ct -> m -> P.Predictor a pt -> Weights -> Word8
        -> Word64 -> [PM1Double] -> [PM1Double]
        -> Either [String] (Brain p ct pt m a)
@@ -101,7 +100,7 @@ makeBrain c m p hw t x ios rds
       = Left ["strictness < 1"]
   | numWeights hw /= 4
       = Left ["incorrect number of happiness weights"]
-  | length (defaultOutcomes m) /= 4
+  | length (M.defaultOutcomes m) /= 4
       = Left ["incorrect number of default outcomes"]
   | length ios /= 4
       = Left ["incorrect number of imprint outcomes"]
@@ -156,7 +155,7 @@ instance (Show p, Show a, Show ct, Show pt, Show m, Eq a)
     ++ " (" ++ show ks ++ ")"
 
 instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
-          Muser m, Eq a, Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt,
+          M.Muser m, Eq a, Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt,
           p ~ GSOM.Pattern ct, Response a ~ GSOM.Pattern pt)
     => Genetic (Brain p ct pt m a) where
     put (Brain c m p hw t s ios rds _)
@@ -177,21 +176,56 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
         Left msgs -> return $ Left msgs
         Right b   -> return b
 
+-- | Detailed information about how a decision was made.
+data DecisionReport p a =
+  DecisionReport
+    {
+      bdrStimulus :: [p],
+      bdrClassifierReport :: Cl.ClassifierReport p,
+      bdrScenarioReport :: ScenarioReport,
+      bdrPredictorReport :: PredictorReport a,
+      bdrActionReport :: ActionReport a,
+      bdrRecommendedResponse :: Response a
+    } deriving (Generic, Show, NFData)
+
+-- | A set of hypotheses about the scenario the wain is
+--   facing, paired with the estimated probability that each
+--   hypothesis is true.
+--   (A hypothesis is a set of classifier labels.)
+type ScenarioReport = [([Cl.Label], Probability)]
+
+-- | Generates a human readable summary of a stimulus.
+prettyScenarioReport :: ScenarioReport -> [String]
+prettyScenarioReport = map f
+  where f (ls, p) = "scenario: " ++ pretty ls ++ " prob: " ++ prettyProbability p
+
+-- | Contains each response considered by the brain
+--   (with the predicted outcome filled in),
+--   the probability associated with the scenario
+--   that the response was based on,
+--   the adjusted probability based on how well the
+--   predictor model matches the proposed response,
+--   the label of the predictor model that best matches
+--   the response, and the unadjusted outcomes from
+--   the model.
+type PredictorReport a = [P.PredictionDetail a]
+
+-- | For each action, the expected outcomes and resulting happiness
+type ActionReport a = [(a, [PM1Double], UIDouble)]
+
+-- | Generates a human readable summary of a decision.
+prettyActionReport :: Pretty a => ActionReport a -> [String]
+prettyActionReport = map f
+  where f (a, os, h) = "predicted outcomes of " ++ pretty a ++ " are "
+          ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
+          ++ " with resulting happiness "
+          ++ printf "%.3f" (uiToDouble h)
+
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
 --   Returns:
 --
---   * for each object in the stimuli, the difference between that
---     object and each classifier model paired with the model's label
---   * the hypotheses considered, together with the probability that
---     each hypothesis is true
---   * the responses considered (with predicted outcomes filled in)
---     together with the estimated probability that each response
---     is based on a correct hypothesis, the label of the predictor
---     model upon which the response is based, and the expected
---     condition after the response
---   * the actions considered, paired with the expected condition after
---     the action
+--   * a detailed report of the decision-making process
 --   * the chosen response
 --   * the updated brain
 --
@@ -203,58 +237,78 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: (Muser m, Eq a, Ord a, GSOM.Tweaker pt,
-    Action m ~ a, Response a ~ GSOM.Pattern pt)
-      => Brain p ct pt m a -> [p] -> Condition
-        -> ([[(Cl.Label, GSOM.Difference)]],
-            [([Cl.Label], Probability)],
-            [(Response a, Probability, Probability, P.Label,
-              [PM1Double])],
-            [(a, [PM1Double], UIDouble)],
-            Response a,
-            Brain p ct pt m a)
-chooseAction b ps c = (lds, sps, rplos, aohs, r, b3)
-  where (cBmus, lds, b2) = classifyInputs b ps
+  :: (M.Muser m, Eq a, Ord a, GSOM.Tweaker pt,
+    M.Action m ~ a, Response a ~ GSOM.Pattern pt)
+      => Brain p ct pt m a
+        -> [p]
+        -> Condition
+        -> (DecisionReport p a, Brain p ct pt m a)
+chooseAction b ps c = (report, b3)
+  where (cReport, b2) = classifyInputs b ps
+        -- cReport = The classifier report.
+        -- b2  = the updated brain after classification
+        cBmus = Cl.bmus cReport
         -- cBmus = the labels of the (possibly new) models that are
         --         closest to each input pattern
-        -- lds = the SGM labels paired with the difference between the
+        sReport = generateScenarios b2 cReport
+        pReport = generateResponses b2 sReport
+        aReport = evaluateActions b2 c pReport
+        (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aReport
+        -- a = the action that we predict will give the best outcome
+        -- os = the expected outcomes
+        b3 = adjustActionCounts b2 a
+        report = DecisionReport
+                   {
+                     bdrStimulus = ps,
+                     bdrClassifierReport = cReport,
+                     bdrScenarioReport = sReport,
+                     bdrPredictorReport = pReport,
+                     bdrActionReport = aReport,
+                     bdrRecommendedResponse = Response cBmus a os
+                   }
+
+-- | Internal method
+generateScenarios
+  :: Brain p ct pt m a -> Cl.ClassifierReport p -> ScenarioReport
+generateScenarios b cReport = if null sps'
+                    then sps -- nothing to base estimate on; just guess
+                    else sps'
+  where ldss = Cl.diffs cReport
+        -- ldss = the SGM labels paired with the difference between the
         --       inputs and the corresponding model
-        -- b2  = the updated brain.
-        sps = errorIfNull "sps" $ hypothesise (_strictness b) lds
+        sps = errorIfNull "sps" $ hypothesise (_strictness b) ldss
         --   sps = set of hypotheses about the scenario the wain is
         --   facing, paired with the estimated probability that each
         --   hypothesis is true. (A hypothesis is a set of labels.)
         sps' = filter (P.hasScenario (_predictor b) . fst) sps
-        spsSafe = if null sps'
-                    then sps -- nothing to base estimate on; have to guess
-                    else sps'
-        as = P.actions $ _predictor b
+
+-- | Internal method
+generateResponses
+  :: (M.Muser m, Eq a, GSOM.Tweaker pt, a ~ M.Action m,
+     Response a ~ GSOM.Pattern pt)
+  => Brain p ct pt m a -> ScenarioReport -> PredictorReport a
+generateResponses b sReport = errorIfNull "pReport" $ predictAll b rps
+  where as = P.actions $ _predictor b
         -- as = list of actions to evaluate
-        rps = errorIfNull "rps" $ generateResponses (_muser b2) as spsSafe
+        rps = errorIfNull "rps" $ M.generateResponses (_muser b) as sReport
         -- rps = list of responses to consider, paired with the
         --       probability that the response is based on the correct
         --       scenario.
-        rplos = errorIfNull "rplos" $ predictAll b2 rps
-        -- rplos = For each response, contains the updated response
-        --         (with the predicted outcome filled in),
-        --         the probability associated with the scenario,
-        --         the adjusted probability based on how well the
-        --         predictor model matches the proposed response,
-        --         the label of the predictor model that best matches
-        --         the response, and the unadjusted outcomes from
-        --         the model.
-        rs = errorIfNull "rs" $ map (\(r1, _, _, _, _) -> r1) rplos
+
+
+-- | Internal method
+evaluateActions
+  :: Eq a
+  => Brain p ct pt m a
+  -> Condition
+  -> PredictorReport a
+  -> ActionReport a
+evaluateActions b c pReport
+  = errorIfNull "aohs" $ map (fillInAdjustedHappiness b c) aos
+  where rs = errorIfNull "rs" $ map P.pResponse pReport
         -- rs = just the updated responses
-        aos = errorIfNull "aos" $ sumByAction $ rs
+        aos = errorIfNull "aos" $ sumByAction rs
         -- aos = for each action, the ouputs summed term-by-term
-        aohs = errorIfNull "aohs" $ map (fillInAdjustedHappiness b2 c) aos
-        -- aohs = for each action, the expected outcomes and resulting
-        --        happiness
-        (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aohs
-        -- a = the action that we predict will give the best outcome
-        -- os = the expected outcomes
-        b3 = adjustActionCounts b2 r
-        r = Response cBmus a os
 
 -- | Internal method
 errorIfNull :: String -> [a] -> [a]
@@ -297,10 +351,9 @@ adjustCondition c os =
 
 -- | Internal method
 adjustActionCounts
-  :: Ord a => Brain p ct pt m a -> Response a -> Brain p ct pt m a
-adjustActionCounts b r = set actionCounts cs' b
-  where a = _action r
-        cs = _actionCounts b
+  :: Ord a => Brain p ct pt m a -> a -> Brain p ct pt m a
+adjustActionCounts b a = set actionCounts cs' b
+  where cs = _actionCounts b
         cs' = M.alter inc a cs
         inc Nothing = Just 1
         inc (Just n) = Just (n+1)
@@ -312,12 +365,11 @@ adjustActionCounts b r = set actionCounts cs' b
 --   inputs and the corresponding model,
 --   and the updated brain.
 classifyInputs
-  :: Brain p ct pt m a -> [p]
-    -> ([Cl.Label], [[(Cl.Label, GSOM.Difference)]],
-        Brain p ct pt m a)
-classifyInputs b ps = (bmus, ds, b')
-  where (bmus, ds, c')
-          = Cl.classifySetAndTrain (_classifier b) ps
+  :: Brain p ct pt m a
+    -> [p]
+    -> (Cl.ClassifierReport p, Brain p ct pt m a)
+classifyInputs b ps = (report, b')
+  where (report, c') = Cl.classifySetAndTrain (_classifier b) ps
         b' = set classifier c' b
 
 -- | Internal method
@@ -362,71 +414,131 @@ sumTermByTerm (xs:ys:zss) = sumTermByTerm (ws:zss)
 predictAll
   :: (Eq a, GSOM.Tweaker pt, Response a ~ GSOM.Pattern pt)
     => Brain p ct pt m a -> [(Response a, Probability)]
-      -> [(Response a, Probability, Probability, P.Label, [PM1Double])]
+      -> PredictorReport a
 predictAll b rps = foldl' (predictOne b) [] rps
 
 -- | Internal method
 predictOne
   :: (Eq a, GSOM.Tweaker pt, Response a ~ GSOM.Pattern pt)
     => Brain p ct pt m a
-      -> [(Response a, Probability, Probability, P.Label,  [PM1Double])]
+      -> PredictorReport a
         -> (Response a, Probability)
-          -> ([(Response a, Probability, Probability, P.Label,
-               [PM1Double])])
-predictOne b rplos (r, p) = (r', p, p', l, os):rplos
-  where (r', p', l, os, _) = P.predict (_predictor b) r p
+          -> PredictorReport a
+predictOne b xs (r, p) = (P.predict (_predictor b) r p):xs
+
+-- | Detailed information about the wain's reflection on the outcome
+--   of an action.
+data ReflectionReport a =
+  ReflectionReport
+    {
+      -- | Information about what the brain learned through reflection
+      brrLearningReport :: P.LearningReport (Response a) a,
+      -- | The error in the brain's prediction of the change to
+      --   happiness.
+      brrErr :: Double
+    } deriving (Generic, Show, NFData)
+
+prettyReflectionReport :: Pretty a => ReflectionReport a -> [String]
+prettyReflectionReport r =
+  ("err=" ++ pretty (brrErr r)) : P.prettyLearningReport (brrLearningReport r)
 
 -- | Considers whether the wain is happier or not as a result of the
 --   last action it took, and modifies the decision models accordingly.
 --   Returns the updated brain, and the error in the brain's
---   prediction of the outcome.
+--   prediction of the change to happiness.
 reflect
   :: Eq a
     => Brain p ct pt m a -> Response a -> Condition -> Condition
-      -> (Brain p ct pt m a, Response a, Double)
-reflect b r cBefore cAfter = (set predictor d' b, rReflect, err)
+      -> (ReflectionReport a, Brain p ct pt m a)
+reflect b r cBefore cAfter = (report', set predictor d' b)
   where osActual = map doubleToPM1 $ zipWith (-) (map uiToDouble cAfter)
           (map uiToDouble cBefore)
         rReflect = r {_outcomes = osActual}
-        d' = GSOM.train (_predictor b) rReflect
+        (report, d') = P.learn (_predictor b) rReflect
         osPredicted = _outcomes r
         cPredicted = adjustCondition cBefore osPredicted
         deltaH = uiToDouble (happiness b cAfter)
                    - uiToDouble (happiness b cBefore)
         predictedDeltaH = uiToDouble (happiness b cPredicted)
                    - uiToDouble (happiness b cBefore)
-        err = abs (deltaH - predictedDeltaH)
+        report' = ReflectionReport
+                   {
+                     brrLearningReport = report,
+                     brrErr = abs (deltaH - predictedDeltaH)
+                   }
+
+-- | Detailed information about how a stimulus and response was
+--   imprinted on a wain.
+data ImprintReport p a =
+  ImprintReport
+    {
+      -- | The stimulus
+      birStimulus :: [p],
+      -- | The action to learn
+      birAction :: a,
+      -- | For each object in the stimuli, the difference between that
+      --   object and each classifier model paired with the model's
+      --   label
+      birClassifierReport :: Cl.ClassifierReport p,
+      -- | The hypotheses considered, together with the probability that
+      --   each hypothesis is true
+      birScenarioReport :: [([Cl.Label], Probability)],
+      -- | A report on how the predictor learned the response
+      birLearningReport :: P.LearningReport (Response a) a
+    } deriving (Generic, Show, NFData)
+
+prettyImprintReport
+  :: (Pretty p, Pretty a)
+  => ImprintReport p a -> [String]
+prettyImprintReport r =
+  ["Imprinting the stimulus"]
+    ++ (map pretty (birStimulus r))
+    ++ ["and the action " ++ pretty (birAction r)]
+    ++ ("Classification step:"
+         : Cl.prettyClassifierReport (birClassifierReport r))
+    ++ ("Scenario analysis: "
+         : prettyScenarioReport (birScenarioReport r))
+    ++ ("Learning step:"
+         : P.prettyLearningReport (birLearningReport r))
 
 -- | Teaches the brain a desirable action to take in response to a
 --   stimulus.
 --   This can be used to help children learn by observing their parents.
 --   It can also be used to allow wains to learn from others.
---   Returns the classifier labels paired with the difference of
---   the associated model and the input patterns,
---   the scenarios that were considered paired with their estimated
---   probability, the label of the new or adjusted predictor model,
---   the new or adjusted predictor model itself,
---   and the updated brain.
+--   Returns:
+--
+--   * a detailed report of the imprint process
+--   * the updated brain.
 imprint
   :: Eq a
-    => Brain p ct pt m a -> [p] -> a
-      -> ([[(Cl.Label, GSOM.Difference)]],
-            [([Cl.Label], Probability)],
-            P.Label, Response a, Brain p ct pt m a)
-imprint b ps a = (lds, sps, bmu, r, b3)
-  where (_, lds, b2) = classifyInputs b ps
-        sps = errorIfNull "sps" $ hypothesise 1 lds
-        ls = fst . head $ sps
-        (bmu, r, b3) = imprintPredictor b2 ls a
+    => Brain p ct pt m a
+      -> [p]
+      -> a
+      -> (ImprintReport p a, Brain p ct pt m a)
+imprint b ps a = (report, b3)
+  where (cReport, b2) = classifyInputs b ps
+        ls = Cl.bmus cReport
+        ldss = Cl.diffs cReport
+        sps = errorIfNull "sps" $ hypothesise 1 ldss
+        -- ls = fst . head . reverse $ sortBy (comparing snd) sps
+        (pReport, b3) = imprintPredictor b2 ls a
+        report = ImprintReport
+                   {
+                     birStimulus = ps,
+                     birAction = a,
+                     birClassifierReport = cReport,
+                     birScenarioReport = sps,
+                     birLearningReport = pReport
+                   }
 
 -- | Internal method
 imprintPredictor
   :: Eq a
     => Brain p ct pt m a -> [GSOM.Label] -> a
-      -> (P.Label, Response a, Brain p ct pt m a)
-imprintPredictor b ls a = (bmu, r, set predictor d2 b)
+      -> (P.LearningReport (Response a) a, Brain p ct pt m a)
+imprintPredictor b ls a = (report, set predictor d2 b)
   where d = _predictor b
-        (bmu, r, d2) = P.imprintOrReinforce d ls a os deltas
+        (report, d2) = P.imprintOrReinforce d ls a os deltas
         os = _imprintOutcomes b
         deltas = _reinforcementDeltas b
 
@@ -437,32 +549,3 @@ happiness b = weightedSum (_happinessWeights b)
 -- | A metric for how flexible a brain is at making decisions.
 decisionQuality :: Brain p ct pt m a -> Int
 decisionQuality = GSOM.discrimination . M.elems . _actionCounts
-
--- | Generates a human readable summary of a stimulus.
-scenarioReport :: [([Cl.Label], Probability)] -> [String]
-scenarioReport = map f
-  where f (s, p) = show s ++ " prob: " ++ prettyProbability p
-
--- | Generates a human readable summary of a set of responses.
-responseReport
-  :: Pretty a
-    => [(Response a, Probability, Probability, P.Label, [PM1Double])]
-      -> [String]
-responseReport = map f
-  where f (r, p, p', l, os) = pretty r
-          ++ " prob: " ++ prettyProbability p'
-          ++ "(" ++ prettyProbability p ++ ")"
-          ++ " based on model " ++ show l ++ " raw outcomes: "
-          ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
-
--- | Generates a human readable summary of a decision.
-decisionReport :: Pretty a => [(a, [PM1Double], UIDouble)] -> [String]
-decisionReport = map f
-  where f (a, os, h) = "predicted outcomes of " ++ pretty a ++ " are "
-          ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
-          ++ " with resulting happiness "
-          ++ printf "%.3f" (uiToDouble h)
-
--- | Internal method
-prettyProbability :: Probability -> String
-prettyProbability p = printf "%.3f" (uiToDouble p * 100) ++ "%"

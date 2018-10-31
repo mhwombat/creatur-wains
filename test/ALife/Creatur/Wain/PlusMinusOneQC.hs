@@ -15,17 +15,16 @@ module ALife.Creatur.Wain.PlusMinusOneQC
   (
     test,
     equivPM1Double,
-    equivPM1DoubleVector,
-    negligible
+    equivPM1DoubleVector
   ) where
 
 import ALife.Creatur.Wain.PlusMinusOne
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.UnitIntervalQC ()
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity,
   prop_makeSimilar_works)
 import Control.DeepSeq (deepseq)
+import qualified Numeric.ApproxEq as N
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -33,11 +32,8 @@ import Test.QuickCheck
 instance Arbitrary PM1Double where
   arbitrary = doubleToPM1 <$> choose interval
 
-negligible :: UIDouble -> Bool
-negligible x = uiToDouble x < 1/65535
-
 equivPM1Double :: PM1Double -> PM1Double -> Bool
-equivPM1Double x y = negligible $ pm1Diff x y
+equivPM1Double x y = N.within 1 (pm1ToDouble x) (pm1ToDouble y)
 
 equivPM1DoubleVector :: [PM1Double] -> [PM1Double] -> Bool
 equivPM1DoubleVector (x:xs) (y:ys)

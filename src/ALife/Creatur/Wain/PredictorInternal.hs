@@ -10,61 +10,114 @@
 -- A module containing private Predictor internals.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module ALife.Creatur.Wain.PredictorInternal where
 
-import ALife.Creatur.Wain.GeneticSOM (GeneticSOM,
-  LearningParams, Label, Tweaker(..), buildGeneticSOM, modelMap,
-  trainAndClassify, hasLabel, train, tweaker)
+import qualified ALife.Creatur.Wain.GeneticSOM as S
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.Response (Response(..), outcomes,
   addToOutcomes)
-import ALife.Creatur.Wain.Probability (Probability)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, adjustPM1Vector)
+import ALife.Creatur.Wain.Pretty (Pretty(..))
+import ALife.Creatur.Wain.Probability (Probability, prettyProbability)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double, adjustPM1Vector,
+  pm1ToDouble)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
+import Control.DeepSeq (NFData)
 import Control.Lens
 import qualified Data.Map.Strict as M
-import Data.List (nub)
+import Data.List (nub, intercalate)
 import Data.Word (Word64)
+import GHC.Generics (Generic)
+import Text.Printf (printf)
 
 -- | A predictor predicts the outcome of a response to a scenario.
-type Predictor a t = GeneticSOM (Response a) t
+type Predictor a t = S.GeneticSOM (Response a) t
 
 -- | @'buildPredictor' e n dt@ returns a Predictor, using an
 --   learning function with the parameters @e@ as a learning
 --   function, maximum number of models @n@,
 --   and difference threshold @dt@.
 buildPredictor
-  :: (Eq a, Tweaker t, Pattern t ~ Response a)
-    => LearningParams -> Word64 -> UIDouble -> t -> Predictor a t
-buildPredictor e n dt tw = buildGeneticSOM e n dt tw
+  :: (Eq a, S.Tweaker t, S.Pattern t ~ Response a)
+    => S.LearningParams -> Word64 -> UIDouble -> t -> Predictor a t
+buildPredictor e n dt tw = S.buildGeneticSOM e n dt tw
+
+-- | Information about how a predictor generated a prediction
+data PredictionDetail a
+  = PredictionDetail
+      {
+        -- | The response, updated with the predicted outcomes
+        pResponse :: Response a,
+        -- | The probability of the scenario on which the prediction
+        --   is based
+        pProb :: Probability,
+        -- | The label of the node that best matches the input
+        pBmu :: S.Label,
+        -- | The BMU's model
+        pBmuModel :: Response a,
+        -- | The difference between the input pattern and the BMU's model
+        pBmuDiff :: S.Difference,
+        -- | A measure of how novel the input pattern was to the wain.
+        --   The measure is adjusted based on the age of the wain.
+        pNovelty :: Int,
+        -- | The adjusted probability based on how well the model
+        --   matches the proposed response
+        pAdjustment :: Probability,
+        -- | The unadjusted outcomes from the model
+        pRawOutcomes :: [PM1Double],
+        -- | Even more details about the prediction
+        pDetails :: M.Map S.Label (Response a, S.Difference)
+      } deriving (Generic, Show, NFData)
+
+instance (Pretty a) => Pretty (PredictionDetail a) where
+  pretty r = pretty (pResponse r)
+               ++ " prob: " ++ prettyProbability (pProb r)
+               ++ " based on model " ++ pretty (pBmu r)
+               ++ " raw outcomes: "
+               ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
+    where os = pRawOutcomes r
 
 -- | @'predict' p r k@ uses the predictor @p@ to predict the outcome
---   of the response @r@, given the probability @k@ that the scenario
---   associated with the response is the one we're actually facing.
---   Returns the updated response (with the predicted outcome filled
---   in), the adjusted probability based on how well the model matches
---   the proposed response, the label of the predictor model that best
---   matches the response, the unadjusted outcomes from the model,
---   and the (possibly updated) predictor.
---   If the predictor has no model for this response, it creates a new
---   predictor model and returns the response unmodified.
+--   of the response @r@ to the onput @p@, given the probability @k@
+--   that the scenario associated with the response is the one
+--   we're actually facing.
+--   Returns a detailed report including the prediction and
+--   information about how the prediction was generated.
 predict
-  :: (Eq a, Tweaker t, Pattern t ~ Response a)
+  :: (Eq a, S.Tweaker t, S.Pattern t ~ Response a)
     => Predictor a t -> Response a -> Probability
-    -> (Response a, Probability, Label, [PM1Double], Predictor a t)
-predict p r prob = (r', adjustment, bmu, rawOutcomes, p')
-  where (bmu, p') = classifyAndMaybeCreateNewModel p r
-        model = modelMap p' M.! bmu
+    -> PredictionDetail a
+predict p r prob = PredictionDetail
+                     {
+                       pResponse = r',
+                       pProb = prob,
+                       pBmu = bmu,
+                       pBmuModel = model,
+                       pBmuDiff = bmuDiff,
+                       pNovelty = S.cNovelty report,
+                       pAdjustment = adjustment,
+                       pRawOutcomes = rawOutcomes,
+                       pDetails = S.cDetails report
+                     }
+  where (report, _) = S.trainAndClassify p r
+        bmu = S.cBmu report
+        bmuDiff = S.cBmuDiff report
+        -- If the predictor already contained a suitable model,
+        -- then it was trained with r (which contains default outcomes);
+        -- the trained model (S.cBmuModel report) is not useful.
+        model = if fromIntegral bmu < S.numModels p
+                  then p `S.modelAt` bmu
+                  else r
         rawOutcomes = view outcomes model
-        modelDiff = diff (view tweaker p) model r
         -- Adjust the outcome based on how well the model
         -- matches the proposed response. Specifically, we're comparing
         -- the classifications and the conditions, in the model and the
         -- proposed response.
-        adjustment = prob * (1 - modelDiff)
+        adjustment = prob * (1 - bmuDiff)
         -- Adjust from zero because, depending on the similarity
         -- between the true scenario and the model, the action may have
         -- less of an effect (positive or negative) than predicted by
@@ -74,9 +127,46 @@ predict p r prob = (r', adjustment, bmu, rawOutcomes, p')
           = adjustPM1Vector rawOutcomes adjustment zeroes
         r' = set outcomes adjustedOutcomes r
 
+-- | Information about how a predictor learned.
+data LearningReport p a
+  = LearningReport
+      {
+        -- | The current learning rate for the predictor
+        lLearningRate :: UIDouble,
+        -- | Is the pattern new (imprinted) or old (reinforced)
+        lImprinted :: Bool,
+        -- | The response that was learned
+        lResponse :: p,
+        -- | The label of the predictor node that best matches the input
+        lBmu :: S.Label,
+        -- | The difference between the input pattern and the BMU's model
+        lBmuDiff :: S.Difference,
+        -- | A measure of how novel the input pattern was to the wain.
+        --   The measure is adjusted based on the age of the wain.
+        lNovelty :: Int,
+        -- | Even more details about the classification
+        lDetails :: M.Map S.Label (p, S.Difference)
+      } deriving (Generic, Show, NFData)
+
+prettyLearningReport
+  :: Pretty p
+  => LearningReport p a -> [String]
+prettyLearningReport r =
+  [
+    "predictor learning rate: " ++ pretty (lLearningRate r),
+    msg ++ pretty (lResponse r),
+    " predictor BMU: " ++ pretty (lBmu r)
+      ++ " difference: " ++ pretty (lBmuDiff r)
+      ++ " novelty: " ++ pretty (lNovelty r),
+    "  learning details (label, model, diff):"
+  ] ++ S.prettyClassificationMoreDetail (lDetails r)
+  where msg = if lImprinted r
+                then "Imprinted new response model. "
+                else "Reinforced existing response model. "
+
 -- | @'imprintOrReinforce' d ls a os deltas@ teaches the predictor that
 --   the action @a@ is a good response when facing the scenario @ls@.
---   If this response is new to the predictor, it will store it as a
+--   If this response is new to the predictor, it will store it as a new
 --   model with outcomes @os@. If the response is known, the predictor
 --   will learn (reinforce) the model with @deltas@ added to its
 --   outcomes.
@@ -88,32 +178,44 @@ predict p r prob = (r', adjustment, bmu, rawOutcomes, p')
 --   outcomes + @deltas@.
 imprintOrReinforce
   :: (Eq a)
-    => Predictor a t -> [Label] -> a -> [PM1Double] -> [PM1Double]
-      -> (Label, Response a, Predictor a t)
+    => Predictor a t -> [S.Label] -> a -> [PM1Double] -> [PM1Double]
+      -> (LearningReport (Response a) a, Predictor a t)
 imprintOrReinforce d ls a os deltas =
-  if d `hasLabel` bmu
-    then (bmu, rReinforced, dReinforced)
-    else (bmu, rImprinted, dImprinted)
-  where (bmu, dImprinted) = classifyAndMaybeCreateNewModel d rImprinted
-        r = (modelMap d) M.! bmu
-        rImprinted = Response ls a os
-        rReinforced = deltas `addToOutcomes` r
-        dReinforced = train d rReinforced
+  if existingModel
+    then (reportR, dR)
+    else (reportI, dI)
+  where (reportI, dI) = learn d rI -- imprinting new model
+        (reportR, dR) = learn d rR -- reinforcing existing model
+        r = (S.modelMap d) M.! bmuI
+        rI = Response ls a os
+        rR = deltas `addToOutcomes` r
+        bmuI = lBmu reportI
+        existingModel = d `S.hasLabel` bmuI
 
--- | Don't modify existing models, but do permit a new one to be
---   created.
-classifyAndMaybeCreateNewModel
-  :: (Eq a) => Predictor a t -> Response a -> (Label, Predictor a t)
-classifyAndMaybeCreateNewModel p r =
-  if bmu `elem` (M.keys . modelMap $ p)
-    then (bmu, p)
-    else (bmu, p')
-  where (bmu, _, _, p') = trainAndClassify p r
+-- | @'learn' p r@ teaches the response @r@ to the predictor @p@.
+learn
+  :: (Eq a)
+  => Predictor a t -> Response a
+  -> (LearningReport (Response a) a, Predictor a t)
+learn d r = (report', d')
+  where (report, d') = S.trainAndClassify d r
+        bmu = S.cBmu report
+        existing = d `S.hasLabel` bmu
+        report' = LearningReport
+                    {
+                      lLearningRate = S.currentLearningRate d,
+                      lImprinted = not existing,
+                      lResponse = r,
+                      lBmu = S.cBmu report,
+                      lBmuDiff = S.cBmuDiff report,
+                      lNovelty = S.cNovelty report,
+                      lDetails = S.cDetails report
+                    }
 
 -- | Returns the set of scenarios for which this predictor has response
 --   models.
 scenarios :: Predictor a t -> [[Cl.Label]]
-scenarios = map (_labels . snd) . M.toList . modelMap
+scenarios = map (_labels . snd) . M.toList . S.modelMap
 
 -- | Returns @True@ if the predictor has a response for the scenario;
 --   returns @False@ otherwise.
@@ -121,4 +223,5 @@ hasScenario :: Predictor a t -> [Cl.Label] -> Bool
 hasScenario p ls = ls `elem` (scenarios p)
 
 actions :: Eq a => Predictor a t -> [a]
-actions = nub . map (_action . snd) . M.toList . modelMap
+actions = nub . map (_action . snd) . M.toList . S.modelMap
+

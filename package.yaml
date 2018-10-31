@@ -47,6 +47,9 @@ library:
     - random
     - som
     - unix
+    ghc-options:
+    - -Wall
+    - -Werror
 
 # executables:
 #   creatur-wains-learning-test-exe:
@@ -114,6 +117,7 @@ tests:
     - MonadRandom
     - lens
     - mtl
+    - numeric-tools
     - random
     - som
     - QuickCheck

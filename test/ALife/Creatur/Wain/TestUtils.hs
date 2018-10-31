@@ -30,13 +30,15 @@ module ALife.Creatur.Wain.TestUtils
     prop_makeSimilar_works,
     randomTestPattern,
     testPatternDiff,
-    makeTestPatternSimilar
+    makeTestPatternSimilar,
+    divvy
 --    test
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Util (fromEither)
+import ALife.Creatur.Wain.Pretty (Pretty)
 import ALife.Creatur.Wain.Statistics (Statistical(..), iStat)
 import ALife.Creatur.Wain.Util (scaleFromWord8, scaleWord8ToInt,
   forceToWord8)
@@ -56,28 +58,28 @@ import Test.QuickCheck
 --   difference = euclideanDistanceSquared
 --   makeSimilar = adjustVector
 
--- IMPORTANT: Keep the code for this function in sync with the 
+-- IMPORTANT: Keep the code for this function in sync with the
 -- version in creatur-wains-test-utils
 arb8BitDouble :: (Double, Double) -> Gen Double
 arb8BitDouble interval = do
   x <- arbitrary :: Gen Word8
   return $ scaleFromWord8 interval x
 
--- IMPORTANT: Keep the code for this function in sync with the 
+-- IMPORTANT: Keep the code for this function in sync with the
 -- version in creatur-wains-test-utils
 arb8BitInt :: (Int, Int) -> Gen Int
 arb8BitInt interval = do
   x <- arbitrary :: Gen Word8
   return $ scaleWord8ToInt interval x
 
--- IMPORTANT: Keep the code for this function in sync with the 
+-- IMPORTANT: Keep the code for this function in sync with the
 -- version in creatur-wains-test-utils
 prop_serialize_round_trippable :: (Eq a, Serialize a) => a -> Property
 prop_serialize_round_trippable x = property $ x' == Right x
   where bs = encode x
         x' = decode bs
 
--- IMPORTANT: Keep the code for this function in sync with the 
+-- IMPORTANT: Keep the code for this function in sync with the
 -- version in creatur-wains-test-utils
 prop_genetic_round_trippable :: (Eq g, W8.Genetic g, Show g) =>
   (g -> g -> Bool) -> g -> Property
@@ -88,7 +90,7 @@ prop_genetic_round_trippable eq g = property $
         leftover = drop i x
         g' = fromEither (error "read returned Nothing") $ result
 
--- IMPORTANT: Keep the code for this function in sync with the 
+-- IMPORTANT: Keep the code for this function in sync with the
 -- version in creatur-wains-test-utils
 prop_genetic_round_trippable2
   :: W8.Genetic g => Int -> [Word8] -> g -> Property
@@ -97,12 +99,12 @@ prop_genetic_round_trippable2 n xs dummy = length xs >= n
   where Right g = W8.read xs
         xs' = W8.write (g `asTypeOf` dummy)
 
--- IMPORTANT: Keep the code for this function in sync with the 
+-- IMPORTANT: Keep the code for this function in sync with the
 -- version in creatur-wains-test-utils
 prop_diploid_identity :: Diploid g => (g -> g -> Bool) -> g -> Property
 prop_diploid_identity eq g = property $ express g g `eq` g
 
--- IMPORTANT: Keep the code for this function in sync with the 
+-- IMPORTANT: Keep the code for this function in sync with the
 -- version in creatur-wains-test-utils
 prop_show_read_round_trippable
   :: (Read a, Show a) => (a -> a -> Bool) -> a -> Property
@@ -132,7 +134,7 @@ prop_makeSimilar_works diff makeSimilar x r y
 
 data TestPattern = TestPattern Word8
   deriving (Show, Read, Eq, Generic, Serialize, W8.Genetic, Diploid,
-            NFData)
+            NFData, Ord, Pretty)
 
 instance Arbitrary TestPattern where
   arbitrary = TestPattern <$> arbitrary
@@ -154,3 +156,11 @@ randomTestPattern = fmap (TestPattern) getRandom
 
 instance Statistical TestPattern where
   stats (TestPattern x) = [iStat "" x]
+
+-- | @'divvy' n k@ uses size @n@ to generate a vector of @k@ integers,
+--   guaranteeing that the sum of the vector is less than @k@ or @n@,
+--   whichever is greater.
+divvy :: Int -> Int -> Gen [Int]
+divvy n k = vectorOf k $ choose (1, n')
+  where n' = max 1 (n `div` k)
+

@@ -19,21 +19,27 @@ module ALife.Creatur.WainQC
 
 import ALife.Creatur.Genetics.BRGCWord8 (runDiploidReader, write)
 import ALife.Creatur.WainInternal
+import qualified ALife.Creatur.Wain.Brain as B
 import qualified ALife.Creatur.Wain.BrainQC as BQC
 import ALife.Creatur.Wain.ClassifierQC (TestTweaker)
-import ALife.Creatur.Wain.ResponseQC (TestAction)
+import ALife.Creatur.Wain.ResponseInternal (labels)
+import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse)
 import ALife.Creatur.Wain.SimpleMuser (SimpleMuser)
 import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
 import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
 import ALife.Creatur.Wain.UnitInterval (doubleToUI)
 import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
+import Control.DeepSeq (deepseq)
 import Control.Lens
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import Test.QuickCheck (Arbitrary, Gen, Property, arbitrary, choose,
+  property, sized, vectorOf)
 
-type TestWain = Wain TestPattern TestTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
+type TestWain = Wain TestPattern TestTweaker
+                  (ResponseTweaker TestAction) (SimpleMuser TestAction)
+                  TestAction
 
 equiv
   :: TestWain
@@ -97,6 +103,142 @@ prop_adjustEnergy_balances_energy e w
   = property $ _energy w' == _energy w + doubleToUI used
   where (w', used) = adjustEnergy e w
 
+data ChoosingTestData
+  = ChoosingTestData TestWain [TestPattern]
+
+instance Show ChoosingTestData where
+  show (ChoosingTestData w ps)
+    = "ChoosingTestData (" ++ show w ++ ") " ++ show ps
+
+sizedArbChoosingTestData :: Int -> Gen ChoosingTestData
+sizedArbChoosingTestData n = do
+  (BQC.ChoosingTestData b ps _) <- BQC.sizedArbChoosingTestData n
+  w <- arbitrary
+  let w' = w {_brain = b}
+  return $ ChoosingTestData w' ps
+
+instance Arbitrary ChoosingTestData where
+  arbitrary = sized sizedArbChoosingTestData
+
+prop_chooseAction_never_causes_error
+  :: ChoosingTestData -> Property
+prop_chooseAction_never_causes_error (ChoosingTestData w ps)
+  = property $ deepseq x True
+  where x = chooseAction ps w
+
+data ReflectionTestData
+  = ReflectionTestData [TestPattern] TestResponse TestWain TestWain
+
+instance Show ReflectionTestData where
+  show (ReflectionTestData ps a wBefore wAfter)
+    = "ReflectionTestData (" ++ show ps ++ ") (" ++ show a ++ ") "
+      ++ ") (" ++ show wBefore ++ ") ("  ++ show wAfter ++ ")"
+
+sizedArbReflectionTestData :: Int -> Gen ReflectionTestData
+sizedArbReflectionTestData n = do
+  (BQC.ReflectionTestData b r cBefore cAfter)
+    <- BQC.sizedArbReflectionTestData n
+  let nObjects = length $ view labels r
+  ps <- vectorOf nObjects arbitrary
+  w <- arbitrary :: Gen TestWain
+  let wBefore = w { _brain = b, _energy = head cBefore,
+                    _passion = 1 - cBefore !! 1,
+                    _boredom = cBefore !! 2}
+  let wAfter = wBefore { _energy = head cAfter,
+                         _passion = 1 - cAfter !! 1,
+                         _boredom = cAfter !! 2}
+  return $ ReflectionTestData ps r wBefore wAfter
+
+instance Arbitrary ReflectionTestData where
+  arbitrary = sized sizedArbReflectionTestData
+
+prop_reflect_never_causes_error
+  :: ReflectionTestData -> Property
+prop_reflect_never_causes_error (ReflectionTestData ps r wBefore wAfter)
+  = property $ deepseq x True
+  where x = reflect ps r wBefore wAfter
+
+data ImprintTestData
+  = ImprintTestData TestWain [TestPattern] TestAction B.Condition
+    deriving (Eq, Show)
+
+sizedArbImprintTestData :: Int -> Gen ImprintTestData
+sizedArbImprintTestData n = do
+  let nConditions = 4
+  (BQC.ImprintTestData b ps a _) <- BQC.sizedArbImprintTestData n
+  w <- arbitrary
+  let w' = w {_brain = b}
+  c <- vectorOf nConditions arbitrary
+  return $ ImprintTestData w' ps a c
+
+instance Arbitrary ImprintTestData where
+  arbitrary = sized sizedArbImprintTestData
+
+prop_imprint_never_causes_error
+  :: ImprintTestData -> Property
+prop_imprint_never_causes_error (ImprintTestData w ps a _)
+  = property $ deepseq x True
+  where x = imprint ps a w
+
+-- prop_prettyClassifierModels_never_causes_error
+--   :: ChoosingTestData -> Property
+-- prop_prettyClassifierModels_never_causes_error (ChoosingTestData w ps)
+--   = property $ deepseq x True
+--   where (_, _, w') = chooseAction ps w
+--         x = prettyClassifierModels w'
+
+-- prop_prettyPredictorModels_never_causes_error
+--   :: ChoosingTestData -> Property
+-- prop_prettyPredictorModels_never_causes_error (ChoosingTestData w ps)
+--   = property $ deepseq x True
+--   where (_, _, w') = chooseAction ps w
+--         x = prettyPredictorModels w'
+
+-- prop_prettyClassificationReport_never_causes_error
+--   :: ChoosingTestData -> Property
+-- prop_prettyClassificationReport_never_causes_error
+--   (ChoosingTestData w ps)
+--   = property $ deepseq x' True
+--   where (x, _, w') = chooseAction ps w
+--         x' = prettyClassificationReport w' x
+
+-- prop_prettyScenarioReport_never_causes_error
+--   :: ChoosingTestData -> Property
+-- prop_prettyScenarioReport_never_causes_error (ChoosingTestData w ps)
+--   = property $ deepseq x' True
+--   where (x, _, w') = chooseAction ps w
+--         x' = prettyScenarioReport w' x
+
+-- prop_prettyPredictionReport_never_causes_error
+--   :: ChoosingTestData -> Property
+-- prop_prettyPredictionReport_never_causes_error (ChoosingTestData w ps)
+--   = property $ deepseq x' True
+--   where (x, _, w') = chooseAction ps w
+--         x' = prettyPredictionReport w' x
+
+-- prop_prettyActionReport_never_causes_error
+--   :: ChoosingTestData -> Property
+-- prop_prettyActionReport_never_causes_error (ChoosingTestData w ps)
+--   = property $ deepseq x' True
+--   where (x, _, w') = chooseAction ps w
+--         x' = prettyActionReport w' x
+
+-- prop_prettyReflectionReport_never_causes_error
+--   :: ReflectionTestData -> Property
+-- prop_prettyReflectionReport_never_causes_error
+--   (ReflectionTestData ps r wBefore wAfter)
+--   = property $ deepseq x' True
+--   where (x, w') = reflect ps r wBefore wAfter
+--         x' = prettyReflectionReport w' x
+
+-- prop_prettyImprintReport_never_causes_error
+--   :: ImprintTestData -> Property
+-- prop_prettyImprintReport_never_causes_error
+--   (ImprintTestData w ps a _)
+--   = property $ deepseq x' True
+--   where (x, w') = imprint ps a w
+--         x' = prettyImprintReport w' x
+
 test :: Test
 test = testGroup "ALife.Creatur.WainQC"
   [
@@ -110,5 +252,27 @@ test = testGroup "ALife.Creatur.WainQC"
       (prop_diploid_identity equiv
         :: TestWain -> Property),
     testProperty "prop_adjustEnergy_balances_energy"
-      prop_adjustEnergy_balances_energy
+      prop_adjustEnergy_balances_energy,
+    testProperty "prop_chooseAction_never_causes_error"
+      prop_chooseAction_never_causes_error,
+    testProperty "prop_reflect_never_causes_error"
+      prop_reflect_never_causes_error,
+    testProperty "prop_imprint_never_causes_error"
+      prop_imprint_never_causes_error
+    -- testProperty "prop_prettyClassifierModels_never_causes_error"
+    --   prop_prettyClassifierModels_never_causes_error,
+    -- testProperty "prop_prettyPredictorModels_never_causes_error"
+    --   prop_prettyPredictorModels_never_causes_error,
+    -- testProperty "prop_prettyClassificationReport_never_causes_error"
+    --   prop_prettyClassificationReport_never_causes_error,
+    -- testProperty "prop_prettyScenarioReport_never_causes_error"
+    --   prop_prettyScenarioReport_never_causes_error,
+    -- testProperty "prop_prettyPredictionReport_never_causes_error"
+    --   prop_prettyPredictionReport_never_causes_error,
+    -- testProperty "prop_prettyActionReport_never_causes_error"
+    --   prop_prettyActionReport_never_causes_error,
+    -- testProperty "prop_prettyReflectionReport_never_causes_error"
+    --   prop_prettyReflectionReport_never_causes_error,
+    -- testProperty "prop_prettyImprintReport_never_causes_error"
+    --   prop_prettyImprintReport_never_causes_error
   ]

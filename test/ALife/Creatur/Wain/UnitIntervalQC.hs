@@ -15,8 +15,7 @@ module ALife.Creatur.Wain.UnitIntervalQC
   (
     test,
     equivUIDouble,
-    equivUIDoubleVector,
-    negligible
+    equivUIDoubleVector
   ) where
 
 import ALife.Creatur.Wain.UnitInterval
@@ -24,6 +23,7 @@ import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity,
   prop_makeSimilar_works)
 import Control.DeepSeq (deepseq)
+import qualified Numeric.ApproxEq as N
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -31,11 +31,8 @@ import Test.QuickCheck
 instance Arbitrary UIDouble where
   arbitrary = doubleToUI <$> choose interval
 
-negligible :: UIDouble -> Bool
-negligible x = uiToDouble x < 1/65535
-
 equivUIDouble :: UIDouble -> UIDouble -> Bool
-equivUIDouble x y = negligible $ uiDiff x y
+equivUIDouble x y = N.within 1 (uiToDouble x) (uiToDouble y)
 
 equivUIDoubleVector :: [UIDouble] -> [UIDouble] -> Bool
 equivUIDoubleVector (x:xs) (y:ys)

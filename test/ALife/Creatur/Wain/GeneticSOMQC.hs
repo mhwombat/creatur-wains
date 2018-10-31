@@ -22,8 +22,7 @@ module ALife.Creatur.Wain.GeneticSOMQC
     test,
     equivGSOM,
     sizedArbGeneticSOM,
-    sizedArbEmptyGeneticSOM,
-    equivLearningFunction
+    sizedArbEmptyGeneticSOM
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
@@ -45,7 +44,49 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding (maxSize, classify)
 import Test.QuickCheck.Gen (Gen(MkGen))
 
-instance Arbitrary RandomLearningParams where
+instance Arbitrary LearningParams where
+  arbitrary = do
+    p <- arbitrary
+    MkGen (\r _ -> let (x,_) = runRand (randomLearningParams p) r in x)
+
+equivLearningParams
+  :: LearningParams -> LearningParams -> Bool
+equivLearningParams (LearningParams r0a rfa tfa)
+                 (LearningParams r0b rfb tfb)
+  = equivUIDouble r0a r0b
+    && equivUIDouble rfa rfb
+    && tfa == tfb
+
+validLearningParams :: LearningParams -> Bool
+validLearningParams (LearningParams r0 rf tf)
+  = 0 < r0 && r0 <= 1 && 0 < rf && rf <= r0 && 0 < tf
+
+prop_random_learning_rate_always_in_range
+  :: LearningParams -> Word64 -> Property
+prop_random_learning_rate_always_in_range f t = t >= 0 ==> deepseq r True
+  where r = toLearningFunction f t
+
+prop_express_learningFunction_valid
+  :: LearningParams -> LearningParams -> Property
+prop_express_learningFunction_valid a b
+  = property . validLearningParams $ express a b
+
+prop_diploid_learningFunction_valid
+  :: LearningParams -> LearningParams -> Property
+prop_diploid_learningFunction_valid a b = property . validLearningParams $ c
+  where g1 = W8.write a
+        g2 = W8.write b
+        Right c = W8.runDiploidReader W8.getAndExpress (g1, g2)
+
+prop_learningFunction_valid :: LearningParams -> Property
+prop_learningFunction_valid f = property $ validLearningParams f
+
+prop_learningFunction_always_valid
+  :: LearningParams -> Word64 -> Property
+prop_learningFunction_always_valid f t = property $ r >= 0 && r <= 1
+  where r = toLearningFunction f t
+
+instance Arbitrary LearningParamRanges where
   arbitrary = do
     r0start <- arbitrary
     r0stop <- arbitrary
@@ -53,21 +94,23 @@ instance Arbitrary RandomLearningParams where
     rfstop <- arbitrary
     tfstart <- arbitrary
     tfstop <- arbitrary
-    return $ RandomLearningParams (r0start,r0stop) (rfstart,rfstop)
+    return $ LearningParamRanges (r0start,r0stop) (rfstart,rfstop)
                (tfstart,tfstop)
 
-instance Arbitrary LearningParams where
-  arbitrary = do
-    p <- arbitrary
-    MkGen (\r _ -> let (x,_) = runRand (randomLearningFunction p) r in x)
+prop_random_learningFunction_valid
+  :: Int -> LearningParamRanges -> Property
+prop_random_learningFunction_valid seed params
+  = property $ validLearningParams f
+  where g = mkStdGen seed
+        f = evalRand (randomLearningParams params) g
 
-equivLearningFunction
-  :: LearningParams -> LearningParams -> Bool
-equivLearningFunction (LearningParams r0a rfa tfa)
-                 (LearningParams r0b rfb tfb)
-  = equivUIDouble r0a r0b
-    && equivUIDouble rfa rfb
-    && tfa == tfb
+prop_random_express_learningFunction_valid
+  :: Int -> LearningParamRanges -> LearningParamRanges -> Property
+prop_random_express_learningFunction_valid seed p1 p2
+  = property . validLearningParams $ express a b
+  where g = mkStdGen seed
+        (a, g') = runRand (randomLearningParams p1) g
+        b = evalRand (randomLearningParams p2) g'
 
 data TestTweaker = TestTweaker Word8
   deriving (Eq, Show, Generic, Serialize, W8.Genetic, Diploid, NFData)
@@ -85,8 +128,7 @@ instance Tweaker TestTweaker where
 equivTestTweaker :: TestTweaker -> TestTweaker -> Bool
 equivTestTweaker _ _ = True
 
-type TestGSOM = GeneticSOM TestPattern TestTweaker
-
+-- | Used by other test modules
 sizedArbEmptyGeneticSOM
   :: (Arbitrary t, Tweaker t, p ~ Pattern t)
     => Int -> Gen (GeneticSOM p t)
@@ -96,6 +138,7 @@ sizedArbEmptyGeneticSOM maxSz = do
   t <- arbitrary
   return $ buildGeneticSOM e (fromIntegral maxSz) dt t
 
+-- | Used by other test modules
 sizedArbGeneticSOM
   :: (Arbitrary t, Tweaker t, Arbitrary p, p ~ Pattern t)
     => Gen p -> Int -> Gen (GeneticSOM p t)
@@ -106,6 +149,8 @@ sizedArbGeneticSOM arbPattern n = do
   let s = trainBatch (_patternMap som) xs
   return $ som { _patternMap = s }
 
+type TestGSOM = GeneticSOM TestPattern TestTweaker
+
 instance Arbitrary TestGSOM where
   arbitrary = sized (sizedArbGeneticSOM arbitrary)
 
@@ -115,7 +160,7 @@ equivGSOM equivT x y =
   -- TODO when initial models are made genetic: models x == models y
   maxSize x == maxSize y
     && equivUIDouble (diffThreshold x) (diffThreshold y)
-    && equivLearningFunction (view learningParams x)
+    && equivLearningParams (view learningParams x)
         (view learningParams y)
     &&  equivT (view tweaker x) (view tweaker y)
 
@@ -123,57 +168,22 @@ equivGSOM equivT x y =
 equivTestGSOM :: TestGSOM -> TestGSOM -> Bool
 equivTestGSOM = equivGSOM equivTestTweaker
 
-validLearningFunction :: LearningParams -> Bool
-validLearningFunction (LearningParams r0 rf tf)
-  = 0 < r0 && r0 <= 1 && 0 < rf && rf <= r0 && 0 < tf
-
-prop_learningFunction_valid :: LearningParams -> Property
-prop_learningFunction_valid f = property $ validLearningFunction f
-
-prop_random_learningFunction_valid
-  :: Int -> RandomLearningParams -> Property
-prop_random_learningFunction_valid seed params
-  = property $ validLearningFunction f
-  where g = mkStdGen seed
-        f = evalRand (randomLearningFunction params) g
-
-prop_random_learning_rate_always_in_range
-  :: LearningParams -> Word64 -> Property
-prop_random_learning_rate_always_in_range f t = t >= 0 ==> deepseq r True
-  where r = toLearningFunction f t
-
-prop_express_learningFunction_valid
-  :: LearningParams -> LearningParams -> Property
-prop_express_learningFunction_valid a b
-  = property . validLearningFunction $ express a b
-
-prop_random_express_learningFunction_valid
-  :: Int -> RandomLearningParams -> RandomLearningParams -> Property
-prop_random_express_learningFunction_valid seed p1 p2
-  = property . validLearningFunction $ express a b
-  where g = mkStdGen seed
-        (a, g') = runRand (randomLearningFunction p1) g
-        b = evalRand (randomLearningFunction p2) g'
-
-prop_diploid_learningFunction_valid
-  :: LearningParams -> LearningParams -> Property
-prop_diploid_learningFunction_valid a b = property . validLearningFunction $ c
-  where g1 = W8.write a
-        g2 = W8.write b
-        Right c = W8.runDiploidReader W8.getAndExpress (g1, g2)
-
-prop_learningFunction_always_valid
-  :: LearningParams -> Word64 -> Property
-prop_learningFunction_always_valid f t = property $ r >= 0 && r <= 1
-  where r = toLearningFunction f t
+prop_classify_never_causes_error_unless_empty
+  :: TestGSOM -> TestPattern -> Property
+prop_classify_never_causes_error_unless_empty s p
+  = not (isEmpty s) ==> property $ deepseq x True
+  where x = classify s p
 
 prop_train_never_causes_error :: TestGSOM -> TestPattern -> Property
-prop_train_never_causes_error som p
-  = property $ deepseq (train som p) True
+prop_train_never_causes_error s p
+  = property $ deepseq x True
+  where x = trainAndClassify s p
 
 prop_novelty_btw_0_and_1 :: TestPattern -> TestGSOM -> Property
-prop_novelty_btw_0_and_1 p s = property $ 0 <= bmuDiff && bmuDiff <= 1
-    where (_, bmuDiff, _, _) = trainAndClassify s p
+prop_novelty_btw_0_and_1 p s
+  = property $ 0 <= bmuDiff && bmuDiff <= 1
+    where (r, _) = trainAndClassify s p
+          bmuDiff = cBmuDiff r
 
 prop_familiar_patterns_have_min_novelty :: Int -> TestGSOM -> Property
 prop_familiar_patterns_have_min_novelty k s
@@ -181,28 +191,32 @@ prop_familiar_patterns_have_min_novelty k s
     where k' = k `mod` (fromIntegral $ numModels s)
           l = (keys . toMap . _patternMap $ s) !! k'
           p = modelMap s ! l
-          (_, bmuDiff, _) = classify s p
+          bmuDiff = cBmuDiff $ classify s p
 
--- This is impossible to test because the SOM will create a
+-- This is difficult to test because the SOM will create a
 -- new model if the BMU difference (i.e., the novelty) exceeds a
 -- threshold.
 -- prop_new_patterns_have_max_novelty :: LearningParams -> Property
 -- prop_new_patterns_have_max_novelty e = property $ bmuDiff == 1
 --     where s = buildGeneticSOM e 10 0.1 (TestTweaker 0)
---           (_, bmuDiff, _, _) = classify s (TestPattern 0)
+--           bmuDiff = cBmuDiff $ classify s (TestPattern 0)
 
 -- The constraint is needed because the novelty won't decrease if the
 -- model is already close to the input pattern and the learning rate
 -- isn't high enough.
 prop_novelty_decreases :: TestPattern -> TestGSOM -> Property
-prop_novelty_decreases p s = bmuDiff1 > 0.004 ==> bmuDiff2 <= bmuDiff1
-    where (_, bmuDiff1, _, s') = trainAndClassify s p
-          (_, bmuDiff2, _) = classify s' p
+prop_novelty_decreases p s
+  = bmuDiff1 > 0.004 ==> bmuDiff2 <= bmuDiff1
+    where (r1, s') = trainAndClassify s p
+          bmuDiff1 = cBmuDiff r1
+          bmuDiff2 = cBmuDiff $ classify s' p
 
 prop_novelty_never_increases :: TestPattern -> TestGSOM -> Property
-prop_novelty_never_increases p s = property $ x2 <= x1
-    where (_, _, x1, s') = trainAndClassify s p
-          (_, _, x2) = classify s' p
+prop_novelty_never_increases p s
+  = property $ bmuDiff2 <= bmuDiff1
+    where (r1, s') = trainAndClassify s p
+          bmuDiff1 = cBmuDiff r1
+          bmuDiff2 = cBmuDiff $ classify s' p
 
 -- | WARNING: This can fail when two nodes are close enough in
 --   value so that after training they become identical.
@@ -210,8 +224,9 @@ prop_novelty_never_increases p s = property $ x2 <= x1
 prop_classification_is_consistent
   :: TestGSOM -> TestPattern -> Property
 prop_classification_is_consistent s p = property $ bmu == bmu'
-  where (bmu, _, _, s') = trainAndClassify s p
-        (bmu', _, _) = classify s' p
+  where (r, s') = trainAndClassify s p
+        bmu = cBmu r
+        bmu' = cBmu $ classify s' p
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
@@ -222,7 +237,7 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       (prop_serialize_round_trippable
         :: LearningParams -> Property),
     testProperty "prop_genetic_round_trippable - LearningFunction"
-      (prop_genetic_round_trippable equivLearningFunction
+      (prop_genetic_round_trippable equivLearningParams
         :: LearningParams -> Property),
     testProperty "prop_diploid_identity - LearningFunction"
       (prop_diploid_identity (==)
@@ -243,20 +258,22 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       (prop_diploid_readable
         :: TestGSOM -> TestGSOM -> Property),
 
-    testProperty "prop_learningFunction_valid"
-      prop_learningFunction_valid,
-    testProperty "prop_random_learningFunction_valid"
-      prop_random_learningFunction_valid,
     testProperty "prop_random_learning_rate_always_in_range"
       prop_random_learning_rate_always_in_range,
     testProperty "prop_express_learningFunction_valid"
       prop_express_learningFunction_valid,
-    testProperty "prop_random_express_learningFunction_valid"
-      prop_random_express_learningFunction_valid,
     testProperty "prop_diploid_learningFunction_valid"
       prop_diploid_learningFunction_valid,
+    testProperty "prop_learningFunction_valid"
+      prop_learningFunction_valid,
     testProperty "prop_learningFunction_always_valid"
       prop_learningFunction_always_valid,
+    testProperty "prop_random_learningFunction_valid"
+      prop_random_learningFunction_valid,
+    testProperty "prop_random_express_learningFunction_valid"
+      prop_random_express_learningFunction_valid,
+    testProperty "prop_classify_never_causes_error_unless_empty"
+      prop_classify_never_causes_error_unless_empty,
     testProperty "prop_train_never_causes_error"
       prop_train_never_causes_error,
     testProperty "prop_novelty_btw_0_and_1"

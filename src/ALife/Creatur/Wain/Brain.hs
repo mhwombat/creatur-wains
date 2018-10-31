@@ -17,6 +17,13 @@ module ALife.Creatur.Wain.Brain
     -- * Constructors
     Brain,
     makeBrain,
+    ClassifierReport(..),
+    DecisionReport(..),
+    ScenarioReport,
+    PredictorReport,
+    ActionReport,
+    ReflectionReport(..),
+    ImprintReport(..),
     Condition,
     -- * Lenses
     _classifier,
@@ -35,16 +42,19 @@ module ALife.Creatur.Wain.Brain
     imprintOutcomes,
     reinforcementDeltas,
     actionCounts,
-    -- * Making decisions
+    -- * Reacting to a stimulus
     chooseAction,
+    classifyInputs,
     reflect,
     imprint,
     -- * Miscellaneous
     happiness,
     decisionQuality,
-    scenarioReport,
-    responseReport,
-    decisionReport
+    prettyScenarioReport,
+    prettyActionReport,
+    prettyReflectionReport,
+    prettyImprintReport
   ) where
 
 import ALife.Creatur.Wain.BrainInternal
+import ALife.Creatur.Wain.Classifier

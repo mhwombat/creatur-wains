@@ -26,7 +26,7 @@ module ALife.Creatur.Wain.GeneticSOMInternal where
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
-import ALife.Creatur.Wain.Pretty (Pretty)
+import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Statistics (Statistical, iStat,
   dStat, stats, prefix, kvToIStats)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
@@ -48,8 +48,8 @@ type Label = Word64
 type Difference = UIDouble
 
 -- | Private constructor.
---   @'LearningParams' r0 d@ defines the first two parameters for
---     a learning function.
+--   @'LearningParams' r0 rf tf@ defines the shape of the learning
+--   function.
 --   When t = 0, the learning rate is r0.
 --   Over time the learning rate decays,
 --   so that when t = tf, the learning rate is rf.
@@ -59,8 +59,8 @@ type Difference = UIDouble
 data LearningParams = LearningParams UIDouble UIDouble Word64
   deriving (Eq, Show, Pretty, Generic, NFData)
 
--- | @'mkLearningParams' r0 d@ defines the first two parameters for
---     a learning function.
+-- | @'mkLearningParams' r0 rf tf@ defines the shape of the learning
+--   function.
 --   When t = 0, the learning rate is r0.
 --   Over time the learning rate decays,
 --   so that when t = tf, the learning rate is rf.
@@ -112,7 +112,7 @@ toLearningFunction (LearningParams r0 rf tf) t
 
 -- | A set of parameters to constrain the result when generating
 --   random learning functions.
-data RandomLearningParams = RandomLearningParams
+data LearningParamRanges = LearningParamRanges
   {
     -- | The range from which the initial learning rate (at t=0)
     --   should be chosen.
@@ -123,7 +123,7 @@ data RandomLearningParams = RandomLearningParams
     -- | The range from which the final time should be chosen.
     _tfRange :: (Word64, Word64)
   } deriving Show
-makeLenses ''RandomLearningParams
+makeLenses ''LearningParamRanges
 
 -- | Range of values permitted for @r0@
 r0RangeLimits :: (UIDouble, UIDouble)
@@ -139,11 +139,12 @@ tfRangeLimits = (1, maxBound)
 
 -- | Returns a set of parameters which will permit the broadest possible
 --   set of random decaying gaussian functions for a SOM.
-randomLearningParams :: RandomLearningParams
-randomLearningParams =
-  RandomLearningParams r0RangeLimits rfRangeLimits tfRangeLimits
+widestLearningParamRanges :: LearningParamRanges
+widestLearningParamRanges =
+  LearningParamRanges r0RangeLimits rfRangeLimits tfRangeLimits
 
--- | @'randomLearningFunction' ('RandomLearningParams' r0Range dRange)@
+-- | @'randomLearningParams'
+--   ('LearningParamRanges' r0Range rfRange tRange)@
 --   returns a random decaying function that can be used as the
 --   learning function for an SGM.
 --   The parameters of the gaussian will be chosen such that:
@@ -151,11 +152,11 @@ randomLearningParams =
 --   * r0 is in r0Range, but also 0 < r0 <= 1
 --   * rf is in rfRange, but also 0 < rf <= 1
 --   * tf is in tfRange, but also 0 < tf
-randomLearningFunction
+randomLearningParams
   :: RandomGen g
-    => RandomLearningParams
+    => LearningParamRanges
       -> Rand g LearningParams
-randomLearningFunction p = do
+randomLearningParams p = do
   r0 <- getRandomR . intersection r0RangeLimits . _r0Range $ p
   rf <- getRandomR . intersection (0, r0) . intersection rfRangeLimits . _rfRange $ p
   tf <- getRandomR . intersection tfRangeLimits . _tfRange $ p
@@ -316,24 +317,17 @@ instance (Statistical t, Statistical [(Label, p)])
       :(dStat "threshold" . SOM.diffThreshold . _patternMap $ s)
       :(iStat "SQ" . schemaQuality $ s)
       :(stats . _learningParams $ s)
-      ++ (map (prefix "model") . stats . M.toAscList . modelMap $ s)
+      -- ++ (map (prefix "model") . stats . M.toAscList . modelMap $ s)
       ++ (map (prefix "counter") . kvToIStats . M.toAscList . counterMap $ s)
       ++ (stats . _tweaker $ s)
 
--- -- | @'learn' p l s@ adjusts the model at the index (grid location) @l@
--- --   in @s@ to more closely match the pattern @p@.
--- --   The amount of adjusted is determined by the current learning rate
--- --   of the SOM @s@.
--- --   Only the one model is changed. This is useful for allowing wains
--- --   to learn from each other.
--- --   The difference between @'learn'@ and @'train'@ is that when using
--- --   @'learn'@, you specify which model should be adjusted,
--- --   whereas with @'train'@, the closest matching model is adjusted.
--- learn
---   :: p -> Label -> GeneticSOM p t -> GeneticSOM p t
--- learn p l s = set patternMap gm' s
---   where gm = _patternMap s
---         gm' = SOM.trainNode gm l p
+-- | Returns @True@ if the SOM has no models, @False@ otherwise.
+isEmpty :: GeneticSOM p t -> Bool
+isEmpty = SOM.isEmpty . _patternMap
+
+-- | The maximum number of models this SOM can hold.
+maxSize :: GeneticSOM p t -> Int
+maxSize = SOM.maxSize . _patternMap
 
 -- | Returns the number of models in the SOM.
 numModels
@@ -345,9 +339,24 @@ numModels (GeneticSOM s _ _) = SOM.numModels s
 --   :: GeneticSOM p t -> [p]
 -- models (GeneticSOM s _ _) = C.models s
 
--- -- | Returns the model at the specified location in the SOM.
--- modelAt :: GeneticSOM p t -> Label -> p
--- modelAt s k = SOM.toMap (_patternMap s) M.! k
+-- | Returns a map from node ID to model.
+modelMap :: GeneticSOM p t -> M.Map Label p
+modelMap gs = SOM.modelMap s
+  where s = _patternMap gs
+
+-- | Returns a map from node label to counter (number of times the
+--   node's model has been the closest match to an input pattern).
+counterMap :: GeneticSOM p t -> M.Map Label Word64
+counterMap = SOM.counterMap . _patternMap
+
+-- | Returns @True@ if the SOM has a model with the specified label;
+--   returns @False@ otherwise.
+hasLabel :: GeneticSOM p t -> Label -> Bool
+hasLabel gs l = M.member l (modelMap gs)
+
+-- | Returns the model at the specified location in the SOM.
+modelAt :: GeneticSOM p t -> Label -> p
+modelAt gs k = (_patternMap gs) `SOM.modelAt` k
 
 -- -- | Returns a list containing each index (grid location) in the SOM,
 -- --   paired with the model at that index.
@@ -370,57 +379,87 @@ discrimination :: Integral a => [a] -> Int
 discrimination xs = length $ filter (>k) xs
   where k = sum xs `div` fromIntegral (2 * length xs)
 
--- | Returns @True@ if the SOM has no models, @False@ otherwise.
-isEmpty :: GeneticSOM p t -> Bool
-isEmpty = SOM.isEmpty . _patternMap
-
--- | The maximum number of models this SOM can hold.
-maxSize :: GeneticSOM p t -> Int
-maxSize = SOM.maxSize . _patternMap
-
 diffThreshold :: GeneticSOM p t -> UIDouble
 diffThreshold = SOM.diffThreshold . _patternMap
 
--- | Returns a map from node ID to model.
-modelMap :: GeneticSOM p t -> M.Map Label p
-modelMap = SOM.modelMap . _patternMap
+data ClassificationDetail p
+  = ClassificationDetail
+      {
+        -- | The input pattern to classify
+        cPattern :: p,
+        -- | The label of the node that best matches the input
+        cBmu :: Label,
+        -- | The BMU's model
+        cBmuModel :: p,
+        -- | The difference between the BMU's model and the input pattern
+        cBmuDiff :: Difference,
+        -- | A measure of how novel the input pattern was to the wain.
+        --   The measure is adjusted based on the age of the wain.
+        cNovelty :: Int,
+        -- | Even more details about the classification
+        cDetails :: M.Map Label (p, Difference)
+      } deriving (Show, Generic, NFData)
 
--- | Returns a map from node label to counter (number of times the
---   node's model has been the closest match to an input pattern).
-counterMap :: GeneticSOM p t -> M.Map Label Word64
-counterMap = SOM.counterMap . _patternMap
+prettyClassificationDetail
+  :: Pretty p
+  => ClassificationDetail p -> [String]
+prettyClassificationDetail r =
+  [
+    "Input pattern " ++ pretty (cPattern r),
+    "  classifier BMU: " ++ pretty (cBmu r)
+      ++ " difference: " ++ pretty (cBmuDiff r)
+      ++ " novelty: " ++ pretty (cNovelty r),
+    "  classification details (label, model, diff):"
+  ] ++ prettyClassificationMoreDetail (cDetails r)
+
+prettyClassificationMoreDetail
+  :: Pretty p
+  => M.Map Label (p, Difference) -> [String]
+prettyClassificationMoreDetail = map f . M.toList
+  where f (l, (p, d)) = "  " ++ pretty l ++ " " ++ pretty p ++ " " ++ pretty d
 
 -- | @'classify' s p@ identifies the model @s@ that most closely
 --   matches the pattern @p@.
---   Returns the ID of the node with the best matching model,
---   the "novelty" of the the pattern @p@ (difference between it and
---   the best matching model),
---   the differences between the input and each model in the SOM,
---   and the (possibly updated) SOM.
-classify
-  :: GeneticSOM p t -> p
-    -> (Label, Difference, [(Label, Difference)])
-classify gs p = (bmu, bmuDiff, diffs)
-  where (bmu, bmuDiff, diffs) = SOM.classify s p
+classify :: GeneticSOM p t -> p -> ClassificationDetail p
+classify gs p = detail
+  where (bmu, bmuDiff, rs) = SOM.classify s p
         s = view patternMap gs
+        a = SOM.time $ _patternMap gs
+        detail = ClassificationDetail
+                   {
+                     cPattern = p,
+                     cBmu = bmu,
+                     cBmuModel = gs `modelAt` bmu,
+                     cBmuDiff = bmuDiff,
+                     cNovelty = novelty bmuDiff a,
+                     cDetails = rs
+                   }
 
 trainAndClassify
-  :: GeneticSOM p t -> p
-    -> (Label, Difference, [(Label, Difference)], GeneticSOM p t)
-trainAndClassify gs p = (bmu, bmuDiff, diffs, gs')
-  where (bmu, bmuDiff, diffs, s') = SOM.trainAndClassify s p
+  :: GeneticSOM p t -> p -> (ClassificationDetail p, GeneticSOM p t)
+trainAndClassify gs p = (detail, gs')
+  where (bmu, bmuDiff, rs, s') = SOM.trainAndClassify s p
         s = view patternMap gs
         gs' = set patternMap s' gs
+        age = SOM.time $ _patternMap gs
+        detail = ClassificationDetail
+                   {
+                     cPattern = p,
+                     cBmu = bmu,
+                     cBmuModel = gs' `modelAt` bmu,
+                     cBmuDiff = bmuDiff,
+                     cNovelty = novelty bmuDiff age,
+                     cDetails = rs
+                   }
 
--- | @'train' s p@ identifies the model in @s@ that most closely
---   matches @p@, and updates it to be a somewhat better match.
-train :: GeneticSOM p t -> p -> GeneticSOM p t
-train gs p = set patternMap s' gs
-  where s' = SOM.train s p
-        s = view patternMap gs
+-- | Calculates the novelty of the input by scaling the BMU difference
+--   according to the age of the classifier (wain).
+novelty :: Difference -> Word64 -> Int
+novelty d a = round $ uiToDouble d * fromIntegral a
 
-
--- | Returns @True@ if the SOM has a model with the specified label;
---   returns @False@ otherwise.
-hasLabel :: GeneticSOM p t -> Label -> Bool
-hasLabel gs l = M.member l (modelMap gs)
+-- -- | @'train' s p@ identifies the model in @s@ that most closely
+-- --   matches @p@, and updates it to be a somewhat better match.
+-- train :: GeneticSOM p t -> p -> GeneticSOM p t
+-- train gs p = set patternMap s' gs
+--   where s' = SOM.train s p
+--         s = view patternMap gs

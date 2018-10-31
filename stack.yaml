@@ -34,8 +34,9 @@ resolver: lts-12.7
 #  - auto-update
 #  - wai
 packages:
-- '.'
-- '../creatur'
+- .
+- ../creatur
+- ../som
 # - location:
 #     git: git@github.com:mhwombat/creatur.git
 #     commit: master
@@ -47,7 +48,7 @@ extra-deps:
 - assert-0.0.1.2
 - gray-extended-1.5.2
 - grid-7.8.9
-- som-9.0.4
+- numeric-tools-0.2.0.1
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

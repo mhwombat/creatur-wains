@@ -10,6 +10,7 @@
 -- A data mining agent, designed for the Créatúr framework.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -31,19 +32,19 @@ import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
   produceGamete, build, makeOffspring)
 import qualified ALife.Creatur.Wain.Brain as B
 import qualified ALife.Creatur.Wain.Classifier as Cl
-import ALife.Creatur.Wain.GeneticSOM (Tweaker, Pattern, Label)
+import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
 import ALife.Creatur.Wain.Muser (Muser, Action)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
-import qualified ALife.Creatur.Wain.Predictor as P
+import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import qualified ALife.Creatur.Wain.Response as R
-import ALife.Creatur.Wain.Probability (Probability)
 import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
   doubleToUI, forceDoubleToUI)
-import ALife.Creatur.Wain.Util (unitInterval, enforceRange, fifthOfFive)
+import ALife.Creatur.Wain.Util (unitInterval, enforceRange)
+import Control.DeepSeq (NFData)
 import Control.Lens
 import Control.Monad.Random (Rand, RandomGen)
 import Data.List (partition)
+import qualified Data.Map.Strict as M
 import Data.Serialize (Serialize)
 import Data.Word (Word8, Word16)
 import Data.Version (showVersion)
@@ -95,16 +96,17 @@ data Wain p ct pt m a = Wain
     _childrenWeanedLifetime :: Word16,
     -- | The wain's genes.
     _genome :: ([Word8],[Word8])
-  } deriving (Eq, Generic)
+  } deriving (Eq, Generic, NFData)
 makeLenses ''Wain
 
 -- | Internal method
 buildWain
   :: (Genetic p, Genetic ct, Genetic pt, Genetic a, Eq a,
-    Tweaker ct, Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt, 
-      Serialize p, Serialize ct, Serialize pt, Serialize a, Ord a)
-        => String -> p -> B.Brain p ct pt m a -> UIDouble -> Word16
-          -> UIDouble -> UIDouble -> (Sequence, Sequence) -> Wain p ct pt m a
+    GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+    R.Response a ~ GSOM.Pattern pt,
+    Serialize p, Serialize ct, Serialize pt, Serialize a, Ord a)
+  => String -> p -> B.Brain p ct pt m a -> UIDouble -> Word16
+  -> UIDouble -> UIDouble -> (Sequence, Sequence) -> Wain p ct pt m a
 buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
   wPassionDelta wBoredomDelta g =
     Wain
@@ -132,10 +134,10 @@ buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
 buildWainAndGenerateGenome
   :: (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
     Serialize p, Serialize ct, Serialize pt, Serialize a,
-      Eq a, Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
-        R.Response a ~ Pattern pt, Muser m)
-          => String -> p -> B.Brain p ct pt m a -> UIDouble -> Word16
-            -> UIDouble -> UIDouble -> Wain p ct pt m a
+    Eq a, Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+    R.Response a ~ GSOM.Pattern pt, Muser m)
+  => String -> p -> B.Brain p ct pt m a -> UIDouble -> Word16
+  -> UIDouble -> UIDouble -> Wain p ct pt m a
 buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
   wAgeOfMaturity wPassionDelta wBoredomDelta = set genome (g,g) strawMan
   where strawMan = buildWain wName wAppearance wBrain wDevotion
@@ -146,12 +148,12 @@ buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
 --   produced as the result of mating.
 buildWainFromGenome
   :: (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
-      Diploid p, Diploid ct, Diploid pt, Diploid m, Diploid a,
-        Serialize p, Serialize ct, Serialize pt, Serialize a,
-          Ord a, Eq a, Tweaker ct, Tweaker pt,
-            p ~ Pattern ct, R.Response a ~ Pattern pt, Muser m)
-              => Bool -> String
-                -> DiploidReader (Either [String] (Wain p ct pt m a))
+    Diploid p, Diploid ct, Diploid pt, Diploid m, Diploid a,
+    Serialize p, Serialize ct, Serialize pt, Serialize a,
+    Ord a, Eq a, GSOM.Tweaker ct, GSOM.Tweaker pt,
+    p ~ GSOM.Pattern ct, R.Response a ~ GSOM.Pattern pt, Muser m)
+  => Bool -> String
+  -> DiploidReader (Either [String] (Wain p ct pt m a))
 buildWainFromGenome truncateGenome wName = do
   wAppearance <- getAndExpress
   wBrain <- getAndExpress
@@ -174,9 +176,9 @@ instance SizedRecord (Wain p ct pt m a) where
   size = const 1
 
 instance (Eq a, Ord a,
-          Statistical [(Label, p)], Statistical ct,
+          Statistical [(GSOM.Label, p)], Statistical ct,
           Statistical pt, Statistical m,
-          Statistical [(Label, R.Response a)])
+          Statistical [(GSOM.Label, R.Response a)])
     => Statistical (Wain p ct pt m a) where
   stats w =
     iStat "age" (_age w)
@@ -201,17 +203,17 @@ instance (Eq a, Ord a,
           ec = sum . map (view energy) $ _litter w
 
 instance (Serialize p, Serialize ct, Serialize pt, Serialize m,
-  Serialize a, Eq a, Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
-    R.Response a ~ Pattern pt)
-      => Serialize (Wain p ct pt m a)
+  Serialize a, Eq a, Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt,
+  p ~ GSOM.Pattern ct, R.Response a ~ GSOM.Pattern pt)
+  => Serialize (Wain p ct pt m a)
 
 -- This implementation is useful for generating the genes in the
 -- initial population, and for testing
 instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
   Eq a, Ord a, Serialize p, Serialize ct, Serialize pt, Serialize a,
-    Tweaker ct, Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt,
-      Muser m)
-        => Genetic (Wain p ct pt m a) where
+  GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+  R.Response a ~ GSOM.Pattern pt, Muser m)
+  => Genetic (Wain p ct pt m a) where
   put w = put (_appearance w)
             >> put (_brain w)
             >> put (_devotion w)
@@ -233,8 +235,8 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
 -- This implementation is useful for testing
 instance (Diploid p, Diploid ct, Diploid pt, Diploid m, Diploid a,
   Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a, Eq a, Ord a,
-    Serialize p, Serialize ct, Serialize pt, Serialize a, Tweaker ct,
-      Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt)
+    Serialize p, Serialize ct, Serialize pt, Serialize a, GSOM.Tweaker ct,
+      GSOM.Tweaker pt, p ~ GSOM.Pattern ct, R.Response a ~ GSOM.Pattern pt)
         => Diploid (Wain p ct pt m a) where
   express x y = buildWain "" wAppearance wBrain wDevotion
                   wAgeOfMaturity wPassionDelta wBoredomDelta ([],[])
@@ -252,10 +254,10 @@ instance Agent (Wain p ct pt m a) where
 
 instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
   Diploid p, Diploid ct, Diploid pt, Diploid m, Diploid a,
-    Serialize p, Serialize ct, Serialize pt, Serialize a,
-      Eq a, Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
-        R.Response a ~ Pattern pt, Muser m)
-          => Reproductive (Wain p ct pt m a) where
+  Serialize p, Serialize ct, Serialize pt, Serialize a,
+  Eq a, Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+  R.Response a ~ GSOM.Pattern pt, Muser m)
+  => Reproductive (Wain p ct pt m a) where
   type Strand (Wain p ct pt m a) = Sequence
   produceGamete a =
     repeatWithProbability 0.1 randomCrossover (_genome a) >>=
@@ -295,23 +297,32 @@ happiness w = B.happiness (_brain w) (condition w)
 
 --numModels . view B.classifier . view brain $ w
 
+-- | Detailed information about how a decision was made.
+data DecisionReport p a =
+  DecisionReport
+    {
+      wdrStimulus :: [p],
+      wdrClassifierReport :: Cl.ClassifierReport p,
+      wdrScenarioReport :: B.ScenarioReport,
+      wdrPredictorReport :: B.PredictorReport a,
+      wdrActionReport :: B.ActionReport a
+    } deriving (Generic, Show, NFData)
+
+-- | Returns the measure of how novel each input pattern was to the
+--   wain.
+--   Adjusted for the age of the wain.
+novelties :: DecisionReport p a -> [Int]
+novelties = map GSOM.cNovelty . Cl.cDetails . wdrClassifierReport
+
+-- | Returns the measure of how different each input pattern was to the
+--   closest matching classifier model.
+bmuDiffs :: DecisionReport p a -> [UIDouble]
+bmuDiffs = map GSOM.cBmuDiff . Cl.cDetails . wdrClassifierReport
+
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.
---   Returns:
---
---   * for each object in the stimuli, the difference between that
---     object and each classifier model paired with the model's label
---   * the hypotheses considered, together with the probability that
---     each hypothesis is true
---   * the responses considered (with predicted outcomes filled in)
---     together with the estimated probability that each response
---     is based on a correct hypothesis, the label of the predictor
---     model upon which the response is based, and the expected
---     condition after the response
---   * the actions considered, paired with the expected condition after
---     the action
---   * the chosen response
---   * the updated brain
+--   Returns a detailed report of the decision process
+--   and the updated wain.
 --
 --   NOTE: The response chosen might be a response modelled on
 --   a different scenario than the one we think we're in.
@@ -321,20 +332,24 @@ happiness w = B.happiness (_brain w) (condition w)
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: (Muser m, Action m ~ a, Eq a, Ord a, Tweaker pt,
-     R.Response a ~ Pattern pt)
+  :: (Muser m, Action m ~ a, Eq a, Ord a, GSOM.Tweaker pt,
+     R.Response a ~ GSOM.Pattern pt)
       => [p] -> Wain p ct pt m a
-        -> ([[(Cl.Label, Cl.Difference)]],
-            [([Cl.Label], Probability)],
-            [(R.Response a, Probability, Probability, P.Label,
-              [PM1Double])],
-            [(a, [PM1Double], UIDouble)],
-            R.Response a,
-            Wain p ct pt m a)
-chooseAction ps w = (lds, sps, rplos, aohs, r, w')
-  where (lds, sps, rplos, aohs, r, b')
+        -> (DecisionReport p a, R.Response a, Wain p ct pt m a)
+chooseAction ps w = (report', r, w')
+  where (report, b')
           = B.chooseAction (_brain w) ps (condition w)
+        r = B.bdrRecommendedResponse report
         w' = set brain b' w
+        report' = DecisionReport
+                    {
+                      wdrStimulus = B.bdrStimulus report,
+                      wdrClassifierReport
+                        = B.bdrClassifierReport report,
+                      wdrScenarioReport = B.bdrScenarioReport report,
+                      wdrPredictorReport = B.bdrPredictorReport report,
+                      wdrActionReport = B.bdrActionReport report
+                    }
 
 -- | Adjusts the energy of a wain.
 --   NOTE: A wain's energy is capped to the range [0,1].
@@ -397,6 +412,16 @@ incLitterAge w = set litter litter' w
 incAge1 :: Wain p ct pt m a -> Wain p ct pt m a
 incAge1 = age +~ 1
 
+data ReflectionReport p a
+  = ReflectionReport
+      {
+        rReflectionReport :: B.ReflectionReport a,
+        rImprintReports :: [B.ImprintReport p a]
+      } deriving (Generic, Show, NFData)
+
+happinessError :: ReflectionReport p a -> Double
+happinessError = B.brrErr . rReflectionReport
+
 -- | Causes a wain to considers whether it is happier or not as a
 --   result of the last action it took, and modifies its decision models
 --   accordingly. The wain's litter, if any, will not have access to
@@ -407,43 +432,45 @@ incAge1 = age +~ 1
 --   TODO: Do something more realistic.
 reflect
   :: (Serialize p, Serialize ct, Serialize pt, Serialize a, Eq a, Ord a,
-    Tweaker ct, Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt)
-      => [p] -> R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
-        -> (Wain p ct pt m a, R.Response a, Double)
+    GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+    R.Response a ~ GSOM.Pattern pt)
+  => [p] -> R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
+  -> (ReflectionReport p a, Wain p ct pt m a)
 reflect ps r wBefore wAfter =
-  (set litter litter' wReflected, rReflect, err)
-  where (wReflected, rReflect, err) = reflect1 r wBefore wAfter
+  (report, set litter litter' wReflected)
+  where (rReport, wReflected) = reflect1 r wBefore wAfter
         a = R._action r
-        litter' = map (fifthOfFive . imprint ps a) (_litter wAfter)
+        iResults = map (imprint ps a) (_litter wAfter)
+        litter' = map snd iResults
+        report = ReflectionReport
+                   {
+                     rReflectionReport = rReport,
+                     rImprintReports = map fst iResults
+                   }
 
 -- | Internal method
 reflect1
   :: Eq a
-    => R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
-      -> (Wain p ct pt m a, R.Response a, Double)
-reflect1 r wBefore wAfter = (set brain b' wAfter, rReflect, err)
-  where (b', rReflect, err) = B.reflect (_brain wAfter) r (condition wBefore)
-                      (condition wAfter)
+  => R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
+  -> (B.ReflectionReport a, Wain p ct pt m a)
+reflect1 r wBefore wAfter = (report, set brain b' wAfter)
+  where (report, b') = B.reflect (_brain wAfter) r (condition wBefore)
+                        (condition wAfter)
 
 -- | Teaches the wain a desirable action to take in response to a
 --   stimulus.
 --   This can be used to help children learn by observing their parents.
 --   It can also be used to allow wains to learn from others.
---   Returns the classifier labels paired with the difference of
---   the associated model and the input patterns,
---   the scenarios that were considered paired with their estimated
---   probability, the label of the new or adjusted predictor model,
---   the new or adjusted predictor model itself,
+--   Returns a detailed report of the imprint process
 --   and the updated wain.
 imprint
   :: (Serialize p, Serialize ct, Serialize pt, Serialize a, Eq a, Ord a,
-    Tweaker ct, Tweaker pt, p ~ Pattern ct, R.Response a ~ Pattern pt)
-      => [p] -> a -> Wain p ct pt m a
-        -> ( [[(Cl.Label, Cl.Difference)]],
-             [([Cl.Label], Probability)],
-             P.Label, R.Response a, Wain p ct pt m a )
-imprint ps a w = (lds, sps, bmu, r, set brain b' w)
-  where (lds, sps, bmu, r, b') = B.imprint (_brain w) ps a
+    GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+    R.Response a ~ GSOM.Pattern pt)
+  => [p] -> a -> Wain p ct pt m a
+  -> (B.ImprintReport p a, Wain p ct pt m a )
+imprint ps a w = (report, set brain b' w)
+  where (report, b') = B.imprint (_brain w) ps a
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.
@@ -455,11 +482,11 @@ imprint ps a w = (lds, sps, bmu, r, set brain b' w)
 mate
   :: (RandomGen r, Diploid p, Diploid ct, Diploid pt, Diploid m,
     Diploid a, Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
-      Serialize p, Serialize ct, Serialize pt, Serialize a,
-        Eq a, Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
-          R.Response a ~ Pattern pt, Muser m)
-            => Wain p ct pt m a -> Wain p ct pt m a -> String
-              -> Rand r ([Wain p ct pt m a], [String], Double, Double)
+    Serialize p, Serialize ct, Serialize pt, Serialize a,
+    Eq a, Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+    R.Response a ~ GSOM.Pattern pt, Muser m)
+  => Wain p ct pt m a -> Wain p ct pt m a -> String
+  -> Rand r ([Wain p ct pt m a], [String], Double, Double)
 mate a b babyName
   | hasLitter a
       = return ([a, b], [_name a ++ " already has a litter"], 0, 0)
@@ -471,11 +498,11 @@ mate a b babyName
 mate'
   :: (RandomGen r, Diploid p, Diploid ct, Diploid pt, Diploid m,
     Diploid a, Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
-      Serialize p, Serialize ct, Serialize pt, Serialize a,
-        Eq a, Ord a, Tweaker ct, Tweaker pt, p ~ Pattern ct,
-          R.Response a ~ Pattern pt, Muser m)
-            => Wain p ct pt m a -> Wain p ct pt m a -> String
-              -> Rand r ([Wain p ct pt m a], [String], Double, Double)
+    Serialize p, Serialize ct, Serialize pt, Serialize a,
+    Eq a, Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
+    R.Response a ~ GSOM.Pattern pt, Muser m)
+   => Wain p ct pt m a -> Wain p ct pt m a -> String
+   -> Rand r ([Wain p ct pt m a], [String], Double, Double)
 mate' a b babyName = do
   let a2 = coolPassion a
   let b2 = coolPassion b
@@ -524,3 +551,58 @@ pruneDeadChildren a =
   where (aliveChildren, deadChildren) = partition isAlive (_litter a)
         a' = set litter aliveChildren a
 
+prettyClassifierModels :: Show p => Wain p ct pt m a -> [String]
+prettyClassifierModels w = map f ms
+  where ms = M.toList . GSOM.modelMap . view (brain . B.classifier) $ w
+        f (l, r) = agentId w ++ "'s classifier model "
+                     ++ show l ++ " " ++ show r
+
+prettyPredictorModels :: Pretty a => Wain p ct pt m a -> [String]
+prettyPredictorModels w = map f ms
+  where ms = M.toList . GSOM.modelMap . view (brain . B.predictor) $ w
+        f (l, r) = agentId w ++ "'s predictor model "
+                     ++ show l ++ ": " ++ pretty r
+
+prettyClassificationReport
+  :: Pretty p
+  => Wain p ct pt m a -> DecisionReport p a -> [String]
+prettyClassificationReport w r
+  = (agentId w ++ " classifies the input(s)")
+    : Cl.prettyClassifierReport (wdrClassifierReport r)
+
+prettyScenarioReport
+  :: Wain p ct pt m a -> DecisionReport p a -> [String]
+prettyScenarioReport w r
+  = (agentId w ++ " develops hypotheses about the current scenario")
+    : B.prettyScenarioReport (wdrScenarioReport r)
+
+prettyPredictionReport
+  :: Pretty a
+  => Wain p ct pt m a -> DecisionReport p a -> [String]
+prettyPredictionReport w r
+  = (agentId w ++ " considers possible responses")
+    : map pretty (wdrPredictorReport r)
+
+prettyActionReport
+  :: Pretty a
+  => Wain p ct pt m a -> DecisionReport p a -> [String]
+prettyActionReport w r
+  = (agentId w ++ " choses an action")
+    : B.prettyActionReport (wdrActionReport r)
+
+prettyReflectionReport
+  :: (Pretty p, Pretty a)
+  => Wain p ct pt m a -> ReflectionReport p a -> [String]
+prettyReflectionReport w r
+  = (agentId w ++ " reflects on the outcome")
+    : B.prettyReflectionReport (rReflectionReport r)
+    ++ concatMap f wrs
+  where wrs = zip (_litter w) (rImprintReports r)
+        f (child, iReport) = prettyImprintReport child iReport
+
+prettyImprintReport
+  :: (Pretty p, Pretty a)
+  => Wain p ct pt m a -> B.ImprintReport p a -> [String]
+prettyImprintReport w r
+  = (agentId w ++ " imprints a response")
+    : B.prettyImprintReport r

@@ -21,6 +21,7 @@ import ALife.Creatur.Wain.GeneticSOM (Difference, Label)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
   uiToDouble)
 import Data.Word (Word64)
+import Text.Printf (printf)
 
 -- | Estimated probability that a set of labels is accurate.
 type Probability = UIDouble
@@ -69,7 +70,8 @@ diffsToProbs2 x lds = zip ls ps
 --   calculate the probability that the pattern should match each model.
 diffsToProbs1 :: Word64 -> [Difference] -> [Probability]
 diffsToProbs1 x ds = map doubleToUI . normalise . map uiToDouble $ ps
-  where ps = map (diffToProb x) ds
+  where ps = map (diffToProb x) ds'
+        ds' = map doubleToUI . normalise $ map uiToDouble ds
 
 -- | @'diffToProb' x d@ converts a difference metric @d@
 --   into an estimated probability that the classification is "sound".
@@ -79,3 +81,6 @@ diffToProb :: Word64 -> UIDouble -> UIDouble
 diffToProb x d = doubleToUI $ 1 - exp(1 - 1/(1 - (1 - d')^x'))
   where x' = fromIntegral x :: Integer
         d' = uiToDouble d
+
+prettyProbability :: Probability -> String
+prettyProbability p = printf "%.3f" (uiToDouble p * 100) ++ "%"

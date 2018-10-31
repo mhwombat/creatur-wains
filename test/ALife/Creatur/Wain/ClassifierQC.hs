@@ -32,7 +32,7 @@ import ALife.Creatur.Wain.GeneticSOMInternal (Tweaker(..), modelMap,
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM, sizedArbGeneticSOM)
 import ALife.Creatur.Wain.Statistics (Statistical(..))
 import ALife.Creatur.Wain.TestUtils
-import Control.DeepSeq (NFData)
+import Control.DeepSeq (NFData, deepseq)
 import Control.Lens
 import qualified Data.Datamining.Clustering.SGMInternal as SOM
 import qualified Data.Map.Lazy as M
@@ -67,14 +67,15 @@ equivClassifier = equivGSOM (==)
 classifySetAndTrain_label_count
   :: TestClassifier -> [TestPattern] -> Property
 classifySetAndTrain_label_count c ps = property $ length xs == length ps
-  where (_, xs, _) = classifySetAndTrain c ps
+  where (r, _) = classifySetAndTrain c ps
+        xs = bmus r
 
 prop_classifier_behaves_like_sgm
   :: TestClassifier -> TestPattern -> Property
 prop_classifier_behaves_like_sgm c p =
   property $ cModels == sModels
   where s = view patternMap c
-        (_, _, c') = classifySetAndTrain c [p]
+        (_, c') = classifySetAndTrain c [p]
         (_, _, _, s') = SOM.trainAndClassify s p
         cModels = M.elems . modelMap $ c'
         sModels = M.elems . SOM.modelMap $ s'
@@ -84,7 +85,8 @@ prop_classifier_behaves_like_sgm2
 prop_classifier_behaves_like_sgm2 c p =
   property $ cLds == [sLds]
   where s = view patternMap c
-        (cLds, _, _) = classifySetAndTrain c [p]
+        (report, _) = classifySetAndTrain c [p]
+        cLds = bmus report
         (sLds, _, _, _) = SOM.trainAndClassify s p
 
 prop_classifier_behaves_like_sgm3
@@ -92,10 +94,23 @@ prop_classifier_behaves_like_sgm3
 prop_classifier_behaves_like_sgm3 c ps =
   property $ cModels == sModels
   where s = view patternMap c
-        (_, _, c') = classifySetAndTrain c ps
+        (_, c') = classifySetAndTrain c ps
         s' = SOM.trainBatch s ps
         cModels = M.elems . modelMap $ c'
         sModels = M.elems . SOM.modelMap $ s'
+
+prop_classifySetAndTrain_never_causes_error
+  :: TestClassifier -> [TestPattern] -> Property
+prop_classifySetAndTrain_never_causes_error c ps
+  = property $ deepseq x True
+  where x = classifySetAndTrain c ps
+
+-- prop_prettyClassifierReport_never_causes_error
+--   :: TestClassifier -> [TestPattern] -> Property
+-- prop_prettyClassifierReport_never_causes_error c ps
+--   = property $ deepseq x True
+--   where (r, _) = classifySetAndTrain c ps
+--         x = prettyClassifierReport r
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ClassifierQC"
@@ -122,5 +137,9 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
     testProperty "prop_classifier_behaves_like_sgm2"
       prop_classifier_behaves_like_sgm2,
     testProperty "prop_classifier_behaves_like_sgm3"
-      prop_classifier_behaves_like_sgm3
+      prop_classifier_behaves_like_sgm3,
+    testProperty "prop_classifySetAndTrain_never_causes_error"
+      prop_classifySetAndTrain_never_causes_error
+    -- testProperty "prop_prettyClassifierReport_never_causes_error"
+    --   prop_prettyClassifierReport_never_causes_error
   ]

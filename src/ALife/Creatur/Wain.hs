@@ -12,12 +12,10 @@
 ------------------------------------------------------------------------
 module ALife.Creatur.Wain
   (
-    -- * Constructors
+    -- * Wains
     Wain(..),
-    Label,
     buildWainAndGenerateGenome,
-    Condition,
-    -- * Lenses
+    -- * Wain lenses
     name,
     appearance,
     brain,
@@ -33,28 +31,48 @@ module ALife.Creatur.Wain
     childrenBorneLifetime,
     childrenWeanedLifetime,
     genome,
-    -- * Teaching and learning
-    chooseAction,
-    reflect,
-    imprint,
-    -- * Misc.
+    -- * Other wain characteristics
+    happiness,
+    hasLitter,
+    litterSize,
+    childEnergy,
+    Condition,
+    condition,
     adjustEnergy,
     adjustBoredom,
     autoAdjustPassion,
     autoAdjustBoredom,
     coolPassion,
-    happiness,
-    childEnergy,
-    hasLitter,
-    litterSize,
     incAge,
-    condition,
+    prettyClassifierModels,
+    prettyPredictorModels,
+    -- * Reacting to stimuli
+    DecisionReport,
+    novelties,
+    bmuDiffs,
+    chooseAction,
+    prettyClassificationReport,
+    prettyScenarioReport,
+    prettyPredictionReport,
+    prettyActionReport,
+    -- * Learning through experience
+    ReflectionReport,
+    prettyReflectionReport,
+    reflect,
+    happinessError,
+    -- * Learning through instruction
+    ImprintReport,
+    prettyImprintReport,
+    imprint,
+    -- * Reproduction
     mate,
     weanMatureChildren,
     pruneDeadChildren,
+    -- * Misc.
+    Label,
     packageVersion
   ) where
 
 import ALife.Creatur.WainInternal
-import ALife.Creatur.Wain.Brain (Condition)
+import ALife.Creatur.Wain.Brain (Condition, ImprintReport)
 import ALife.Creatur.Wain.GeneticSOM (Label)

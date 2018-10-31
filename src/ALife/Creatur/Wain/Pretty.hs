@@ -59,4 +59,3 @@ instance (Pretty a) => Pretty [a] where
 instance (Pretty a) => Pretty (Maybe a) where
   pretty (Just x) = pretty x
   pretty _ = "ø"
-

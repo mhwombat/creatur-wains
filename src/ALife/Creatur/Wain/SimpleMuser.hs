@@ -53,7 +53,7 @@ data SimpleMuser a = SimpleMuser
 makeLenses ''SimpleMuser
 
 instance Show (SimpleMuser a) where
-  show (SimpleMuser o d) = "makeSimpleMuser " ++ show o ++ " " ++ show d
+  show (SimpleMuser o d) = "fromRight (makeMuser " ++ show o ++ " " ++ show d ++ ")"
 
 instance Pretty (SimpleMuser a)
 

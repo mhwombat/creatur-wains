@@ -38,7 +38,7 @@ module ALife.Creatur.Wain.Statistics
 import Prelude hiding (lookup)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Raw (Raw, raw)
-import Data.List (transpose, groupBy, sortBy)
+import Data.List (groupBy, sortBy)
 import Data.Ord (comparing)
 import Data.Serialize (Serialize)
 import GHC.Generics
@@ -84,9 +84,9 @@ iStats s = map (prefix s) . kvToIStats . applyIndices
 applyIndices :: [a] -> [(Int, a)]
 applyIndices = zip [1..]
 
-toDStat :: Statistic -> Statistic
-toDStat (IStatistic s x) = DStatistic s x
-toDStat x = x
+-- toDStat :: Statistic -> Statistic
+-- toDStat (IStatistic s x) = DStatistic s x
+-- toDStat x = x
 
 -- | Prefixes the given string to the value's "name".
 prefix :: String -> Statistic -> Statistic

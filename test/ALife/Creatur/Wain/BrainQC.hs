@@ -16,37 +16,46 @@
 module ALife.Creatur.Wain.BrainQC
   (
     test,
-    equivBrain
+    equivBrain,
+    ChoosingTestData(..),
+    sizedArbChoosingTestData,
+    ReflectionTestData(..),
+    sizedArbReflectionTestData,
+    ImprintTestData(..),
+    sizedArbImprintTestData
   ) where
 
 import ALife.Creatur.Wain.BrainInternal
-import qualified ALife.Creatur.Wain.ClassifierQC as C
-import qualified ALife.Creatur.Wain.PredictorQC as D
+import ALife.Creatur.Wain.Classifier (bmus, diffs)
+import qualified ALife.Creatur.Wain.ClassifierQC as CQC
+import qualified ALife.Creatur.Wain.Predictor as P
+import qualified ALife.Creatur.Wain.PredictorQC as PQC
 import ALife.Creatur.Wain.GeneticSOM (numModels)
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM,
   sizedArbEmptyGeneticSOM)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import ALife.Creatur.Wain.Probability (hypothesise)
 import ALife.Creatur.Wain.Response (Response(..), _outcomes)
-import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
-  arbTestResponse)
+import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse)
 import ALife.Creatur.Wain.SimpleMuser (SimpleMuser, makeMuser,
   _defaultOutcomes)
-import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
+import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..),
+  responseDiff)
 import ALife.Creatur.Wain.TestUtils
 import ALife.Creatur.Wain.Weights (makeWeights)
+import Control.DeepSeq (deepseq)
 import Data.List (maximumBy)
 import Data.Ord (comparing)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
-type TestBrain = Brain TestPattern C.TestTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
+type TestBrain
+  = Brain TestPattern CQC.TestTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
 
 sizedArbTestBrain :: Int -> Gen TestBrain
 sizedArbTestBrain n = do
-  cSize <- choose (0, n)
-  nObjects <- choose (0, n - cSize)
-  -- nConditions <- choose (0, n - cSize - nObjects)
+  cSize:nObjects:[] <- divvy n 2
   let nConditions = 4
   let pSize = n + 1
   arbTestBrain cSize nObjects nConditions pSize
@@ -57,7 +66,7 @@ arbTestBrain cSize nObjects nConditions pSize = do
   os <- vectorOf nConditions arbitrary
   d <- max 1 <$> arbitrary
   let (Right m) = makeMuser os d
-  p <- D.arbTestPredictor nObjects nConditions pSize
+  p <- PQC.arbTestPredictor nObjects nConditions pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
   s <- choose (1, 255)
@@ -74,7 +83,7 @@ arbSensibleTestBrain cSize nObjects nConditions pSize = do
   os <- vectorOf nConditions arbitrary
   d <- max 1 <$> arbitrary
   let (Right m) = makeMuser os d
-  p <- D.arbTestPredictor nObjects nConditions pSize
+  p <- PQC.arbTestPredictor nObjects nConditions pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
   s <- choose (1, 255)
@@ -87,8 +96,8 @@ instance Arbitrary TestBrain where
   arbitrary = sized sizedArbTestBrain
 
 equivBrain :: TestBrain -> TestBrain -> Bool
-equivBrain b1 b2 = _classifier b1 `C.equivClassifier` _classifier b2
-  && _predictor b1 `D.equivPredictor` _predictor b2
+equivBrain b1 b2 = _classifier b1 `CQC.equivClassifier` _classifier b2
+  && _predictor b1 `PQC.equivPredictor` _predictor b2
 
 -- sizedArbEmptyTestBrain :: Int -> Gen TestBrain
 -- sizedArbEmptyTestBrain n = do
@@ -104,7 +113,7 @@ arbEmptyTestBrain cSize nConditions pSize = do
   os <- vectorOf nConditions arbitrary
   d <- max 1 <$> arbitrary
   let (Right m) = makeMuser os d
-  p <- D.arbEmptyTestPredictor pSize
+  p <- PQC.arbEmptyTestPredictor pSize
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
   s <- choose (1, 255)
@@ -123,8 +132,7 @@ instance Show ChoosingTestData where
 
 sizedArbChoosingTestData :: Int -> Gen ChoosingTestData
 sizedArbChoosingTestData n = do
-  cSize <- choose (1, max 1 n)
-  nObjects <- choose (1, min 3 (max 1 (n - cSize)))
+  cSize:nObjects:[] <- divvy (min 10 n) 2
   -- nConditions <- choose (0, n - cSize - nObjects)
   let nConditions = 4
   let pSize = n + 1
@@ -136,11 +144,19 @@ sizedArbChoosingTestData n = do
 instance Arbitrary ChoosingTestData where
   arbitrary = sized sizedArbChoosingTestData
 
-prop_chooseAction_doesnt_add_predictor_models :: ChoosingTestData -> Property
-prop_chooseAction_doesnt_add_predictor_models (ChoosingTestData b ps c) = property $ n' == n
+prop_chooseAction_doesnt_add_predictor_models
+  :: ChoosingTestData -> Property
+prop_chooseAction_doesnt_add_predictor_models (ChoosingTestData b ps c)
+  = property $ n' == n
   where n = numModels . _predictor $ b
-        (_, _, _, _, _, b') = chooseAction b ps c
-        n' = numModels . _predictor $ b'        
+        (_, b') = chooseAction b ps c
+        n' = numModels . _predictor $ b'
+
+prop_chooseAction_never_causes_error
+  :: ChoosingTestData -> Property
+prop_chooseAction_never_causes_error (ChoosingTestData b ps c)
+  = property $ deepseq x True
+  where x = chooseAction b ps c
 
 data ReflectionTestData
   = ReflectionTestData TestBrain TestResponse Condition Condition
@@ -152,16 +168,17 @@ instance Show ReflectionTestData where
 
 sizedArbReflectionTestData :: Int -> Gen ReflectionTestData
 sizedArbReflectionTestData n = do
-  cSize <- choose (0, n)
-  nObjects <- choose (0, n - cSize)
-  -- nConditions <- choose (0, n - cSize - nObjects)
+  cSize:nObjects:[] <- divvy (min 10 n) 2
   let nConditions = 4
+  c <- vectorOf nConditions arbitrary
+  ps <- vectorOf nObjects arbitrary
   let pSize = n + 1
   b <- arbTestBrain cSize nObjects nConditions pSize
-  r <- arbTestResponse nObjects nConditions
+  let (report, b') = chooseAction b ps c
+  let r = bdrRecommendedResponse report
   cBefore <- vectorOf nConditions arbitrary
   cAfter <- vectorOf nConditions arbitrary
-  return $ ReflectionTestData b r cBefore cAfter
+  return $ ReflectionTestData b' r cBefore cAfter
 
 instance Arbitrary ReflectionTestData where
   arbitrary = sized sizedArbReflectionTestData
@@ -171,16 +188,27 @@ prop_reflect_makes_predictions_more_accurate
 prop_reflect_makes_predictions_more_accurate
   (ReflectionTestData b r cBefore cAfter)
     = property $ errAfter <= errBefore
-  where ((r2, _, _, _, _):_) = predictAll b . zip [r] $ repeat 1
-        (b2, _, errBefore) = reflect b r2 cBefore cAfter
-        ((r3, _, _, _, _):_) = predictAll b . zip [r] $ repeat 1
-        (_, _, errAfter) = reflect b2 r3 cBefore cAfter
+  where (report:_) = predictAll b . zip [r] $ repeat 1
+        r2 = P.pResponse report
+        (report2, b2) = reflect b r2 cBefore cAfter
+        errBefore = brrErr report2
+        (report3:_) = predictAll b . zip [r] $ repeat 1
+        r3 = P.pResponse report3
+        (report4, _) = reflect b2 r3 cBefore cAfter
+        errAfter = brrErr report4
 
 prop_reflect_error_in_range
   :: TestBrain -> TestResponse -> Condition -> Condition -> Property
 prop_reflect_error_in_range b r cBefore cAfter
   = property $ -2 <= x && x <= 2
-  where (_, _, x) = reflect b r cBefore cAfter
+  where (report, _) = reflect b r cBefore cAfter
+        x = brrErr report
+
+prop_reflect_never_causes_error
+  :: ReflectionTestData -> Property
+prop_reflect_never_causes_error (ReflectionTestData b r cBefore cAfter)
+  = property $ deepseq x True
+  where x = reflect b r cBefore cAfter
 
 -- data AFewPatterns = AFewPatterns [TestPattern]
 --   deriving (Eq, Show)
@@ -194,21 +222,20 @@ prop_reflect_error_in_range b r cBefore cAfter
 --   arbitrary = sized sizedArbAFewPatterns
 
 data ImprintTestData
-  = ImprintTestData TestBrain [TestPattern] TestAction Condition
+  = ImprintTestData TestBrain [TestPattern] TestAction [PM1Double]
     deriving Eq
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
 sizedArbImprintTestData n = do
-  cSize <- choose (1, max 1 n)
-  nObjects <- choose (1, min 3 (max 1 (n - cSize)))
-  -- nConditions <- choose (1, max 1 (n - cSize - nObjects))
+  cSize:nO:[] <- divvy (min 10 n) 2
+  let nObjects = min 3 nO
   let nConditions = 4
   let pSize = n + 1
   b <- arbSensibleTestBrain cSize nObjects nConditions pSize
   ps <- vectorOf nObjects arbitrary
   a <- arbitrary
-  c <- vectorOf nConditions arbitrary
-  return $ ImprintTestData b ps a c
+  os <- vectorOf nConditions arbitrary
+  return $ ImprintTestData b ps a os
 
 instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
@@ -227,115 +254,69 @@ prop_imprint_works (ImprintTestData b ps a _) = not (null ps)
         mModified = m { _defaultOutcomes = badOutcomes }
         bModified = b { _imprintOutcomes = goodOutcomes,
                         _muser = mModified }
-        (_, lds, bClassified) = classifyInputs bModified ps
-        s = fst . maximumBy (comparing snd) . hypothesise (_strictness b) $ lds
+        (cReports, bClassified) = classifyInputs bModified ps
+        ldss = diffs cReports
+        s = fst . maximumBy (comparing snd) . hypothesise (_strictness b) $ ldss
         r = Response s a badOutcomes
-        ((rBefore, _, _, _, _):_) = predictAll bClassified [(r, 1)]
-        (_, _, _, _, bImprinted) = imprint bClassified ps a
-        ((rAfter, _, _, _, _):_) = predictAll bImprinted [(r, 1)]
+        (report1:_) = predictAll bClassified [(r, 1)]
+        rBefore = P.pResponse report1
+        (_, bImprinted) = imprint bClassified ps a
+        (report2:_) = predictAll bImprinted [(r, 1)]
+        rAfter = P.pResponse report2
 
-data ImprintEmptyBrainTestData
-  = ImprintEmptyBrainTestData TestBrain [TestPattern] TestAction Condition
-    deriving Eq
+prop_imprint_never_causes_error
+  :: ImprintTestData -> Property
+prop_imprint_never_causes_error (ImprintTestData b ps a _)
+  = property $ deepseq x True
+  where x = imprint b ps a
 
-sizedArbImprintEmptyBrainTestData :: Int -> Gen ImprintEmptyBrainTestData
-sizedArbImprintEmptyBrainTestData n = do
-  cSize <- choose (1, max 1 n)
-  nObjects <- choose (1, min 3 (max 1 (n - cSize)))
-  -- nConditions <- choose (1, max 1 (n - cSize - nObjects))
-  let nConditions = 4
-  let pSize = n + 1
-  b <- arbEmptyTestBrain cSize nConditions pSize
-  ps <- vectorOf nObjects arbitrary
-  a <- arbitrary
-  c <- vectorOf nConditions arbitrary
-  return $ ImprintEmptyBrainTestData b ps a c
+prop_imprint_makes_predictions_more_accurate
+  :: ImprintTestData -> Property
+prop_imprint_makes_predictions_more_accurate
+  (ImprintTestData b ps a os)
+    = property $ diffAfter <= diffBefore
+  where (report1, bClassified) = classifyInputs b ps
+        ls = bmus report1
+        r = Response ls a os
+        (report2:_) = predictAll b . zip [r] $ repeat 1
+        rBefore = P.pResponse report2
+        (_, bImprinted) = imprint bClassified ps a
+        (report3:_) = predictAll b . zip [r] $ repeat 1
+        rAfter = P.pResponse report3
+        diffBefore = responseDiff rBefore r
+        diffAfter = responseDiff rAfter r
 
-instance Arbitrary ImprintEmptyBrainTestData where
-  arbitrary = sized sizedArbImprintEmptyBrainTestData
+-- prop_prettyScenarioReport_never_causes_error
+--   :: ChoosingTestData -> Property
+-- prop_prettyScenarioReport_never_causes_error
+--   (ChoosingTestData b ps c)
+--   = property $ deepseq x' True
+--   where (x, _) = chooseAction b ps c
+--         x' = prettyScenarioReport $ bdrScenarioReport x
 
-instance Show ImprintEmptyBrainTestData where
-  show (ImprintEmptyBrainTestData b ps a c)
-    = "ImprintEmptyBrainTestData (" ++ show b ++ ") " ++ show ps ++ " "
-      ++ show a ++ " " ++ show c
+-- prop_prettyActionReport_never_causes_error
+--   :: ChoosingTestData -> Property
+-- prop_prettyActionReport_never_causes_error
+--   (ChoosingTestData b ps c)
+--   = property $ deepseq x' True
+--   where (x, _) = chooseAction b ps c
+--         x' = prettyActionReport $ bdrActionReport x
 
-prop_imprint_works2 :: ImprintEmptyBrainTestData -> Property
-prop_imprint_works2 (ImprintEmptyBrainTestData b ps a c) = not (null ps)
-  ==> _action r == a
-  where badOutcomes = map (const (-1)) $ _imprintOutcomes b
-        bModified = b { _muser = mModified }
-        mModified = (_muser b) { _defaultOutcomes = badOutcomes }
-        (_, _, _, _, bImprinted) = imprint bModified ps a
-        (_, _, _, _, r, _) = chooseAction bImprinted ps c
+-- prop_prettyReflectionReport_never_causes_error
+--   :: ReflectionTestData -> Property
+-- prop_prettyReflectionReport_never_causes_error
+--   (ReflectionTestData b r cBefore cAfter)
+--   = property $ deepseq x' True
+--   where (x, _) = reflect b r cBefore cAfter
+--         x' = prettyReflectionReport x
 
--- imprintAll :: TestBrain -> [([TestPattern], TestAction)] -> TestBrain
--- imprintAll b psas = foldl' imprintOne b psas
-
--- imprintOne :: TestBrain -> ([TestPattern], TestAction) -> TestBrain
--- imprintOne b (ps, a) = imprint b ps a
-
--- data ImprintTestData2
---   = ImprintTestData2 TestBrain [TestPattern] TestAction Condition String
---     deriving Eq
-
--- -- Are the two stimuli sufficiently similar that the brain might
--- -- classify them using the same response labels?
--- similar :: TestBrain -> [TestPattern] -> [TestPattern] -> Bool
--- similar b xs ys = xPLabel == yPLabel
---   where xPLabel = (f . classify p) xResponse :: Label
---         yPLabel = (f . classify p) yResponse :: Label
---         xResponse = Response xCLabels a [] :: Response TestAction
---         yResponse = Response yCLabels a [] :: Response TestAction
---         -- The next two lines should really use a fold
---         xCLabels = map (f . classify c) xs :: [Label]
---         yCLabels = map (f . classify c) ys :: [Label]
---         c = _classifier b
---         p = _predictor b
---         f (z, _, _, _) = z
---         a = minBound :: TestAction
-        
--- sizedArbImprintTestData2 :: Int -> Gen ImprintTestData2
--- sizedArbImprintTestData2 n = do
---   nObjects <- min 3 <$> choose (1, n)
---   nConditions <- min 5 <$> choose (1, n+1)
---   nPrelearnedPatterns <- min 5 <$> choose (0, n)
---   -- Make sure the classifier has room to create new models if needed
---   cSize <- (nObjects*(nPrelearnedPatterns + 1) + 10 +) <$> choose (0, n)
---   -- Make sure the predictor has room to learn a new response
---   pSize <- (nPrelearnedPatterns + 10 +) <$> choose (0, n)
---   -- Generate a brain
---   b <- arbEmptyTestBrain cSize nConditions pSize
---   -- Generate some patterns for testing and pre-imprinting.
---   -- But make sure none of the responses we're going to teach the brain
---   -- are inconsistent; it will make testing difficult.
---   (ps:pss) <- nubBy (similar b) <$> vectorOf (nPrelearnedPatterns+1) (vectorOf nObjects arbitrary)
---   -- Pre-imprint the brain with some responses
---   as <- vectorOf nPrelearnedPatterns arbitrary
---   let psas = zip pss as
---   let bImprinted = imprintAll b psas
---   -- generate some extra test data
---   a <- arbitrary
---   c <- vectorOf nConditions arbitrary
---   return $ ImprintTestData2 bImprinted ps a c (show psas)
-
--- instance Arbitrary ImprintTestData2 where
---   arbitrary = sized sizedArbImprintTestData2
-
--- instance Show ImprintTestData2 where
---   show (ImprintTestData2 b ps a c imprintingInfo)
---     = "ImprintTestData2 (" ++ show b ++ ") " ++ show ps ++ " "
---       ++ show a ++ " " ++ show c ++ " \"" ++ imprintingInfo ++ "\""
-
--- prop_classifier_behaves_like_sgm
---   :: TestBrain -> [TestPattern] -> TestAction -> Property
--- prop_classifier_behaves_like_sgm b ps a =
---   property $ bModels == sModels
---   where dummy = view classifier b :: C.TestClassifier
---         s = view (patternMap . classifier) b :: SOM.SGM Word16 UIDouble Label TestPattern
---         b' = imprint b ps a
---         (_, _, _, s')  = SOM.trainAndClassify s ps
---         bModels = M.elems . modelMap . view classifier $ b'
---         sModels = M.elems . SOM.modelMap $ s'
+-- prop_prettyImprintReport_never_causes_error
+--   :: ImprintTestData -> Property
+-- prop_prettyImprintReport_never_causes_error
+--   (ImprintTestData b ps a _)
+--   = property $ deepseq x' True
+--   where (x, _) = imprint b ps a
+--         x' = prettyImprintReport x
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"
@@ -352,12 +333,26 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
       (prop_diploid_readable :: TestBrain -> TestBrain -> Property),
     testProperty "prop_chooseAction_doesnt_add_predictor_models"
       prop_chooseAction_doesnt_add_predictor_models,
+    testProperty "prop_chooseAction_never_causes_error"
+      prop_chooseAction_never_causes_error,
     testProperty "prop_reflect_makes_predictions_more_accurate"
       prop_reflect_makes_predictions_more_accurate,
     testProperty "prop_reflect_error_in_range"
       prop_reflect_error_in_range,
+    testProperty "prop_reflect_never_causes_error"
+      prop_reflect_never_causes_error,
     testProperty "prop_imprint_works"
       prop_imprint_works,
-    testProperty "prop_imprint_works2"
-      prop_imprint_works2
+    testProperty "prop_imprint_never_causes_error"
+      prop_imprint_never_causes_error,
+    testProperty "prop_imprint_makes_predictions_more_accurate"
+      prop_imprint_makes_predictions_more_accurate
+    -- testProperty "prop_prettyScenarioReport_never_causes_error"
+    --   prop_prettyScenarioReport_never_causes_error,
+    -- testProperty "prop_prettyActionReport_never_causes_error"
+    --   prop_prettyActionReport_never_causes_error,
+    -- testProperty "prop_prettyReflectionReport_never_causes_error"
+    --   prop_prettyReflectionReport_never_causes_error,
+    -- testProperty "prop_prettyImprintReport_never_causes_error"
+    --   prop_prettyImprintReport_never_causes_error
   ]

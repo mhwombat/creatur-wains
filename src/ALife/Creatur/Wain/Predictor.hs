@@ -14,13 +14,18 @@ module ALife.Creatur.Wain.Predictor
   (
     Label,
     Predictor,
+    ClassificationDetail(..),
+    PredictionDetail(..),
+    LearningReport(..),
     buildPredictor,
     predict,
+    learn,
     actions,
     scenarios,
     hasScenario,
-    imprintOrReinforce
+    imprintOrReinforce,
+    prettyLearningReport
   ) where
 
 import ALife.Creatur.Wain.PredictorInternal
-import ALife.Creatur.Wain.GeneticSOM (Label)
+import ALife.Creatur.Wain.GeneticSOM (Label, ClassificationDetail(..))
