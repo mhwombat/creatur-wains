@@ -406,9 +406,9 @@ prettyClassificationDetail
 prettyClassificationDetail r =
   [
     "Input pattern " ++ pretty (cPattern r),
-    "  classifier BMU: " ++ pretty (cBmu r)
-      ++ " difference: " ++ pretty (cBmuDiff r)
-      ++ " novelty: " ++ pretty (cNovelty r),
+    "  classifier BMU: " ++ show (cBmu r)
+      ++ " difference: " ++ show (cBmuDiff r)
+      ++ " novelty: " ++ show (cNovelty r),
     "  classification details (label, model, diff):"
   ] ++ prettyClassificationMoreDetail (cDetails r)
 
