@@ -59,11 +59,13 @@ data PredictionDetail a
         pBmu :: S.Label,
         -- | The BMU's model
         pBmuModel :: Response a,
-        -- | The difference between the input pattern and the BMU's model
-        pBmuDiff :: S.Difference,
-        -- | A measure of how novel the input pattern was to the wain.
-        --   The measure is adjusted based on the age of the wain.
-        pNovelty :: Int,
+        -- | A measure of how novel the response pattern was to the wain.
+        --   It is the difference between the input pattern and the
+        --   closest model prior to any training or addition of models.
+        pNovelty :: S.Difference,
+        -- | A measure of how novel the response pattern was to the wain,
+        --   adjusted based on the age of the wain.
+        pAdjNovelty :: Int,
         -- | The adjusted probability based on how well the model
         --   matches the proposed response
         pAdjustment :: Probability,
@@ -97,15 +99,15 @@ predict p r prob = PredictionDetail
                        pProb = prob,
                        pBmu = bmu,
                        pBmuModel = model,
-                       pBmuDiff = bmuDiff,
-                       pNovelty = S.cNovelty report,
+                       pNovelty = novelty,
+                       pAdjNovelty = S.cAdjNovelty report,
                        pAdjustment = adjustment,
                        pRawOutcomes = rawOutcomes,
                        pDetails = S.cDetails report
                      }
   where (report, _) = S.trainAndClassify p r
         bmu = S.cBmu report
-        bmuDiff = S.cBmuDiff report
+        novelty = S.cNovelty report
         -- If the predictor already contained a suitable model,
         -- then it was trained with r (which contains default outcomes);
         -- the trained model (S.cBmuModel report) is not useful.
@@ -117,7 +119,7 @@ predict p r prob = PredictionDetail
         -- matches the proposed response. Specifically, we're comparing
         -- the classifications and the conditions, in the model and the
         -- proposed response.
-        adjustment = prob * (1 - bmuDiff)
+        adjustment = prob * (1 - novelty)
         -- Adjust from zero because, depending on the similarity
         -- between the true scenario and the model, the action may have
         -- less of an effect (positive or negative) than predicted by
@@ -139,11 +141,11 @@ data LearningReport p a
         lResponse :: p,
         -- | The label of the predictor node that best matches the input
         lBmu :: S.Label,
-        -- | The difference between the input pattern and the BMU's model
-        lBmuDiff :: S.Difference,
         -- | A measure of how novel the input pattern was to the wain.
-        --   The measure is adjusted based on the age of the wain.
-        lNovelty :: Int,
+        lNovelty :: S.Difference,
+        -- | A measure of how novel the input pattern was to the wain,
+        --   adjusted based on the age of the wain.
+        lAdjNovelty :: Int,
         -- | Even more details about the classification
         lDetails :: M.Map S.Label (p, S.Difference)
       } deriving (Generic, Show, NFData)
@@ -156,8 +158,8 @@ prettyLearningReport r =
     "predictor learning rate: " ++ pretty (lLearningRate r),
     msg ++ pretty (lResponse r),
     " predictor BMU: " ++ pretty (lBmu r)
-      ++ " difference: " ++ pretty (lBmuDiff r)
-      ++ " novelty: " ++ pretty (lNovelty r),
+      ++ " difference: " ++ pretty (lNovelty r)
+      ++ " novelty: " ++ pretty (lAdjNovelty r),
     "  learning details (label, model, diff):"
   ] ++ S.prettyClassificationMoreDetail (lDetails r)
   where msg = if lImprinted r
@@ -207,8 +209,8 @@ learn d r = (report', d')
                       lImprinted = not existing,
                       lResponse = r,
                       lBmu = S.cBmu report,
-                      lBmuDiff = S.cBmuDiff report,
                       lNovelty = S.cNovelty report,
+                      lAdjNovelty = S.cAdjNovelty report,
                       lDetails = S.cDetails report
                     }
 

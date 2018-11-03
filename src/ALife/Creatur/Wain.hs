@@ -49,7 +49,7 @@ module ALife.Creatur.Wain
     -- * Reacting to stimuli
     DecisionReport,
     novelties,
-    bmuDiffs,
+    adjNovelties,
     chooseAction,
     prettyClassificationReport,
     prettyScenarioReport,

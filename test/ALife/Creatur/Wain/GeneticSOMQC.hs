@@ -179,42 +179,39 @@ prop_train_never_causes_error s p
 
 prop_novelty_btw_0_and_1 :: TestPattern -> TestGSOM -> Property
 prop_novelty_btw_0_and_1 p s
-  = property $ 0 <= bmuDiff && bmuDiff <= 1
+  = property $ 0 <= novelty && novelty <= 1
     where (r, _) = trainAndClassify s p
-          bmuDiff = cBmuDiff r
+          novelty = cNovelty r
 
 prop_familiar_patterns_have_min_novelty :: Int -> TestGSOM -> Property
 prop_familiar_patterns_have_min_novelty k s
-  = (not . isEmpty) s ==> bmuDiff == 0
+  = (not . isEmpty) s ==> novelty == 0
     where k' = k `mod` (fromIntegral $ numModels s)
           l = (keys . toMap . _patternMap $ s) !! k'
           p = modelMap s ! l
-          bmuDiff = cBmuDiff $ classify s p
+          novelty = cNovelty $ classify s p
 
--- This is difficult to test because the SOM will create a
--- new model if the BMU difference (i.e., the novelty) exceeds a
--- threshold.
 -- prop_new_patterns_have_max_novelty :: LearningParams -> Property
--- prop_new_patterns_have_max_novelty e = property $ bmuDiff == 1
---     where s = buildGeneticSOM e 10 0.1 (TestTweaker 0)
---           bmuDiff = cBmuDiff $ classify s (TestPattern 0)
+-- prop_new_patterns_have_max_novelty e = property $ novelty == 1
+--     where s = buildGeneticSOM e 10 (TestTweaker 0)
+--           novelty = cNovelty $ classify s (TestPattern 0)
 
 -- The constraint is needed because the novelty won't decrease if the
 -- model is already close to the input pattern and the learning rate
 -- isn't high enough.
 prop_novelty_decreases :: TestPattern -> TestGSOM -> Property
 prop_novelty_decreases p s
-  = bmuDiff1 > 0.004 ==> bmuDiff2 <= bmuDiff1
+  = novelty1 > 0.004 ==> novelty2 <= novelty1
     where (r1, s') = trainAndClassify s p
-          bmuDiff1 = cBmuDiff r1
-          bmuDiff2 = cBmuDiff $ classify s' p
+          novelty1 = cNovelty r1
+          novelty2 = cNovelty $ classify s' p
 
 prop_novelty_never_increases :: TestPattern -> TestGSOM -> Property
 prop_novelty_never_increases p s
-  = property $ bmuDiff2 <= bmuDiff1
+  = property $ novelty2 <= novelty1
     where (r1, s') = trainAndClassify s p
-          bmuDiff1 = cBmuDiff r1
-          bmuDiff2 = cBmuDiff $ classify s' p
+          novelty1 = cNovelty r1
+          novelty2 = cNovelty $ classify s' p
 
 -- | WARNING: This can fail when two nodes are close enough in
 --   value so that after training they become identical.
@@ -278,6 +275,8 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       prop_novelty_btw_0_and_1,
     testProperty "prop_familiar_patterns_have_min_novelty"
       prop_familiar_patterns_have_min_novelty,
+    -- testProperty "prop_new_patterns_have_max_novelty"
+    --   prop_new_patterns_have_max_novelty,
     testProperty "prop_novelty_decreases"
       prop_novelty_decreases,
     testProperty "prop_novelty_never_increases"

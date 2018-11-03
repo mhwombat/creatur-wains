@@ -310,14 +310,13 @@ data DecisionReport p a =
 
 -- | Returns the measure of how novel each input pattern was to the
 --   wain.
---   Adjusted for the age of the wain.
-novelties :: DecisionReport p a -> [Int]
+novelties :: DecisionReport p a -> [UIDouble]
 novelties = map GSOM.cNovelty . Cl.cDetails . wdrClassifierReport
 
--- | Returns the measure of how different each input pattern was to the
---   closest matching classifier model.
-bmuDiffs :: DecisionReport p a -> [UIDouble]
-bmuDiffs = map GSOM.cBmuDiff . Cl.cDetails . wdrClassifierReport
+-- | Returns the measure of how novel each input pattern was to the
+--   wain, adjusted for the age of the wain.
+adjNovelties :: DecisionReport p a -> [Int]
+adjNovelties = map GSOM.cAdjNovelty . Cl.cDetails . wdrClassifierReport
 
 -- | Chooses a response based on the stimuli (input patterns) and
 --   the wain's condition.

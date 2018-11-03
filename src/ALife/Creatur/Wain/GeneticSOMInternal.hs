@@ -378,11 +378,13 @@ data ClassificationDetail p
         cBmu :: Label,
         -- | The BMU's model
         cBmuModel :: p,
-        -- | The difference between the BMU's model and the input pattern
-        cBmuDiff :: Difference,
         -- | A measure of how novel the input pattern was to the wain.
-        --   The measure is adjusted based on the age of the wain.
-        cNovelty :: Int,
+        --   It is the difference between the input pattern and the
+        --   closest model prior to any training or addition of models.
+        cNovelty :: Difference,
+        -- | A measure of how novel the input pattern was to the wain,
+        --   adjusted based on the age of the wain.
+        cAdjNovelty :: Int,
         -- | Even more details about the classification
         cDetails :: M.Map Label (p, Difference)
       } deriving (Show, Generic, NFData)
@@ -394,8 +396,8 @@ prettyClassificationDetail r =
   [
     "Input pattern " ++ pretty (cPattern r),
     "  classifier BMU: " ++ show (cBmu r)
-      ++ " difference: " ++ show (cBmuDiff r)
-      ++ " novelty: " ++ show (cNovelty r),
+      ++ " novelty: " ++ show (cNovelty r)
+      ++ " adjusted novelty: " ++ show (cAdjNovelty r),
     "  classification details (label, model, diff):"
   ] ++ prettyClassificationMoreDetail (cDetails r)
 
@@ -407,9 +409,13 @@ prettyClassificationMoreDetail = map f . M.toList
 
 -- | @'classify' s p@ identifies the model @s@ that most closely
 --   matches the pattern @p@.
+--   It makes no changes to the GSOM.
+--   (I.e., no training occurs, no new models are added,
+--   the counts are not updated.)
+--   For this reason, it should only be used for testing.
 classify :: GeneticSOM p t -> p -> ClassificationDetail p
 classify gs p = detail
-  where (bmu, bmuDiff, rs) = SOM.classify s p
+  where (bmu, novelty, rs) = SOM.classify s p
         s = view patternMap gs
         a = SOM.time $ _patternMap gs
         detail = ClassificationDetail
@@ -417,15 +423,15 @@ classify gs p = detail
                      cPattern = p,
                      cBmu = bmu,
                      cBmuModel = gs `modelAt` bmu,
-                     cBmuDiff = bmuDiff,
-                     cNovelty = novelty bmuDiff a,
+                     cNovelty = novelty,
+                     cAdjNovelty = adjNovelty novelty a,
                      cDetails = rs
                    }
 
 trainAndClassify
   :: GeneticSOM p t -> p -> (ClassificationDetail p, GeneticSOM p t)
 trainAndClassify gs p = (detail, gs')
-  where (bmu, bmuDiff, rs, s') = SOM.trainAndClassify s p
+  where (bmu, novelty, rs, s') = SOM.trainAndClassify s p
         s = view patternMap gs
         gs' = set patternMap s' gs
         age = SOM.time $ _patternMap gs
@@ -434,15 +440,15 @@ trainAndClassify gs p = (detail, gs')
                      cPattern = p,
                      cBmu = bmu,
                      cBmuModel = gs' `modelAt` bmu,
-                     cBmuDiff = bmuDiff,
-                     cNovelty = novelty bmuDiff age,
+                     cNovelty = novelty,
+                     cAdjNovelty = adjNovelty novelty age,
                      cDetails = rs
                    }
 
 -- | Calculates the novelty of the input by scaling the BMU difference
 --   according to the age of the classifier (wain).
-novelty :: Difference -> Word64 -> Int
-novelty d a = round $ uiToDouble d * fromIntegral a
+adjNovelty :: Difference -> Word64 -> Int
+adjNovelty d a = round $ uiToDouble d * fromIntegral a
 
 -- -- | @'train' s p@ identifies the model in @s@ that most closely
 -- --   matches @p@, and updates it to be a somewhat better match.

@@ -43,9 +43,8 @@ module ALife.Creatur.Wain.GeneticSOM
     ClassificationDetail(..),
     prettyClassificationDetail,
     prettyClassificationMoreDetail,
-    classify,
-    trainAndClassify,
-    novelty
+    -- classify,
+    trainAndClassify
   ) where
 
 import ALife.Creatur.Wain.GeneticSOMInternal
