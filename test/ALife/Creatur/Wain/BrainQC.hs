@@ -32,7 +32,7 @@ import qualified ALife.Creatur.Wain.Predictor as P
 import qualified ALife.Creatur.Wain.PredictorQC as PQC
 import ALife.Creatur.Wain.GeneticSOM (numModels)
 import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1VectorDiff)
 import ALife.Creatur.Wain.Probability (hypothesise)
 import ALife.Creatur.Wain.Response (Response(..), _outcomes)
 import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse)
@@ -240,28 +240,9 @@ instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
 
 instance Show ImprintTestData where
-  show (ImprintTestData b ps a c)
+  show (ImprintTestData b ps a os)
     = "ImprintTestData (" ++ show b ++ ") " ++ show ps ++ " "
-      ++ show a ++ " " ++ show c
-
-prop_imprint_works :: ImprintTestData -> Property
-prop_imprint_works (ImprintTestData b ps a _) = not (null ps)
-    ==> and $ zipWith (>=) (_outcomes rAfter) (_outcomes rBefore)
-  where goodOutcomes = map (const 1) $ _imprintOutcomes b
-        badOutcomes = map (const (-1)) $ _imprintOutcomes b
-        m = _muser b
-        mModified = m { _defaultOutcomes = badOutcomes }
-        bModified = b { _imprintOutcomes = goodOutcomes,
-                        _muser = mModified }
-        (cReports, bClassified) = classifyInputs bModified ps
-        ldss = diffs cReports
-        s = fst . maximumBy (comparing snd) . hypothesise (_strictness b) $ ldss
-        r = Response s a badOutcomes
-        (report1:_) = predictAll bClassified [(r, 1)]
-        rBefore = P.pResponse report1
-        (_, bImprinted) = imprint bClassified ps a
-        (report2:_) = predictAll bImprinted [(r, 1)]
-        rAfter = P.pResponse report2
+      ++ show a ++ " " ++ show os
 
 prop_imprint_never_causes_error
   :: ImprintTestData -> Property
@@ -340,8 +321,6 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
       prop_reflect_error_in_range,
     testProperty "prop_reflect_never_causes_error"
       prop_reflect_never_causes_error,
-    testProperty "prop_imprint_works"
-      prop_imprint_works,
     testProperty "prop_imprint_never_causes_error"
       prop_imprint_never_causes_error,
     testProperty "prop_imprint_makes_predictions_more_accurate"

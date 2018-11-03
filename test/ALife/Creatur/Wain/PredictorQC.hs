@@ -26,8 +26,8 @@ module ALife.Creatur.Wain.PredictorQC
   ) where
 
 import ALife.Creatur.Wain.PredictorInternal
-import ALife.Creatur.Wain.GeneticSOMInternal (Label, patternMap,
-  numModels, maxSize, trainAndClassify)
+import ALife.Creatur.Wain.GeneticSOMInternal (Label, numModels, maxSize,
+  trainAndClassify)
 import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM, sizedArbGeneticSOM,
   sizedArbEmptyGeneticSOM)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
@@ -40,8 +40,6 @@ import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..),
   responseDiff)
 import ALife.Creatur.Wain.TestUtils
 import Control.DeepSeq (deepseq)
-import Control.Lens
-import Data.Datamining.Clustering.SGMInternal (diffThreshold)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding (labels, maxSize)
@@ -89,12 +87,9 @@ sizedArbTrainingTestData n = do
   nO:nConditions:capacity:[] <- divvy n 3
   let nObjects = min 3 nO
   p <- arbTestPredictor nObjects nConditions capacity
-  let pm = view patternMap p
-  let pm' = pm { diffThreshold=0.1 }
-  let p' = set patternMap pm' p
   r <- arbTestResponse nObjects nConditions
   os <- vectorOf nConditions arbitrary
-  return $ TrainingTestData p' r os
+  return $ TrainingTestData p r os
 
 instance Arbitrary TrainingTestData where
   arbitrary = sized sizedArbTrainingTestData

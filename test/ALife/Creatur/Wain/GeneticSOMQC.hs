@@ -33,7 +33,7 @@ import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
 import Control.Lens
 import Control.DeepSeq (NFData, deepseq)
 import Control.Monad.Random (evalRand, runRand)
-import Data.Datamining.Clustering.SGM (toMap, trainBatch)
+import Data.Datamining.Clustering.SGM2 (toMap, trainBatch)
 import Data.Map.Strict (keys, (!))
 import Data.Serialize (Serialize)
 import Data.Word (Word8, Word64)
@@ -134,9 +134,8 @@ sizedArbEmptyGeneticSOM
     => Int -> Gen (GeneticSOM p t)
 sizedArbEmptyGeneticSOM maxSz = do
   e <- arbitrary
-  dt <- (\x -> x*x) <$> arbitrary
   t <- arbitrary
-  return $ buildGeneticSOM e (fromIntegral maxSz) dt t
+  return $ buildGeneticSOM e (fromIntegral maxSz) t
 
 -- | Used by other test modules
 sizedArbGeneticSOM
@@ -159,7 +158,6 @@ equivGSOM :: (t -> t -> Bool) -> GeneticSOM p t -> GeneticSOM p t -> Bool
 equivGSOM equivT x y =
   -- TODO when initial models are made genetic: models x == models y
   maxSize x == maxSize y
-    && equivUIDouble (diffThreshold x) (diffThreshold y)
     && equivLearningParams (view learningParams x)
         (view learningParams y)
     &&  equivT (view tweaker x) (view tweaker y)

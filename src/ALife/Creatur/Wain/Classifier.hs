@@ -42,17 +42,17 @@ import GHC.Generics (Generic)
 --   models.
 type Classifier = S.GeneticSOM
 
--- | @'buildClassifier' p n dt t@ returns a genetic SOM, using an
+-- | @'buildClassifier' p n t@ returns a genetic SOM, using an
 --   learning function with the parameters @p@ as a learning
---   function, maximum number of models @n@, difference threshold @dt@,
+--   function, maximum number of models @n@,
 --   and "tweaker" @t@.
 buildClassifier
   :: (S.Tweaker t, p ~ S.Pattern t)
-    => S.LearningParams -> Word64 -> UIDouble -> t -> Classifier p t
+    => S.LearningParams -> Word64 -> t -> Classifier p t
 buildClassifier = S.buildGeneticSOM
 
 -- | Detailed information about how a classification was made.
-data ClassifierReport p = 
+data ClassifierReport p =
   ClassifierReport
     {
       cLearningRate :: UIDouble,
@@ -61,7 +61,7 @@ data ClassifierReport p =
 
 -- | Generates a human readable summary of a classification.
 prettyClassifierReport :: Pretty p => ClassifierReport p -> [String]
-prettyClassifierReport r = 
+prettyClassifierReport r =
     ("classifier learning rate: " ++ pretty (cLearningRate r))
     : (concatMap S.prettyClassificationDetail $ cDetails r)
 

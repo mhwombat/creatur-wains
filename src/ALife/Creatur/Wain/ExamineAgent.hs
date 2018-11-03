@@ -84,14 +84,12 @@ examine a = do
   putStrLn $ "Max. number of classifier models: " ++ pretty (maxSize . view classifier . view brain $ a)
   putStrLn $ "Number of classifier models: " ++ pretty (numModels . view classifier . view brain $ a)
   putStrLn $ "Classifier learning function: " ++ pretty (view learningParams . view classifier . view brain $ a)
-  putStrLn $ "Classifier threshold: " ++ show (diffThreshold . view classifier . view brain $ a)
   putStrLn $ "Classifier tweaker: " ++ pretty (view tweaker . view classifier . view brain $ a)
   putStrLn $ "Classifier counts: " ++ pretty (counterMap . view classifier . view brain $ a)
   mapM_ putStrLn $ describeClassifierModels a
   putStrLn $ "Max. number of predictor models: " ++ pretty (maxSize . view predictor . view brain $ a)
   putStrLn $ "Number of predictor models: " ++ pretty (numModels . view predictor . view brain $ a)
   putStrLn $ "Predictor learning function: " ++ pretty (view learningParams . view predictor . view brain $ a)
-  putStrLn $ "Predictor threshold: " ++ show (diffThreshold . view predictor . view brain $ a)
   putStrLn $ "Predictor tweaker: " ++ pretty (view tweaker . view predictor . view brain $ a)
   putStrLn $ "Predictor counts: " ++ pretty (counterMap . view predictor . view brain $ a)
   mapM_ putStrLn $ describePredictorModels a

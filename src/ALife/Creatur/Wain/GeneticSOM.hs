@@ -40,7 +40,6 @@ module ALife.Creatur.Wain.GeneticSOM
     currentLearningRate,
     schemaQuality,
     discrimination,
-    diffThreshold,
     ClassificationDetail(..),
     prettyClassificationDetail,
     prettyClassificationMoreDetail,
