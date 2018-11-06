@@ -10,8 +10,8 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 module ALife.Creatur.Wain.ResponseQC
   (
@@ -22,22 +22,35 @@ module ALife.Creatur.Wain.ResponseQC
     arbTestResponse
   ) where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
-import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.GeneticSOM (Label)
-import ALife.Creatur.Wain.Pretty (Pretty)
-import ALife.Creatur.Wain.ResponseInternal
-import ALife.Creatur.Wain.Statistics (Statistical(..))
-import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
-import ALife.Creatur.Wain.UnitIntervalQC ()
-import Control.DeepSeq (NFData)
-import Data.Serialize (Serialize)
-import GHC.Generics (Generic)
-import System.Random (Random, random, randomR)
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import           ALife.Creatur.Genetics.BRGCWord8
+    (Genetic)
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid)
+import           ALife.Creatur.Wain.GeneticSOM
+    (Label)
+import           ALife.Creatur.Wain.PlusMinusOneQC
+    (equivPM1Double)
+import           ALife.Creatur.Wain.Pretty
+    (Pretty)
+import           ALife.Creatur.Wain.ResponseInternal
+import           ALife.Creatur.Wain.Statistics
+    (Statistical (..))
+import           ALife.Creatur.Wain.TestUtils
+import           ALife.Creatur.Wain.UnitIntervalQC
+    ()
+import           Control.DeepSeq
+    (NFData)
+import           Data.Serialize
+    (Serialize)
+import           GHC.Generics
+    (Generic)
+import           System.Random
+    (Random, random, randomR)
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck
 
 data TestAction = Walk | Run | Jump | Skip | Crawl
   deriving ( Show, Pretty, Read, Eq, Ord, Generic, Enum, Bounded,

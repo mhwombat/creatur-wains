@@ -27,5 +27,6 @@ module ALife.Creatur.Wain.Predictor
     prettyLearningReport
   ) where
 
-import ALife.Creatur.Wain.PredictorInternal
-import ALife.Creatur.Wain.GeneticSOM (Label, ClassificationDetail(..))
+import           ALife.Creatur.Wain.GeneticSOM
+    (ClassificationDetail (..), Label)
+import           ALife.Creatur.Wain.PredictorInternal

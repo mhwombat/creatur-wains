@@ -17,22 +17,29 @@ module ALife.Creatur.Wain.ExamineAgent
     examine
   ) where
 
-import ALife.Creatur (agentId)
-import ALife.Creatur.Wain
-import ALife.Creatur.Wain.Brain
-import ALife.Creatur.Wain.GeneticSOM
-import ALife.Creatur.Wain.Pretty
-import ALife.Creatur.Wain.UnitInterval
-import qualified Data.ByteString as BS
-import qualified Data.Serialize as DS
-import Control.Lens
-import Control.Monad (liftM, filterM)
-import System.Directory (listDirectory)
-import System.FilePath.Posix (combine)
-import System.Posix (isRegularFile, isDirectory)
-import System.Posix.Files (getFileStatus)
-import qualified Data.Map.Strict as M
-import Text.Printf (printf)
+import           ALife.Creatur
+    (agentId)
+import           ALife.Creatur.Wain
+import           ALife.Creatur.Wain.Brain
+import           ALife.Creatur.Wain.GeneticSOM
+import           ALife.Creatur.Wain.Pretty
+import           ALife.Creatur.Wain.UnitInterval
+import           Control.Lens
+import           Control.Monad
+    (filterM, liftM)
+import qualified Data.ByteString                 as BS
+import qualified Data.Map.Strict                 as M
+import qualified Data.Serialize                  as DS
+import           System.Directory
+    (listDirectory)
+import           System.FilePath.Posix
+    (combine)
+import           System.Posix
+    (isDirectory, isRegularFile)
+import           System.Posix.Files
+    (getFileStatus)
+import           Text.Printf
+    (printf)
 
 fetchObjects :: DS.Serialize b => FilePath -> IO [b]
 fetchObjects f = do
@@ -54,7 +61,7 @@ fetchObject f = do
   x <- BS.readFile f
   case (DS.decode x) of
     Right w -> return w
-    Left s -> error $ "Cannot read " ++ f ++ ". " ++ s
+    Left s  -> error $ "Cannot read " ++ f ++ ". " ++ s
 
 examine
   :: (Pretty p, Pretty m, Pretty a, Pretty ct, Pretty pt)

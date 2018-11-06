@@ -16,7 +16,8 @@ module ALife.Creatur.Wain.Raw
     Raw(..)
   ) where
 
-import Data.Word (Word8, Word16, Word32, Word64)
+import           Data.Word
+    (Word16, Word32, Word64, Word8)
 
 -- | Values that have a "raw" format.
 class Raw a where
@@ -39,11 +40,11 @@ instance Raw Word32
 instance Raw Word64
 
 instance (Raw a) => Raw [a] where
-  raw [] = ""
-  raw [x] = raw x
+  raw []     = ""
+  raw [x]    = raw x
   raw (x:xs) = raw x ++ ',' : raw xs
 
 instance (Raw a) => Raw (Maybe a) where
   raw (Just x) = raw x
-  raw _ = "ø"
+  raw _        = "ø"
 

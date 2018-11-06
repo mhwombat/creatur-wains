@@ -16,10 +16,13 @@ module ALife.Creatur.Wain.Pretty
     Pretty(..)
   ) where
 
-import Data.Word (Word8, Word16, Word32, Word64)
 import qualified Data.Map.Strict as MS
-import Text.Printf (printf)
-import Numeric (showHex)
+import           Data.Word
+    (Word16, Word32, Word64, Word8)
+import           Numeric
+    (showHex)
+import           Text.Printf
+    (printf)
 
 -- | Values that have a pretty format.
 class Pretty a where
@@ -52,10 +55,10 @@ instance Pretty Char
 instance (Show k, Show v) => Pretty (MS.Map k v)
 
 instance (Pretty a) => Pretty [a] where
-  pretty [] = ""
-  pretty [x] = pretty x
+  pretty []     = ""
+  pretty [x]    = pretty x
   pretty (x:xs) = pretty x ++ ',' : pretty xs
 
 instance (Pretty a) => Pretty (Maybe a) where
   pretty (Just x) = pretty x
-  pretty _ = "ø"
+  pretty _        = "ø"

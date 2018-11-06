@@ -10,11 +10,11 @@
 -- A classifier based on a Kohonen Self-organising Map (SOM).
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveAnyClass      #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.Classifier
   (
     S.Label,
@@ -28,14 +28,20 @@ module ALife.Creatur.Wain.Classifier
     prettyClassifierReport
   ) where
 
-import qualified ALife.Creatur.Wain.GeneticSOM as S
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
-import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import Control.DeepSeq (NFData)
-import Data.List (foldl')
-import qualified Data.Map.Strict as M
-import Data.Word (Word64)
-import GHC.Generics (Generic)
+import qualified ALife.Creatur.Wain.GeneticSOM   as S
+import           ALife.Creatur.Wain.Pretty
+    (Pretty, pretty)
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble)
+import           Control.DeepSeq
+    (NFData)
+import           Data.List
+    (foldl')
+import qualified Data.Map.Strict                 as M
+import           Data.Word
+    (Word64)
+import           GHC.Generics
+    (Generic)
 
 -- | Maintains a set of models to represent the input patterns
 --   encountered, and classifies the input patterns according to the
@@ -56,7 +62,7 @@ data ClassifierReport p =
   ClassifierReport
     {
       cLearningRate :: UIDouble,
-      cDetails :: [S.ClassificationDetail p]
+      cDetails      :: [S.ClassificationDetail p]
     } deriving (Generic, Show, NFData)
 
 -- | Generates a human readable summary of a classification.

@@ -11,7 +11,7 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module ALife.Creatur.Wain.Util
   (
@@ -38,7 +38,8 @@ module ALife.Creatur.Wain.Util
     fifthOfFive
   ) where
 
-import Data.Word (Word8, Word16, Word64)
+import           Data.Word
+    (Word16, Word64, Word8)
 
 -- | The range [0,1], endpoints included.
 unitInterval :: Num a => (a, a)
@@ -171,7 +172,7 @@ intersection (a, b) (c, d)
         (c', d') = proper (c, d)
 
 -- random8BitDouble :: (Double, Double) -> m Double
--- random8BitDouble interval = do 
+-- random8BitDouble interval = do
 --   x <- getRandom
 --   return $ scaleFromWord8 interval x
 

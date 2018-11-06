@@ -10,11 +10,11 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOMQC
   (
@@ -25,24 +25,38 @@ module ALife.Creatur.Wain.GeneticSOMQC
     sizedArbEmptyGeneticSOM
   ) where
 
-import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import ALife.Creatur.Genetics.Diploid (Diploid, express)
-import ALife.Creatur.Wain.GeneticSOMInternal
-import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
-import Control.Lens
-import Control.DeepSeq (NFData, deepseq)
-import Control.Monad.Random (evalRand, runRand)
-import Data.Datamining.Clustering.SGM2 (toMap, trainBatch)
-import Data.Map.Strict (keys, (!))
-import Data.Serialize (Serialize)
-import Data.Word (Word8, Word64)
-import GHC.Generics (Generic)
-import System.Random (mkStdGen)
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck hiding (maxSize, classify)
-import Test.QuickCheck.Gen (Gen(MkGen))
+import qualified ALife.Creatur.Genetics.BRGCWord8      as W8
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid, express)
+import           ALife.Creatur.Wain.GeneticSOMInternal
+import           ALife.Creatur.Wain.TestUtils
+import           ALife.Creatur.Wain.UnitIntervalQC
+    (equivUIDouble)
+import           Control.DeepSeq
+    (NFData, deepseq)
+import           Control.Lens
+import           Control.Monad.Random
+    (evalRand, runRand)
+import           Data.Datamining.Clustering.SGM2
+    (toMap, trainBatch)
+import           Data.Map.Strict
+    (keys, (!))
+import           Data.Serialize
+    (Serialize)
+import           Data.Word
+    (Word64, Word8)
+import           GHC.Generics
+    (Generic)
+import           System.Random
+    (mkStdGen)
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck                       hiding
+    (classify, maxSize)
+import           Test.QuickCheck.Gen
+    (Gen (MkGen))
 
 instance Arbitrary LearningParams where
   arbitrary = do

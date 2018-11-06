@@ -17,25 +17,40 @@ module ALife.Creatur.WainQC
     test
   ) where
 
-import ALife.Creatur.Genetics.BRGCWord8 (runDiploidReader, write)
-import ALife.Creatur.WainInternal
-import qualified ALife.Creatur.Wain.Brain as B
-import qualified ALife.Creatur.Wain.BrainQC as BQC
-import ALife.Creatur.Wain.ClassifierQC (TestTweaker)
-import ALife.Creatur.Wain.ResponseInternal (labels)
-import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse)
-import ALife.Creatur.Wain.SimpleMuser (SimpleMuser)
-import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
-import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
-  prop_genetic_round_trippable, prop_diploid_identity, TestPattern)
-import ALife.Creatur.Wain.UnitInterval (doubleToUI)
-import ALife.Creatur.Wain.UnitIntervalQC (equivUIDouble)
-import Control.DeepSeq (deepseq)
-import Control.Lens
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck (Arbitrary, Gen, Property, arbitrary, choose,
-  property, sized, vectorOf)
+import           ALife.Creatur.Genetics.BRGCWord8
+    (runDiploidReader, write)
+import qualified ALife.Creatur.Wain.Brain                 as B
+import qualified ALife.Creatur.Wain.BrainQC               as BQC
+import           ALife.Creatur.Wain.ClassifierQC
+    (TestTweaker)
+import           ALife.Creatur.Wain.ResponseInternal
+    (labels)
+import           ALife.Creatur.Wain.ResponseQC
+    (TestAction, TestResponse)
+import           ALife.Creatur.Wain.SimpleMuser
+    (SimpleMuser)
+import           ALife.Creatur.Wain.SimpleResponseTweaker
+    (ResponseTweaker (..))
+import           ALife.Creatur.Wain.TestUtils
+    ( TestPattern
+    , prop_diploid_identity
+    , prop_genetic_round_trippable
+    , prop_serialize_round_trippable
+    )
+import           ALife.Creatur.Wain.UnitInterval
+    (doubleToUI)
+import           ALife.Creatur.Wain.UnitIntervalQC
+    (equivUIDouble)
+import           ALife.Creatur.WainInternal
+import           Control.DeepSeq
+    (deepseq)
+import           Control.Lens
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck
+    (Arbitrary, Gen, Property, arbitrary, choose, property, sized, vectorOf)
 
 type TestWain = Wain TestPattern TestTweaker
                   (ResponseTweaker TestAction) (SimpleMuser TestAction)

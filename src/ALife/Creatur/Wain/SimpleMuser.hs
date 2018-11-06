@@ -10,30 +10,43 @@
 -- A muser that works with enumerable actions.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveAnyClass       #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
 module ALife.Creatur.Wain.SimpleMuser where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as G
-import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.GeneticSOM (Label)
-import qualified ALife.Creatur.Wain.Muser as M
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
-import ALife.Creatur.Wain.Response (Response(..))
-import ALife.Creatur.Wain.Probability (Probability)
-import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
-import ALife.Creatur.Wain.Pretty (Pretty)
-import Control.DeepSeq (NFData)
-import Control.Lens
-import Data.List (sortBy, nub)
-import Data.Ord (comparing)
-import Data.Serialize (Serialize)
-import Data.Word (Word8)
-import GHC.Generics (Generic)
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid)
+import           ALife.Creatur.Wain.GeneticSOM
+    (Label)
+import qualified ALife.Creatur.Wain.Muser         as M
+import           ALife.Creatur.Wain.PlusMinusOne
+    (PM1Double, pm1ToDouble)
+import           ALife.Creatur.Wain.Pretty
+    (Pretty)
+import           ALife.Creatur.Wain.Probability
+    (Probability)
+import           ALife.Creatur.Wain.Response
+    (Response (..))
+import           ALife.Creatur.Wain.Statistics
+    (Statistical, dStat, iStat, stats)
+import           Control.DeepSeq
+    (NFData)
+import           Control.Lens
+import           Data.List
+    (nub, sortBy)
+import           Data.Ord
+    (comparing)
+import           Data.Serialize
+    (Serialize)
+import           Data.Word
+    (Word8)
+import           GHC.Generics
+    (Generic)
 
 
 -- | Object responsible for generating potential responses for
@@ -48,7 +61,7 @@ data SimpleMuser a = SimpleMuser
     _defaultOutcomes :: [PM1Double],
     -- | Number of possible scenarios a wain will evaluate before
     --   choosing an action.
-    _depth :: Word8
+    _depth           :: Word8
   } deriving ( Eq, Read, Generic, Ord, Serialize, Diploid, NFData )
 makeLenses ''SimpleMuser
 

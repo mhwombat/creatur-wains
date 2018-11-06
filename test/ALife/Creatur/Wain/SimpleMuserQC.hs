@@ -10,8 +10,8 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.SimpleMuserQC
@@ -21,13 +21,17 @@ module ALife.Creatur.Wain.SimpleMuserQC
     sizedArbMuser
   ) where
 
-import ALife.Creatur.Wain.SimpleMuser
-import ALife.Creatur.Wain.PlusMinusOneQC (equivPM1Double)
-import ALife.Creatur.Wain.ResponseQC (TestAction)
-import ALife.Creatur.Wain.TestUtils
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import           ALife.Creatur.Wain.PlusMinusOneQC
+    (equivPM1Double)
+import           ALife.Creatur.Wain.ResponseQC
+    (TestAction)
+import           ALife.Creatur.Wain.SimpleMuser
+import           ALife.Creatur.Wain.TestUtils
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck
 
 sizedArbMuser :: Int -> Gen (SimpleMuser TestAction)
 sizedArbMuser n = do

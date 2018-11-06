@@ -10,8 +10,8 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.BrainQC
   (
@@ -25,29 +25,36 @@ module ALife.Creatur.Wain.BrainQC
     sizedArbImprintTestData
   ) where
 
-import ALife.Creatur.Wain.BrainInternal
-import ALife.Creatur.Wain.Classifier (bmus, diffs)
-import qualified ALife.Creatur.Wain.ClassifierQC as CQC
-import qualified ALife.Creatur.Wain.Predictor as P
-import qualified ALife.Creatur.Wain.PredictorQC as PQC
-import ALife.Creatur.Wain.GeneticSOM (numModels)
-import ALife.Creatur.Wain.GeneticSOMQC (sizedArbGeneticSOM)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1VectorDiff)
-import ALife.Creatur.Wain.Probability (hypothesise)
-import ALife.Creatur.Wain.Response (Response(..), _outcomes)
-import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse)
-import ALife.Creatur.Wain.SimpleMuser (SimpleMuser, makeMuser,
-  _defaultOutcomes)
-import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..),
-  responseDiff)
-import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.Weights (makeWeights)
-import Control.DeepSeq (deepseq)
-import Data.List (maximumBy)
-import Data.Ord (comparing)
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import           ALife.Creatur.Wain.BrainInternal
+import           ALife.Creatur.Wain.Classifier
+    (bmus)
+import qualified ALife.Creatur.Wain.ClassifierQC          as CQC
+import           ALife.Creatur.Wain.GeneticSOM
+    (numModels)
+import           ALife.Creatur.Wain.GeneticSOMQC
+    (sizedArbGeneticSOM)
+import           ALife.Creatur.Wain.PlusMinusOne
+    (PM1Double)
+import qualified ALife.Creatur.Wain.Predictor             as P
+import qualified ALife.Creatur.Wain.PredictorQC           as PQC
+import           ALife.Creatur.Wain.Response
+    (Response (..))
+import           ALife.Creatur.Wain.ResponseQC
+    (TestAction, TestResponse)
+import           ALife.Creatur.Wain.SimpleMuser
+    (SimpleMuser, makeMuser)
+import           ALife.Creatur.Wain.SimpleResponseTweaker
+    (ResponseTweaker (..), responseDiff)
+import           ALife.Creatur.Wain.TestUtils
+import           ALife.Creatur.Wain.Weights
+    (makeWeights)
+import           Control.DeepSeq
+    (deepseq)
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck
 
 type TestBrain
   = Brain TestPattern CQC.TestTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction

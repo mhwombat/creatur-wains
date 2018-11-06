@@ -2,10 +2,10 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0bb0c114e1275324524b633629a0b775dfa22e689e7bf823f9f0e69f62e10c00
+-- hash: d2684ec29e8a1870dae3042d54e68e00845081ed7e064256375f3420045e26fb
 
 name:           creatur-wains
-version:        9.5.1
+version:        9.5.2
 synopsis:       Artificial agent specialised for for pattern discovery.
 description:    Please see the README on GitHub at <https://github.com/mhwombat/creatur-wains#readme>
 category:       AI

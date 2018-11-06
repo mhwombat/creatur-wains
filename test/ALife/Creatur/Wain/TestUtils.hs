@@ -10,10 +10,10 @@
 -- QuickCheck test utilities.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.TestUtils
   (
@@ -36,22 +36,33 @@ module ALife.Creatur.Wain.TestUtils
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import ALife.Creatur.Genetics.Diploid (Diploid, express)
-import ALife.Creatur.Util (fromEither)
-import ALife.Creatur.Wain.Pretty (Pretty)
-import ALife.Creatur.Wain.Statistics (Statistical(..), iStat)
-import ALife.Creatur.Wain.Util (scaleFromWord8, scaleWord8ToInt,
-  forceToWord8)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
-  doubleToUI)
-import Control.DeepSeq (NFData, deepseq)
-import Control.Monad.Random (Rand, RandomGen, getRandom)
-import Control.Monad.State.Lazy (runState)
-import Data.Datamining.Pattern (adjustNum)
-import Data.Serialize (Serialize, encode, decode)
-import Data.Word (Word8)
-import GHC.Generics (Generic)
-import Test.QuickCheck
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid, express)
+import           ALife.Creatur.Util
+    (fromEither)
+import           ALife.Creatur.Wain.Pretty
+    (Pretty)
+import           ALife.Creatur.Wain.Statistics
+    (Statistical (..), iStat)
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble, doubleToUI, uiToDouble)
+import           ALife.Creatur.Wain.Util
+    (forceToWord8, scaleFromWord8, scaleWord8ToInt)
+import           Control.DeepSeq
+    (NFData, deepseq)
+import           Control.Monad.Random
+    (Rand, RandomGen, getRandom)
+import           Control.Monad.State.Lazy
+    (runState)
+import           Data.Datamining.Pattern
+    (adjustNum)
+import           Data.Serialize
+    (Serialize, decode, encode)
+import           Data.Word
+    (Word8)
+import           GHC.Generics
+    (Generic)
+import           Test.QuickCheck
 
 -- instance (Floating a, Fractional a, Ord a, Eq a) => Pattern [a] where
 --   type Metric [a] = a

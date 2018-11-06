@@ -19,10 +19,14 @@ module ALife.Creatur.Wain.Muser
     Muser(..)
   ) where
 
-import ALife.Creatur.Wain.GeneticSOM (Label)
-import ALife.Creatur.Wain.Response (Response(..))
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
-import ALife.Creatur.Wain.Probability (Probability)
+import           ALife.Creatur.Wain.GeneticSOM
+    (Label)
+import           ALife.Creatur.Wain.PlusMinusOne
+    (PM1Double)
+import           ALife.Creatur.Wain.Probability
+    (Probability)
+import           ALife.Creatur.Wain.Response
+    (Response (..))
 
 class Muser m where
   type Action m

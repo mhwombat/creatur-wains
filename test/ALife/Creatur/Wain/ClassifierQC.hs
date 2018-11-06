@@ -10,10 +10,10 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveAnyClass       #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.ClassifierQC
@@ -24,23 +24,32 @@ module ALife.Creatur.Wain.ClassifierQC
     TestClassifier
   ) where
 
-import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.Classifier
-import ALife.Creatur.Wain.GeneticSOMInternal (Tweaker(..), modelMap,
-  patternMap)
-import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM, sizedArbGeneticSOM)
-import ALife.Creatur.Wain.Statistics (Statistical(..))
-import ALife.Creatur.Wain.TestUtils
-import Control.DeepSeq (NFData, deepseq)
-import Control.Lens
+import qualified ALife.Creatur.Genetics.BRGCWord8        as W8
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid)
+import           ALife.Creatur.Wain.Classifier
+import           ALife.Creatur.Wain.GeneticSOMInternal
+    (Tweaker (..), modelMap, patternMap)
+import           ALife.Creatur.Wain.GeneticSOMQC
+    (equivGSOM, sizedArbGeneticSOM)
+import           ALife.Creatur.Wain.Statistics
+    (Statistical (..))
+import           ALife.Creatur.Wain.TestUtils
+import           Control.DeepSeq
+    (NFData, deepseq)
+import           Control.Lens
 import qualified Data.Datamining.Clustering.SGM2Internal as SOM
-import qualified Data.Map.Lazy as M
-import Data.Serialize (Serialize)
-import GHC.Generics (Generic)
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck hiding (classify, maxSize)
+import qualified Data.Map.Lazy                           as M
+import           Data.Serialize
+    (Serialize)
+import           GHC.Generics
+    (Generic)
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck                         hiding
+    (classify, maxSize)
 
 data TestTweaker = TestTweaker
   deriving (Eq, Show, Generic, Serialize, W8.Genetic, Diploid, NFData)

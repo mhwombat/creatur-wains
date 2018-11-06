@@ -10,29 +10,37 @@
 -- A module containing private Predictor internals.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveAnyClass      #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.PredictorInternal where
 
-import qualified ALife.Creatur.Wain.GeneticSOM as S
-import qualified ALife.Creatur.Wain.Classifier as Cl
-import ALife.Creatur.Wain.Response (Response(..), outcomes,
-  addToOutcomes)
-import ALife.Creatur.Wain.Pretty (Pretty(..))
-import ALife.Creatur.Wain.Probability (Probability, prettyProbability)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, adjustPM1Vector,
-  pm1ToDouble)
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
-import Control.DeepSeq (NFData)
-import Control.Lens
-import qualified Data.Map.Strict as M
-import Data.List (nub, intercalate)
-import Data.Word (Word64)
-import GHC.Generics (Generic)
-import Text.Printf (printf)
+import qualified ALife.Creatur.Wain.Classifier   as Cl
+import qualified ALife.Creatur.Wain.GeneticSOM   as S
+import           ALife.Creatur.Wain.PlusMinusOne
+    (PM1Double, adjustPM1Vector, pm1ToDouble)
+import           ALife.Creatur.Wain.Pretty
+    (Pretty (..))
+import           ALife.Creatur.Wain.Probability
+    (Probability, prettyProbability)
+import           ALife.Creatur.Wain.Response
+    (Response (..), addToOutcomes, outcomes)
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble)
+import           Control.DeepSeq
+    (NFData)
+import           Control.Lens
+import           Data.List
+    (intercalate, nub)
+import qualified Data.Map.Strict                 as M
+import           Data.Word
+    (Word64)
+import           GHC.Generics
+    (Generic)
+import           Text.Printf
+    (printf)
 
 -- | A predictor predicts the outcome of a response to a scenario.
 type Predictor a t = S.GeneticSOM (Response a) t
@@ -51,28 +59,28 @@ data PredictionDetail a
   = PredictionDetail
       {
         -- | The response, updated with the predicted outcomes
-        pResponse :: Response a,
+        pResponse    :: Response a,
         -- | The probability of the scenario on which the prediction
         --   is based
-        pProb :: Probability,
+        pProb        :: Probability,
         -- | The label of the node that best matches the input
-        pBmu :: S.Label,
+        pBmu         :: S.Label,
         -- | The BMU's model
-        pBmuModel :: Response a,
+        pBmuModel    :: Response a,
         -- | A measure of how novel the response pattern was to the wain.
         --   It is the difference between the input pattern and the
         --   closest model prior to any training or addition of models.
-        pNovelty :: S.Difference,
+        pNovelty     :: S.Difference,
         -- | A measure of how novel the response pattern was to the wain,
         --   adjusted based on the age of the wain.
-        pAdjNovelty :: Int,
+        pAdjNovelty  :: Int,
         -- | The adjusted probability based on how well the model
         --   matches the proposed response
-        pAdjustment :: Probability,
+        pAdjustment  :: Probability,
         -- | The unadjusted outcomes from the model
         pRawOutcomes :: [PM1Double],
         -- | Even more details about the prediction
-        pDetails :: M.Map S.Label (Response a, S.Difference)
+        pDetails     :: M.Map S.Label (Response a, S.Difference)
       } deriving (Generic, Show, NFData)
 
 instance (Pretty a) => Pretty (PredictionDetail a) where
@@ -136,18 +144,18 @@ data LearningReport p a
         -- | The current learning rate for the predictor
         lLearningRate :: UIDouble,
         -- | Is the pattern new (imprinted) or old (reinforced)
-        lImprinted :: Bool,
+        lImprinted    :: Bool,
         -- | The response that was learned
-        lResponse :: p,
+        lResponse     :: p,
         -- | The label of the predictor node that best matches the input
-        lBmu :: S.Label,
+        lBmu          :: S.Label,
         -- | A measure of how novel the input pattern was to the wain.
-        lNovelty :: S.Difference,
+        lNovelty      :: S.Difference,
         -- | A measure of how novel the input pattern was to the wain,
         --   adjusted based on the age of the wain.
-        lAdjNovelty :: Int,
+        lAdjNovelty   :: Int,
         -- | Even more details about the classification
-        lDetails :: M.Map S.Label (p, S.Difference)
+        lDetails      :: M.Map S.Label (p, S.Difference)
       } deriving (Generic, Show, NFData)
 
 prettyLearningReport

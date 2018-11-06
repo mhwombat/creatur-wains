@@ -11,9 +11,9 @@
 -- estimates the probability that each hypothesis is true.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.Probability
   (
     Probability,
@@ -21,4 +21,4 @@ module ALife.Creatur.Wain.Probability
     prettyProbability
   ) where
 
-import ALife.Creatur.Wain.ProbabilityInternal
+import           ALife.Creatur.Wain.ProbabilityInternal

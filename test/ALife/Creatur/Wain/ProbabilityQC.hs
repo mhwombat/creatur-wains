@@ -10,8 +10,8 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.ProbabilityQC
@@ -19,15 +19,22 @@ module ALife.Creatur.Wain.ProbabilityQC
     test
   ) where
 
-import ALife.Creatur.Wain.ProbabilityInternal
-import ALife.Creatur.Wain.GeneticSOMInternal (Difference, Label)
-import ALife.Creatur.Wain.UnitInterval (uiToDouble)
-import ALife.Creatur.Wain.UnitIntervalQC ()
-import Data.List (nub)
-import Data.Word (Word64)
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import           ALife.Creatur.Wain.GeneticSOMInternal
+    (Difference, Label)
+import           ALife.Creatur.Wain.ProbabilityInternal
+import           ALife.Creatur.Wain.UnitInterval
+    (uiToDouble)
+import           ALife.Creatur.Wain.UnitIntervalQC
+    ()
+import           Data.List
+    (nub)
+import           Data.Word
+    (Word64)
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck
 
 data PermuteTestData = PermuteTestData [[Char]] deriving (Eq, Show)
 

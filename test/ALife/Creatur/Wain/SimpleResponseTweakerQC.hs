@@ -10,8 +10,8 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.SimpleResponseTweakerQC
@@ -19,15 +19,21 @@ module ALife.Creatur.Wain.SimpleResponseTweakerQC
     test
   ) where
 
-import ALife.Creatur.Wain.ResponseQC (TestResponse, TestAction)
-import ALife.Creatur.Wain.SimpleResponseTweaker
-import ALife.Creatur.Wain.Statistics (Statistical(..))
-import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
-import ALife.Creatur.Wain.UnitIntervalQC ()
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import           ALife.Creatur.Wain.ResponseQC
+    (TestAction, TestResponse)
+import           ALife.Creatur.Wain.SimpleResponseTweaker
+import           ALife.Creatur.Wain.Statistics
+    (Statistical (..))
+import           ALife.Creatur.Wain.TestUtils
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble)
+import           ALife.Creatur.Wain.UnitIntervalQC
+    ()
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck
 
 instance Statistical (ResponseTweaker TestAction) where
   stats _ = []

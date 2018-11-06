@@ -10,9 +10,9 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.PredictorQC
   (
@@ -25,24 +25,31 @@ module ALife.Creatur.Wain.PredictorQC
     ImprintTestData(..)
   ) where
 
-import ALife.Creatur.Wain.PredictorInternal
-import ALife.Creatur.Wain.GeneticSOMInternal (Label, numModels, maxSize,
-  trainAndClassify)
-import ALife.Creatur.Wain.GeneticSOMQC (equivGSOM, sizedArbGeneticSOM,
-  sizedArbEmptyGeneticSOM)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble)
+import           ALife.Creatur.Wain.GeneticSOMInternal
+    (Label, maxSize, numModels, trainAndClassify)
+import           ALife.Creatur.Wain.GeneticSOMQC
+    (equivGSOM, sizedArbEmptyGeneticSOM, sizedArbGeneticSOM)
+import           ALife.Creatur.Wain.PlusMinusOne
+    (PM1Double, pm1ToDouble)
+import           ALife.Creatur.Wain.PredictorInternal
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
-import ALife.Creatur.Wain.Probability (Probability)
-import ALife.Creatur.Wain.Response (Response(..))
-import ALife.Creatur.Wain.ResponseQC (TestAction, TestResponse,
-  arbTestResponse)
-import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..),
-  responseDiff)
-import ALife.Creatur.Wain.TestUtils
-import Control.DeepSeq (deepseq)
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck hiding (labels, maxSize)
+import           ALife.Creatur.Wain.Probability
+    (Probability)
+import           ALife.Creatur.Wain.Response
+    (Response (..))
+import           ALife.Creatur.Wain.ResponseQC
+    (TestAction, TestResponse, arbTestResponse)
+import           ALife.Creatur.Wain.SimpleResponseTweaker
+    (ResponseTweaker (..), responseDiff)
+import           ALife.Creatur.Wain.TestUtils
+import           Control.DeepSeq
+    (deepseq)
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck                          hiding
+    (labels, maxSize)
 
 type TestTweaker = ResponseTweaker TestAction
 
@@ -78,8 +85,8 @@ data TrainingTestData
   = TrainingTestData
       {
         xPredictor :: TestPredictor,
-        xResponse :: TestResponse,
-        xOutcomes :: [PM1Double]
+        xResponse  :: TestResponse,
+        xOutcomes  :: [PM1Double]
       } deriving (Eq, Show)
 
 sizedArbTrainingTestData :: Int -> Gen TrainingTestData
@@ -128,10 +135,10 @@ data ImprintTestData
   = ImprintTestData
       {
         iPredictor :: TestPredictor,
-        iLabels :: [Label],
-        iAction :: TestAction,
-        iOutcomes :: [PM1Double],
-        iDeltas :: [PM1Double]
+        iLabels    :: [Label],
+        iAction    :: TestAction,
+        iOutcomes  :: [PM1Double],
+        iDeltas    :: [PM1Double]
       } deriving (Eq, Show)
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData

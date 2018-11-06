@@ -47,4 +47,4 @@ module ALife.Creatur.Wain.GeneticSOM
     trainAndClassify
   ) where
 
-import ALife.Creatur.Wain.GeneticSOMInternal
+import           ALife.Creatur.Wain.GeneticSOMInternal

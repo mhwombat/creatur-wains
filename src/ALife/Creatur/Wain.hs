@@ -73,6 +73,8 @@ module ALife.Creatur.Wain
     packageVersion
   ) where
 
-import ALife.Creatur.WainInternal
-import ALife.Creatur.Wain.Brain (Condition, ImprintReport)
-import ALife.Creatur.Wain.GeneticSOM (Label)
+import           ALife.Creatur.Wain.Brain
+    (Condition, ImprintReport)
+import           ALife.Creatur.Wain.GeneticSOM
+    (Label)
+import           ALife.Creatur.WainInternal

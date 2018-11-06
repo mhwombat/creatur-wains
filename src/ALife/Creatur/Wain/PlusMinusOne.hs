@@ -5,15 +5,15 @@
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
--- Portability :  portable 
+-- Portability :  portable
 --
 -- Numbers on the interval -1 to 1, inclusive.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies      #-}
 module ALife.Creatur.Wain.PlusMinusOne
   (
     interval,
@@ -35,20 +35,30 @@ module ALife.Creatur.Wain.PlusMinusOne
 -- module and UIDouble. May need to use Template Haskell.
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import ALife.Creatur.Genetics.Diploid (Diploid, express)
-import ALife.Creatur.Wain.Pretty (Pretty(..))
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
-  doubleToUI)
-import ALife.Creatur.Wain.Util (enforceRange, scaleToWord64,
-  scaleFromWord64, scaleToWord8, inRange)
-import Control.DeepSeq (NFData)
-import Data.Datamining.Pattern (adjustNum)
-import Data.List (intercalate)
-import Data.Serialize (Serialize)
-import GHC.Generics (Generic)
-import System.Random (Random(..), randomR)
-import Text.Printf (printf)
-import Text.Read (readPrec)
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid, express)
+import           ALife.Creatur.Wain.Pretty
+    (Pretty (..))
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble, doubleToUI, uiToDouble)
+import           ALife.Creatur.Wain.Util
+    (enforceRange, inRange, scaleFromWord64, scaleToWord64, scaleToWord8)
+import           Control.DeepSeq
+    (NFData)
+import           Data.Datamining.Pattern
+    (adjustNum)
+import           Data.List
+    (intercalate)
+import           Data.Serialize
+    (Serialize)
+import           GHC.Generics
+    (Generic)
+import           System.Random
+    (Random (..), randomR)
+import           Text.Printf
+    (printf)
+import           Text.Read
+    (readPrec)
 
 -- | The interval -1 to 1, inclusive.
 interval :: (Double, Double)

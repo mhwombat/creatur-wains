@@ -13,21 +13,29 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric  #-}
 module ALife.Creatur.Wain.WeightsInternal where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic, get)
-import ALife.Creatur.Genetics.Diploid (Diploid, express)
-import ALife.Creatur.Wain.Pretty (Pretty)
-import ALife.Creatur.Wain.Statistics (Statistical(..), dStats)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiDiff, normalise)
-import Control.DeepSeq (NFData)
-import Data.Serialize (Serialize)
-import GHC.Generics (Generic)
+import           ALife.Creatur.Genetics.BRGCWord8
+    (Genetic, get)
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid, express)
+import           ALife.Creatur.Wain.Pretty
+    (Pretty)
+import           ALife.Creatur.Wain.Statistics
+    (Statistical (..), dStats)
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble, normalise, uiDiff)
+import           Control.DeepSeq
+    (NFData)
+import           Data.Serialize
+    (Serialize)
+import           GHC.Generics
+    (Generic)
 
 -- | A sequence of weights for calculating weighted sums.
 data Weights = Weights [UIDouble]
-  deriving (Eq, Show, Generic, Ord, Serialize, NFData, Pretty)
+  deriving (Eq, Show, Read, Generic, Ord, Serialize, NFData, Pretty)
   -- NOTE: Regarding Diploid instance, sum of weights will never be >1,
   -- because "express" chooses the smaller value.
 

@@ -10,46 +10,77 @@
 -- A data mining agent, designed for the Créatúr framework.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveAnyClass     #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE TypeFamilies       #-}
 module ALife.Creatur.WainInternal where
 
-import ALife.Creatur (Agent, agentId, isAlive)
-import ALife.Creatur.Database (Record, SizedRecord, key)
-import qualified ALife.Creatur.Database (size)
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic, DiploidReader,
-  Sequence, get, put, copy, copy2, consumed2, getAndExpress,
-  runDiploidReader, write)
-import ALife.Creatur.Genetics.Diploid (Diploid, express)
-import ALife.Creatur.Genetics.Recombination (mutatePairedLists,
-  randomCrossover, randomCutAndSplice, randomOneOfPair,
-  repeatWithProbability, withProbability)
-import ALife.Creatur.Genetics.Reproduction.Sexual (Reproductive, Strand,
-  produceGamete, build, makeOffspring)
-import qualified ALife.Creatur.Wain.Brain as B
-import qualified ALife.Creatur.Wain.Classifier as Cl
-import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
-import ALife.Creatur.Wain.Muser (Muser, Action)
-import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import qualified ALife.Creatur.Wain.Response as R
-import ALife.Creatur.Wain.Statistics (Statistical, stats, iStat, dStat)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
-  doubleToUI, forceDoubleToUI)
-import ALife.Creatur.Wain.Util (unitInterval, enforceRange)
-import Control.DeepSeq (NFData)
-import Control.Lens
-import Control.Monad.Random (Rand, RandomGen)
-import Data.List (partition)
-import qualified Data.Map.Strict as M
-import Data.Serialize (Serialize)
-import Data.Word (Word8, Word16)
-import Data.Version (showVersion)
-import GHC.Generics (Generic)
-import Paths_creatur_wains (version)
+import           ALife.Creatur
+    (Agent, agentId, isAlive)
+import           ALife.Creatur.Database
+    (Record, SizedRecord, key)
+import qualified ALife.Creatur.Database
+    (size)
+import           ALife.Creatur.Genetics.BRGCWord8
+    ( DiploidReader
+    , Genetic
+    , Sequence
+    , consumed2
+    , copy
+    , copy2
+    , get
+    , getAndExpress
+    , put
+    , runDiploidReader
+    , write
+    )
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid, express)
+import           ALife.Creatur.Genetics.Recombination
+    ( mutatePairedLists
+    , randomCrossover
+    , randomCutAndSplice
+    , randomOneOfPair
+    , repeatWithProbability
+    , withProbability
+    )
+import           ALife.Creatur.Genetics.Reproduction.Sexual
+    (Reproductive, Strand, build, makeOffspring, produceGamete)
+import qualified ALife.Creatur.Wain.Brain                   as B
+import qualified ALife.Creatur.Wain.Classifier              as Cl
+import qualified ALife.Creatur.Wain.GeneticSOM              as GSOM
+import           ALife.Creatur.Wain.Muser
+    (Action, Muser)
+import           ALife.Creatur.Wain.Pretty
+    (Pretty, pretty)
+import qualified ALife.Creatur.Wain.Response                as R
+import           ALife.Creatur.Wain.Statistics
+    (Statistical, dStat, iStat, stats)
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble, doubleToUI, forceDoubleToUI, uiToDouble)
+import           ALife.Creatur.Wain.Util
+    (enforceRange, unitInterval)
+import           Control.DeepSeq
+    (NFData)
+import           Control.Lens
+import           Control.Monad.Random
+    (Rand, RandomGen)
+import           Data.List
+    (partition)
+import qualified Data.Map.Strict                            as M
+import           Data.Serialize
+    (Serialize)
+import           Data.Version
+    (showVersion)
+import           Data.Word
+    (Word16, Word8)
+import           GHC.Generics
+    (Generic)
+import           Paths_creatur_wains
+    (version)
 
 -- | Returns the current version number of this library.
 packageVersion :: String
@@ -59,43 +90,43 @@ packageVersion = "creatur-wains-" ++ showVersion version
 data Wain p ct pt m a = Wain
   {
     -- | Each wain should have a unique name.
-    _name :: String,
+    _name                   :: String,
     -- | A wain's appearance is a pattern by which other wains can
     --   recognise it as a fellow wain.
-    _appearance :: p,
+    _appearance             :: p,
     -- | The wain's brain, which recognises patterns and makes
     --   decisions.
-    _brain :: B.Brain p ct pt m a,
+    _brain                  :: B.Brain p ct pt m a,
     -- | The amount of energy the wain will give to offspring at birth.
     --   This is a number between 0 and 1, inclusive.
-    _devotion :: UIDouble,
+    _devotion               :: UIDouble,
     -- | The age at which this wain will/has left its parent.
-    _ageOfMaturity :: Word16,
+    _ageOfMaturity          :: Word16,
     -- | The amount that a wain's passion increases at each CPU turn.
     --   this influences the frequency of mating.
-    _passionDelta :: UIDouble,
+    _passionDelta           :: UIDouble,
     -- | The amount that a wain's boredom increases at each CPU turn.
     --   this influences the frequency of mating.
-    _boredomDelta :: UIDouble,
+    _boredomDelta           :: UIDouble,
     -- | The wain's current energy level.
     --   This is a number between 0 and 1, inclusive.
-    _energy :: UIDouble,
+    _energy                 :: UIDouble,
     -- | The wain's current passion level
     --   This is a number between 0 and 1, inclusive.
-    _passion :: UIDouble,
+    _passion                :: UIDouble,
     -- | The wain's current boredom level
     --   This is a number between 0 and 1, inclusive.
-    _boredom :: UIDouble,
+    _boredom                :: UIDouble,
     -- | The wain's current age.
-    _age :: Word16,
+    _age                    :: Word16,
     -- | The children this wain is currently rearing.
-    _litter :: [Wain p ct pt m a],
+    _litter                 :: [Wain p ct pt m a],
     -- | The number of children this wain has borne.
-    _childrenBorneLifetime :: Word16,
+    _childrenBorneLifetime  :: Word16,
     -- | The number of children this wain has reared to maturity.
     _childrenWeanedLifetime :: Word16,
     -- | The wain's genes.
-    _genome :: ([Word8],[Word8])
+    _genome                 :: ([Word8],[Word8])
   } deriving (Eq, Generic, NFData)
 makeLenses ''Wain
 
@@ -301,11 +332,11 @@ happiness w = B.happiness (_brain w) (condition w)
 data DecisionReport p a =
   DecisionReport
     {
-      wdrStimulus :: [p],
+      wdrStimulus         :: [p],
       wdrClassifierReport :: Cl.ClassifierReport p,
-      wdrScenarioReport :: B.ScenarioReport,
-      wdrPredictorReport :: B.PredictorReport a,
-      wdrActionReport :: B.ActionReport a
+      wdrScenarioReport   :: B.ScenarioReport,
+      wdrPredictorReport  :: B.PredictorReport a,
+      wdrActionReport     :: B.ActionReport a
     } deriving (Generic, Show, NFData)
 
 -- | Returns the measure of how novel each input pattern was to the
@@ -415,7 +446,7 @@ data ReflectionReport p a
   = ReflectionReport
       {
         rReflectionReport :: B.ReflectionReport a,
-        rImprintReports :: [B.ImprintReport p a]
+        rImprintReports   :: [B.ImprintReport p a]
       } deriving (Generic, Show, NFData)
 
 happinessError :: ReflectionReport p a -> Double

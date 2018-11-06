@@ -12,34 +12,42 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveAnyClass       #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOMInternal where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
-import ALife.Creatur.Genetics.Diploid (Diploid, express)
-import qualified ALife.Creatur.Genetics.BRGCWord8 as G
-import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.Statistics (Statistical, iStat,
-  dStat, stats, prefix, kvToIStats)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
-  uiToDouble)
-import ALife.Creatur.Wain.Util (intersection, inRange)
-import Control.DeepSeq (NFData)
-import Control.Lens
-import Control.Monad.Random (Rand, RandomGen, getRandomR)
+import           ALife.Creatur.Genetics.BRGCWord8
+    (Genetic)
+import qualified ALife.Creatur.Genetics.BRGCWord8        as G
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid, express)
+import           ALife.Creatur.Wain.Pretty
+    (Pretty, pretty)
+import           ALife.Creatur.Wain.Statistics
+    (Statistical, dStat, iStat, kvToIStats, prefix, stats)
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble, doubleToUI, uiToDouble)
+import           ALife.Creatur.Wain.Util
+    (inRange, intersection)
+import           Control.DeepSeq
+    (NFData)
+import           Control.Lens
+import           Control.Monad.Random
+    (Rand, RandomGen, getRandomR)
 import qualified Data.Datamining.Clustering.SGM2Internal as SOM
-import qualified Data.Map.Strict as M
-import qualified Data.Serialize as S
-import Data.Word (Word64)
-import GHC.Generics (Generic)
+import qualified Data.Map.Strict                         as M
+import qualified Data.Serialize                          as S
+import           Data.Word
+    (Word64)
+import           GHC.Generics
+    (Generic)
 
 -- | A unique identifier for a model in a SOM.
 type Label = Word64
@@ -199,11 +207,11 @@ data GeneticSOM p t =
   GeneticSOM
     {
       -- | The models
-      _patternMap :: SOM.SGM Word64 UIDouble Label p,
+      _patternMap     :: SOM.SGM Word64 UIDouble Label p,
       -- | The parameters that define the learning function
       _learningParams :: LearningParams,
       -- | The object responsible for comparing and adjusting models.
-      _tweaker :: t
+      _tweaker        :: t
     } deriving (Generic, NFData)
 makeLenses ''GeneticSOM
 
@@ -373,20 +381,20 @@ data ClassificationDetail p
   = ClassificationDetail
       {
         -- | The input pattern to classify
-        cPattern :: p,
+        cPattern    :: p,
         -- | The label of the node that best matches the input
-        cBmu :: Label,
+        cBmu        :: Label,
         -- | The BMU's model
-        cBmuModel :: p,
+        cBmuModel   :: p,
         -- | A measure of how novel the input pattern was to the wain.
         --   It is the difference between the input pattern and the
         --   closest model prior to any training or addition of models.
-        cNovelty :: Difference,
+        cNovelty    :: Difference,
         -- | A measure of how novel the input pattern was to the wain,
         --   adjusted based on the age of the wain.
         cAdjNovelty :: Int,
         -- | Even more details about the classification
-        cDetails :: M.Map Label (p, Difference)
+        cDetails    :: M.Map Label (p, Difference)
       } deriving (Show, Generic, NFData)
 
 prettyClassificationDetail

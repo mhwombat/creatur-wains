@@ -10,8 +10,8 @@
 -- ???
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies     #-}
 module ALife.Creatur.Wain.Brain
   (
     -- * Constructors
@@ -56,5 +56,5 @@ module ALife.Creatur.Wain.Brain
     prettyImprintReport
   ) where
 
-import ALife.Creatur.Wain.BrainInternal
-import ALife.Creatur.Wain.Classifier
+import           ALife.Creatur.Wain.BrainInternal
+import           ALife.Creatur.Wain.Classifier

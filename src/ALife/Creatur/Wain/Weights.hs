@@ -21,4 +21,4 @@ module ALife.Creatur.Wain.Weights
     numWeights
   ) where
 
-import ALife.Creatur.Wain.WeightsInternal
+import           ALife.Creatur.Wain.WeightsInternal

@@ -11,8 +11,8 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric  #-}
+{-# LANGUAGE TypeFamilies   #-}
 module ALife.Creatur.Wain.SimpleResponseTweaker
   (
     ResponseTweaker(..),
@@ -21,14 +21,22 @@ module ALife.Creatur.Wain.SimpleResponseTweaker
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.GeneticSOM (Difference, Tweaker(..))
-import ALife.Creatur.Wain.PlusMinusOne (adjustPM1Vector)
-import ALife.Creatur.Wain.Response (Response(..), labelSimilarity)
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
-import Control.DeepSeq (NFData)
-import Data.Serialize (Serialize)
-import GHC.Generics (Generic)
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid)
+import           ALife.Creatur.Wain.GeneticSOM
+    (Difference, Tweaker (..))
+import           ALife.Creatur.Wain.PlusMinusOne
+    (adjustPM1Vector)
+import           ALife.Creatur.Wain.Response
+    (Response (..), labelSimilarity)
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble)
+import           Control.DeepSeq
+    (NFData)
+import           Data.Serialize
+    (Serialize)
+import           GHC.Generics
+    (Generic)
 
 -- | @'ResponseTweaker'@ constructs an object which is
 --   responsible for comparing and adjusting response patterns.

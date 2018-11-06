@@ -12,16 +12,19 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.ProbabilityInternal where
 
-import ALife.Creatur.Wain.GeneticSOM (Difference, Label)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
-  uiToDouble)
-import Data.Word (Word64)
-import Text.Printf (printf)
+import           ALife.Creatur.Wain.GeneticSOM
+    (Difference, Label)
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble, doubleToUI, uiToDouble)
+import           Data.Word
+    (Word64)
+import           Text.Printf
+    (printf)
 
 -- | Estimated probability that a set of labels is accurate.
 type Probability = UIDouble
@@ -34,9 +37,9 @@ hypothesise x = map jointProbability . permute . diffsToProbs x
 
 -- | Internal method.
 permute :: [[a]] -> [[a]]
-permute (xs:[]) = [ [y] | y <- xs ]
+permute (xs:[])  = [ [y] | y <- xs ]
 permute (xs:xss) = [ y:ys | y <- xs, ys <- permute xss]
-permute [] = []
+permute []       = []
 
 -- | Given a list of labels for each object the wain is seeing, paired
 --   with the probability that each label is accurate, returns

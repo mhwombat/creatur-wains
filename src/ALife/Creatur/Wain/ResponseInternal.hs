@@ -12,36 +12,47 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TypeFamilies      #-}
 module ALife.Creatur.Wain.ResponseInternal where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
-import ALife.Creatur.Genetics.Diploid (Diploid)
-import ALife.Creatur.Wain.GeneticSOM (Label)
-import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, pm1ToDouble,
-  forceDoubleToPM1)
-import ALife.Creatur.Wain.Statistics (Statistical(..), dStat)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI)
-import Control.DeepSeq (NFData)
-import Control.Lens
-import Data.List (intercalate)
-import Data.Serialize (Serialize)
-import GHC.Generics (Generic)
-import Text.Printf (printf)
+import           ALife.Creatur.Genetics.BRGCWord8
+    (Genetic)
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid)
+import           ALife.Creatur.Wain.GeneticSOM
+    (Label)
+import           ALife.Creatur.Wain.PlusMinusOne
+    (PM1Double, forceDoubleToPM1, pm1ToDouble)
+import           ALife.Creatur.Wain.Pretty
+    (Pretty, pretty)
+import           ALife.Creatur.Wain.Statistics
+    (Statistical (..), dStat)
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble, doubleToUI)
+import           Control.DeepSeq
+    (NFData)
+import           Control.Lens
+import           Data.List
+    (intercalate)
+import           Data.Serialize
+    (Serialize)
+import           GHC.Generics
+    (Generic)
+import           Text.Printf
+    (printf)
 
 -- | A model of a scenario that a wain might encounter
 data Response a = Response
   {
     -- | The classifier labels for the objects we're responding to
-    _labels :: [Label],
+    _labels   :: [Label],
     -- | Action
-    _action :: a,
+    _action   :: a,
     -- | Happiness level change (predicted or actual)
     _outcomes :: [PM1Double]
   } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Diploid,
@@ -68,9 +79,9 @@ labelSimilarity xs ys =
 -- | Internal method
 labelSimilarity' :: [Label] -> [Label] -> [Bool]
 labelSimilarity' (x:xs) (y:ys) = (x == y) : (labelSimilarity' xs ys)
-labelSimilarity' (_:xs) [] = False : (labelSimilarity' xs [])
-labelSimilarity' [] (_:ys) = False : (labelSimilarity' [] ys)
-labelSimilarity' [] [] = []
+labelSimilarity' (_:xs) []     = False : (labelSimilarity' xs [])
+labelSimilarity' [] (_:ys)     = False : (labelSimilarity' [] ys)
+labelSimilarity' [] []         = []
 
 -- | Updates the outcomes in the second response to match the first.
 copyOutcomesTo :: Response a -> Response a -> Response a

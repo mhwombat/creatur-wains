@@ -10,8 +10,8 @@
 -- Statistical calculations
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 module ALife.Creatur.Wain.Statistics
   (
@@ -35,13 +35,19 @@ module ALife.Creatur.Wain.Statistics
     popStdDev
   ) where
 
-import Prelude hiding (lookup)
-import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.Raw (Raw, raw)
-import Data.List (groupBy, sortBy)
-import Data.Ord (comparing)
-import Data.Serialize (Serialize)
-import GHC.Generics
+import           ALife.Creatur.Wain.Pretty
+    (Pretty, pretty)
+import           ALife.Creatur.Wain.Raw
+    (Raw, raw)
+import           Data.List
+    (groupBy, sortBy)
+import           Data.Ord
+    (comparing)
+import           Data.Serialize
+    (Serialize)
+import           GHC.Generics
+import           Prelude                   hiding
+    (lookup)
 
 -- | A value for calculating statistics with.
 data Statistic = DStatistic {sName :: String, sVal :: Double}

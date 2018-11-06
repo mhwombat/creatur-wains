@@ -18,14 +18,18 @@ module ALife.Creatur.Wain.WeightsQC
     sizedArbWeights
   ) where
 
-import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import ALife.Creatur.Wain.WeightsInternal
-import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
-import ALife.Creatur.Wain.UnitIntervalQC ()
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import qualified ALife.Creatur.Genetics.BRGCWord8     as W8
+import           ALife.Creatur.Wain.TestUtils
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble, uiToDouble)
+import           ALife.Creatur.Wain.UnitIntervalQC
+    ()
+import           ALife.Creatur.Wain.WeightsInternal
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck
 
 sizedArbWeights :: Int -> Gen Weights
 sizedArbWeights n = fmap makeWeights $ vectorOf n arbitrary
@@ -82,6 +86,8 @@ test = testGroup "ALife.Creatur.Wain.WeightsQC"
       (prop_serialize_round_trippable :: Weights -> Property),
     testProperty "prop_genetic_round_trippable - Weights"
       (prop_genetic_round_trippable equivWeights :: Weights -> Property),
+    testProperty "prop_show_read_round_trippable - Weights"
+      (prop_show_read_round_trippable (==) :: Weights -> Property),
     testProperty "prop_diploid_identity - Weights"
       (prop_diploid_identity equivWeights :: Weights -> Property),
     testProperty "prop_diploid_expressable - Weights"

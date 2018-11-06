@@ -35,10 +35,6 @@ resolver: lts-12.16
 #  - wai
 packages:
 - .
-# - location:
-#     git: git@github.com:mhwombat/creatur.git
-#     commit: master
-#   extra-dep: true
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
@@ -48,7 +44,7 @@ extra-deps:
 - gray-extended-1.5.2
 - grid-7.8.9
 - numeric-tools-0.2.0.1
-- som-10.1.0
+- som-10.1.2
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

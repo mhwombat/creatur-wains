@@ -12,44 +12,57 @@
 -- This module is subject to change without notice.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveAnyClass      #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE StandaloneDeriving  #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.BrainInternal where
 
-import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get)
-import ALife.Creatur.Genetics.Diploid (Diploid)
-import qualified ALife.Creatur.Wain.Classifier as Cl
-import qualified ALife.Creatur.Wain.Predictor as P
-import qualified ALife.Creatur.Wain.Muser as M
-import qualified ALife.Creatur.Wain.GeneticSOM as GSOM
-import ALife.Creatur.Wain.Pretty (Pretty, pretty)
-import ALife.Creatur.Wain.Probability (Probability, hypothesise,
-  prettyProbability)
-import ALife.Creatur.Wain.Response (Response(..))
-import ALife.Creatur.Wain.Statistics (Statistical, stats, prefix,
-  iStat, dStat)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double, doubleToPM1,
-  pm1ToDouble)
-import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble,
-  forceDoubleToUI)
-import ALife.Creatur.Wain.Util (thirdOfTriple)
-import ALife.Creatur.Wain.Weights (Weights, weightAt, weightedSum,
-  numWeights)
-import Control.DeepSeq (NFData)
-import Control.Lens
-import Data.Function (on)
-import Data.List (intercalate, groupBy, sortBy, foldl')
-import qualified Data.Map.Strict as M
-import Data.Ord (comparing)
-import Data.Serialize (Serialize)
-import Data.Word (Word8, Word64)
-import GHC.Generics (Generic)
-import Text.Printf (printf)
+import           ALife.Creatur.Genetics.BRGCWord8
+    (Genetic, get, put)
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid)
+import qualified ALife.Creatur.Wain.Classifier    as Cl
+import qualified ALife.Creatur.Wain.GeneticSOM    as GSOM
+import qualified ALife.Creatur.Wain.Muser         as M
+import           ALife.Creatur.Wain.PlusMinusOne
+    (PM1Double, doubleToPM1, pm1ToDouble)
+import qualified ALife.Creatur.Wain.Predictor     as P
+import           ALife.Creatur.Wain.Pretty
+    (Pretty, pretty)
+import           ALife.Creatur.Wain.Probability
+    (Probability, hypothesise, prettyProbability)
+import           ALife.Creatur.Wain.Response
+    (Response (..))
+import           ALife.Creatur.Wain.Statistics
+    (Statistical, dStat, iStat, prefix, stats)
+import           ALife.Creatur.Wain.UnitInterval
+    (UIDouble, forceDoubleToUI, uiToDouble)
+import           ALife.Creatur.Wain.Util
+    (thirdOfTriple)
+import           ALife.Creatur.Wain.Weights
+    (Weights, numWeights, weightAt, weightedSum)
+import           Control.DeepSeq
+    (NFData)
+import           Control.Lens
+import           Data.Function
+    (on)
+import           Data.List
+    (foldl', groupBy, intercalate, sortBy)
+import qualified Data.Map.Strict                  as M
+import           Data.Ord
+    (comparing)
+import           Data.Serialize
+    (Serialize)
+import           Data.Word
+    (Word64, Word8)
+import           GHC.Generics
+    (Generic)
+import           Text.Printf
+    (printf)
 
 -- | A wain's condition
 type Condition = [UIDouble]
@@ -59,30 +72,30 @@ type Condition = [UIDouble]
 data Brain p ct pt m a = Brain
   {
     -- | Component that categorises and identifies patterns
-    _classifier :: Cl.Classifier p ct,
+    _classifier          :: Cl.Classifier p ct,
     -- | Component that generates response models for consideration
-    _muser :: m,
+    _muser               :: m,
     -- | Component that decides what actions to take
-    _predictor :: P.Predictor a pt,
+    _predictor           :: P.Predictor a pt,
     -- | Weights for evaluating happiness
-    _happinessWeights :: Weights,
+    _happinessWeights    :: Weights,
     -- | Used to break ties when actions seem equally promising
-    _tiebreaker :: Word8,
+    _tiebreaker          :: Word8,
     -- | Controls how willing the wain is to consider alternative
     --   classifications when making decisions.
     --   Must be >= 1.
-    _strictness :: Word64,
+    _strictness          :: Word64,
     -- | When a wain observes a response that it has never seen before,
     --   it will assume the action has the following outcomes.
     --   Normally these values should all be positive.
-    _imprintOutcomes :: [PM1Double],
+    _imprintOutcomes     :: [PM1Double],
     -- | When a wain observes a response that it already knows, it will
     --   reinforce it by re-learning the model augmented with these
     --   delta outcomes.
     --   Normally these values should all be positive.
     _reinforcementDeltas :: [PM1Double],
     -- | Number of times each action has been used
-    _actionCounts :: M.Map a Int
+    _actionCounts        :: M.Map a Int
   } deriving (Generic, Eq, NFData)
 makeLenses ''Brain
 
@@ -180,11 +193,11 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
 data DecisionReport p a =
   DecisionReport
     {
-      bdrStimulus :: [p],
-      bdrClassifierReport :: Cl.ClassifierReport p,
-      bdrScenarioReport :: ScenarioReport,
-      bdrPredictorReport :: PredictorReport a,
-      bdrActionReport :: ActionReport a,
+      bdrStimulus            :: [p],
+      bdrClassifierReport    :: Cl.ClassifierReport p,
+      bdrScenarioReport      :: ScenarioReport,
+      bdrPredictorReport     :: PredictorReport a,
+      bdrActionReport        :: ActionReport a,
       bdrRecommendedResponse :: Response a
     } deriving (Generic, Show, NFData)
 
@@ -355,7 +368,7 @@ adjustActionCounts
 adjustActionCounts b a = set actionCounts cs' b
   where cs = _actionCounts b
         cs' = M.alter inc a cs
-        inc Nothing = Just 1
+        inc Nothing  = Just 1
         inc (Just n) = Just (n+1)
 
 -- | Evaluates the input patterns and the current condition.
@@ -435,7 +448,7 @@ data ReflectionReport a =
       brrLearningReport :: P.LearningReport (Response a) a,
       -- | The error in the brain's prediction of the change to
       --   happiness.
-      brrErr :: Double
+      brrErr            :: Double
     } deriving (Generic, Show, NFData)
 
 prettyReflectionReport :: Pretty a => ReflectionReport a -> [String]
@@ -473,18 +486,18 @@ data ImprintReport p a =
   ImprintReport
     {
       -- | The stimulus
-      birStimulus :: [p],
+      birStimulus         :: [p],
       -- | The action to learn
-      birAction :: a,
+      birAction           :: a,
       -- | For each object in the stimuli, the difference between that
       --   object and each classifier model paired with the model's
       --   label
       birClassifierReport :: Cl.ClassifierReport p,
       -- | The hypotheses considered, together with the probability that
       --   each hypothesis is true
-      birScenarioReport :: [([Cl.Label], Probability)],
+      birScenarioReport   :: [([Cl.Label], Probability)],
       -- | A report on how the predictor learned the response
-      birLearningReport :: P.LearningReport (Response a) a
+      birLearningReport   :: P.LearningReport (Response a) a
     } deriving (Generic, Show, NFData)
 
 prettyImprintReport

@@ -16,11 +16,14 @@ module ALife.Creatur.Wain.UtilQC
     test
   ) where
 
-import ALife.Creatur.Wain.Util
-import Data.Word (Word8)
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import           ALife.Creatur.Wain.Util
+import           Data.Word
+    (Word8)
+import           Test.Framework
+    (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2
+    (testProperty)
+import           Test.QuickCheck
 
 prop_scaleToWord8_min :: (Double, Double) -> Property
 prop_scaleToWord8_min (a, b) = property $ scaleToWord8 (a, b) a == 0
@@ -41,7 +44,7 @@ prop_scaleFromWord8_round_trippable (a, b) x = b > a ==> x' == x
 
 -- prop_scaleFromWord64_round_trippable :: (Double, Double) -> Word64 -> Property
 -- prop_scaleFromWord64_round_trippable (a, b) x = b > a ==> x' == x
---   where x' = scaleToWord64 (a, b) . scaleFromWord64 (a, b) $ 
+--   where x' = scaleToWord64 (a, b) . scaleFromWord64 (a, b) $
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.UtilQC"
@@ -57,5 +60,5 @@ test = testGroup "ALife.Creatur.Wain.UtilQC"
     testProperty "prop_scaleFromWord8_round_trippable"
       prop_scaleFromWord8_round_trippable
     -- testProperty "prop_scaleFromWord64_round_trippable"
-    --   prop_scaleFromWord64_round_trippable 
+    --   prop_scaleFromWord64_round_trippable
  ]

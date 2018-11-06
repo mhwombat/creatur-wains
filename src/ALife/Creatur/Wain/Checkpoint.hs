@@ -17,12 +17,18 @@ module ALife.Creatur.Wain.Checkpoint
     enforceAll
   ) where
 
-import Prelude hiding (lookup)
-import ALife.Creatur.Task (requestShutdown)
-import ALife.Creatur.Universe (Universe, currentTime)
-import ALife.Creatur.Wain.Statistics (Statistic, lookup, iStat)
-import Control.Monad.State.Lazy (StateT)
-import Control.Monad (when, unless)
+import           ALife.Creatur.Task
+    (requestShutdown)
+import           ALife.Creatur.Universe
+    (Universe, currentTime)
+import           ALife.Creatur.Wain.Statistics
+    (Statistic, iStat, lookup)
+import           Control.Monad
+    (unless, when)
+import           Control.Monad.State.Lazy
+    (StateT)
+import           Prelude                       hiding
+    (lookup)
 
 -- | @`Check t s l`@ creates a constraint @l@ on the statistic @s@
 --   to be satisfied beginning at time @t@.
@@ -37,8 +43,8 @@ data Limit = In (Double, Double) | GE Double | LE Double
 
 satisfies :: Double -> Limit -> Bool
 satisfies v (In (a,b)) = a <= v && v <= b
-satisfies v (GE x) = v >= x
-satisfies v (LE x) = v <= x
+satisfies v (GE x)     = v >= x
+satisfies v (LE x)     = v <= x
 
 fails :: Double -> Limit -> Bool
 fails v l = not $ v `satisfies` l
@@ -61,7 +67,7 @@ enforce xs c@(Check start key lim) = do
   -- writeToLog $ "DEBUG: checkpoint=" ++ show c ++ " t=" ++ show t
   --   ++ " val=" ++ show (lookup key xs)
   case lookup key xs of
-    Just x -> when (t >= start && x `fails` lim) $ requestShutdown 
+    Just x -> when (t >= start && x `fails` lim) $ requestShutdown
                ("failed check " ++ show c ++ " " ++ key ++ "=" ++ show x)
     Nothing -> unless (null xs) $ -- ignore missing stats file
                 requestShutdown $ "Cannot find statistic: " ++ key

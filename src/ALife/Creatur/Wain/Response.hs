@@ -10,8 +10,8 @@
 -- A potential or actual response by a wain to a stimulus.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies     #-}
 module ALife.Creatur.Wain.Response
   (
     Response(..),
@@ -25,4 +25,4 @@ module ALife.Creatur.Wain.Response
     addToOutcomes
   ) where
 
-import ALife.Creatur.Wain.ResponseInternal
+import           ALife.Creatur.Wain.ResponseInternal

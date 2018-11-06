@@ -10,11 +10,11 @@
 -- Numbers on the unit interval (0 to 1, inclusive).
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveAnyClass      #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.UnitInterval
   (
     interval,
@@ -36,17 +36,28 @@ module ALife.Creatur.Wain.UnitInterval
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import ALife.Creatur.Genetics.Diploid (Diploid, express)
-import ALife.Creatur.Wain.Pretty (Pretty(..))
-import ALife.Creatur.Wain.Util (inRange, scaleToWord8)
-import Control.DeepSeq (NFData)
-import Data.Datamining.Pattern (adjustNum)
-import Data.List (intercalate)
-import Data.Serialize (Serialize)
-import GHC.Generics (Generic)
-import System.Random (Random(..), randomR)
-import Text.Printf (printf)
-import Text.Read (readPrec)
+import           ALife.Creatur.Genetics.Diploid
+    (Diploid, express)
+import           ALife.Creatur.Wain.Pretty
+    (Pretty (..))
+import           ALife.Creatur.Wain.Util
+    (inRange, scaleToWord8)
+import           Control.DeepSeq
+    (NFData)
+import           Data.Datamining.Pattern
+    (adjustNum)
+import           Data.List
+    (intercalate)
+import           Data.Serialize
+    (Serialize)
+import           GHC.Generics
+    (Generic)
+import           System.Random
+    (Random (..), randomR)
+import           Text.Printf
+    (printf)
+import           Text.Read
+    (readPrec)
 
 -- | The unit interval (0 to 1, inclusive)
 interval :: (Double, Double)
@@ -106,7 +117,7 @@ instance Num UIDouble where
  signum (UIDouble x) = doubleToUI (signum x)
  fromInteger = doubleToUI . fromInteger
  negate (UIDouble 0) = UIDouble 0
- negate _ = error "value not in unit interval"
+ negate _            = error "value not in unit interval"
 
 instance Fractional UIDouble where
   (/) (UIDouble x) (UIDouble y) = doubleToUI (x / y)

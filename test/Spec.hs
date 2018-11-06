@@ -10,21 +10,22 @@
 -- Runs the QuickCheck tests.
 --
 ------------------------------------------------------------------------
-import ALife.Creatur.WainQC (test)
-import ALife.Creatur.Wain.BrainQC (test)
-import ALife.Creatur.Wain.ClassifierQC (test)
-import ALife.Creatur.Wain.PredictorQC (test)
-import ALife.Creatur.Wain.GeneticSOMQC (test)
-import ALife.Creatur.Wain.SimpleMuserQC (test)
-import ALife.Creatur.Wain.PlusMinusOneQC (test)
-import ALife.Creatur.Wain.ProbabilityQC (test)
-import ALife.Creatur.Wain.ResponseQC (test)
-import ALife.Creatur.Wain.SimpleResponseTweakerQC (test)
-import ALife.Creatur.Wain.UnitIntervalQC (test)
-import ALife.Creatur.Wain.UtilQC (test)
-import ALife.Creatur.Wain.WeightsQC (test)
+import           ALife.Creatur.Wain.BrainQC                 (test)
+import           ALife.Creatur.Wain.ClassifierQC            (test)
+import           ALife.Creatur.Wain.GeneticSOMQC            (test)
+import           ALife.Creatur.Wain.PlusMinusOneQC          (test)
+import           ALife.Creatur.Wain.PredictorQC             (test)
+import           ALife.Creatur.Wain.ProbabilityQC           (test)
+import           ALife.Creatur.Wain.ResponseQC              (test)
+import           ALife.Creatur.Wain.SimpleMuserQC           (test)
+import           ALife.Creatur.Wain.SimpleResponseTweakerQC (test)
+import           ALife.Creatur.Wain.UnitIntervalQC          (test)
+import           ALife.Creatur.Wain.UtilQC                  (test)
+import           ALife.Creatur.Wain.WeightsQC               (test)
+import           ALife.Creatur.WainQC                       (test)
 
-import Test.Framework as TF (defaultMain, Test)
+import           Test.Framework                             as TF
+    (Test, defaultMain)
 
 tests :: [TF.Test]
 tests =
