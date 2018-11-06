@@ -45,7 +45,8 @@ import           GHC.Generics
 --   reference the action type @a@. As a result, @ResponseTweaker@ has
 --   to have a type parameter @a@, even though it is not used.
 data ResponseTweaker a = ResponseTweaker
-  deriving (Eq, Show, Generic, NFData, Serialize, W8.Genetic, Diploid)
+  deriving (Eq, Show, Read, Generic, NFData, Serialize, W8.Genetic,
+            Diploid)
 
 instance (Eq a) => Tweaker (ResponseTweaker a) where
   type Pattern (ResponseTweaker a) = Response a

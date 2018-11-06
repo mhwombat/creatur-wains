@@ -142,17 +142,24 @@ prop_labelSimilarity_can_be_0 xs
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ResponseQC"
   [
-    testProperty "prop_serialize_round_trippable - Response"
+    testProperty "prop_serialize_round_trippable - TestResponse"
       (prop_serialize_round_trippable :: TestResponse -> Property),
-    testProperty "prop_genetic_round_trippable - Response"
-      (prop_genetic_round_trippable equivResponse :: TestResponse -> Property),
-    testProperty "prop_diploid_identity - Response"
+    testProperty "prop_genetic_round_trippable - TestResponse"
+      (prop_genetic_round_trippable equivResponse
+       :: TestResponse -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - TestResponse"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> TestResponse -> Property),
+    testProperty "prop_diploid_identity - TestResponse"
       (prop_diploid_identity (==) :: TestResponse -> Property),
-    testProperty "prop_diploid_expressable - Response"
+    testProperty "prop_show_read_round_trippable - TestResponse"
+      (prop_show_read_round_trippable (==) :: TestResponse -> Property),
+    testProperty "prop_diploid_expressable - TestResponse"
       (prop_diploid_expressable
        :: TestResponse -> TestResponse -> Property),
-    testProperty "prop_diploid_readable - Response"
+    testProperty "prop_diploid_readable - TestResponse"
       (prop_diploid_readable :: TestResponse -> TestResponse -> Property),
+
     testProperty "prop_labelSimilarity_can_be_1"
       prop_labelSimilarity_can_be_1,
     testProperty "prop_labelSimilarity_can_be_0"

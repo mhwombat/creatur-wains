@@ -312,8 +312,13 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
       (prop_serialize_round_trippable :: TestBrain -> Property),
     testProperty "prop_genetic_round_trippable - Brain"
       (prop_genetic_round_trippable equivBrain :: TestBrain -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - Brain"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> TestBrain -> Property),
     testProperty "prop_diploid_identity - Brain"
       (prop_diploid_identity equivBrain :: TestBrain -> Property),
+    -- testProperty "prop_show_read_round_trippable - Brain"
+    --   (prop_show_read_round_trippable (==) :: TestBrain -> Property),
     testProperty "prop_diploid_expressable - Brain"
       (prop_diploid_expressable :: TestBrain -> TestBrain -> Property),
     testProperty "prop_diploid_readable - Brain"

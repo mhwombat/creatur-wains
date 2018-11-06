@@ -25,7 +25,7 @@ import           ALife.Creatur.Wain.PlusMinusOneQC
     (equivPM1Double)
 import           ALife.Creatur.Wain.ResponseQC
     (TestAction)
-import           ALife.Creatur.Wain.SimpleMuser
+import           ALife.Creatur.Wain.SimpleMuserInternal
 import           ALife.Creatur.Wain.TestUtils
 import           Test.Framework
     (Test, testGroup)
@@ -56,11 +56,15 @@ test = testGroup "ALife.Creatur.Wain.SimpleMuserQC"
       (prop_serialize_round_trippable :: SimpleMuser TestAction -> Property),
     testProperty "prop_genetic_round_trippable - SimpleMuser"
       (prop_genetic_round_trippable equivMuser :: SimpleMuser TestAction -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - SimpleMuser"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> SimpleMuser TestAction -> Property),
     testProperty "prop_diploid_identity - SimpleMuser"
       (prop_diploid_identity (==) :: SimpleMuser TestAction -> Property),
+    testProperty "prop_show_read_round_trippable - SimpleMuser"
+      (prop_show_read_round_trippable (==) :: SimpleMuser TestAction -> Property),
     testProperty "prop_diploid_expressable - SimpleMuser"
-      (prop_diploid_expressable
-       :: SimpleMuser TestAction -> SimpleMuser TestAction -> Property),
+      (prop_diploid_expressable :: SimpleMuser TestAction -> SimpleMuser TestAction -> Property),
     testProperty "prop_diploid_readable - SimpleMuser"
       (prop_diploid_readable :: SimpleMuser TestAction -> SimpleMuser TestAction -> Property)
   ]

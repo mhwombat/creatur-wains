@@ -65,7 +65,7 @@ type Difference = UIDouble
 --     0 < r0 <= 1
 --     0 < rf <= r0
 data LearningParams = LearningParams UIDouble UIDouble Word64
-  deriving (Eq, Show, Pretty, Generic, NFData)
+  deriving (Eq, Show, Read, Pretty, Generic, NFData)
 
 -- | @'mkLearningParams' r0 rf tf@ defines the shape of the learning
 --   function.
@@ -130,7 +130,7 @@ data LearningParamRanges = LearningParamRanges
     _rfRange :: (UIDouble, UIDouble),
     -- | The range from which the final time should be chosen.
     _tfRange :: (Word64, Word64)
-  } deriving Show
+  } deriving (Show, Read)
 makeLenses ''LearningParamRanges
 
 -- | Range of values permitted for @r0@

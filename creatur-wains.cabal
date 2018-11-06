@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d2684ec29e8a1870dae3042d54e68e00845081ed7e064256375f3420045e26fb
+-- hash: 481999b24e1e283be8994d0d16d47f97eeaa8b1d71b28beeaba1a236a140a574
 
 name:           creatur-wains
 version:        9.5.2
@@ -49,6 +49,7 @@ library
       ALife.Creatur.Wain.Response
       ALife.Creatur.Wain.ResponseInternal
       ALife.Creatur.Wain.SimpleMuser
+      ALife.Creatur.Wain.SimpleMuserInternal
       ALife.Creatur.Wain.SimpleResponseTweaker
       ALife.Creatur.Wain.Statistics
       ALife.Creatur.Wain.UnitInterval

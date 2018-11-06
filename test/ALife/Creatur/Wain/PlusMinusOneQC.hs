@@ -20,10 +20,13 @@ module ALife.Creatur.Wain.PlusMinusOneQC
 
 import           ALife.Creatur.Wain.PlusMinusOne
 import           ALife.Creatur.Wain.TestUtils
-    ( prop_diploid_identity
+    ( prop_diploid_expressable
+    , prop_diploid_identity
+    , prop_diploid_readable
     , prop_genetic_round_trippable
     , prop_makeSimilar_works
     , prop_serialize_round_trippable
+    , prop_show_read_round_trippable
     )
 import           ALife.Creatur.Wain.UnitIntervalQC
     ()
@@ -89,16 +92,34 @@ test = testGroup "ALife.Creatur.Wain.PlusMinusOneQC"
     testProperty "prop_genetic_round_trippable - PM1Double"
       (prop_genetic_round_trippable equivPM1Double :: PM1Double -> Property),
     -- testProperty "prop_genetic_round_trippable2 - PM1Double"
-    --   (prop_genetic_round_trippable2 8 :: [Word8] -> PM1Double -> Property),
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> PM1Double -> Property),
     testProperty "prop_diploid_identity - PM1Double"
       (prop_diploid_identity (==) :: PM1Double -> Property),
+    testProperty "prop_show_read_round_trippable - PM1Double"
+      (prop_show_read_round_trippable (==) :: PM1Double -> Property),
+    testProperty "prop_diploid_expressable - PM1Double"
+      (prop_diploid_expressable :: PM1Double -> PM1Double -> Property),
+    testProperty "prop_diploid_readable - PM1Double"
+      (prop_diploid_readable :: PM1Double -> PM1Double -> Property),
+
     testProperty "prop_serialize_round_trippable - [PM1Double]"
       (prop_serialize_round_trippable :: [PM1Double] -> Property),
     testProperty "prop_genetic_round_trippable - [PM1Double]"
       (prop_genetic_round_trippable equivPM1DoubleVector
-        :: [PM1Double] -> Property),
+       :: [PM1Double] -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - [PM1Double]"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> [PM1Double] -> Property),
     testProperty "prop_diploid_identity - [PM1Double]"
       (prop_diploid_identity (==) :: [PM1Double] -> Property),
+    testProperty "prop_show_read_round_trippable - [PM1Double]"
+      (prop_show_read_round_trippable (==) :: [PM1Double] -> Property),
+    testProperty "prop_diploid_expressable - [PM1Double]"
+      (prop_diploid_expressable :: [PM1Double] -> [PM1Double] -> Property),
+    testProperty "prop_diploid_readable - [PM1Double]"
+      (prop_diploid_readable :: [PM1Double] -> [PM1Double] -> Property),
+
     testProperty "prop_max_pm1Diff_is_1"
       prop_max_pm1Diff_is_1,
     testProperty "prop_min_pm1Diff_is_0"

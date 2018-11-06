@@ -240,32 +240,57 @@ prop_classification_is_consistent s p = property $ bmu == bmu'
 test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
   [
-    testProperty "prop_makeSimilar_works - TestPattern"
-      (prop_makeSimilar_works testPatternDiff makeTestPatternSimilar),
-    testProperty "prop_serialize_round_trippable - LearningFunction"
-      (prop_serialize_round_trippable
-        :: LearningParams -> Property),
-    testProperty "prop_genetic_round_trippable - LearningFunction"
-      (prop_genetic_round_trippable equivLearningParams
-        :: LearningParams -> Property),
-    testProperty "prop_diploid_identity - LearningFunction"
-      (prop_diploid_identity (==)
-        :: LearningParams -> Property),
+    testProperty "prop_serialize_round_trippable - TestPattern"
+      (prop_serialize_round_trippable :: TestPattern -> Property),
+    testProperty "prop_genetic_round_trippable - TestPattern"
+      (prop_genetic_round_trippable (==) :: TestPattern -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - TestPattern"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> TestPattern -> Property),
+    testProperty "prop_diploid_identity - TestPattern"
+      (prop_diploid_identity (==) :: TestPattern -> Property),
+    testProperty "prop_show_read_round_trippable - TestPattern"
+      (prop_show_read_round_trippable (==) :: TestPattern -> Property),
+    testProperty "prop_diploid_expressable - TestPattern"
+      (prop_diploid_expressable :: TestPattern -> TestPattern -> Property),
+    testProperty "prop_diploid_readable - TestPattern"
+      (prop_diploid_readable :: TestPattern -> TestPattern -> Property),
 
-    testProperty "prop_serialize_round_trippable - GeneticSOM"
-      (prop_serialize_round_trippable :: TestGSOM -> Property),
-    testProperty "prop_genetic_round_trippable - GeneticSOM"
-      (prop_genetic_round_trippable equivTestGSOM
-        :: TestGSOM -> Property),
-    testProperty "prop_diploid_identity - GeneticSOM"
-      (prop_diploid_identity equivTestGSOM
-        :: TestGSOM -> Property),
-    testProperty "prop_diploid_expressable - GeneticSOM"
+    testProperty "prop_serialize_round_trippable - LearningParams"
+      (prop_serialize_round_trippable :: LearningParams -> Property),
+    testProperty "prop_genetic_round_trippable - LearningParams"
+      (prop_genetic_round_trippable equivLearningParams
+       :: LearningParams -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - LearningParams"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> LearningParams -> Property),
+    testProperty "prop_diploid_identity - LearningParams"
+      (prop_diploid_identity (==) :: LearningParams -> Property),
+    testProperty "prop_show_read_round_trippable - LearningParams"
+      (prop_show_read_round_trippable (==) :: LearningParams -> Property),
+    testProperty "prop_diploid_expressable - LearningParams"
       (prop_diploid_expressable
-        :: TestGSOM -> TestGSOM -> Property),
-    testProperty "prop_diploid_readable - GeneticSOM"
+       :: LearningParams -> LearningParams -> Property),
+    testProperty "prop_diploid_readable - LearningParams"
       (prop_diploid_readable
-        :: TestGSOM -> TestGSOM -> Property),
+       :: LearningParams -> LearningParams -> Property),
+
+    testProperty "prop_serialize_round_trippable - TestGSOM"
+      (prop_serialize_round_trippable :: TestGSOM -> Property),
+    testProperty "prop_genetic_round_trippable - TestGSOM"
+      (prop_genetic_round_trippable equivTestGSOM
+       :: TestGSOM -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - TestGSOM"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> TestGSOM -> Property),
+    testProperty "prop_diploid_identity - TestGSOM"
+      (prop_diploid_identity equivTestGSOM :: TestGSOM -> Property),
+    -- testProperty "prop_show_read_round_trippable - TestGSOM"
+    --   (prop_show_read_round_trippable (==) :: TestGSOM -> Property),
+    testProperty "prop_diploid_expressable - TestGSOM"
+      (prop_diploid_expressable :: TestGSOM -> TestGSOM -> Property),
+    testProperty "prop_diploid_readable - TestGSOM"
+      (prop_diploid_readable :: TestGSOM -> TestGSOM -> Property),
 
     testProperty "prop_random_learning_rate_always_in_range"
       prop_random_learning_rate_always_in_range,

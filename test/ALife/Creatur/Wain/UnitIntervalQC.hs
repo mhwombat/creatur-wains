@@ -19,10 +19,13 @@ module ALife.Creatur.Wain.UnitIntervalQC
   ) where
 
 import           ALife.Creatur.Wain.TestUtils
-    ( prop_diploid_identity
+    ( prop_diploid_expressable
+    , prop_diploid_identity
+    , prop_diploid_readable
     , prop_genetic_round_trippable
     , prop_makeSimilar_works
     , prop_serialize_round_trippable
+    , prop_show_read_round_trippable
     )
 import           ALife.Creatur.Wain.UnitInterval
 import           Control.DeepSeq
@@ -89,16 +92,33 @@ test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
     testProperty "prop_genetic_round_trippable - UIDouble"
       (prop_genetic_round_trippable equivUIDouble :: UIDouble -> Property),
     -- testProperty "prop_genetic_round_trippable2 - UIDouble"
-    --   (prop_genetic_round_trippable2 8 :: [Word8] -> UIDouble -> Property),
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> UIDouble -> Property),
     testProperty "prop_diploid_identity - UIDouble"
       (prop_diploid_identity (==) :: UIDouble -> Property),
+    testProperty "prop_show_read_round_trippable - UIDouble"
+      (prop_show_read_round_trippable (==) :: UIDouble -> Property),
+    testProperty "prop_diploid_expressable - UIDouble"
+      (prop_diploid_expressable :: UIDouble -> UIDouble -> Property),
+    testProperty "prop_diploid_readable - UIDouble"
+      (prop_diploid_readable :: UIDouble -> UIDouble -> Property),
+
     testProperty "prop_serialize_round_trippable - [UIDouble]"
       (prop_serialize_round_trippable :: [UIDouble] -> Property),
     testProperty "prop_genetic_round_trippable - [UIDouble]"
-      (prop_genetic_round_trippable equivUIDoubleVector
-        :: [UIDouble] -> Property),
+      (prop_genetic_round_trippable equivUIDoubleVector :: [UIDouble] -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - [UIDouble]"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> [UIDouble] -> Property),
     testProperty "prop_diploid_identity - [UIDouble]"
       (prop_diploid_identity (==) :: [UIDouble] -> Property),
+    testProperty "prop_show_read_round_trippable - [UIDouble]"
+      (prop_show_read_round_trippable (==) :: [UIDouble] -> Property),
+    testProperty "prop_diploid_expressable - [UIDouble]"
+      (prop_diploid_expressable :: [UIDouble] -> [UIDouble] -> Property),
+    testProperty "prop_diploid_readable - [UIDouble]"
+      (prop_diploid_readable :: [UIDouble] -> [UIDouble] -> Property),
+
     testProperty "prop_max_uiDiff_is_1"
       prop_max_uiDiff_is_1,
     testProperty "prop_min_uiDiff_is_0"

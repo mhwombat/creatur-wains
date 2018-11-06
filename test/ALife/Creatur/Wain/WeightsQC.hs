@@ -78,22 +78,25 @@ prop_genetic_weights_are_normalised xs = (not . null) xs ==>
 test :: Test
 test = testGroup "ALife.Creatur.Wain.WeightsQC"
   [
-    testProperty "prop_sum_of_weights_is_1"
-      prop_sum_of_weights_is_1,
-    testProperty "prop_weights_are_positive"
-      prop_weights_are_positive,
     testProperty "prop_serialize_round_trippable - Weights"
       (prop_serialize_round_trippable :: Weights -> Property),
     testProperty "prop_genetic_round_trippable - Weights"
       (prop_genetic_round_trippable equivWeights :: Weights -> Property),
-    testProperty "prop_show_read_round_trippable - Weights"
-      (prop_show_read_round_trippable (==) :: Weights -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - Weights"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> Weights -> Property),
     testProperty "prop_diploid_identity - Weights"
       (prop_diploid_identity equivWeights :: Weights -> Property),
+    testProperty "prop_show_read_round_trippable - Weights"
+      (prop_show_read_round_trippable (==) :: Weights -> Property),
     testProperty "prop_diploid_expressable - Weights"
       (prop_diploid_expressable :: Weights -> Weights -> Property),
     testProperty "prop_diploid_readable - Weights"
       (prop_diploid_readable :: Weights -> Weights -> Property),
+    testProperty "prop_sum_of_weights_is_1"
+      prop_sum_of_weights_is_1,
+    testProperty "prop_weights_are_positive"
+      prop_weights_are_positive,
     testProperty "prop_weighted_sum_in_range"
       prop_weighted_sum_in_range,
     testProperty "prop_genetic_weights_are_normalised"

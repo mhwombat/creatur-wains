@@ -62,6 +62,30 @@ prop_makeResponseSimilar_works
 test :: Test
 test = testGroup "ALife.Creatur.Wain.SimpleResponseTweakerQC"
   [
+    -- testProperty "prop_serialize_round_trippable - ResponseTweaker"
+    --   (prop_serialize_round_trippable
+    --    :: ResponseTweaker TestAction -> Property),
+    -- testProperty "prop_genetic_round_trippable - ResponseTweaker"
+    --   (prop_genetic_round_trippable (==)
+    --    :: ResponseTweaker TestAction -> Property),
+    -- -- testProperty "prop_genetic_round_trippable2 - ResponseTweaker"
+    -- --   (prop_genetic_round_trippable2
+    -- --    :: Int -> [Word8] -> ResponseTweaker TestAction -> Property),
+    -- testProperty "prop_diploid_identity - ResponseTweaker"
+    --   (prop_diploid_identity (==)
+    --    :: ResponseTweaker TestAction -> Property),
+    -- testProperty "prop_show_read_round_trippable - ResponseTweaker"
+    --   (prop_show_read_round_trippable (==)
+    --    :: ResponseTweaker TestAction -> Property),
+    -- testProperty "prop_diploid_expressable - ResponseTweaker"
+    --   (prop_diploid_expressable
+    --    :: ResponseTweaker TestAction -> ResponseTweaker TestAction
+    --    -> Property),
+    -- testProperty "prop_diploid_readable - ResponseTweaker"
+    --   (prop_diploid_readable
+    --    :: ResponseTweaker TestAction -> ResponseTweaker TestAction
+    --    -> Property),
+
     -- testProperty "prop_responseDiff_can_be_1"
     --   prop_responseDiff_can_be_1,
     testProperty "prop_responseDiff_can_be_0"

@@ -201,24 +201,35 @@ test = testGroup "ALife.Creatur.Wain.PredictorQC"
     testProperty "prop_serialize_round_trippable - Tweaker"
       (prop_serialize_round_trippable :: TestTweaker -> Property),
     testProperty "prop_genetic_round_trippable - Tweaker"
-      (prop_genetic_round_trippable equivTweaker
-        :: TestTweaker -> Property),
+      (prop_genetic_round_trippable equivTweaker :: TestTweaker -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - Tweaker"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> TestTweaker -> Property),
     testProperty "prop_diploid_identity - Tweaker"
       (prop_diploid_identity (==) :: TestTweaker -> Property),
+    testProperty "prop_show_read_round_trippable - Tweaker"
+      (prop_show_read_round_trippable (==) :: TestTweaker -> Property),
     testProperty "prop_diploid_expressable - Tweaker"
       (prop_diploid_expressable :: TestTweaker -> TestTweaker -> Property),
     testProperty "prop_diploid_readable - Tweaker"
       (prop_diploid_readable :: TestTweaker -> TestTweaker -> Property),
+
     testProperty "prop_serialize_round_trippable - Predictor"
       (prop_serialize_round_trippable :: TestPredictor -> Property),
     testProperty "prop_genetic_round_trippable - Predictor"
       (prop_genetic_round_trippable equivPredictor :: TestPredictor -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - Predictor"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> TestPredictor -> Property),
     testProperty "prop_diploid_identity - Predictor"
       (prop_diploid_identity (==) :: TestPredictor -> Property),
+    -- testProperty "prop_show_read_round_trippable - Predictor"
+    --   (prop_show_read_round_trippable (==) :: TestPredictor -> Property),
     testProperty "prop_diploid_expressable - Predictor"
       (prop_diploid_expressable :: TestPredictor -> TestPredictor -> Property),
     testProperty "prop_diploid_readable - Predictor"
       (prop_diploid_readable :: TestPredictor -> TestPredictor -> Property),
+
     testProperty "prop_predict_never_causes_error"
       prop_predict_never_causes_error,
     -- testProperty "prop_prettyPredictionDetail_never_causes_error"

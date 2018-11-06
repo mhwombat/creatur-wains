@@ -258,14 +258,17 @@ test :: Test
 test = testGroup "ALife.Creatur.WainQC"
   [
     testProperty "prop_serialize_round_trippable - Wain"
-      (prop_serialize_round_trippable
-        :: TestWain -> Property),
+      (prop_serialize_round_trippable :: TestWain -> Property),
     testProperty "prop_genetic_round_trippable - Wain"
-      (prop_genetic_round_trippable equiv
-        :: TestWain -> Property),
+      (prop_genetic_round_trippable equiv :: TestWain -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - Wain"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> TestWain -> Property),
     testProperty "prop_diploid_identity - Wain"
-      (prop_diploid_identity equiv
-        :: TestWain -> Property),
+      (prop_diploid_identity equiv :: TestWain -> Property),
+    -- testProperty "prop_show_read_round_trippable - Wain"
+    --   (prop_show_read_round_trippable (==) :: TestWain -> Property),
+
     testProperty "prop_adjustEnergy_balances_energy"
       prop_adjustEnergy_balances_energy,
     testProperty "prop_chooseAction_never_causes_error"

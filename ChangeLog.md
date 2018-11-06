@@ -1,6 +1,7 @@
 # Changelog for creatur-wains
 
 9.5.2 Made Weights instance of Read.
+      Added more tests.
 9.5.1 Improved reporting.
 9.5.0 Use SGM2 instead of SGM.
 9.4.2 Show more digits when practical.

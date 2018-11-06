@@ -125,20 +125,24 @@ test :: Test
 test = testGroup "ALife.Creatur.Wain.ClassifierQC"
   [
     testProperty "prop_serialize_round_trippable - Classifier"
-      (prop_serialize_round_trippable
-        :: TestClassifier -> Property),
+      (prop_serialize_round_trippable :: TestClassifier -> Property),
     testProperty "prop_genetic_round_trippable - Classifier"
       (prop_genetic_round_trippable equivClassifier
-        :: TestClassifier -> Property),
+       :: TestClassifier -> Property),
+    -- testProperty "prop_genetic_round_trippable2 - Classifier"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> TestClassifier -> Property),
     testProperty "prop_diploid_identity - Classifier"
-      (prop_diploid_identity (==)
-        :: TestClassifier -> Property),
+      (prop_diploid_identity (==) :: TestClassifier -> Property),
+    -- testProperty "prop_show_read_round_trippable - Classifier"
+    --   (prop_show_read_round_trippable (==) :: TestClassifier -> Property),
     testProperty "prop_diploid_expressable - Classifier"
       (prop_diploid_expressable
-        :: TestClassifier -> TestClassifier -> Property),
+       :: TestClassifier -> TestClassifier -> Property),
     testProperty "prop_diploid_readable - Classifier"
       (prop_diploid_readable
-        :: TestClassifier -> TestClassifier -> Property),
+       :: TestClassifier -> TestClassifier -> Property),
+
     testProperty "classifySetAndTrain_label_count"
       classifySetAndTrain_label_count,
     testProperty "prop_classifier_behaves_like_sgm"
