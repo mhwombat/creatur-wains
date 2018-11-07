@@ -38,7 +38,7 @@ import           ALife.Creatur.Wain.TestUtils
 import           Control.DeepSeq
     (NFData, deepseq)
 import           Control.Lens
-import qualified Data.Datamining.Clustering.SGM2Internal as SOM
+import qualified Data.Datamining.Clustering.SGM3Internal as SOM
 import qualified Data.Map.Lazy                           as M
 import           Data.Serialize
     (Serialize)

@@ -37,7 +37,7 @@ import           Control.DeepSeq
 import           Control.Lens
 import           Control.Monad.Random
     (evalRand, runRand)
-import           Data.Datamining.Clustering.SGM2
+import           Data.Datamining.Clustering.SGM3
     (toMap, trainBatch)
 import           Data.Map.Strict
     (keys, (!))

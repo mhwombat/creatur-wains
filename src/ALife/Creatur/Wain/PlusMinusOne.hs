@@ -42,7 +42,7 @@ import           ALife.Creatur.Wain.Pretty
 import           ALife.Creatur.Wain.UnitInterval
     (UIDouble, doubleToUI, uiToDouble)
 import           ALife.Creatur.Wain.Util
-    (enforceRange, inRange, scaleFromWord64, scaleToWord64, scaleToWord8)
+    (inRange, scaleToWord8)
 import           Control.DeepSeq
     (NFData)
 import           Data.Datamining.Pattern
@@ -66,7 +66,7 @@ interval = (-1, 1)
 
 -- | A number on the interval -1 to 1, inclusive.
 newtype PM1Double = PM1Double Double
-  deriving (Eq, Ord, Generic, Serialize, NFData)
+  deriving (Eq, Ord, Generic, Serialize, NFData, W8.Genetic)
 
 -- | Extract the value from a @PM1Double@.
 pm1ToDouble :: PM1Double -> Double
@@ -144,12 +144,6 @@ instance Floating PM1Double where
 
 instance Real PM1Double where
   toRational (PM1Double x) = toRational x
-
--- | The initial sequences stored at birth are genetically determined.
-instance W8.Genetic PM1Double where
-  put x = W8.put . scaleToWord64 interval . enforceRange interval
-                    . pm1ToDouble $ x
-  get = fmap (fmap (PM1Double . scaleFromWord64 interval)) W8.get
 
 instance Diploid PM1Double where
   express (PM1Double x) (PM1Double y) = PM1Double $ (x + y)/2

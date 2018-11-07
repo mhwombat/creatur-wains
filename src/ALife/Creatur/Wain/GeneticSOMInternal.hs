@@ -41,7 +41,7 @@ import           Control.DeepSeq
 import           Control.Lens
 import           Control.Monad.Random
     (Rand, RandomGen, getRandomR)
-import qualified Data.Datamining.Clustering.SGM2Internal as SOM
+import qualified Data.Datamining.Clustering.SGM3Internal as SOM
 import qualified Data.Map.Strict                         as M
 import qualified Data.Serialize                          as S
 import           Data.Word
