@@ -34,7 +34,7 @@ import           ALife.Creatur.Wain.GeneticSOM
 import           ALife.Creatur.Wain.GeneticSOMQC
     (sizedArbGeneticSOM)
 import           ALife.Creatur.Wain.PlusMinusOne
-    (PM1Double)
+    (PM1Double, pm1VectorDiff)
 import qualified ALife.Creatur.Wain.Predictor             as P
 import qualified ALife.Creatur.Wain.PredictorQC           as PQC
 import           ALife.Creatur.Wain.Response

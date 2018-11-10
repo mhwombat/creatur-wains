@@ -45,14 +45,14 @@ import           Text.Printf
 -- | A predictor predicts the outcome of a response to a scenario.
 type Predictor a t = S.GeneticSOM (Response a) t
 
--- | @'buildPredictor' e n t@ returns a Predictor, using an
+-- | @'buildPredictor' e n dt t@ returns a Predictor, using an
 --   learning function with the parameters @e@ as a learning
---   function and maximum number of models @n@,
---   and tweaker @t@.
+--   function, maximum number of models @n@,
+--   difference threshold @dt@, and tweaker @t@.
 buildPredictor
   :: (Eq a, S.Tweaker t, S.Pattern t ~ Response a)
-    => S.LearningParams -> Word64 -> t -> Predictor a t
-buildPredictor e n t = S.buildGeneticSOM e n t
+    => S.LearningParams -> Word64 -> UIDouble -> t -> Predictor a t
+buildPredictor = S.buildGeneticSOM
 
 -- | Information about how a predictor generated a prediction
 data PredictionDetail a

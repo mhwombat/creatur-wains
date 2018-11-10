@@ -24,7 +24,7 @@ module ALife.Creatur.Wain.ClassifierQC
     TestClassifier
   ) where
 
-import qualified ALife.Creatur.Genetics.BRGCWord8        as W8
+import qualified ALife.Creatur.Genetics.BRGCWord8       as W8
 import           ALife.Creatur.Genetics.Diploid
     (Diploid)
 import           ALife.Creatur.Wain.Classifier
@@ -38,8 +38,8 @@ import           ALife.Creatur.Wain.TestUtils
 import           Control.DeepSeq
     (NFData, deepseq)
 import           Control.Lens
-import qualified Data.Datamining.Clustering.SGM3Internal as SOM
-import qualified Data.Map.Lazy                           as M
+import qualified Data.Datamining.Clustering.SGMInternal as SOM
+import qualified Data.Map.Lazy                          as M
 import           Data.Serialize
     (Serialize)
 import           GHC.Generics
@@ -48,7 +48,7 @@ import           Test.Framework
     (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2
     (testProperty)
-import           Test.QuickCheck                         hiding
+import           Test.QuickCheck                        hiding
     (classify, maxSize)
 
 data TestTweaker = TestTweaker

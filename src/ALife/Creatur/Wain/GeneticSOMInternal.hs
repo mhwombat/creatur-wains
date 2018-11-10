@@ -25,7 +25,7 @@ module ALife.Creatur.Wain.GeneticSOMInternal where
 
 import           ALife.Creatur.Genetics.BRGCWord8
     (Genetic)
-import qualified ALife.Creatur.Genetics.BRGCWord8        as G
+import qualified ALife.Creatur.Genetics.BRGCWord8       as G
 import           ALife.Creatur.Genetics.Diploid
     (Diploid, express)
 import           ALife.Creatur.Wain.Pretty
@@ -41,9 +41,9 @@ import           Control.DeepSeq
 import           Control.Lens
 import           Control.Monad.Random
     (Rand, RandomGen, getRandomR)
-import qualified Data.Datamining.Clustering.SGM3Internal as SOM
-import qualified Data.Map.Strict                         as M
-import qualified Data.Serialize                          as S
+import qualified Data.Datamining.Clustering.SGMInternal as SOM
+import qualified Data.Map.Strict                        as M
+import qualified Data.Serialize                         as S
 import           Data.Word
     (Word64)
 import           GHC.Generics
@@ -215,16 +215,16 @@ data GeneticSOM p t =
     } deriving (Generic, NFData)
 makeLenses ''GeneticSOM
 
--- | @'buildGeneticSOM' e n t@ returns a genetic SOM, using an
+-- | @'buildGeneticSOM' e n dt t@ returns a genetic SOM, using an
 --   exponential function defined by the parameters @e@ as a learning
---   function, maximum number of models @n@,
+--   function, maximum number of models @n@, difference threshold @dt@,
 --   and "tweaker" @t@.
 buildGeneticSOM
   :: (Tweaker t, p ~ Pattern t)
-    => LearningParams -> Word64 -> t -> GeneticSOM p t
-buildGeneticSOM e maxSz t
+    => LearningParams -> Word64 -> UIDouble -> t -> GeneticSOM p t
+buildGeneticSOM e maxSz dt t
   = GeneticSOM som e t
-  where som = SOM.makeSGM lrf (fromIntegral maxSz) df af
+  where som = SOM.makeSGM lrf (fromIntegral maxSz) dt False df af
         lrf = toLearningFunction e
         df = diff t
         af = adjust t
@@ -248,7 +248,9 @@ showSGM
     => SOM.SGM Word64 UIDouble Label p -> LearningParams -> t -> String
 showSGM s e t = "SGM (" ++ show (SOM.toMap s)
                    ++ ") (toLearningFunction (" ++ show e
-                   ++ ")) " ++ show (SOM.capacity s)
+                   ++ ")) " ++ show (SOM.maxSize s)
+                   ++ " " ++ show (SOM.diffThreshold s)
+                   ++ " " ++ show (SOM.allowDeletion s)
                    ++ " (diff (" ++ show t
                    ++ ")) (adjust (" ++ show t
                    ++ ")) " ++ show (SOM.nextIndex s)
@@ -257,26 +259,29 @@ instance (S.Serialize p, S.Serialize t, Tweaker t, p ~ Pattern t)
     => S.Serialize (GeneticSOM p t) where
   put s = S.put (SOM.toMap . _patternMap $ s)
             >> S.put (_learningParams s)
-            >> S.put (maxSize s)
+            >> S.put (SOM.maxSize . _patternMap $ s)
+            >> S.put (SOM.diffThreshold . _patternMap $ s)
             >> S.put (_tweaker s)
             >> S.put (SOM.nextIndex . _patternMap $ s)
   get = do
     gm <- S.get
     lps <- S.get
     maxSz <- S.get
+    dt <- S.get
     tr <- S.get
     kNext <- S.get
     let lrf = toLearningFunction lps
     let df = diff tr
     let af = adjust tr
-    let s = SOM.SGM gm lrf maxSz df af kNext
+    let s = SOM.SGM gm lrf maxSz dt False df af kNext
     return $ GeneticSOM s lps tr
 
 instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
     => G.Genetic (GeneticSOM p t) where
   put s = G.put (M.elems . SOM.toMap . _patternMap $ s)
             >> G.put (_learningParams s)
-            >> G.put (fromIntegral . maxSize $ s :: Word64)
+            >> G.put (fromIntegral . SOM.maxSize . _patternMap $ s :: Word64)
+            >> G.put (SOM.diffThreshold . _patternMap $ s)
             >> G.put (_tweaker s)
   get = do
     nodes <- G.get
@@ -284,23 +289,27 @@ instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
     let gm = M.fromList . zip newLabels <$> nodes
     lps <- G.get
     maxSz <- fmap fromIntegral <$> (G.get :: G.Reader (Either [String] Word64))
+    dt <- G.get
     tr <- G.get
     let lrf = toLearningFunction <$> lps
     let df = diff <$> tr
     let af = adjust <$> tr
     let kNext = toEnum . length <$> nodes
-    let s = SOM.SGM <$> gm <*> lrf <*> maxSz <*> df <*> af <*> kNext
+    let s = SOM.SGM <$> gm <*> lrf <*> maxSz <*> dt <*> pure False <*> df <*> af <*> kNext
     return $ GeneticSOM <$> s <*> lps <*> tr
 
 instance (Diploid p, Diploid t, Tweaker t, p ~ Pattern t)
     => Diploid (GeneticSOM p t) where
   express x y = GeneticSOM s lps tr
-    where s = SOM.SGM gm lrf maxSz df af kNext
+    where s = SOM.SGM gm lrf maxSz dt False df af kNext
           gm = M.fromList $
                  express (M.toList . SOM.toMap . _patternMap $ x)
                          (M.toList . SOM.toMap . _patternMap $ y)
           lrf = toLearningFunction lps
-          maxSz = express (maxSize x) (maxSize y)
+          maxSz = express (SOM.maxSize . _patternMap $ x)
+                          (SOM.maxSize . _patternMap $ y)
+          dt = express (SOM.diffThreshold . _patternMap $ x)
+                       (SOM.diffThreshold . _patternMap $ y)
           df = diff tr
           af = adjust tr
           kNext = express (SOM.nextIndex . _patternMap $ x)
@@ -312,7 +321,8 @@ instance (Statistical t, Statistical [(Label, p)])
   => Statistical (GeneticSOM p t) where
   stats s =
     (iStat "num models" . numModels $ s)
-      :(iStat "max. size" . maxSize $ s)
+      :(iStat "max. size" . SOM.maxSize . _patternMap $ s)
+      :(dStat "threshold" . SOM.diffThreshold . _patternMap $ s)
       :(iStat "SQ" . schemaQuality $ s)
       :(stats . _learningParams $ s)
       -- ++ (map (prefix "model") . stats . M.toAscList . modelMap $ s)
@@ -325,12 +335,12 @@ isEmpty = SOM.isEmpty . _patternMap
 
 -- | The maximum number of models this SOM can hold.
 maxSize :: GeneticSOM p t -> Int
-maxSize = SOM.capacity . _patternMap
+maxSize = SOM.maxSize . _patternMap
 
 -- | Returns the number of models in the SOM.
 numModels
   :: GeneticSOM p t -> Int
-numModels (GeneticSOM s _ _) = SOM.size s
+numModels (GeneticSOM s _ _) = SOM.numModels s
 
 -- -- | Returns the models in the SOM.
 -- models
@@ -376,6 +386,9 @@ schemaQuality = discrimination . M.elems . SOM.counterMap . _patternMap
 discrimination :: Integral a => [a] -> Int
 discrimination xs = length $ filter (>k) xs
   where k = sum xs `div` fromIntegral (2 * length xs)
+
+diffThreshold :: GeneticSOM p t -> UIDouble
+diffThreshold = SOM.diffThreshold . _patternMap
 
 data ClassificationDetail p
   = ClassificationDetail

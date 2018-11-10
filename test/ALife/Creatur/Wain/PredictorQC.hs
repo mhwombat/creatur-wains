@@ -25,30 +25,33 @@ module ALife.Creatur.Wain.PredictorQC
     ImprintTestData(..)
   ) where
 
-import           ALife.Creatur.Wain.GeneticSOMInternal
-    (Label, maxSize, numModels, trainAndClassify)
-import           ALife.Creatur.Wain.GeneticSOMQC
+import ALife.Creatur.Wain.GeneticSOMInternal
+    (Label, maxSize, numModels, patternMap, trainAndClassify)
+import ALife.Creatur.Wain.GeneticSOMQC
     (equivGSOM, sizedArbEmptyGeneticSOM, sizedArbGeneticSOM)
-import           ALife.Creatur.Wain.PlusMinusOne
+import ALife.Creatur.Wain.PlusMinusOne
     (PM1Double, pm1ToDouble)
-import           ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Wain.PredictorInternal
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
-import           ALife.Creatur.Wain.Probability
+import ALife.Creatur.Wain.Probability
     (Probability)
-import           ALife.Creatur.Wain.Response
+import ALife.Creatur.Wain.Response
     (Response (..))
-import           ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.ResponseQC
     (TestAction, TestResponse, arbTestResponse)
-import           ALife.Creatur.Wain.SimpleResponseTweaker
+import ALife.Creatur.Wain.SimpleResponseTweaker
     (ResponseTweaker (..), responseDiff)
-import           ALife.Creatur.Wain.TestUtils
-import           Control.DeepSeq
+import ALife.Creatur.Wain.TestUtils
+import Control.DeepSeq
     (deepseq)
-import           Test.Framework
+import Control.Lens
+import Data.Datamining.Clustering.SGMInternal
+    (diffThreshold)
+import Test.Framework
     (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
+import Test.Framework.Providers.QuickCheck2
     (testProperty)
-import           Test.QuickCheck                          hiding
+import Test.QuickCheck                          hiding
     (labels, maxSize)
 
 type TestTweaker = ResponseTweaker TestAction
@@ -94,9 +97,12 @@ sizedArbTrainingTestData n = do
   nO:nConditions:capacity:[] <- divvy n 3
   let nObjects = min 3 nO
   p <- arbTestPredictor nObjects nConditions capacity
+  let pm = view patternMap p
+  let pm' = pm { diffThreshold=0.1 }
+  let p' = set patternMap pm' p
   r <- arbTestResponse nObjects nConditions
   os <- vectorOf nConditions arbitrary
-  return $ TrainingTestData p r os
+  return $ TrainingTestData p' r os
 
 instance Arbitrary TrainingTestData where
   arbitrary = sized sizedArbTrainingTestData

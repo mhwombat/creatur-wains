@@ -37,7 +37,7 @@ import           Control.DeepSeq
 import           Control.Lens
 import           Control.Monad.Random
     (evalRand, runRand)
-import           Data.Datamining.Clustering.SGM3
+import           Data.Datamining.Clustering.SGM
     (toMap, trainBatch)
 import           Data.Map.Strict
     (keys, (!))
@@ -148,8 +148,9 @@ sizedArbEmptyGeneticSOM
     => Int -> Gen (GeneticSOM p t)
 sizedArbEmptyGeneticSOM maxSz = do
   e <- arbitrary
+  dt <- (\x -> x*x) <$> arbitrary
   t <- arbitrary
-  return $ buildGeneticSOM e (fromIntegral maxSz) t
+  return $ buildGeneticSOM e (fromIntegral maxSz) dt t
 
 -- | Used by other test modules
 sizedArbGeneticSOM
@@ -174,6 +175,7 @@ equivGSOM equivT x y =
   maxSize x == maxSize y
     && equivLearningParams (view learningParams x)
         (view learningParams y)
+    && equivUIDouble (diffThreshold x) (diffThreshold y)
     &&  equivT (view tweaker x) (view tweaker y)
 
 -- ignores counters and next index

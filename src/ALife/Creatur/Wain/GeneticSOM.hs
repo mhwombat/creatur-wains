@@ -40,6 +40,7 @@ module ALife.Creatur.Wain.GeneticSOM
     currentLearningRate,
     schemaQuality,
     discrimination,
+    diffThreshold,
     ClassificationDetail(..),
     prettyClassificationDetail,
     prettyClassificationMoreDetail,
@@ -47,4 +48,4 @@ module ALife.Creatur.Wain.GeneticSOM
     trainAndClassify
   ) where
 
-import           ALife.Creatur.Wain.GeneticSOMInternal
+import ALife.Creatur.Wain.GeneticSOMInternal

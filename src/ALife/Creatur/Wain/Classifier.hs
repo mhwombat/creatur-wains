@@ -48,13 +48,13 @@ import           GHC.Generics
 --   models.
 type Classifier = S.GeneticSOM
 
--- | @'buildClassifier' p n t@ returns a genetic SOM, using an
+-- | @'buildClassifier' p n dt t@ returns a genetic SOM, using an
 --   learning function with the parameters @p@ as a learning
---   function, maximum number of models @n@,
+--   function, maximum number of models @n@, difference threshold @dt@,
 --   and "tweaker" @t@.
 buildClassifier
   :: (S.Tweaker t, p ~ S.Pattern t)
-    => S.LearningParams -> Word64 -> t -> Classifier p t
+    => S.LearningParams -> Word64 -> UIDouble -> t -> Classifier p t
 buildClassifier = S.buildGeneticSOM
 
 -- | Detailed information about how a classification was made.

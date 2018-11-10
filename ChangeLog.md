@@ -1,7 +1,6 @@
 # Changelog for creatur-wains
 
-9.5.3 Made genetic encoding of PM1Double more accurate.
-      Using SGM3.
+9.5.3 Returned to original SGM.
 9.5.2 Made Weights instance of Read.
       Added more tests.
 9.5.1 Improved reporting.

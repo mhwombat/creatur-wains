@@ -10,37 +10,64 @@
 -- Verify that a wain can be taught.
 --
 ------------------------------------------------------------------------
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies        #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main where
 
-import ALife.Creatur.Wain
-import ALife.Creatur.Wain.BrainInternal (classifier, predictor,
-  makeBrain, scenarioReport, responseReport, decisionReport,
-  decisionQuality)
-import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
-import ALife.Creatur.Wain.GeneticSOMInternal (LearningParams(..),
-  buildGeneticSOM, modelMap, schemaQuality, currentLearningRate)
-import ALife.Creatur.Wain.Pretty (pretty)
-import ALife.Creatur.Wain.Response (action, outcomes)
-import ALife.Creatur.Wain.ResponseQC (TestAction(..))
-import ALife.Creatur.Wain.SimpleMuser (SimpleMuser, makeMuser)
-import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
-import ALife.Creatur.Wain.SimpleResponseTweakerQC ()
-import ALife.Creatur.Wain.Statistics (stats)
-import ALife.Creatur.Wain.TestUtils (TestPattern(..), testPatternDiff)
-import ALife.Creatur.Wain.UnitInterval (uiToDouble)
-import ALife.Creatur.Wain.Util (fifthOfFive)
-import ALife.Creatur.Wain.Weights (makeWeights)
-import Control.Lens
-import Control.Monad (foldM_)
-import Control.Monad.Random (mkStdGen, evalRand, getRandoms)
-import qualified Data.Map.Strict as M
-import Data.List (minimumBy)
-import Data.Ord (comparing)
+import           ALife.Creatur.Wain
+import           ALife.Creatur.Wain.BrainInternal
+    ( classifier
+    , decisionQuality
+    , decisionReport
+    , makeBrain
+    , predictor
+    , responseReport
+    , scenarioReport
+    )
+import           ALife.Creatur.Wain.ClassifierQC
+    (TestTweaker (..))
+import           ALife.Creatur.Wain.GeneticSOMInternal
+    ( LearningParams (..)
+    , buildGeneticSOM
+    , currentLearningRate
+    , modelMap
+    , schemaQuality
+    )
+import           ALife.Creatur.Wain.Pretty
+    (pretty)
+import           ALife.Creatur.Wain.Response
+    (action, outcomes)
+import           ALife.Creatur.Wain.ResponseQC
+    (TestAction (..))
+import           ALife.Creatur.Wain.SimpleMuser
+    (SimpleMuser, makeMuser)
+import           ALife.Creatur.Wain.SimpleResponseTweaker
+    (ResponseTweaker (..))
+import           ALife.Creatur.Wain.SimpleResponseTweakerQC
+    ()
+import           ALife.Creatur.Wain.Statistics
+    (stats)
+import           ALife.Creatur.Wain.TestUtils
+    (TestPattern (..), testPatternDiff)
+import           ALife.Creatur.Wain.UnitInterval
+    (uiToDouble)
+import           ALife.Creatur.Wain.Util
+    (fifthOfFive)
+import           ALife.Creatur.Wain.Weights
+    (makeWeights)
+import           Control.Lens
+import           Control.Monad
+    (foldM_)
+import           Control.Monad.Random
+    (evalRand, getRandoms, mkStdGen)
+import           Data.List
+    (minimumBy)
+import qualified Data.Map.Strict                            as M
+import           Data.Ord
+    (comparing)
 
 reward :: Double
 reward = 0.1
@@ -74,7 +101,8 @@ testWain = imprintAll w'
         wAgeOfMaturity = 100
         wPassionDelta = 0
         wBoredomDelta = 0
-        wClassifier = buildGeneticSOM ec 10 TestTweaker
+        threshold = testPatternDiff (TestPattern 0) (TestPattern 49)
+        wClassifier = buildGeneticSOM ec 10 threshold TestTweaker
         (Right wMuser) = makeMuser [0, 0, 0, 0] 1
         wIos = [0.1, 0, 0, 0]
         wRds = [0.1, 0, 0, 0]
