@@ -13,12 +13,10 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.UnitIntervalQC
   (
-    test,
-    equivUIDouble,
-    equivUIDoubleVector
+    test
   ) where
 
-import           ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.TestUtils
     ( prop_diploid_expressable
     , prop_diploid_identity
     , prop_diploid_readable
@@ -27,28 +25,17 @@ import           ALife.Creatur.Wain.TestUtils
     , prop_serialize_round_trippable
     , prop_show_read_round_trippable
     )
-import           ALife.Creatur.Wain.UnitInterval
-import           Control.DeepSeq
+import ALife.Creatur.Wain.UnitInterval
+import Control.DeepSeq
     (deepseq)
-import qualified Numeric.ApproxEq                     as N
-import           Test.Framework
+import Test.Framework
     (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
+import Test.Framework.Providers.QuickCheck2
     (testProperty)
-import           Test.QuickCheck
+import Test.QuickCheck
 
 instance Arbitrary UIDouble where
   arbitrary = doubleToUI <$> choose interval
-
-equivUIDouble :: UIDouble -> UIDouble -> Bool
-equivUIDouble x y = N.within 1 (uiToDouble x) (uiToDouble y)
-
-equivUIDoubleVector :: [UIDouble] -> [UIDouble] -> Bool
-equivUIDoubleVector (x:xs) (y:ys)
-  = equivUIDouble x y && equivUIDoubleVector xs ys
-equivUIDoubleVector [] [] = True
-equivUIDoubleVector [] _ = False
-equivUIDoubleVector _ [] = False
 
 prop_max_uiDiff_is_1 :: Bool
 prop_max_uiDiff_is_1 = uiDiff (doubleToUI 0) (doubleToUI 1) == 1
@@ -90,7 +77,7 @@ test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
     testProperty "prop_serialize_round_trippable - UIDouble"
       (prop_serialize_round_trippable :: UIDouble -> Property),
     testProperty "prop_genetic_round_trippable - UIDouble"
-      (prop_genetic_round_trippable equivUIDouble :: UIDouble -> Property),
+      (prop_genetic_round_trippable (==) :: UIDouble -> Property),
     -- testProperty "prop_genetic_round_trippable2 - UIDouble"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> UIDouble -> Property),
@@ -106,7 +93,7 @@ test = testGroup "ALife.Creatur.Wain.UnitIntervalQC"
     testProperty "prop_serialize_round_trippable - [UIDouble]"
       (prop_serialize_round_trippable :: [UIDouble] -> Property),
     testProperty "prop_genetic_round_trippable - [UIDouble]"
-      (prop_genetic_round_trippable equivUIDoubleVector :: [UIDouble] -> Property),
+      (prop_genetic_round_trippable (==) :: [UIDouble] -> Property),
     -- testProperty "prop_genetic_round_trippable2 - [UIDouble]"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> [UIDouble] -> Property),

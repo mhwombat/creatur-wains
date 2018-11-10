@@ -1,6 +1,7 @@
 # Changelog for creatur-wains
 
 9.5.3 Returned to original SGM.
+      Made some tests stricter.
 9.5.2 Made Weights instance of Read.
       Added more tests.
 9.5.1 Improved reporting.

@@ -13,13 +13,11 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.PlusMinusOneQC
   (
-    test,
-    equivPM1Double,
-    equivPM1DoubleVector
+    test
   ) where
 
-import           ALife.Creatur.Wain.PlusMinusOne
-import           ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.PlusMinusOne
+import ALife.Creatur.Wain.TestUtils
     ( prop_diploid_expressable
     , prop_diploid_identity
     , prop_diploid_readable
@@ -28,29 +26,18 @@ import           ALife.Creatur.Wain.TestUtils
     , prop_serialize_round_trippable
     , prop_show_read_round_trippable
     )
-import           ALife.Creatur.Wain.UnitIntervalQC
+import ALife.Creatur.Wain.UnitIntervalQC
     ()
-import           Control.DeepSeq
+import Control.DeepSeq
     (deepseq)
-import qualified Numeric.ApproxEq                     as N
-import           Test.Framework
+import Test.Framework
     (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
+import Test.Framework.Providers.QuickCheck2
     (testProperty)
-import           Test.QuickCheck
+import Test.QuickCheck
 
 instance Arbitrary PM1Double where
   arbitrary = doubleToPM1 <$> choose interval
-
-equivPM1Double :: PM1Double -> PM1Double -> Bool
-equivPM1Double x y = N.within 1 (pm1ToDouble x) (pm1ToDouble y)
-
-equivPM1DoubleVector :: [PM1Double] -> [PM1Double] -> Bool
-equivPM1DoubleVector (x:xs) (y:ys)
-  = equivPM1Double x y && equivPM1DoubleVector xs ys
-equivPM1DoubleVector [] [] = True
-equivPM1DoubleVector [] _ = False
-equivPM1DoubleVector _ [] = False
 
 prop_max_pm1Diff_is_1 :: Bool
 prop_max_pm1Diff_is_1 = pm1Diff (doubleToPM1 (-1)) (doubleToPM1 1) == 1
@@ -90,7 +77,7 @@ test = testGroup "ALife.Creatur.Wain.PlusMinusOneQC"
     testProperty "prop_serialize_round_trippable - PM1Double"
       (prop_serialize_round_trippable :: PM1Double -> Property),
     testProperty "prop_genetic_round_trippable - PM1Double"
-      (prop_genetic_round_trippable equivPM1Double :: PM1Double -> Property),
+      (prop_genetic_round_trippable (==) :: PM1Double -> Property),
     -- testProperty "prop_genetic_round_trippable2 - PM1Double"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> PM1Double -> Property),
@@ -106,7 +93,7 @@ test = testGroup "ALife.Creatur.Wain.PlusMinusOneQC"
     testProperty "prop_serialize_round_trippable - [PM1Double]"
       (prop_serialize_round_trippable :: [PM1Double] -> Property),
     testProperty "prop_genetic_round_trippable - [PM1Double]"
-      (prop_genetic_round_trippable equivPM1DoubleVector
+      (prop_genetic_round_trippable (==)
        :: [PM1Double] -> Property),
     -- testProperty "prop_genetic_round_trippable2 - [PM1Double]"
     --   (prop_genetic_round_trippable2

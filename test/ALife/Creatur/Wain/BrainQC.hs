@@ -32,9 +32,9 @@ import qualified ALife.Creatur.Wain.ClassifierQC          as CQC
 import           ALife.Creatur.Wain.GeneticSOM
     (numModels)
 import           ALife.Creatur.Wain.GeneticSOMQC
-    (sizedArbGeneticSOM)
+    (equivGSOM, sizedArbGeneticSOM)
 import           ALife.Creatur.Wain.PlusMinusOne
-    (PM1Double, pm1VectorDiff)
+    (PM1Double)
 import qualified ALife.Creatur.Wain.Predictor             as P
 import qualified ALife.Creatur.Wain.PredictorQC           as PQC
 import           ALife.Creatur.Wain.Response
@@ -102,8 +102,8 @@ instance Arbitrary TestBrain where
   arbitrary = sized sizedArbTestBrain
 
 equivBrain :: TestBrain -> TestBrain -> Bool
-equivBrain b1 b2 = _classifier b1 `CQC.equivClassifier` _classifier b2
-  && _predictor b1 `PQC.equivPredictor` _predictor b2
+equivBrain b1 b2 = _classifier b1 `equivGSOM` _classifier b2
+  && _predictor b1 `equivGSOM` _predictor b2
 
 -- sizedArbEmptyTestBrain :: Int -> Gen TestBrain
 -- sizedArbEmptyTestBrain n = do

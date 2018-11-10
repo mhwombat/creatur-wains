@@ -17,8 +17,6 @@
 module ALife.Creatur.Wain.PredictorQC
   (
     test,
-    equivTweaker,
-    equivPredictor,
     arbTestPredictor,
     arbEmptyTestPredictor,
     TrainingTestData(..),
@@ -59,9 +57,6 @@ type TestTweaker = ResponseTweaker TestAction
 instance Arbitrary TestTweaker where
   arbitrary = return ResponseTweaker
 
-equivTweaker :: TestTweaker -> TestTweaker -> Bool
-equivTweaker _ _ = True
-
 type TestPredictor = Predictor TestAction (ResponseTweaker TestAction)
 
 sizedArbTestPredictor :: Int -> Gen TestPredictor
@@ -80,9 +75,6 @@ arbTestPredictor nObjects nConditions capacity = do
 
 instance Arbitrary TestPredictor where
   arbitrary = sized sizedArbTestPredictor
-
-equivPredictor :: TestPredictor -> TestPredictor -> Bool
-equivPredictor = equivGSOM equivTweaker
 
 data TrainingTestData
   = TrainingTestData
@@ -207,7 +199,7 @@ test = testGroup "ALife.Creatur.Wain.PredictorQC"
     testProperty "prop_serialize_round_trippable - Tweaker"
       (prop_serialize_round_trippable :: TestTweaker -> Property),
     testProperty "prop_genetic_round_trippable - Tweaker"
-      (prop_genetic_round_trippable equivTweaker :: TestTweaker -> Property),
+      (prop_genetic_round_trippable (==) :: TestTweaker -> Property),
     -- testProperty "prop_genetic_round_trippable2 - Tweaker"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestTweaker -> Property),
@@ -223,7 +215,7 @@ test = testGroup "ALife.Creatur.Wain.PredictorQC"
     testProperty "prop_serialize_round_trippable - Predictor"
       (prop_serialize_round_trippable :: TestPredictor -> Property),
     testProperty "prop_genetic_round_trippable - Predictor"
-      (prop_genetic_round_trippable equivPredictor :: TestPredictor -> Property),
+      (prop_genetic_round_trippable equivGSOM :: TestPredictor -> Property),
     -- testProperty "prop_genetic_round_trippable2 - Predictor"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestPredictor -> Property),

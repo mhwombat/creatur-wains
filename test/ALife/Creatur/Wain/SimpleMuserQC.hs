@@ -17,21 +17,20 @@
 module ALife.Creatur.Wain.SimpleMuserQC
   (
     test,
-    equivMuser,
     sizedArbMuser
   ) where
 
-import           ALife.Creatur.Wain.PlusMinusOneQC
-    (equivPM1Double)
-import           ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PlusMinusOneQC
+    ()
+import ALife.Creatur.Wain.ResponseQC
     (TestAction)
-import           ALife.Creatur.Wain.SimpleMuserInternal
-import           ALife.Creatur.Wain.TestUtils
-import           Test.Framework
+import ALife.Creatur.Wain.SimpleMuserInternal
+import ALife.Creatur.Wain.TestUtils
+import Test.Framework
     (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
+import Test.Framework.Providers.QuickCheck2
     (testProperty)
-import           Test.QuickCheck
+import Test.QuickCheck
 
 sizedArbMuser :: Int -> Gen (SimpleMuser TestAction)
 sizedArbMuser n = do
@@ -43,19 +42,13 @@ sizedArbMuser n = do
 instance Arbitrary (SimpleMuser TestAction) where
   arbitrary = sized sizedArbMuser
 
-equivMuser :: SimpleMuser TestAction -> SimpleMuser TestAction -> Bool
-equivMuser x y
-  = and
-      (zipWith equivPM1Double (_defaultOutcomes x) (_defaultOutcomes y))
-      && _depth x == _depth y
-
 test :: Test
 test = testGroup "ALife.Creatur.Wain.SimpleMuserQC"
   [
     testProperty "prop_serialize_round_trippable - SimpleMuser"
       (prop_serialize_round_trippable :: SimpleMuser TestAction -> Property),
     testProperty "prop_genetic_round_trippable - SimpleMuser"
-      (prop_genetic_round_trippable equivMuser :: SimpleMuser TestAction -> Property),
+      (prop_genetic_round_trippable (==) :: SimpleMuser TestAction -> Property),
     -- testProperty "prop_genetic_round_trippable2 - SimpleMuser"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> SimpleMuser TestAction -> Property),

@@ -17,40 +17,39 @@ module ALife.Creatur.Wain.ResponseQC
   (
     test,
     TestResponse,
-    equivResponse,
     TestAction(..),
     arbTestResponse
   ) where
 
-import           ALife.Creatur.Genetics.BRGCWord8
+import ALife.Creatur.Genetics.BRGCWord8
     (Genetic)
-import           ALife.Creatur.Genetics.Diploid
+import ALife.Creatur.Genetics.Diploid
     (Diploid)
-import           ALife.Creatur.Wain.GeneticSOM
+import ALife.Creatur.Wain.GeneticSOM
     (Label)
-import           ALife.Creatur.Wain.PlusMinusOneQC
-    (equivPM1Double)
-import           ALife.Creatur.Wain.Pretty
-    (Pretty)
-import           ALife.Creatur.Wain.ResponseInternal
-import           ALife.Creatur.Wain.Statistics
-    (Statistical (..))
-import           ALife.Creatur.Wain.TestUtils
-import           ALife.Creatur.Wain.UnitIntervalQC
+import ALife.Creatur.Wain.PlusMinusOneQC
     ()
-import           Control.DeepSeq
+import ALife.Creatur.Wain.Pretty
+    (Pretty)
+import ALife.Creatur.Wain.ResponseInternal
+import ALife.Creatur.Wain.Statistics
+    (Statistical (..))
+import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.UnitIntervalQC
+    ()
+import Control.DeepSeq
     (NFData)
-import           Data.Serialize
+import Data.Serialize
     (Serialize)
-import           GHC.Generics
+import GHC.Generics
     (Generic)
-import           System.Random
+import System.Random
     (Random, random, randomR)
-import           Test.Framework
+import Test.Framework
     (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
+import Test.Framework.Providers.QuickCheck2
     (testProperty)
-import           Test.QuickCheck
+import Test.QuickCheck
 
 data TestAction = Walk | Run | Jump | Skip | Crawl
   deriving ( Show, Pretty, Read, Eq, Ord, Generic, Enum, Bounded,
@@ -63,10 +62,6 @@ instance Statistical TestAction where
   stats _ = []
 
 type TestResponse = Response TestAction
-
--- instance Serialize TestResponse
--- instance Genetic TestResponse
--- instance Diploid TestResponse
 
 sizedArbTestResponse :: Int -> Gen TestResponse
 sizedArbTestResponse n = do
@@ -103,10 +98,6 @@ instance Random TestAction where
 
 -- instance Arbitrary TestOutcome where
 --   arbitrary = TestOutcome <$> choose (-1,1)
-
-equivResponse :: TestResponse -> TestResponse -> Bool
-equivResponse (Response ls1 a1 o1) (Response ls2 a2 o2)
-  = ls1 == ls2 && a1 == a2 && and (zipWith equivPM1Double o1 o2)
 
 prop_labelSimilarity_can_be_1 :: [Label] -> Property
 prop_labelSimilarity_can_be_1 xs = property $ abs (x - 1) < 1e-8
@@ -145,7 +136,7 @@ test = testGroup "ALife.Creatur.Wain.ResponseQC"
     testProperty "prop_serialize_round_trippable - TestResponse"
       (prop_serialize_round_trippable :: TestResponse -> Property),
     testProperty "prop_genetic_round_trippable - TestResponse"
-      (prop_genetic_round_trippable equivResponse
+      (prop_genetic_round_trippable (==)
        :: TestResponse -> Property),
     -- testProperty "prop_genetic_round_trippable2 - TestResponse"
     --   (prop_genetic_round_trippable2

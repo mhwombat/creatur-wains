@@ -19,7 +19,6 @@
 module ALife.Creatur.Wain.ClassifierQC
   (
     test,
-    equivClassifier,
     TestTweaker(..),
     TestClassifier
   ) where
@@ -69,9 +68,6 @@ instance Arbitrary TestClassifier where
 
 instance Statistical TestTweaker where
   stats _ = []
-
-equivClassifier :: TestClassifier -> TestClassifier -> Bool
-equivClassifier = equivGSOM (==)
 
 classifySetAndTrain_label_count
   :: TestClassifier -> [TestPattern] -> Property
@@ -127,8 +123,7 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
     testProperty "prop_serialize_round_trippable - Classifier"
       (prop_serialize_round_trippable :: TestClassifier -> Property),
     testProperty "prop_genetic_round_trippable - Classifier"
-      (prop_genetic_round_trippable equivClassifier
-       :: TestClassifier -> Property),
+      (prop_genetic_round_trippable equivGSOM :: TestClassifier -> Property),
     -- testProperty "prop_genetic_round_trippable2 - Classifier"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestClassifier -> Property),

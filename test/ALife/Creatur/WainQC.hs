@@ -39,8 +39,6 @@ import           ALife.Creatur.Wain.TestUtils
     )
 import           ALife.Creatur.Wain.UnitInterval
     (doubleToUI)
-import           ALife.Creatur.Wain.UnitIntervalQC
-    (equivUIDouble)
 import           ALife.Creatur.WainInternal
 import           Control.DeepSeq
     (deepseq)
@@ -63,9 +61,9 @@ equiv
 equiv a1 a2 =
   _appearance a1 == _appearance a2
   && _brain a1 `BQC.equivBrain` _brain a2
-  && _devotion a1 `equivUIDouble` _devotion a2
+  && _devotion a1 == _devotion a2
   && _ageOfMaturity a1 == _ageOfMaturity a2
-  && _passionDelta a1 `equivUIDouble` _passionDelta a2
+  && _passionDelta a1 == _passionDelta a2
 --  && genome a1 == genome a2
 
 strawMan :: Gen (TestWain)

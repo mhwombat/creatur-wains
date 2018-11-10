@@ -20,9 +20,9 @@ module ALife.Creatur.Wain.GeneticSOMQC
   (
     TestTweaker(..),
     test,
-    equivGSOM,
     sizedArbGeneticSOM,
-    sizedArbEmptyGeneticSOM
+    sizedArbEmptyGeneticSOM,
+    equivGSOM
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8      as W8
@@ -31,7 +31,7 @@ import           ALife.Creatur.Genetics.Diploid
 import           ALife.Creatur.Wain.GeneticSOMInternal
 import           ALife.Creatur.Wain.TestUtils
 import           ALife.Creatur.Wain.UnitIntervalQC
-    (equivUIDouble)
+    ()
 import           Control.DeepSeq
     (NFData, deepseq)
 import           Control.Lens
@@ -62,14 +62,6 @@ instance Arbitrary LearningParams where
   arbitrary = do
     p <- arbitrary
     MkGen (\r _ -> let (x,_) = runRand (randomLearningParams p) r in x)
-
-equivLearningParams
-  :: LearningParams -> LearningParams -> Bool
-equivLearningParams (LearningParams r0a rfa tfa)
-                 (LearningParams r0b rfb tfb)
-  = equivUIDouble r0a r0b
-    && equivUIDouble rfa rfb
-    && tfa == tfb
 
 validLearningParams :: LearningParams -> Bool
 validLearningParams (LearningParams r0 rf tf)
@@ -139,9 +131,6 @@ instance Tweaker TestTweaker where
   diff _ = testPatternDiff
   adjust _ = makeTestPatternSimilar
 
-equivTestTweaker :: TestTweaker -> TestTweaker -> Bool
-equivTestTweaker _ _ = True
-
 -- | Used by other test modules
 sizedArbEmptyGeneticSOM
   :: (Arbitrary t, Tweaker t, p ~ Pattern t)
@@ -169,18 +158,13 @@ instance Arbitrary TestGSOM where
   arbitrary = sized (sizedArbGeneticSOM arbitrary)
 
 -- ignores counters and next index
-equivGSOM :: (t -> t -> Bool) -> GeneticSOM p t -> GeneticSOM p t -> Bool
-equivGSOM equivT x y =
+equivGSOM :: Eq t => GeneticSOM p t -> GeneticSOM p t -> Bool
+equivGSOM x y =
   -- TODO when initial models are made genetic: models x == models y
   maxSize x == maxSize y
-    && equivLearningParams (view learningParams x)
-        (view learningParams y)
-    && equivUIDouble (diffThreshold x) (diffThreshold y)
-    &&  equivT (view tweaker x) (view tweaker y)
-
--- ignores counters and next index
-equivTestGSOM :: TestGSOM -> TestGSOM -> Bool
-equivTestGSOM = equivGSOM equivTestTweaker
+    && (view learningParams x) == (view learningParams y)
+    && (diffThreshold x) == (diffThreshold y)
+    && (view tweaker x) == (view tweaker y)
 
 prop_classify_never_causes_error_unless_empty
   :: TestGSOM -> TestPattern -> Property
@@ -261,8 +245,7 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
     testProperty "prop_serialize_round_trippable - LearningParams"
       (prop_serialize_round_trippable :: LearningParams -> Property),
     testProperty "prop_genetic_round_trippable - LearningParams"
-      (prop_genetic_round_trippable equivLearningParams
-       :: LearningParams -> Property),
+      (prop_genetic_round_trippable (==) :: LearningParams -> Property),
     -- testProperty "prop_genetic_round_trippable2 - LearningParams"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> LearningParams -> Property),
@@ -280,13 +263,12 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
     testProperty "prop_serialize_round_trippable - TestGSOM"
       (prop_serialize_round_trippable :: TestGSOM -> Property),
     testProperty "prop_genetic_round_trippable - TestGSOM"
-      (prop_genetic_round_trippable equivTestGSOM
-       :: TestGSOM -> Property),
+      (prop_genetic_round_trippable equivGSOM :: TestGSOM -> Property),
     -- testProperty "prop_genetic_round_trippable2 - TestGSOM"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestGSOM -> Property),
     testProperty "prop_diploid_identity - TestGSOM"
-      (prop_diploid_identity equivTestGSOM :: TestGSOM -> Property),
+      (prop_diploid_identity equivGSOM :: TestGSOM -> Property),
     -- testProperty "prop_show_read_round_trippable - TestGSOM"
     --   (prop_show_read_round_trippable (==) :: TestGSOM -> Property),
     testProperty "prop_diploid_expressable - TestGSOM"

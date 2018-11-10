@@ -30,6 +30,7 @@ import           Data.List
     (nub)
 import           Data.Word
     (Word64)
+import qualified Numeric.ApproxEq                       as N
 import           Test.Framework
     (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2
@@ -62,12 +63,9 @@ prop_permutations_are_distinct (PermuteTestData xss) = property $
   length ys == length (nub ys)
   where ys = permute xss
 
-equiv :: Double -> Double -> Bool
-equiv x y = abs (x - y) < 1e-10
-
 prop_normalise_works :: [Double] -> Property
 prop_normalise_works ps = not (null ps) ==>
-  (sum . normalise $ ps) `equiv` 1
+  N.within 1000 (sum . normalise $ ps) 1
 
 data TestSignatures = TestSignatures [[(Label, Difference)]]
   deriving (Eq, Show)
@@ -83,7 +81,7 @@ instance Arbitrary TestSignatures where
 
 prop_hypothesis_probabilities_eq_1 :: Word64 -> TestSignatures -> Property
 prop_hypothesis_probabilities_eq_1 s (TestSignatures lds) = s >= 1 ==>
-  (sum . map (uiToDouble . snd) $ hps) `equiv` 1
+  N.within 100 (sum . map (uiToDouble . snd) $ hps) 1
   where hps = hypothesise s lds
 
 test :: Test

@@ -16,21 +16,21 @@
 {-# LANGUAGE DeriveGeneric  #-}
 module ALife.Creatur.Wain.WeightsInternal where
 
-import           ALife.Creatur.Genetics.BRGCWord8
+import ALife.Creatur.Genetics.BRGCWord8
     (Genetic, get)
-import           ALife.Creatur.Genetics.Diploid
+import ALife.Creatur.Genetics.Diploid
     (Diploid, express)
-import           ALife.Creatur.Wain.Pretty
+import ALife.Creatur.Wain.Pretty
     (Pretty)
-import           ALife.Creatur.Wain.Statistics
+import ALife.Creatur.Wain.Statistics
     (Statistical (..), dStats)
-import           ALife.Creatur.Wain.UnitInterval
+import ALife.Creatur.Wain.UnitInterval
     (UIDouble, normalise, uiDiff)
-import           Control.DeepSeq
+import Control.DeepSeq
     (NFData)
-import           Data.Serialize
+import Data.Serialize
     (Serialize)
-import           GHC.Generics
+import GHC.Generics
     (Generic)
 
 -- | A sequence of weights for calculating weighted sums.
@@ -41,7 +41,7 @@ data Weights = Weights [UIDouble]
 
 instance Genetic Weights where
   -- use default put
-  get = fmap (fmap makeWeights) get
+  get = fmap (fmap Weights) get
 
 instance Diploid Weights where
   express (Weights xs) (Weights ys) = makeWeights zs
