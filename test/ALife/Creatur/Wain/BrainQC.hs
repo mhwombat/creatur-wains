@@ -11,6 +11,7 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NoMonadFailDesugaring #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.BrainQC
@@ -26,19 +27,15 @@ module ALife.Creatur.Wain.BrainQC
   ) where
 
 import           ALife.Creatur.Wain.BrainInternal
-import           ALife.Creatur.Wain.Classifier
-    (bmus)
+import qualified ALife.Creatur.Wain.Classifier            as Cl
 import qualified ALife.Creatur.Wain.ClassifierQC          as CQC
-import           ALife.Creatur.Wain.GeneticSOM
-    (numModels)
+import           ALife.Creatur.Wain.GeneticSOM            (numModels)
 import           ALife.Creatur.Wain.GeneticSOMQC
     (equivGSOM, sizedArbGeneticSOM)
-import           ALife.Creatur.Wain.PlusMinusOne
-    (PM1Double)
+import           ALife.Creatur.Wain.PlusMinusOne          (PM1Double)
 import qualified ALife.Creatur.Wain.Predictor             as P
 import qualified ALife.Creatur.Wain.PredictorQC           as PQC
-import           ALife.Creatur.Wain.Response
-    (Response (..))
+import           ALife.Creatur.Wain.Response              (Response (..))
 import           ALife.Creatur.Wain.ResponseQC
     (TestAction, TestResponse)
 import           ALife.Creatur.Wain.SimpleMuser
@@ -46,18 +43,14 @@ import           ALife.Creatur.Wain.SimpleMuser
 import           ALife.Creatur.Wain.SimpleResponseTweaker
     (ResponseTweaker (..), responseDiff)
 import           ALife.Creatur.Wain.TestUtils
-import           ALife.Creatur.Wain.Weights
-    (makeWeights)
-import           Control.DeepSeq
-    (deepseq)
-import           Test.Framework
-    (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
-    (testProperty)
+import           ALife.Creatur.Wain.Weights               (makeWeights)
+import           Control.DeepSeq                          (deepseq)
+import           Test.Framework                           (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2     (testProperty)
 import           Test.QuickCheck
 
 type TestBrain
-  = Brain TestPattern CQC.TestTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
+  = Brain TestPattern CQC.TestClassifierTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
 
 sizedArbTestBrain :: Int -> Gen TestBrain
 sizedArbTestBrain n = do
@@ -150,13 +143,13 @@ sizedArbChoosingTestData n = do
 instance Arbitrary ChoosingTestData where
   arbitrary = sized sizedArbChoosingTestData
 
-prop_chooseAction_doesnt_add_predictor_models
-  :: ChoosingTestData -> Property
-prop_chooseAction_doesnt_add_predictor_models (ChoosingTestData b ps c)
-  = property $ n' == n
-  where n = numModels . _predictor $ b
-        (_, b') = chooseAction b ps c
-        n' = numModels . _predictor $ b'
+-- prop_chooseAction_doesnt_add_predictor_models
+--   :: ChoosingTestData -> Property
+-- prop_chooseAction_doesnt_add_predictor_models (ChoosingTestData b ps c)
+--   = property $ n' == n
+--   where n = numModels . _predictor $ b
+--         (_, b') = chooseAction b ps c
+--         n' = numModels . _predictor $ b'
 
 prop_chooseAction_never_causes_error
   :: ChoosingTestData -> Property
@@ -228,7 +221,7 @@ prop_reflect_never_causes_error (ReflectionTestData b r cBefore cAfter)
 --   arbitrary = sized sizedArbAFewPatterns
 
 data ImprintTestData
-  = ImprintTestData TestBrain [TestPattern] TestAction [PM1Double]
+  = ImprintTestData TestBrain [TestPattern] TestAction [PM1Double] [Cl.Label]
     deriving Eq
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
@@ -241,33 +234,42 @@ sizedArbImprintTestData n = do
   ps <- vectorOf nObjects arbitrary
   a <- arbitrary
   os <- vectorOf nConditions arbitrary
-  return $ ImprintTestData b ps a os
+  ls <- vectorOf (length ps) arbitrary
+  return $ ImprintTestData b ps a os ls
 
 instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
 
 instance Show ImprintTestData where
-  show (ImprintTestData b ps a os)
+  show (ImprintTestData b ps a os ls)
     = "ImprintTestData (" ++ show b ++ ") " ++ show ps ++ " "
-      ++ show a ++ " " ++ show os
+      ++ show a ++ " " ++ show os ++ " " ++ show ls
 
-prop_imprint_never_causes_error
+prop_imprintStimulus_never_causes_error
   :: ImprintTestData -> Property
-prop_imprint_never_causes_error (ImprintTestData b ps a _)
+prop_imprintStimulus_never_causes_error (ImprintTestData b ps a _ ls)
+  = property $ deepseq (imprintStimulus b lps) True
+  where lps = zip ls ps
+
+prop_imprintResponse_never_causes_error
+  :: ImprintTestData -> Property
+prop_imprintResponse_never_causes_error (ImprintTestData b ps a _ _)
   = property $ deepseq x True
-  where x = imprint b ps a
+  where (report1, bClassified) = classifyInputs b ps
+        ls = Cl.bmus report1
+        x = imprintResponse bClassified ls a
 
 prop_imprint_makes_predictions_more_accurate
   :: ImprintTestData -> Property
 prop_imprint_makes_predictions_more_accurate
-  (ImprintTestData b ps a os)
+  (ImprintTestData b ps a os _)
     = property $ diffAfter <= diffBefore
   where (report1, bClassified) = classifyInputs b ps
-        ls = bmus report1
+        ls = Cl.bmus report1
         r = Response ls a os
         (report2:_) = predictAll bClassified . zip [r] $ repeat 1
         rBefore = P.pResponse report2
-        (_, bImprinted) = imprint bClassified ps a
+        (_, bImprinted) = imprintResponse bClassified ls a
         (report3:_) = predictAll bImprinted . zip [r] $ repeat 1
         rAfter = P.pResponse report3
         diffBefore = responseDiff rBefore r
@@ -323,8 +325,8 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
       (prop_diploid_expressable :: TestBrain -> TestBrain -> Property),
     testProperty "prop_diploid_readable - Brain"
       (prop_diploid_readable :: TestBrain -> TestBrain -> Property),
-    testProperty "prop_chooseAction_doesnt_add_predictor_models"
-      prop_chooseAction_doesnt_add_predictor_models,
+    -- testProperty "prop_chooseAction_doesnt_add_predictor_models"
+    --   prop_chooseAction_doesnt_add_predictor_models,
     testProperty "prop_chooseAction_never_causes_error"
       prop_chooseAction_never_causes_error,
     testProperty "prop_reflect_makes_predictions_more_accurate"
@@ -333,8 +335,8 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
       prop_reflect_error_in_range,
     testProperty "prop_reflect_never_causes_error"
       prop_reflect_never_causes_error,
-    testProperty "prop_imprint_never_causes_error"
-      prop_imprint_never_causes_error,
+    testProperty "prop_imprintResponse_never_causes_error"
+      prop_imprintResponse_never_causes_error,
     testProperty "prop_imprint_makes_predictions_more_accurate"
       prop_imprint_makes_predictions_more_accurate
     -- testProperty "prop_prettyScenarioReport_never_causes_error"

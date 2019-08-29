@@ -1,5 +1,10 @@
 # Changelog for creatur-wains
 
+9.6   Reformatted source code.
+      Improved reports.
+
+9.5.5 Revamped to use SGM4.
+
 9.5.4 Revamped to work with NixOS + cabal-install.
 
 9.5.3 Returned to original SGM.

@@ -18,16 +18,12 @@ module ALife.Creatur.Wain.WeightsQC
   ) where
 
 import           ALife.Creatur.Wain.TestUtils
-import           ALife.Creatur.Wain.UnitInterval
-    (UIDouble, uiToDouble)
-import           ALife.Creatur.Wain.UnitIntervalQC
-    ()
+import           ALife.Creatur.Wain.UnitInterval      (UIDouble, uiToDouble)
+import           ALife.Creatur.Wain.UnitIntervalQC    ()
 import           ALife.Creatur.Wain.WeightsInternal
 import qualified Numeric.ApproxEq                     as N
-import           Test.Framework
-    (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
-    (testProperty)
+import           Test.Framework                       (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2 (testProperty)
 import           Test.QuickCheck
 
 sizedArbWeights :: Int -> Gen Weights
@@ -67,7 +63,7 @@ prop_weighted_sum_in_range ws xs
 equiv :: Weights -> Weights -> Bool
 equiv (Weights xs) (Weights ys)
   = length xs == length ys
-      && (and $ zipWith (N.within 5000) (map uiToDouble xs) (map uiToDouble ys))
+      && (and $ zipWith (N.within 10000) (map uiToDouble xs) (map uiToDouble ys))
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.WeightsQC"

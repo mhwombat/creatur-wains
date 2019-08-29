@@ -19,22 +19,15 @@ module ALife.Creatur.Wain.ProbabilityQC
     test
   ) where
 
-import           ALife.Creatur.Wain.GeneticSOMInternal
-    (Difference, Label)
+import           ALife.Creatur.Wain.GeneticSOMInternal  (Difference, Label)
 import           ALife.Creatur.Wain.ProbabilityInternal
-import           ALife.Creatur.Wain.UnitInterval
-    (uiToDouble)
-import           ALife.Creatur.Wain.UnitIntervalQC
-    ()
-import           Data.List
-    (nub)
-import           Data.Word
-    (Word64)
+import           ALife.Creatur.Wain.UnitInterval        (uiToDouble)
+import           ALife.Creatur.Wain.UnitIntervalQC      ()
+import           Data.List                              (nub)
+import           Data.Word                              (Word64)
 import qualified Numeric.ApproxEq                       as N
-import           Test.Framework
-    (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
-    (testProperty)
+import           Test.Framework                         (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2   (testProperty)
 import           Test.QuickCheck
 
 data PermuteTestData = PermuteTestData [[Char]] deriving (Eq, Show)
@@ -65,7 +58,7 @@ prop_permutations_are_distinct (PermuteTestData xss) = property $
 
 prop_normalise_works :: [Double] -> Property
 prop_normalise_works ps = not (null ps) ==>
-  N.within 1000 (sum . normalise $ ps) 1
+  N.within 10000 (sum . normalise $ ps) 1
 
 data TestSignatures = TestSignatures [[(Label, Difference)]]
   deriving (Eq, Show)

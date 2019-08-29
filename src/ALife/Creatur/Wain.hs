@@ -46,6 +46,7 @@ module ALife.Creatur.Wain
     incAge,
     prettyClassifierModels,
     prettyPredictorModels,
+    prettyBrainSummary,
     -- * Reacting to stimuli
     DecisionReport,
     novelties,
@@ -61,9 +62,12 @@ module ALife.Creatur.Wain
     reflect,
     happinessError,
     -- * Learning through instruction
-    ImprintReport,
-    prettyImprintReport,
-    imprint,
+    StimulusImprintReport,
+    prettyStimulusImprintReport,
+    imprintStimulus,
+    ResponseImprintReport,
+    prettyResponseImprintReport,
+    imprintResponse,
     -- * Reproduction
     mate,
     weanMatureChildren,
@@ -73,8 +77,6 @@ module ALife.Creatur.Wain
     packageVersion
   ) where
 
-import           ALife.Creatur.Wain.Brain
-    (Condition, ImprintReport)
-import           ALife.Creatur.Wain.GeneticSOM
-    (Label)
+import           ALife.Creatur.Wain.Brain      (Condition)
+import           ALife.Creatur.Wain.GeneticSOM (Label)
 import           ALife.Creatur.WainInternal

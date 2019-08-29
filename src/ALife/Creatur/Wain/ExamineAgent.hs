@@ -17,29 +17,22 @@ module ALife.Creatur.Wain.ExamineAgent
     examine
   ) where
 
-import           ALife.Creatur
-    (agentId)
+import           ALife.Creatur                   (agentId)
 import           ALife.Creatur.Wain
 import           ALife.Creatur.Wain.Brain
 import           ALife.Creatur.Wain.GeneticSOM
 import           ALife.Creatur.Wain.Pretty
 import           ALife.Creatur.Wain.UnitInterval
 import           Control.Lens
-import           Control.Monad
-    (filterM, liftM)
+import           Control.Monad                   (filterM, liftM)
 import qualified Data.ByteString                 as BS
 import qualified Data.Map.Strict                 as M
 import qualified Data.Serialize                  as DS
-import           System.Directory
-    (listDirectory)
-import           System.FilePath.Posix
-    (combine)
-import           System.Posix
-    (isDirectory, isRegularFile)
-import           System.Posix.Files
-    (getFileStatus)
-import           Text.Printf
-    (printf)
+import           System.Directory                (listDirectory)
+import           System.FilePath.Posix           (combine)
+import           System.Posix                    (isDirectory, isRegularFile)
+import           System.Posix.Files              (getFileStatus)
+import           Text.Printf                     (printf)
 
 fetchObjects :: DS.Serialize b => FilePath -> IO [b]
 fetchObjects f = do
@@ -91,14 +84,12 @@ examine a = do
   putStrLn $ "Max. number of classifier models: " ++ pretty (maxSize . view classifier . view brain $ a)
   putStrLn $ "Number of classifier models: " ++ pretty (numModels . view classifier . view brain $ a)
   putStrLn $ "Classifier learning function: " ++ pretty (view learningParams . view classifier . view brain $ a)
-  putStrLn $ "Classifier threshold: " ++ show (diffThreshold . view classifier . view brain $ a)
   putStrLn $ "Classifier tweaker: " ++ pretty (view tweaker . view classifier . view brain $ a)
   putStrLn $ "Classifier counts: " ++ pretty (counterMap . view classifier . view brain $ a)
   mapM_ putStrLn $ describeClassifierModels a
   putStrLn $ "Max. number of predictor models: " ++ pretty (maxSize . view predictor . view brain $ a)
   putStrLn $ "Number of predictor models: " ++ pretty (numModels . view predictor . view brain $ a)
   putStrLn $ "Predictor learning function: " ++ pretty (view learningParams . view predictor . view brain $ a)
-  putStrLn $ "Predictor threshold: " ++ show (diffThreshold . view predictor . view brain $ a)
   putStrLn $ "Predictor tweaker: " ++ pretty (view tweaker . view predictor . view brain $ a)
   putStrLn $ "Predictor counts: " ++ pretty (counterMap . view predictor . view brain $ a)
   mapM_ putStrLn $ describePredictorModels a

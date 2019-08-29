@@ -22,40 +22,22 @@ import           ALife.Creatur
     (Agent, agentId, isAlive)
 import           ALife.Creatur.Database
     (Record, SizedRecord, key)
-import qualified ALife.Creatur.Database
-    (size)
+import qualified ALife.Creatur.Database                     (size)
 import           ALife.Creatur.Genetics.BRGCWord8
-    ( DiploidReader
-    , Genetic
-    , Sequence
-    , consumed2
-    , copy
-    , copy2
-    , get
-    , getAndExpress
-    , put
-    , runDiploidReader
-    , write
-    )
-import           ALife.Creatur.Genetics.Diploid
-    (Diploid, express)
+    (DiploidReader, Genetic, Sequence, consumed2, copy, copy2, get,
+    getAndExpress, put, runDiploidReader, write)
+import           ALife.Creatur.Genetics.Diploid             (Diploid, express)
 import           ALife.Creatur.Genetics.Recombination
-    ( mutatePairedLists
-    , randomCrossover
-    , randomCutAndSplice
-    , randomOneOfPair
-    , repeatWithProbability
-    , withProbability
-    )
+    (mutatePairedLists, randomCrossover, randomCutAndSplice, randomOneOfPair,
+    repeatWithProbability, withProbability)
 import           ALife.Creatur.Genetics.Reproduction.Sexual
     (Reproductive, Strand, build, makeOffspring, produceGamete)
 import qualified ALife.Creatur.Wain.Brain                   as B
 import qualified ALife.Creatur.Wain.Classifier              as Cl
 import qualified ALife.Creatur.Wain.GeneticSOM              as GSOM
-import           ALife.Creatur.Wain.Muser
-    (Action, Muser)
-import           ALife.Creatur.Wain.Pretty
-    (Pretty, pretty)
+import           ALife.Creatur.Wain.Muser                   (Action, Muser)
+import qualified ALife.Creatur.Wain.Predictor               as P
+import           ALife.Creatur.Wain.Pretty                  (Pretty, pretty)
 import qualified ALife.Creatur.Wain.Response                as R
 import           ALife.Creatur.Wain.Statistics
     (Statistical, dStat, iStat, stats)
@@ -63,24 +45,18 @@ import           ALife.Creatur.Wain.UnitInterval
     (UIDouble, doubleToUI, forceDoubleToUI, uiToDouble)
 import           ALife.Creatur.Wain.Util
     (enforceRange, unitInterval)
-import           Control.DeepSeq
-    (NFData)
+import           Control.DeepSeq                            (NFData)
 import           Control.Lens
-import           Control.Monad.Random
-    (Rand, RandomGen)
+import           Control.Monad.Random                       (Rand, RandomGen)
 import           Data.List
-    (partition)
+    (intercalate, partition, sortBy)
 import qualified Data.Map.Strict                            as M
-import           Data.Serialize
-    (Serialize)
-import           Data.Version
-    (showVersion)
-import           Data.Word
-    (Word16, Word8)
-import           GHC.Generics
-    (Generic)
-import           Paths_creatur_wains
-    (version)
+import           Data.Ord                                   (comparing)
+import           Data.Serialize                             (Serialize)
+import           Data.Version                               (showVersion)
+import           Data.Word                                  (Word16, Word8)
+import           GHC.Generics                               (Generic)
+import           Paths_creatur_wains                        (version)
 
 -- | Returns the current version number of this library.
 packageVersion :: String
@@ -336,7 +312,8 @@ data DecisionReport p a =
       wdrClassifierReport :: Cl.ClassifierReport p,
       wdrScenarioReport   :: B.ScenarioReport,
       wdrPredictorReport  :: B.PredictorReport a,
-      wdrActionReport     :: B.ActionReport a
+      wdrActionReport     :: B.ActionReport a,
+      wdrImprintReports   :: [StimulusImprintReport p]
     } deriving (Generic, Show, NFData)
 
 -- | Returns the measure of how novel each input pattern was to the
@@ -366,11 +343,15 @@ chooseAction
      R.Response a ~ GSOM.Pattern pt)
       => [p] -> Wain p ct pt m a
         -> (DecisionReport p a, R.Response a, Wain p ct pt m a)
-chooseAction ps w = (report', r, w')
+chooseAction ps w = (report', r, set litter litter' w')
   where (report, b')
           = B.chooseAction (_brain w) ps (condition w)
         r = B.bdrRecommendedResponse report
         w' = set brain b' w
+        ls = R._labels r
+        lps = zip ls ps
+        iResults = map (imprintStimulus lps) (_litter w')
+        litter' = map snd iResults
         report' = DecisionReport
                     {
                       wdrStimulus = B.bdrStimulus report,
@@ -378,7 +359,8 @@ chooseAction ps w = (report', r, w')
                         = B.bdrClassifierReport report,
                       wdrScenarioReport = B.bdrScenarioReport report,
                       wdrPredictorReport = B.bdrPredictorReport report,
-                      wdrActionReport = B.bdrActionReport report
+                      wdrActionReport = B.bdrActionReport report,
+                      wdrImprintReports = map fst iResults
                     }
 
 -- | Adjusts the energy of a wain.
@@ -446,7 +428,7 @@ data ReflectionReport p a
   = ReflectionReport
       {
         rReflectionReport :: B.ReflectionReport a,
-        rImprintReports   :: [B.ImprintReport p a]
+        rImprintReports   :: [P.LearningReport a]
       } deriving (Generic, Show, NFData)
 
 happinessError :: ReflectionReport p a -> Double
@@ -464,13 +446,14 @@ reflect
   :: (Serialize p, Serialize ct, Serialize pt, Serialize a, Eq a, Ord a,
     GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
     R.Response a ~ GSOM.Pattern pt)
-  => [p] -> R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
+  => R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
   -> (ReflectionReport p a, Wain p ct pt m a)
-reflect ps r wBefore wAfter =
+reflect r wBefore wAfter =
   (report, set litter litter' wReflected)
   where (rReport, wReflected) = reflect1 r wBefore wAfter
         a = R._action r
-        iResults = map (imprint ps a) (_litter wAfter)
+        ls = R._labels r
+        iResults = map (imprintResponse ls a) (_litter wAfter)
         litter' = map snd iResults
         report = ReflectionReport
                    {
@@ -487,20 +470,32 @@ reflect1 r wBefore wAfter = (report, set brain b' wAfter)
   where (report, b') = B.reflect (_brain wAfter) r (condition wBefore)
                         (condition wAfter)
 
+type StimulusImprintReport p = [GSOM.ImprintDetail p]
+
+-- | Teaches the wain a set of patterns, and a label for each of them.
+imprintStimulus
+  :: [(Cl.Label, p)]
+  -> Wain p ct pt m a
+  -> (StimulusImprintReport p, Wain p ct pt m a)
+imprintStimulus lps w = (report, set brain b' w)
+  where (report, b') = B.imprintStimulus (_brain w) lps
+
+type ResponseImprintReport a = P.LearningReport a
+
 -- | Teaches the wain a desirable action to take in response to a
 --   stimulus.
 --   This can be used to help children learn by observing their parents.
 --   It can also be used to allow wains to learn from others.
 --   Returns a detailed report of the imprint process
 --   and the updated wain.
-imprint
+imprintResponse
   :: (Serialize p, Serialize ct, Serialize pt, Serialize a, Eq a, Ord a,
     GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
     R.Response a ~ GSOM.Pattern pt)
-  => [p] -> a -> Wain p ct pt m a
-  -> (B.ImprintReport p a, Wain p ct pt m a )
-imprint ps a w = (report, set brain b' w)
-  where (report, b') = B.imprint (_brain w) ps a
+  => [Cl.Label] -> a -> Wain p ct pt m a
+  -> (P.LearningReport a, Wain p ct pt m a )
+imprintResponse ls a w = (report, set brain b' w)
+  where (report, b') = B.imprintResponse (_brain w) ls a
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.
@@ -581,17 +576,35 @@ pruneDeadChildren a =
   where (aliveChildren, deadChildren) = partition isAlive (_litter a)
         a' = set litter aliveChildren a
 
-prettyClassifierModels :: Show p => Wain p ct pt m a -> [String]
+-- | Describes the classifier models.
+prettyClassifierModels :: Pretty p => Wain p ct pt m a -> [String]
 prettyClassifierModels w = map f ms
   where ms = M.toList . GSOM.modelMap . view (brain . B.classifier) $ w
-        f (l, r) = agentId w ++ "'s classifier model "
-                     ++ show l ++ " " ++ show r
+        f (l, m) = agentId w ++ "'s classifier model "
+                     ++ show l ++ " " ++ pretty m
 
+-- | Describes the predictor models.
 prettyPredictorModels :: Pretty a => Wain p ct pt m a -> [String]
 prettyPredictorModels w = map f ms
   where ms = M.toList . GSOM.modelMap . view (brain . B.predictor) $ w
+        f (l, m) = agentId w ++ "'s predictor model "
+                     ++ show l ++ ": " ++ pretty m
+
+-- | Generates a report that shows relationships between the classifier
+--   and predictor models.
+--   Useful when the classifier models and the predictor models are
+--   both brief.
+prettyBrainSummary :: (Pretty p, Pretty a) => Wain p ct pt m a -> [String]
+prettyBrainSummary w = map f rs
+  where ps = M.toList . GSOM.modelMap
+               . view (brain . B.classifier) $ w
+        rs = sortBy (comparing (R._labels . snd)) . M.toList
+               . GSOM.modelMap . view (brain . B.predictor) $ w
         f (l, r) = agentId w ++ "'s predictor model "
-                     ++ show l ++ ": " ++ pretty r
+                     ++ show l ++ ": "
+                     ++ intercalate "," (map g (R._labels r)) ++ " "
+                     ++ pretty r
+        g l' = show l' ++ " " ++ pretty (lookup l' ps)
 
 prettyClassificationReport
   :: Pretty p
@@ -599,6 +612,9 @@ prettyClassificationReport
 prettyClassificationReport w r
   = (agentId w ++ " classifies the input(s)")
     : Cl.prettyClassifierReport (wdrClassifierReport r)
+    ++ concatMap f wrs
+  where wrs = zip (_litter w) (wdrImprintReports r)
+        f (child, iReport) = prettyStimulusImprintReport child iReport
 
 prettyScenarioReport
   :: Wain p ct pt m a -> DecisionReport p a -> [String]
@@ -617,7 +633,7 @@ prettyActionReport
   :: Pretty a
   => Wain p ct pt m a -> DecisionReport p a -> [String]
 prettyActionReport w r
-  = (agentId w ++ " choses an action")
+  = (agentId w ++ " predicts outcomes of possible responses")
     : B.prettyActionReport (wdrActionReport r)
 
 prettyReflectionReport
@@ -628,11 +644,18 @@ prettyReflectionReport w r
     : B.prettyReflectionReport (rReflectionReport r)
     ++ concatMap f wrs
   where wrs = zip (_litter w) (rImprintReports r)
-        f (child, iReport) = prettyImprintReport child iReport
+        f (child, iReport) = prettyResponseImprintReport child iReport
 
-prettyImprintReport
-  :: (Pretty p, Pretty a)
-  => Wain p ct pt m a -> B.ImprintReport p a -> [String]
-prettyImprintReport w r
+prettyStimulusImprintReport
+  :: Pretty p
+  => Wain p ct pt m a -> StimulusImprintReport p -> [String]
+prettyStimulusImprintReport w r
+  = (agentId w ++ " imprints a stimulus")
+    : concatMap GSOM.prettyImprintDetail r
+
+prettyResponseImprintReport
+  :: Pretty a
+  => Wain p ct pt m a -> ResponseImprintReport a -> [String]
+prettyResponseImprintReport w r
   = (agentId w ++ " imprints a response")
-    : B.prettyImprintReport r
+    : P.prettyLearningReport r

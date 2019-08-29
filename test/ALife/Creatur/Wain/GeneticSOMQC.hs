@@ -26,37 +26,24 @@ module ALife.Creatur.Wain.GeneticSOMQC
   ) where
 
 import qualified ALife.Creatur.Genetics.BRGCWord8      as W8
-import           ALife.Creatur.Genetics.Diploid
-    (Diploid, express)
+import           ALife.Creatur.Genetics.Diploid        (Diploid, express)
 import           ALife.Creatur.Wain.GeneticSOMInternal
 import           ALife.Creatur.Wain.TestUtils
-import           ALife.Creatur.Wain.UnitIntervalQC
-    ()
-import           Control.DeepSeq
-    (NFData, deepseq)
+import           ALife.Creatur.Wain.UnitIntervalQC     ()
+import           Control.DeepSeq                       (NFData, deepseq)
 import           Control.Lens
-import           Control.Monad.Random
-    (evalRand, runRand)
-import           Data.Datamining.Clustering.SGM
-    (toMap, trainBatch)
-import           Data.Map.Strict
-    (keys, (!))
-import           Data.Serialize
-    (Serialize)
-import           Data.Word
-    (Word64, Word8)
-import           GHC.Generics
-    (Generic)
-import           System.Random
-    (mkStdGen)
-import           Test.Framework
-    (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
-    (testProperty)
+import           Control.Monad.Random                  (evalRand, runRand)
+import           Data.Datamining.Clustering.SGM4       (toMap, trainBatch)
+import           Data.Map.Strict                       (keys, (!))
+import           Data.Serialize                        (Serialize)
+import           Data.Word                             (Word64, Word8)
+import           GHC.Generics                          (Generic)
+import           System.Random                         (mkStdGen)
+import           Test.Framework                        (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2  (testProperty)
 import           Test.QuickCheck                       hiding
     (classify, maxSize)
-import           Test.QuickCheck.Gen
-    (Gen (MkGen))
+import           Test.QuickCheck.Gen                   (Gen (MkGen))
 
 instance Arbitrary LearningParams where
   arbitrary = do
@@ -137,9 +124,8 @@ sizedArbEmptyGeneticSOM
     => Int -> Gen (GeneticSOM p t)
 sizedArbEmptyGeneticSOM maxSz = do
   e <- arbitrary
-  dt <- (\x -> x*x) <$> arbitrary
   t <- arbitrary
-  return $ buildGeneticSOM e (fromIntegral maxSz) dt t
+  return $ buildGeneticSOM e (fromIntegral maxSz) t
 
 -- | Used by other test modules
 sizedArbGeneticSOM
@@ -163,7 +149,6 @@ equivGSOM x y =
   -- TODO when initial models are made genetic: models x == models y
   maxSize x == maxSize y
     && (view learningParams x) == (view learningParams y)
-    && (diffThreshold x) == (diffThreshold y)
     && (view tweaker x) == (view tweaker y)
 
 prop_classify_never_causes_error_unless_empty
@@ -174,8 +159,11 @@ prop_classify_never_causes_error_unless_empty s p
 
 prop_train_never_causes_error :: TestGSOM -> TestPattern -> Property
 prop_train_never_causes_error s p
-  = property $ deepseq x True
-  where x = trainAndClassify s p
+  = property $ deepseq (trainAndClassify s p) True
+
+prop_imprint_never_causes_error :: TestGSOM -> Label -> TestPattern -> Property
+prop_imprint_never_causes_error s l p
+  = property $ deepseq (imprint s l p) True
 
 prop_novelty_btw_0_and_1 :: TestPattern -> TestGSOM -> Property
 prop_novelty_btw_0_and_1 p s
@@ -196,15 +184,15 @@ prop_familiar_patterns_have_min_novelty k s
 --     where s = buildGeneticSOM e 10 (TestTweaker 0)
 --           novelty = cNovelty $ classify s (TestPattern 0)
 
--- The constraint is needed because the novelty won't decrease if the
--- model is already close to the input pattern and the learning rate
--- isn't high enough.
-prop_novelty_decreases :: TestPattern -> TestGSOM -> Property
-prop_novelty_decreases p s
-  = novelty1 > 0.004 ==> novelty2 <= novelty1
-    where (r1, s') = trainAndClassify s p
-          novelty1 = cNovelty r1
-          novelty2 = cNovelty $ classify s' p
+-- -- The constraint is needed because the novelty won't decrease if the
+-- -- model is already close to the input pattern and the learning rate
+-- -- isn't high enough.
+-- prop_novelty_decreases :: TestPattern -> TestGSOM -> Property
+-- prop_novelty_decreases p s
+--   = novelty1 > 0.004 ==> novelty2 <= novelty1
+--     where (r1, s') = trainAndClassify s p
+--           novelty1 = cNovelty r1
+--           novelty2 = cNovelty $ classify s' p
 
 prop_novelty_never_increases :: TestPattern -> TestGSOM -> Property
 prop_novelty_never_increases p s
@@ -300,8 +288,8 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       prop_familiar_patterns_have_min_novelty,
     -- testProperty "prop_new_patterns_have_max_novelty"
     --   prop_new_patterns_have_max_novelty,
-    testProperty "prop_novelty_decreases"
-      prop_novelty_decreases,
+    -- testProperty "prop_novelty_decreases"
+    --   prop_novelty_decreases,
     testProperty "prop_novelty_never_increases"
       prop_novelty_never_increases,
     testProperty "prop_classification_is_consistent"

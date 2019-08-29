@@ -12,6 +12,7 @@
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE NoMonadFailDesugaring #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.PredictorQC
@@ -23,38 +24,31 @@ module ALife.Creatur.Wain.PredictorQC
     ImprintTestData(..)
   ) where
 
-import ALife.Creatur.Wain.GeneticSOMInternal
+import           ALife.Creatur.Wain.GeneticSOMInternal
     (Label, maxSize, numModels, patternMap, trainAndClassify)
-import ALife.Creatur.Wain.GeneticSOMQC
+import           ALife.Creatur.Wain.GeneticSOMQC
     (equivGSOM, sizedArbEmptyGeneticSOM, sizedArbGeneticSOM)
-import ALife.Creatur.Wain.PlusMinusOne
+import           ALife.Creatur.Wain.PlusMinusOne
     (PM1Double, pm1ToDouble)
-import ALife.Creatur.Wain.PredictorInternal
+import           ALife.Creatur.Wain.PredictorInternal
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
-import ALife.Creatur.Wain.Probability
-    (Probability)
-import ALife.Creatur.Wain.Response
-    (Response (..))
-import ALife.Creatur.Wain.ResponseQC
+import           ALife.Creatur.Wain.Probability           (Probability)
+import           ALife.Creatur.Wain.Response              (Response (..))
+import           ALife.Creatur.Wain.ResponseQC
     (TestAction, TestResponse, arbTestResponse)
-import ALife.Creatur.Wain.SimpleResponseTweaker
+import           ALife.Creatur.Wain.SimpleResponseTweaker
     (ResponseTweaker (..), responseDiff)
-import ALife.Creatur.Wain.TestUtils
-import Control.DeepSeq
-    (deepseq)
-import Control.Lens
-import Data.Datamining.Clustering.SGMInternal
-    (diffThreshold)
-import Test.Framework
-    (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2
-    (testProperty)
-import Test.QuickCheck                          hiding
+import           ALife.Creatur.Wain.TestUtils
+import           Control.DeepSeq                          (deepseq)
+import           Control.Lens
+import           Test.Framework                           (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2     (testProperty)
+import           Test.QuickCheck                          hiding
     (labels, maxSize)
 
-type TestTweaker = ResponseTweaker TestAction
+type TestPredictorTweaker = ResponseTweaker TestAction
 
-instance Arbitrary TestTweaker where
+instance Arbitrary TestPredictorTweaker where
   arbitrary = return ResponseTweaker
 
 type TestPredictor = Predictor TestAction (ResponseTweaker TestAction)
@@ -90,8 +84,7 @@ sizedArbTrainingTestData n = do
   let nObjects = min 3 nO
   p <- arbTestPredictor nObjects nConditions capacity
   let pm = view patternMap p
-  let pm' = pm { diffThreshold=0.1 }
-  let p' = set patternMap pm' p
+  let p' = set patternMap pm p
   r <- arbTestResponse nObjects nConditions
   os <- vectorOf nConditions arbitrary
   return $ TrainingTestData p' r os
@@ -197,20 +190,20 @@ test :: Test
 test = testGroup "ALife.Creatur.Wain.PredictorQC"
   [
     testProperty "prop_serialize_round_trippable - Tweaker"
-      (prop_serialize_round_trippable :: TestTweaker -> Property),
+      (prop_serialize_round_trippable :: TestPredictorTweaker -> Property),
     testProperty "prop_genetic_round_trippable - Tweaker"
-      (prop_genetic_round_trippable (==) :: TestTweaker -> Property),
+      (prop_genetic_round_trippable (==) :: TestPredictorTweaker -> Property),
     -- testProperty "prop_genetic_round_trippable2 - Tweaker"
     --   (prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> TestTweaker -> Property),
+    --    :: Int -> [Word8] -> TestPredictorTweaker -> Property),
     testProperty "prop_diploid_identity - Tweaker"
-      (prop_diploid_identity (==) :: TestTweaker -> Property),
+      (prop_diploid_identity (==) :: TestPredictorTweaker -> Property),
     testProperty "prop_show_read_round_trippable - Tweaker"
-      (prop_show_read_round_trippable (==) :: TestTweaker -> Property),
+      (prop_show_read_round_trippable (==) :: TestPredictorTweaker -> Property),
     testProperty "prop_diploid_expressable - Tweaker"
-      (prop_diploid_expressable :: TestTweaker -> TestTweaker -> Property),
+      (prop_diploid_expressable :: TestPredictorTweaker -> TestPredictorTweaker -> Property),
     testProperty "prop_diploid_readable - Tweaker"
-      (prop_diploid_readable :: TestTweaker -> TestTweaker -> Property),
+      (prop_diploid_readable :: TestPredictorTweaker -> TestPredictorTweaker -> Property),
 
     testProperty "prop_serialize_round_trippable - Predictor"
       (prop_serialize_round_trippable :: TestPredictor -> Property),

@@ -24,7 +24,8 @@ module ALife.Creatur.Wain.Predictor
     scenarios,
     hasScenario,
     imprintOrReinforce,
-    prettyLearningReport
+    prettyLearningReport,
+    filterLabels
   ) where
 
 import           ALife.Creatur.Wain.GeneticSOM

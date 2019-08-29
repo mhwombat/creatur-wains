@@ -23,31 +23,24 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOMInternal where
 
-import           ALife.Creatur.Genetics.BRGCWord8
-    (Genetic)
-import qualified ALife.Creatur.Genetics.BRGCWord8       as G
-import           ALife.Creatur.Genetics.Diploid
-    (Diploid, express)
-import           ALife.Creatur.Wain.Pretty
-    (Pretty, pretty)
+import           ALife.Creatur.Genetics.BRGCWord8        (Genetic)
+import qualified ALife.Creatur.Genetics.BRGCWord8        as G
+import           ALife.Creatur.Genetics.Diploid          (Diploid, express)
+import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
 import           ALife.Creatur.Wain.Statistics
     (Statistical, dStat, iStat, kvToIStats, prefix, stats)
 import           ALife.Creatur.Wain.UnitInterval
     (UIDouble, doubleToUI, uiToDouble)
-import           ALife.Creatur.Wain.Util
-    (inRange, intersection)
-import           Control.DeepSeq
-    (NFData)
+import           ALife.Creatur.Wain.Util                 (inRange, intersection)
+import           Control.DeepSeq                         (NFData)
 import           Control.Lens
 import           Control.Monad.Random
     (Rand, RandomGen, getRandomR)
-import qualified Data.Datamining.Clustering.SGMInternal as SOM
-import qualified Data.Map.Strict                        as M
-import qualified Data.Serialize                         as S
-import           Data.Word
-    (Word64)
-import           GHC.Generics
-    (Generic)
+import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Map.Strict                         as M
+import qualified Data.Serialize                          as S
+import           Data.Word                               (Word64)
+import           GHC.Generics                            (Generic)
 
 -- | A unique identifier for a model in a SOM.
 type Label = Word64
@@ -70,7 +63,7 @@ data LearningParams = LearningParams UIDouble UIDouble Word64
 -- | @'mkLearningParams' r0 rf tf@ defines the shape of the learning
 --   function.
 --   When t = 0, the learning rate is r0.
---   Over time the learning rate decays,
+--   Over time the learning rate decays exponentially,
 --   so that when t = tf, the learning rate is rf.
 --   Normally the parameters are chosen such that:
 --     0 < r0 <= 1
@@ -113,10 +106,12 @@ toLearningFunction (LearningParams r0 rf tf) t
                                 ++ " tf=" ++ show tf
                                 ++ " t=" ++ show t
                                 ++ " r=" ++ show r
-  where r = r0' * ((rf'/r0')**a)
-        a = fromIntegral t / fromIntegral tf
+  where r = r0' * exp (-d*t')
         r0' = uiToDouble r0
         rf' = uiToDouble rf
+        t' = fromIntegral t
+        tf' = fromIntegral tf
+        d = log (r0'/rf') / tf'
 
 -- | A set of parameters to constrain the result when generating
 --   random learning functions.
@@ -215,16 +210,15 @@ data GeneticSOM p t =
     } deriving (Generic, NFData)
 makeLenses ''GeneticSOM
 
--- | @'buildGeneticSOM' e n dt t@ returns a genetic SOM, using an
+-- | @'buildGeneticSOM' e n t@ returns a genetic SOM, using an
 --   exponential function defined by the parameters @e@ as a learning
---   function, maximum number of models @n@, difference threshold @dt@,
---   and "tweaker" @t@.
+--   function, maximum number of models @n@, and "tweaker" @t@.
 buildGeneticSOM
   :: (Tweaker t, p ~ Pattern t)
-    => LearningParams -> Word64 -> UIDouble -> t -> GeneticSOM p t
-buildGeneticSOM e maxSz dt t
+    => LearningParams -> Word64 -> t -> GeneticSOM p t
+buildGeneticSOM e maxSz t
   = GeneticSOM som e t
-  where som = SOM.makeSGM lrf (fromIntegral maxSz) dt False df af
+  where som = SOM.makeSGM lrf (fromIntegral maxSz) df af
         lrf = toLearningFunction e
         df = diff t
         af = adjust t
@@ -249,8 +243,6 @@ showSGM
 showSGM s e t = "SGM (" ++ show (SOM.toMap s)
                    ++ ") (toLearningFunction (" ++ show e
                    ++ ")) " ++ show (SOM.maxSize s)
-                   ++ " " ++ show (SOM.diffThreshold s)
-                   ++ " " ++ show (SOM.allowDeletion s)
                    ++ " (diff (" ++ show t
                    ++ ")) (adjust (" ++ show t
                    ++ ")) " ++ show (SOM.nextIndex s)
@@ -260,20 +252,18 @@ instance (S.Serialize p, S.Serialize t, Tweaker t, p ~ Pattern t)
   put s = S.put (SOM.toMap . _patternMap $ s)
             >> S.put (_learningParams s)
             >> S.put (SOM.maxSize . _patternMap $ s)
-            >> S.put (SOM.diffThreshold . _patternMap $ s)
             >> S.put (_tweaker s)
             >> S.put (SOM.nextIndex . _patternMap $ s)
   get = do
     gm <- S.get
     lps <- S.get
     maxSz <- S.get
-    dt <- S.get
     tr <- S.get
     kNext <- S.get
     let lrf = toLearningFunction lps
     let df = diff tr
     let af = adjust tr
-    let s = SOM.SGM gm lrf maxSz dt False df af kNext
+    let s = SOM.SGM gm lrf maxSz df af kNext
     return $ GeneticSOM s lps tr
 
 instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
@@ -281,7 +271,6 @@ instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
   put s = G.put (M.elems . SOM.toMap . _patternMap $ s)
             >> G.put (_learningParams s)
             >> G.put (fromIntegral . SOM.maxSize . _patternMap $ s :: Word64)
-            >> G.put (SOM.diffThreshold . _patternMap $ s)
             >> G.put (_tweaker s)
   get = do
     nodes <- G.get
@@ -289,27 +278,24 @@ instance (G.Genetic p, G.Genetic t, Tweaker t, p ~ Pattern t)
     let gm = M.fromList . zip newLabels <$> nodes
     lps <- G.get
     maxSz <- fmap fromIntegral <$> (G.get :: G.Reader (Either [String] Word64))
-    dt <- G.get
     tr <- G.get
     let lrf = toLearningFunction <$> lps
     let df = diff <$> tr
     let af = adjust <$> tr
     let kNext = toEnum . length <$> nodes
-    let s = SOM.SGM <$> gm <*> lrf <*> maxSz <*> dt <*> pure False <*> df <*> af <*> kNext
+    let s = SOM.SGM <$> gm <*> lrf <*> maxSz <*> df <*> af <*> kNext
     return $ GeneticSOM <$> s <*> lps <*> tr
 
 instance (Diploid p, Diploid t, Tweaker t, p ~ Pattern t)
     => Diploid (GeneticSOM p t) where
   express x y = GeneticSOM s lps tr
-    where s = SOM.SGM gm lrf maxSz dt False df af kNext
+    where s = SOM.SGM gm lrf maxSz df af kNext
           gm = M.fromList $
                  express (M.toList . SOM.toMap . _patternMap $ x)
                          (M.toList . SOM.toMap . _patternMap $ y)
           lrf = toLearningFunction lps
           maxSz = express (SOM.maxSize . _patternMap $ x)
                           (SOM.maxSize . _patternMap $ y)
-          dt = express (SOM.diffThreshold . _patternMap $ x)
-                       (SOM.diffThreshold . _patternMap $ y)
           df = diff tr
           af = adjust tr
           kNext = express (SOM.nextIndex . _patternMap $ x)
@@ -322,7 +308,6 @@ instance (Statistical t, Statistical [(Label, p)])
   stats s =
     (iStat "num models" . numModels $ s)
       :(iStat "max. size" . SOM.maxSize . _patternMap $ s)
-      :(dStat "threshold" . SOM.diffThreshold . _patternMap $ s)
       :(iStat "SQ" . schemaQuality $ s)
       :(stats . _learningParams $ s)
       -- ++ (map (prefix "model") . stats . M.toAscList . modelMap $ s)
@@ -332,6 +317,12 @@ instance (Statistical t, Statistical [(Label, p)])
 -- | Returns @True@ if the SOM has no models, @False@ otherwise.
 isEmpty :: GeneticSOM p t -> Bool
 isEmpty = SOM.isEmpty . _patternMap
+
+-- | Returns True if the SOM is full, False otherwise.
+atCapacity
+  :: GeneticSOM p t -> Bool
+atCapacity (GeneticSOM s _ _) = SOM.atCapacity s
+
 
 -- | The maximum number of models this SOM can hold.
 maxSize :: GeneticSOM p t -> Int
@@ -387,13 +378,10 @@ discrimination :: Integral a => [a] -> Int
 discrimination xs = length $ filter (>k) xs
   where k = sum xs `div` fromIntegral (2 * length xs)
 
-diffThreshold :: GeneticSOM p t -> UIDouble
-diffThreshold = SOM.diffThreshold . _patternMap
-
 data ClassificationDetail p
   = ClassificationDetail
       {
-        -- | The input pattern to classify
+        -- | The input pattern
         cPattern    :: p,
         -- | The label of the node that best matches the input
         cBmu        :: Label,
@@ -415,18 +403,18 @@ prettyClassificationDetail
   => ClassificationDetail p -> [String]
 prettyClassificationDetail r =
   [
-    "Input pattern " ++ pretty (cPattern r),
-    "  classifier BMU: " ++ show (cBmu r)
+    "input pattern " ++ pretty (cPattern r),
+    "classifier BMU: " ++ show (cBmu r)
       ++ " novelty: " ++ show (cNovelty r)
       ++ " adjusted novelty: " ++ show (cAdjNovelty r),
-    "  classification details (label, model, diff):"
+    "classification details (label, model, diff):"
   ] ++ prettyClassificationMoreDetail (cDetails r)
 
 prettyClassificationMoreDetail
   :: Pretty p
   => M.Map Label (p, Difference) -> [String]
 prettyClassificationMoreDetail = map f . M.toList
-  where f (l, (p, d)) = "  " ++ pretty l ++ " " ++ pretty p ++ " " ++ pretty d
+  where f (l, (p, d)) = show l ++ " " ++ pretty p ++ " " ++ pretty d
 
 -- | @'classify' s p@ identifies the model @s@ that most closely
 --   matches the pattern @p@.
@@ -466,6 +454,49 @@ trainAndClassify gs p = (detail, gs')
                      cDetails = rs
                    }
 
+data ImprintDetail p
+  = ImprintDetail
+      {
+        -- | The input pattern
+        iPattern :: p,
+        -- | The label of the node that learned the pattern
+        iLabel   :: Label,
+        -- | Is the pattern new (imprinted) or old (reinforced)
+        iNew     :: Bool,
+        -- | The resulting model
+        --   May not be identical to the input pattern if a node with
+        --   that label already existed.
+        iModel   :: Maybe p
+      } deriving (Show, Generic, NFData)
+
+prettyImprintDetail :: Pretty p => ImprintDetail p -> [String]
+prettyImprintDetail r =
+  [
+    "Input pattern " ++ pretty (iPattern r),
+    "  classifier label: " ++ show (iLabel r),
+    msg ++ pretty (iModel r)
+  ]
+  where msg = if iNew r
+                then "  imprinted new model: "
+                else "  reinforced existing model: "
+
+-- | Teaches the classifier a pattern and a label for that pattern.
+imprint :: GeneticSOM p t -> Label -> p -> (ImprintDetail p, GeneticSOM p t)
+imprint gs l p
+  | existing      = (detail, gs')
+  | atCapacity gs = (detail0, gs)
+  | otherwise     = (detail, gs')
+  where gs' = over patternMap (\s -> SOM.imprint s l p) gs
+        existing = gs `hasLabel` l
+        detail0 = ImprintDetail
+                   {
+                     iPattern = p,
+                     iLabel = l,
+                     iNew = not existing,
+                     iModel = Nothing
+                   }
+        detail = detail0 { iModel = Just (gs' `modelAt` l) }
+
 -- | Calculates the novelty of the input by scaling the BMU difference
 --   according to the age of the classifier (wain).
 adjNovelty :: Difference -> Word64 -> Int
@@ -477,3 +508,10 @@ adjNovelty d a = round $ uiToDouble d * fromIntegral a
 -- train gs p = set patternMap s' gs
 --   where s' = SOM.train s p
 --         s = view patternMap gs
+
+-- | @'filterByPattern' s f@ applies the function @f@ to all patterns
+--   in @s@ where all of the
+--   patterns for which, and removes those for which the function @f@
+--   returns False.
+filterByPattern :: (p -> Bool) -> GeneticSOM p t -> GeneticSOM p t
+filterByPattern f s = over patternMap (SOM.filter f) s

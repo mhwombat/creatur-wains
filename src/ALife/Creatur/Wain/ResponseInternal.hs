@@ -20,31 +20,20 @@
 {-# LANGUAGE TypeFamilies      #-}
 module ALife.Creatur.Wain.ResponseInternal where
 
-import           ALife.Creatur.Genetics.BRGCWord8
-    (Genetic)
-import           ALife.Creatur.Genetics.Diploid
-    (Diploid)
-import           ALife.Creatur.Wain.GeneticSOM
-    (Label)
+import           ALife.Creatur.Genetics.BRGCWord8 (Genetic)
+import           ALife.Creatur.Genetics.Diploid   (Diploid)
+import           ALife.Creatur.Wain.Classifier    (Label)
 import           ALife.Creatur.Wain.PlusMinusOne
     (PM1Double, forceDoubleToPM1, pm1ToDouble)
-import           ALife.Creatur.Wain.Pretty
-    (Pretty, pretty)
-import           ALife.Creatur.Wain.Statistics
-    (Statistical (..), dStat)
-import           ALife.Creatur.Wain.UnitInterval
-    (UIDouble, doubleToUI)
-import           Control.DeepSeq
-    (NFData)
+import           ALife.Creatur.Wain.Pretty        (Pretty, pretty)
+import           ALife.Creatur.Wain.Statistics    (Statistical (..), dStat)
+import           ALife.Creatur.Wain.UnitInterval  (UIDouble, doubleToUI)
+import           Control.DeepSeq                  (NFData)
 import           Control.Lens
-import           Data.List
-    (intercalate)
-import           Data.Serialize
-    (Serialize)
-import           GHC.Generics
-    (Generic)
-import           Text.Printf
-    (printf)
+import           Data.List                        (intercalate)
+import           Data.Serialize                   (Serialize)
+import           GHC.Generics                     (Generic)
+import           Text.Printf                      (printf)
 
 -- | A model of a scenario that a wain might encounter
 data Response a = Response

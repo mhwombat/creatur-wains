@@ -12,25 +12,10 @@
 ------------------------------------------------------------------------
 module ALife.Creatur.Wain.GeneticSOM
   (
-    Label,
-    Difference,
-    LearningParams,
-    mkLearningParams,
-    LearningParamRanges(..),
-    widestLearningParamRanges,
-    randomLearningParams,
-    r0Range,
-    rfRange,
-    tfRange,
-    Tweaker(..),
+    -- * Construction
     GeneticSOM,
-    patternMap,
-    _patternMap,
-    learningParams,
-    _learningParams,
-    tweaker,
-    _tweaker,
     buildGeneticSOM,
+    -- * Deconstruction
     maxSize,
     numModels,
     modelMap,
@@ -40,12 +25,36 @@ module ALife.Creatur.Wain.GeneticSOM
     currentLearningRate,
     schemaQuality,
     discrimination,
-    diffThreshold,
+    -- * Learning parameters
+    LearningParams,
+    mkLearningParams,
+    LearningParamRanges(..),
+    widestLearningParamRanges,
+    randomLearningParams,
+    r0Range,
+    rfRange,
+    tfRange,
+    -- * Lenses
+    patternMap,
+    _patternMap,
+    learningParams,
+    _learningParams,
+    tweaker,
+    _tweaker,
+    -- * Learning and classification
+    -- classify,
+    trainAndClassify,
+    imprint,
+    -- * Other
+    Label,
+    Difference,
+    Tweaker(..),
     ClassificationDetail(..),
     prettyClassificationDetail,
     prettyClassificationMoreDetail,
-    -- classify,
-    trainAndClassify
+    ImprintDetail(..),
+    prettyImprintDetail,
+    filterByPattern
   ) where
 
-import ALife.Creatur.Wain.GeneticSOMInternal
+import           ALife.Creatur.Wain.GeneticSOMInternal

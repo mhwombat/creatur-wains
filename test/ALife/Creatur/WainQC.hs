@@ -21,36 +21,27 @@ import           ALife.Creatur.Genetics.BRGCWord8
     (runDiploidReader, write)
 import qualified ALife.Creatur.Wain.Brain                 as B
 import qualified ALife.Creatur.Wain.BrainQC               as BQC
+import qualified ALife.Creatur.Wain.Classifier            as Cl
 import           ALife.Creatur.Wain.ClassifierQC
-    (TestTweaker)
-import           ALife.Creatur.Wain.ResponseInternal
-    (labels)
+    (TestClassifierTweaker)
+import           ALife.Creatur.Wain.ResponseInternal      (labels)
 import           ALife.Creatur.Wain.ResponseQC
     (TestAction, TestResponse)
-import           ALife.Creatur.Wain.SimpleMuser
-    (SimpleMuser)
-import           ALife.Creatur.Wain.SimpleResponseTweaker
-    (ResponseTweaker (..))
+import           ALife.Creatur.Wain.SimpleMuser           (SimpleMuser)
+import           ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker (..))
 import           ALife.Creatur.Wain.TestUtils
-    ( TestPattern
-    , prop_diploid_identity
-    , prop_genetic_round_trippable
-    , prop_serialize_round_trippable
-    )
-import           ALife.Creatur.Wain.UnitInterval
-    (doubleToUI)
+    (TestPattern, prop_diploid_identity, prop_genetic_round_trippable,
+    prop_serialize_round_trippable)
+import           ALife.Creatur.Wain.UnitInterval          (doubleToUI)
 import           ALife.Creatur.WainInternal
-import           Control.DeepSeq
-    (deepseq)
+import           Control.DeepSeq                          (deepseq)
 import           Control.Lens
-import           Test.Framework
-    (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
-    (testProperty)
+import           Test.Framework                           (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2     (testProperty)
 import           Test.QuickCheck
     (Arbitrary, Gen, Property, arbitrary, choose, property, sized, vectorOf)
 
-type TestWain = Wain TestPattern TestTweaker
+type TestWain = Wain TestPattern TestClassifierTweaker
                   (ResponseTweaker TestAction) (SimpleMuser TestAction)
                   TestAction
 
@@ -167,31 +158,31 @@ instance Arbitrary ReflectionTestData where
 
 prop_reflect_never_causes_error
   :: ReflectionTestData -> Property
-prop_reflect_never_causes_error (ReflectionTestData ps r wBefore wAfter)
+prop_reflect_never_causes_error (ReflectionTestData _ r wBefore wAfter)
   = property $ deepseq x True
-  where x = reflect ps r wBefore wAfter
+  where x = reflect r wBefore wAfter
 
 data ImprintTestData
-  = ImprintTestData TestWain [TestPattern] TestAction B.Condition
+  = ImprintTestData TestWain [TestPattern] [Cl.Label] TestAction B.Condition
     deriving (Eq, Show)
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
 sizedArbImprintTestData n = do
   let nConditions = 4
-  (BQC.ImprintTestData b ps a _) <- BQC.sizedArbImprintTestData n
+  (BQC.ImprintTestData b ps a _ ls) <- BQC.sizedArbImprintTestData n
   w <- arbitrary
   let w' = w {_brain = b}
   c <- vectorOf nConditions arbitrary
-  return $ ImprintTestData w' ps a c
+  return $ ImprintTestData w' ps ls a c
 
 instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
 
-prop_imprint_never_causes_error
+prop_imprintResponse_never_causes_error
   :: ImprintTestData -> Property
-prop_imprint_never_causes_error (ImprintTestData w ps a _)
+prop_imprintResponse_never_causes_error (ImprintTestData w ps ls a _)
   = property $ deepseq x True
-  where x = imprint ps a w
+  where x = imprintResponse ls a w
 
 -- prop_prettyClassifierModels_never_causes_error
 --   :: ChoosingTestData -> Property
@@ -273,8 +264,8 @@ test = testGroup "ALife.Creatur.WainQC"
       prop_chooseAction_never_causes_error,
     testProperty "prop_reflect_never_causes_error"
       prop_reflect_never_causes_error,
-    testProperty "prop_imprint_never_causes_error"
-      prop_imprint_never_causes_error
+    testProperty "prop_imprintResponse_never_causes_error"
+      prop_imprintResponse_never_causes_error
     -- testProperty "prop_prettyClassifierModels_never_causes_error"
     --   prop_prettyClassifierModels_never_causes_error,
     -- testProperty "prop_prettyPredictorModels_never_causes_error"

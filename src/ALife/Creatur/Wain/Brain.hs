@@ -23,7 +23,6 @@ module ALife.Creatur.Wain.Brain
     PredictorReport,
     ActionReport,
     ReflectionReport(..),
-    ImprintReport(..),
     Condition,
     -- * Lenses
     _classifier,
@@ -46,14 +45,14 @@ module ALife.Creatur.Wain.Brain
     chooseAction,
     classifyInputs,
     reflect,
-    imprint,
+    imprintStimulus,
+    imprintResponse,
     -- * Miscellaneous
     happiness,
     decisionQuality,
     prettyScenarioReport,
     prettyActionReport,
-    prettyReflectionReport,
-    prettyImprintReport
+    prettyReflectionReport
   ) where
 
 import           ALife.Creatur.Wain.BrainInternal

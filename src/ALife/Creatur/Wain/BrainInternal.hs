@@ -21,48 +21,36 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.BrainInternal where
 
-import           ALife.Creatur.Genetics.BRGCWord8
-    (Genetic, get, put)
-import           ALife.Creatur.Genetics.Diploid
-    (Diploid)
+import           ALife.Creatur.Genetics.BRGCWord8 (Genetic, get, put)
+import           ALife.Creatur.Genetics.Diploid   (Diploid)
 import qualified ALife.Creatur.Wain.Classifier    as Cl
 import qualified ALife.Creatur.Wain.GeneticSOM    as GSOM
 import qualified ALife.Creatur.Wain.Muser         as M
 import           ALife.Creatur.Wain.PlusMinusOne
     (PM1Double, doubleToPM1, pm1ToDouble)
 import qualified ALife.Creatur.Wain.Predictor     as P
-import           ALife.Creatur.Wain.Pretty
-    (Pretty, pretty)
+import           ALife.Creatur.Wain.Pretty        (Pretty, pretty)
 import           ALife.Creatur.Wain.Probability
     (Probability, hypothesise, prettyProbability)
-import           ALife.Creatur.Wain.Response
-    (Response (..))
+import           ALife.Creatur.Wain.Response      (Response (..))
 import           ALife.Creatur.Wain.Statistics
     (Statistical, dStat, iStat, prefix, stats)
 import           ALife.Creatur.Wain.UnitInterval
     (UIDouble, forceDoubleToUI, uiToDouble)
-import           ALife.Creatur.Wain.Util
-    (thirdOfTriple)
+import           ALife.Creatur.Wain.Util          (thirdOfTriple)
 import           ALife.Creatur.Wain.Weights
     (Weights, numWeights, weightAt, weightedSum)
-import           Control.DeepSeq
-    (NFData)
+import           Control.DeepSeq                  (NFData)
 import           Control.Lens
-import           Data.Function
-    (on)
+import           Data.Function                    (on)
 import           Data.List
     (foldl', groupBy, intercalate, sortBy)
 import qualified Data.Map.Strict                  as M
-import           Data.Ord
-    (comparing)
-import           Data.Serialize
-    (Serialize)
-import           Data.Word
-    (Word64, Word8)
-import           GHC.Generics
-    (Generic)
-import           Text.Printf
-    (printf)
+import           Data.Ord                         (comparing)
+import           Data.Serialize                   (Serialize)
+import           Data.Word                        (Word64, Word8)
+import           GHC.Generics                     (Generic)
+import           Text.Printf                      (printf)
 
 -- | A wain's condition
 type Condition = [UIDouble]
@@ -234,8 +222,8 @@ prettyActionReport = map f
           ++ " with resulting happiness "
           ++ printf "%.3f" (uiToDouble h)
 
--- | Chooses a response based on the stimuli (input patterns) and
---   the wain's condition.
+-- | Chooses a response based on the classification of the stimulus
+--   (input patterns) and the wain's condition.
 --   Returns:
 --
 --   * a detailed report of the decision-making process
@@ -245,7 +233,7 @@ prettyActionReport = map f
 --   NOTE: The response chosen might be a response modelled on
 --   a different scenario than the one we think we're in.
 --   This might happen, for example, if the ideal response to the
---   most likely scenario has a somewhat good outcome, but the ideal
+--   most likely scenario has a somewhat good outcome, but the same
 --   response to a somewhat likely alternative scenario has a really
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
@@ -256,7 +244,7 @@ chooseAction
         -> [p]
         -> Condition
         -> (DecisionReport p a, Brain p ct pt m a)
-chooseAction b ps c = (report, b3)
+chooseAction b ps c = (report, b4)
   where (cReport, b2) = classifyInputs b ps
         -- cReport = The classifier report.
         -- b2  = the updated brain after classification
@@ -270,6 +258,7 @@ chooseAction b ps c = (report, b3)
         -- a = the action that we predict will give the best outcome
         -- os = the expected outcomes
         b3 = adjustActionCounts b2 a
+        b4 = pruneObsoleteResponses b3
         report = DecisionReport
                    {
                      bdrStimulus = ps,
@@ -283,9 +272,10 @@ chooseAction b ps c = (report, b3)
 -- | Internal method
 generateScenarios
   :: Brain p ct pt m a -> Cl.ClassifierReport p -> ScenarioReport
-generateScenarios b cReport = if null sps'
-                    then sps -- nothing to base estimate on; just guess
-                    else sps'
+-- generateScenarios b cReport = if null sps'
+--                     then sps -- nothing to base estimate on; just guess
+--                     else sps'
+generateScenarios b cReport = sps
   where ldss = Cl.diffs cReport
         -- ldss = the SGM labels paired with the difference between the
         --       inputs and the corresponding model
@@ -293,7 +283,7 @@ generateScenarios b cReport = if null sps'
         --   sps = set of hypotheses about the scenario the wain is
         --   facing, paired with the estimated probability that each
         --   hypothesis is true. (A hypothesis is a set of labels.)
-        sps' = filter (P.hasScenario (_predictor b) . fst) sps
+--         sps' = filter (P.hasScenario (_predictor b) . fst) sps
 
 -- | Internal method
 generateResponses
@@ -445,7 +435,7 @@ data ReflectionReport a =
   ReflectionReport
     {
       -- | Information about what the brain learned through reflection
-      brrLearningReport :: P.LearningReport (Response a) a,
+      brrLearningReport :: P.LearningReport a,
       -- | The error in the brain's prediction of the change to
       --   happiness.
       brrErr            :: Double
@@ -480,39 +470,13 @@ reflect b r cBefore cAfter = (report', set predictor d' b)
                      brrErr = abs (deltaH - predictedDeltaH)
                    }
 
--- | Detailed information about how a stimulus and response was
---   imprinted on a wain.
-data ImprintReport p a =
-  ImprintReport
-    {
-      -- | The stimulus
-      birStimulus         :: [p],
-      -- | The action to learn
-      birAction           :: a,
-      -- | For each object in the stimuli, the difference between that
-      --   object and each classifier model paired with the model's
-      --   label
-      birClassifierReport :: Cl.ClassifierReport p,
-      -- | The hypotheses considered, together with the probability that
-      --   each hypothesis is true
-      birScenarioReport   :: [([Cl.Label], Probability)],
-      -- | A report on how the predictor learned the response
-      birLearningReport   :: P.LearningReport (Response a) a
-    } deriving (Generic, Show, NFData)
-
-prettyImprintReport
-  :: (Pretty p, Pretty a)
-  => ImprintReport p a -> [String]
-prettyImprintReport r =
-  ["Imprinting the stimulus"]
-    ++ (map pretty (birStimulus r))
-    ++ ["and the action " ++ pretty (birAction r)]
-    ++ ("Classification step:"
-         : Cl.prettyClassifierReport (birClassifierReport r))
-    ++ ("Scenario analysis: "
-         : prettyScenarioReport (birScenarioReport r))
-    ++ ("Learning step:"
-         : P.prettyLearningReport (birLearningReport r))
+-- | Teaches the brain a set of patterns, and a label for each of them.
+imprintStimulus
+  :: Brain p ct pt m a
+  -> [(Cl.Label, p)]
+  -> ([GSOM.ImprintDetail p], Brain p ct pt m a)
+imprintStimulus b lps = (report, set classifier d b)
+  where (report, d) = Cl.imprintSet (_classifier b) lps
 
 -- | Teaches the brain a desirable action to take in response to a
 --   stimulus.
@@ -522,34 +486,13 @@ prettyImprintReport r =
 --
 --   * a detailed report of the imprint process
 --   * the updated brain.
-imprint
+imprintResponse
   :: Eq a
     => Brain p ct pt m a
-      -> [p]
+      -> [P.Label]
       -> a
-      -> (ImprintReport p a, Brain p ct pt m a)
-imprint b ps a = (report, b3)
-  where (cReport, b2) = classifyInputs b ps
-        ls = Cl.bmus cReport
-        ldss = Cl.diffs cReport
-        sps = errorIfNull "sps" $ hypothesise 1 ldss
-        -- ls = fst . head . reverse $ sortBy (comparing snd) sps
-        (pReport, b3) = imprintPredictor b2 ls a
-        report = ImprintReport
-                   {
-                     birStimulus = ps,
-                     birAction = a,
-                     birClassifierReport = cReport,
-                     birScenarioReport = sps,
-                     birLearningReport = pReport
-                   }
-
--- | Internal method
-imprintPredictor
-  :: Eq a
-    => Brain p ct pt m a -> [GSOM.Label] -> a
-      -> (P.LearningReport (Response a) a, Brain p ct pt m a)
-imprintPredictor b ls a = (report, set predictor d2 b)
+      -> (P.LearningReport a, Brain p ct pt m a)
+imprintResponse b ls a = (report, set predictor d2 b)
   where d = _predictor b
         (report, d2) = P.imprintOrReinforce d ls a os deltas
         os = _imprintOutcomes b
@@ -562,3 +505,10 @@ happiness b = weightedSum (_happinessWeights b)
 -- | A metric for how flexible a brain is at making decisions.
 decisionQuality :: Brain p ct pt m a -> Int
 decisionQuality = GSOM.discrimination . M.elems . _actionCounts
+
+-- | Eliminate any responses that refer to obsolete classifier models.
+pruneObsoleteResponses :: Brain p ct pt m a -> Brain p ct pt m a
+pruneObsoleteResponses b = over predictor prune b
+  where prune = P.filterLabels ls
+        ls = Cl.labels $ view classifier b
+
