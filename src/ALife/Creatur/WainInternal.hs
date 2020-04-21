@@ -578,30 +578,40 @@ pruneDeadChildren a =
 
 -- | Describes the classifier models.
 prettyClassifierModels :: Pretty p => Wain p ct pt m a -> [String]
-prettyClassifierModels w = map f ms
+prettyClassifierModels w
+  = prettyClassifierModels' w
+      ++ concatMap (indent . prettyClassifierModels') (_litter w)
+
+prettyClassifierModels' :: Pretty p => Wain p ct pt m a -> [String]
+prettyClassifierModels' w
+  = (agentId w ++ "'s classifier models") : map f ms
   where ms = M.toList . GSOM.modelMap . view (brain . B.classifier) $ w
-        f (l, m) = agentId w ++ "'s classifier model "
-                     ++ show l ++ " " ++ pretty m
+        f (l, m) = show l ++ " " ++ pretty m
 
 -- | Describes the predictor models.
 prettyPredictorModels :: Pretty a => Wain p ct pt m a -> [String]
-prettyPredictorModels w = map f ms
+prettyPredictorModels w
+  = prettyPredictorModels' w
+      ++ concatMap (indent . prettyPredictorModels') (_litter w)
+
+prettyPredictorModels' :: Pretty a => Wain p ct pt m a -> [String]
+prettyPredictorModels' w
+  = (agentId w ++ "'s predictor models") : map f ms
   where ms = M.toList . GSOM.modelMap . view (brain . B.predictor) $ w
-        f (l, m) = agentId w ++ "'s predictor model "
-                     ++ show l ++ ": " ++ pretty m
+        f (l, m) = show l ++ ": " ++ pretty m
 
 -- | Generates a report that shows relationships between the classifier
 --   and predictor models.
 --   Useful when the classifier models and the predictor models are
 --   both brief.
 prettyBrainSummary :: (Pretty p, Pretty a) => Wain p ct pt m a -> [String]
-prettyBrainSummary w = map f rs
+prettyBrainSummary w
+  = (agentId w ++ "'s brain summary") : map f rs
   where ps = M.toList . GSOM.modelMap
                . view (brain . B.classifier) $ w
         rs = sortBy (comparing (R._labels . snd)) . M.toList
                . GSOM.modelMap . view (brain . B.predictor) $ w
-        f (l, r) = agentId w ++ "'s predictor model "
-                     ++ show l ++ ": "
+        f (l, r) = show l ++ ": "
                      ++ intercalate "," (map g (R._labels r)) ++ " "
                      ++ pretty r
         g l' = show l' ++ " " ++ pretty (lookup l' ps)
@@ -614,7 +624,8 @@ prettyClassificationReport w r
     : Cl.prettyClassifierReport (wdrClassifierReport r)
     ++ concatMap f wrs
   where wrs = zip (_litter w) (wdrImprintReports r)
-        f (child, iReport) = prettyStimulusImprintReport child iReport
+        f (child, iReport) = indent $
+                               prettyStimulusImprintReport child iReport
 
 prettyScenarioReport
   :: Wain p ct pt m a -> DecisionReport p a -> [String]
@@ -644,7 +655,8 @@ prettyReflectionReport w r
     : B.prettyReflectionReport (rReflectionReport r)
     ++ concatMap f wrs
   where wrs = zip (_litter w) (rImprintReports r)
-        f (child, iReport) = prettyResponseImprintReport child iReport
+        f (child, iReport) = indent $
+                               prettyResponseImprintReport child iReport
 
 prettyStimulusImprintReport
   :: Pretty p
@@ -659,3 +671,6 @@ prettyResponseImprintReport
 prettyResponseImprintReport w r
   = (agentId w ++ " imprints a response")
     : P.prettyLearningReport r
+
+indent :: [String] -> [String]
+indent = map ("...." ++ )
