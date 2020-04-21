@@ -184,6 +184,13 @@ prop_imprintResponse_never_causes_error (ImprintTestData w ps ls a _)
   = property $ deepseq x True
   where x = imprintResponse ls a w
 
+prop_imprintResponse_twice_never_causes_error
+  :: ImprintTestData -> Property
+prop_imprintResponse_twice_never_causes_error (ImprintTestData w ps ls a _)
+  = property $ deepseq x True
+  where (r', w') = imprintResponse ls a w
+        x = imprintResponse ls a w'
+
 -- prop_prettyClassifierModels_never_causes_error
 --   :: ChoosingTestData -> Property
 -- prop_prettyClassifierModels_never_causes_error (ChoosingTestData w ps)
@@ -265,7 +272,9 @@ test = testGroup "ALife.Creatur.WainQC"
     testProperty "prop_reflect_never_causes_error"
       prop_reflect_never_causes_error,
     testProperty "prop_imprintResponse_never_causes_error"
-      prop_imprintResponse_never_causes_error
+      prop_imprintResponse_never_causes_error,
+    testProperty "prop_imprintResponse_twice_never_causes_error"
+      prop_imprintResponse_twice_never_causes_error
     -- testProperty "prop_prettyClassifierModels_never_causes_error"
     --   prop_prettyClassifierModels_never_causes_error,
     -- testProperty "prop_prettyPredictorModels_never_causes_error"
