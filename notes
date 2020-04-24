@@ -1,0 +1,924 @@
+cabal repl creatur-wains-test
+
+:l ALife.Creatur.Wain.GeneticSOMQC
+
+gs = GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.9351998557102874 0.4166028249021964 1)) 1 (diff (TestTweaker 1)) (adjust (TestTweaker 1)) 0) (LearningParams 0.9351998557102874 0.4166028249021964 1) (TestTweaker 1)
+l = 0
+p = TestPattern 1
+
+import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+
+gs' = over patternMap (\s -> SOM.imprint s l p) gs
+existing = gs `ALife.Creatur.Wain.GeneticSOMInternal.hasLabel` l
+
+imprint gs l p = (detail, gs')
+  where 
+        
+detail = ImprintDetail { iPattern = p, iLabel = l, iNew = not existing, iModel = gs `modelAt` l }
+
+:l ALife.Creatur.Wain.ClassifierQC
+import ALife.Creatur.Wain.GeneticSOMInternal
+import qualified ALife.Creatur.Wain.GeneticSOMInternal as GSOM
+
+c = GeneticSOM (SGM (fromList [(0,(TestPattern 2,2)),(1,(TestPattern 1,2))]) (toLearningFunction (LearningParams 0.6857306794103536 0.47416989246613916 3)) 4 (diff (TestClassifierTweaker)) (adjust (TestClassifierTweaker)) 2) (LearningParams 0.6857306794103536 0.47416989246613916 3) (TestClassifierTweaker)
+lps = [(2,TestPattern 1)]
+(l, p) = head lps
+imprintNext ([], c) (l, p)
+
+imprintSet c lps = (reverse details, c')
+  where (details, c') = foldl' imprintNext ([], c) lps
+
+imprintNext (details, c) (l, p) = (detail:details, c')
+  where (detail, c') = GSOM.imprint c l p
+
+
+
+cabal repl creatur-wains-test
+
+:l ALife.Creatur.WainQC
+import ALife.Creatur.Wain.BrainInternal
+import ALife.Creatur.Wain.ClassifierQC
+import ALife.Creatur.Wain.ResponseInternal
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.SimpleMuserInternal
+import ALife.Creatur.Wain.GeneticSOMInternal
+import ALife.Creatur.Wain.GeneticSOMQC
+import ALife.Creatur.Wain.WeightsInternal
+import ALife.Creatur.Wain.TestUtils
+import Data.Datamining.Clustering.SGM4Internal
+import Data.Map.Strict (fromList)
+
+ChoosingTestData w ps = ChoosingTestData (Wain {_name = "", _appearance = TestPattern 2, _brain = Brain (GeneticSOM (SGM (fromList [(0,(TestPattern 0,1))]) (toLearningFunction (LearningParams 0.10393864441885889 4.210090512846406e-2 1)) 2 (diff (TestClassifierTweaker)) (adjust (TestClassifierTweaker)) 1) (LearningParams 0.10393864441885889 4.210090512846406e-2 1) (TestClassifierTweaker)) (SimpleMuser {_defaultOutcomes = [0.6330772004779326,-0.4324394106248626,-0.4213147668939503,0.2860962468534871], _depth = 1}) (GeneticSOM (SGM (fromList [(0,(Response {_labels = [1], _action = Walk, _outcomes = [0.8579956644399638,-2.666477246291299e-2,3.019828012670467e-2,0.8943422126974356]},1)),(1,(Response {_labels = [0], _action = Jump, _outcomes = [-0.6387995487358422,0.677525982169268,0.7647685797392714,-0.311487852423973]},2)),(2,(Response {_labels = [0], _action = Walk, _outcomes = [0.9956493699916018,0.25561315004228025,-0.8178983499154338,-0.7564352382163844]},1))]) (toLearningFunction (LearningParams 0.2196652870911788 3.589788491771477e-2 1)) 4 (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 3) (LearningParams 0.2196652870911788 3.589788491771477e-2 1) (ResponseTweaker)) (Weights [0.1397489738609601,0.25313167189560565,0.3232191289748568,0.2839002252685775]) 0 128 [0.4870550135563187,0.8831052613161736,0.1238633103522521,0.8770105058818707][0.3656740804697908,0.9650858087654669,0.6537248814351124,0.1478610527688921] (fromList []), _devotion = 0.6057311794146703, _ageOfMaturity = 2, _passionDelta = 0.6577618332184179, _boredomDelta = 0.5605444667658954, _energy = 0.0, _passion = 1.0, _boredom = 1.0, _age = 0, _litter = [Wain {_name = "*", _appearance = TestPattern 1, _brain = Brain (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.5023343549420751 0.19183264891990318 1)) 2 (diff (TestClassifierTweaker)) (adjust (TestClassifierTweaker)) 0) (LearningParams 0.5023343549420751 0.19183264891990318 1) (TestClassifierTweaker)) (SimpleMuser {_defaultOutcomes = [1.5096363709413918e-2,0.35281748837713733,0.281547733329086,6.179789824462434e-2], _depth = 1}) (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.7173584846003345 0.5571872492493357 2)) 4 (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 0) (LearningParams 0.7173584846003345 0.5571872492493357 2) (ResponseTweaker)) (Weights [0.282010283725309,0.14242348057871684,0.2819484232568287,0.2936178124391455]) 0 190 [0.5643798628435406,-0.5584674426833729,-0.40644418117992176,-0.1854143224714087][-7.555622693285657e-2,-0.1795291367904958,-0.4731695949356533,0.6829340029377916] (fromList []), _devotion = 0.8927593457196227, _ageOfMaturity = 1, _passionDelta = 0.5860490455123074, _boredomDelta = 0.47662995515340556, _energy = 0.0, _passion = 1.0, _boredom = 1.0, _age = 0, _litter = [], _childrenBorneLifetime = 0, _childrenWeanedLifetime = 0, _genome = ([1,0,0,0,25,1,1,0,0,0,0,0,0,0,6,119,125,191,175,27,65,20,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,75,22,130,224,12,150,16,0,12,192,192,192,192,192,192,192,248,142,169,193,66,255,230,136,109,0,0,0,0,0,0,0,3,0,6,223,57,109,35,159,226,104,0,190,12,135,159,144,30,160,0,112,6,200,59,227,152,42,0,239,214,194,169,216,147,4,0,3,0,0,0,25,1,1,0,0,0,0,0,0,0,6,182,142,180,88,79,217,20,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,227,36,225,8,156,228,31,0,12,192,192,192,192,192,192,192,248,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,6,0,6,0,25,1,1,0,0,0,0,0,0,0,6,185,0,77,150,49,60,27,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,249,216,231,114,8,234,21,0,12,192,192,192,192,192,192,192,250,0,25,1,1,0,0,0,0,0,0,0,6,25,184,183,90,77,255,28,0,12,192,192,192,192,192,192,192,251,0,25,1,1,0,0,0,0,0,0,0,6,136,58,47,11,69,206,21,0,12,192,192,192,192,192,192,192,248,0,0,0,0,0,0,0,0,225,0,6,228,230,99,212,165,93,116,0,91,245,166,121,93,165,110,0,53,156,119,120,71,166,53,0,20,35,66,176,31,165,198,128,0,6,15,193,55,196,21,209,44,64,162,244,230,176,83,162,140,0,83,80,152,88,246,159,250,0,177,248,44,189,77,120,72,0,0,25,1,1,0,0,0,0,0,0,0,6,183,38,49,172,6,109,31,0,12,192,192,192,192,192,192,192,249,0,3,0,25,1,1,0,0,0,0,0,0,0,6,38,152,218,59,104,35,20,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,145,132,79,216,84,187,27,0,12,192,192,192,192,192,192,192,248],[3,0,1,0,0,0,0,0,0,0,0,1,0,25,1,1,0,0,0,0,0,0,0,6,142,95,233,219,85,141,24,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,222,109,115,102,90,132,19,0,12,192,192,192,192,192,192,192,246,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,0,6,89,14,118,236,253,112,182,0,197,109,230,110,189,233,24,0,156,20,27,143,117,113,240,0,119,91,197,193,66,140,146,0,1,0,0,0,25,1,1,0,0,0,0,0,0,0,6,18,253,47,84,236,6,26,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,220,110,222,132,187,240,19,0,12,192,192,192,192,192,192,192,249,124,179,86,141,17,235,25,152,0,0,0,0,0,0,0,6,0,6,0,25,1,1,0,0,0,0,0,0,0,6,54,243,15,2,135,138,24,0,12,192,192,192,192,192,192,192,250,0,25,1,1,0,0,0,0,0,0,0,6,97,156,236,88,78,166,29,0,12,192,192,192,192,192,192,192,251,0,25,1,1,0,0,0,0,0,0,0,6,104,36,51,34,152,156,19,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,97,86,231,157,207,138,23,0,12,192,192,192,192,192,192,192,248,3,0,0,0,0,0,0,0,128,0,6,188,96,207,205,47,67,92,0,2,120,142,212,211,30,110,16,73,143,158,51,110,2,110,0,228,110,186,226,233,224,252,0,0,6,147,53,65,126,93,59,156,0,9,233,119,38,94,192,10,64,54,67,222,24,119,231,35,0,184,54,135,73,198,215,196,0,0,25,1,1,0,0,0,0,0,0,0,6,48,214,4,171,204,157,24,0,12,192,192,192,192,192,192,192,249,0,1,0,25,1,1,0,0,0,0,0,0,0,6,174,49,62,141,73,78,16,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,178,171,49,194,202,62,20,0,12,192,192,192,192,192,192,192,249])}], _childrenBorneLifetime = 0, _childrenWeanedLifetime = 0, _genome = ([3,0,3,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,25,1,1,0,0,0,0,0,0,0,6,142,226,92,180,93,129,27,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,247,4,210,35,101,19,16,0,12,192,192,192,192,192,192,192,248,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,3,0,6,230,114,113,80,17,156,104,0,115,12,114,35,147,151,26,0,123,212,145,30,178,189,134,0,223,77,226,100,226,43,68,0,3,0,3,0,1,0,0,0,0,0,0,0,0,0,0,0,6,151,59,141,141,182,144,32,0,153,226,3,137,171,170,156,0,9,190,112,107,204,237,168,64,101,162,229,125,36,189,210,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,6,179,36,2,174,121,103,176,0,84,221,80,56,201,46,58,0,80,170,244,168,119,133,14,0,106,77,77,107,139,128,58,0,0,0,0,0,0,0,0,1,0,25,1,1,0,0,0,0,0,0,0,6,71,8,220,139,71,51,21,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,149,80,96,198,186,16,18,0,12,192,192,192,192,192,192,192,248,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,6,0,6,0,25,1,1,0,0,0,0,0,0,0,6,116,142,205,140,70,140,18,0,12,192,192,192,192,192,192,192,251,0,25,1,1,0,0,0,0,0,0,0,6,213,12,180,162,232,139,24,0,12,192,192,192,192,192,192,192,250,0,25,1,1,0,0,0,0,0,0,0,6,167,203,68,33,91,81,23,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,196,215,5,226,61,6,18,0,12,192,192,192,192,192,192,192,250,0,0,0,0,0,0,0,0,27,0,6,9,182,168,114,206,200,220,64,104,122,100,193,13,29,122,0,99,42,174,134,140,34,12,0,167,106,87,85,99,52,200,0,0,6,242,19,29,252,141,15,156,0,143,8,159,103,16,247,220,0,209,91,209,219,38,132,96,0,142,74,148,12,219,243,216,0,0,25,1,1,0,0,0,0,0,0,0,6,103,122,7,3,167,76,28,0,12,192,192,192,192,192,192,192,249,0,3,0,25,1,1,0,0,0,0,0,0,0,6,25,194,18,161,42,145,17,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,195,53,47,42,185,118,26,0,12,192,192,192,192,192,192,192,248],[3,0,3,0,0,0,0,0,0,0,0,1,3,0,0,0,0,0,0,0,1,0,25,1,1,0,0,0,0,0,0,0,6,37,252,196,123,181,29,31,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,243,153,61,248,63,78,23,0,12,192,192,192,192,192,192,192,248,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,0,6,203,64,74,50,252,198,92,0,241,237,20,9,61,150,80,0,60,120,125,6,38,236,29,0,74,52,198,50,209,123,122,0,1,0,1,0,1,0,0,0,0,0,0,0,1,1,1,0,0,6,42,153,220,49,224,42,121,0,216,170,98,138,235,214,112,0,94,249,64,109,102,53,14,0,192,112,1,247,255,237,244,0,0,0,0,0,0,0,0,1,0,25,1,1,0,0,0,0,0,0,0,6,21,14,207,50,23,53,20,0,12,192,192,192,192,192,192,192,250,0,25,1,1,0,0,0,0,0,0,0,6,233,89,178,20,158,56,19,0,12,192,192,192,192,192,192,192,246,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,6,0,6,0,25,1,1,0,0,0,0,0,0,0,6,216,235,139,234,68,65,23,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,209,13,223,99,15,255,19,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,204,73,147,107,24,251,30,0,12,192,192,192,192,192,192,192,246,0,25,1,1,0,0,0,0,0,0,0,6,67,170,185,155,97,247,22,0,12,192,192,192,192,192,192,192,248,0,0,0,0,0,0,0,0,221,0,6,218,205,112,135,30,216,16,0,11,240,88,198,252,255,140,64,119,233,59,124,211,234,174,0,224,218,87,43,0,143,204,0,0,6,175,29,32,41,121,181,120,0,76,86,157,204,97,41,126,0,9,245,179,68,17,2,8,64,226,231,234,241,234,141,176,0,0,25,1,1,0,0,0,0,0,0,0,6,68,133,231,125,174,231,30,0,12,192,192,192,192,192,192,192,248,0,3,0,25,1,1,0,0,0,0,0,0,0,6,6,146,107,176,138,76,16,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,121,170,28,224,47,35,16,0,12,192,192,192,192,192,192,192,249])}) [TestPattern 2]
+
+chooseAction ps w = (report', r, set litter litter' w')
+
+import qualified ALife.Creatur.Wain.Response                as R
+
+(report, b') = B.chooseAction (_brain w) ps (condition w)
+r = B.bdrRecommendedResponse report
+w' = set brain b' w
+ls = R._labels r
+lps = zip ls ps
+iResults = map (ALife.Creatur.WainInternal.imprintStimulus lps) (_litter w')
+
+w = head $ _litter w'
+(report, b') = B.imprintStimulus (_brain w) lps
+
+
+
+prop_diploid_identity - Weights: [Failed]
+*** Failed! Falsifiable (after 8 tests):
+Weights [6.410905877411571e-2,0.19080978305807453,0.18372907330879723,0.21401373029847862,0.11514802953054087,0.19118731013584891,4.100301489414407e-2]
+
+:l ALife.Creatur.Wain.WeightsQC
+import           ALife.Creatur.Genetics.Diploid (express)
+g = Weights [6.383155696130835e-2,0.19067390201796977,9.445949604766839e-2,4.255794948888827e-2,0.22500225899613835,4.1576018872401053e-2,0.22220085298505324,0.11969796463057249]
+Weights xs = g
+Weights ys = express g g
+
+express g g `eq` g
+
+cNovelty -> cAdjNovelty
+cBmuDiff -> cNovelty
+pNovelty -> pAdjNovelty
+pBmuDiff -> pNovelty
+novelties -> adjNovelties
+bmuDiffs -> novelties
+lNovelty -> lAdjNovelty
+lBmuDiff -> lNovelty
+
+prop_imprint_works: [Failed]
+
+
+:set -package=numeric-tools
+:l ALife.Creatur.Wain.BrainQC
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Map.Strict (fromList)
+import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+import Data.Datamining.Clustering.SGM2Internal (SGM(..))
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import ALife.Creatur.Wain.WeightsInternal (Weights(..))
+import ALife.Creatur.Wain.Pretty (Pretty(..))
+Right m = makeMuser [-0.8168091767925922,2.1798867958935153e-2,0.5290029176928295,0.4323167786795741] 3
+s = SGM (fromList []) (toLearningFunction (LearningParams 0.8943208839210581 0.5955703872754806 6)) 2 (diff (TestTweaker)) (adjust (TestTweaker)) 0
+c = GeneticSOM s (LearningParams 0.8943208839210581 0.5955703872754806 6) (TestTweaker)
+p = (GeneticSOM (SGM (fromList [(0,(Response {_labels = [0], _action = Skip, _outcomes = [-3.278573737080792e-4,0.39680177165249564,-0.3731872847474076,0.24739962188932657]},3)),(1,(Response {_labels = [0], _action = Skip, _outcomes = [0.9830785438770924,-4.298706383875328e-2,-0.869702065110157,0.5055894614556355]},0)),(2,(Response {_labels = [0], _action = Run, _outcomes = [-0.902811355611217,-0.38500074754446834,0.8291701693648199,-2.079840318090076e-2]},1)),(3,(Response {_labels = [0], _action = Skip, _outcomes = [-0.26730324724650223,0.4958962175133925,-3.1954892498534004e-2,-0.2599559927984334]},0)),(4,(Response {_labels = [2], _action = Run, _outcomes = [0.8398276506861446,0.1939502840738785,-0.9342704143695446,-0.4717719496208388]},1))]) (toLearningFunction (LearningParams 0.7999863789200243 0.31123843571364973 6)) 6 (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 5) (LearningParams 0.7999863789200243 0.31123843571364973 6) (ResponseTweaker))
+ws = (Weights [9.513621446275435e-2,0.3430238706274532,0.4377872532250902,0.1240526616847023])
+b = (Brain c m p ws 2 20 [0.24273236365892809,8.158583486470672e-2,0.4135436668928066,0.12109761675680442][0.20887690797685426,0.13265180900110757,0.9569022078239857,0.8552173104519655] (fromList []))
+ps = [TestPattern 0]
+a = Skip
+
+prop_imprint_works :: ImprintTestData -> Property
+prop_imprint_works (ImprintTestData b ps a _) = not (null ps)
+    ==> and $ zipWith (>=) (_outcomes rAfter) (_outcomes rBefore)
+        goodOutcomes = map (const 1) $ _imprintOutcomes b
+        badOutcomes = map (const (-1)) $ _imprintOutcomes b
+        m = _muser b
+        mModified = m { _defaultOutcomes = badOutcomes }
+        bModified = b { _imprintOutcomes = goodOutcomes, _muser = mModified }
+        (cReports, bClassified) = classifyInputs bModified ps
+        ldss = diffs cReports
+        s = fst . maximumBy (comparing snd) . hypothesise (_strictness b) $ ldss
+        r = Response s a badOutcomes
+        (report1:_) = predictAll bClassified [(r, 1)]
+        rBefore = P.pResponse report1
+        (_, bImprinted) = imprint bClassified ps a
+        (report2:_) = predictAll bImprinted [(r, 1)]
+        rAfter = P.pResponse report2
+
+
+
+Right m = makeMuser [0.4870527506186151,0.8188608011739047,0.22570533134536852,-0.5649884327802603] 1
+(ImprintEmptyBrainTestData b ps a c) = ImprintEmptyBrainTestData (Brain (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.35632074144560155 0.268498282226556 1)) 1 0.6086950370348733 False (diff (TestTweaker)) (adjust (TestTweaker)) 0) (LearningParams 0.35632074144560155 0.268498282226556 1) (TestTweaker)) m (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.27674927634672913 0.23582557769059959 12598325059627916343)) 1 0.9730562134815262 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 0) (LearningParams 0.27674927634672913 0.23582557769059959 12598325059627916343) (ResponseTweaker)) (Weights [0.15976259078347768,0.454481996027286,0.37850443198772366,7.2509812015126365e-3]) 0 114 [0.8274266362257123,0.14221419022242773,0.17819326967549823,0.4526352611389593][0.6785122675898517,6.88906521569215e-2,0.635210346409413,0.5766789543349442] (fromList [])) [TestPattern 1] Skip [0.44020408945725575,0.7206677617037905,0.7867270979124951,0.5918504487610924]
+
+prop_imprint_works2 (ImprintEmptyBrainTestData b ps a c) = not (null ps)
+  ==> _action r == a
+        badOutcomes = [-1, 1, -1, -1]
+        mModified = (_muser b) { _defaultOutcomes = badOutcomes }
+        goodOutcomes = [1, -1, 1, 1]
+        bModified = b { _muser = mModified, _imprintOutcomes = goodOutcomes }
+        (_, bImprinted) = imprint bModified ps a
+        (report, _) = chooseAction bImprinted ps c
+        r = bdrRecommendedResponse report
+
+WRITE TEST IN PredictorQC TO VERIFY THAT IF WE IMPRINT AN IDEAL RESPONSE ONTO A PREDICTOR WITH NON-IDEAL DEFAULT OUTCOMES,
+AND THEN PREDICT THE OUTCOME OF THE ACTION WE IMPRINTED, THE RESULT WILL BE THE IDEAL OUTCOMES.
+WRITE TEST IN PredictorQC TO VERIFY THAT IF WE IMPRINT AN IDEAL RESPONSE ONTO A PREDICTOR WITH NON-IDEAL DEFAULT OUTCOMES,
+AND THEN PREDICT THE OUTCOME OF THE ACTION WE IMPRINTED, THE RESULT WILL BE THE IDEAL OUTCOMES.
+WRITE TEST IN PredictorQC TO VERIFY THAT IF WE IMPRINT AN IDEAL RESPONSE ONTO A PREDICTOR WITH NON-IDEAL DEFAULT OUTCOMES,
+AND THEN PREDICT THE OUTCOME OF THE ACTION WE IMPRINTED, THE RESULT WILL BE THE IDEAL OUTCOMES.
+WRITE TEST IN PredictorQC TO VERIFY THAT IF WE IMPRINT AN IDEAL RESPONSE ONTO A PREDICTOR WITH NON-IDEAL DEFAULT OUTCOMES,
+AND THEN PREDICT THE OUTCOME OF THE ACTION WE IMPRINTED, THE RESULT WILL BE THE IDEAL OUTCOMES.
+WRITE TEST IN PredictorQC TO VERIFY THAT IF WE IMPRINT AN IDEAL RESPONSE ONTO A PREDICTOR WITH NON-IDEAL DEFAULT OUTCOMES,
+AND THEN PREDICT THE OUTCOME OF THE ACTION WE IMPRINTED, THE RESULT WILL BE THE IDEAL OUTCOMES.
+WRITE TEST IN PredictorQC TO VERIFY THAT IF WE IMPRINT AN IDEAL RESPONSE ONTO A PREDICTOR WITH NON-IDEAL DEFAULT OUTCOMES,
+AND THEN PREDICT THE OUTCOME OF THE ACTION WE IMPRINTED, THE RESULT WILL BE THE IDEAL OUTCOMES.
+WRITE TEST IN PredictorQC TO VERIFY THAT IF WE IMPRINT AN IDEAL RESPONSE ONTO A PREDICTOR WITH NON-IDEAL DEFAULT OUTCOMES,
+AND THEN PREDICT THE OUTCOME OF THE ACTION WE IMPRINTED, THE RESULT WILL BE THE IDEAL OUTCOMES.
+WRITE TEST IN PredictorQC TO VERIFY THAT IF WE IMPRINT AN IDEAL RESPONSE ONTO A PREDICTOR WITH NON-IDEAL DEFAULT OUTCOMES,
+AND THEN PREDICT THE OUTCOME OF THE ACTION WE IMPRINTED, THE RESULT WILL BE THE IDEAL OUTCOMES.
+WRITE TEST IN PredictorQC TO VERIFY THAT IF WE IMPRINT AN IDEAL RESPONSE ONTO A PREDICTOR WITH NON-IDEAL DEFAULT OUTCOMES,
+AND THEN PREDICT THE OUTCOME OF THE ACTION WE IMPRINTED, THE RESULT WILL BE THE IDEAL OUTCOMES.
+WRITE TEST IN PredictorQC TO VERIFY THAT IF WE IMPRINT AN IDEAL RESPONSE ONTO A PREDICTOR WITH NON-IDEAL DEFAULT OUTCOMES,
+AND THEN PREDICT THE OUTCOME OF THE ACTION WE IMPRINTED, THE RESULT WILL BE THE IDEAL OUTCOMES.
+
+
+:set -package=numeric-tools
+:l ALife.Creatur.Wain.BrainQC
+quickCheck prop_chooseAction_never_causes_error
+TAKES TOO LONG
+
+:set -fbreak-on-exception
+:set stop :list
+:trace kjfafkjl;fdjkl;fda
+
+:l ALife.Creatur.WainQC
+import ALife.Creatur.Wain.Response (Response(..))
+import ALife.Creatur.Wain.BrainInternal (Brain(..))
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import ALife.Creatur.Wain.PredictorInternal (PredictionDetail(..))
+import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+import ALife.Creatur.Wain.WeightsInternal (Weights(..))
+import ALife.Creatur.Wain.GeneticSOMInternal (GeneticSOM(..), LearningParams(..), toLearningFunction, ClassificationDetail(..))
+import ALife.Creatur.Wain.SimpleMuser (makeMuser)
+import ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker(..))
+import ALife.Creatur.Wain.TestUtils (TestPattern(..))
+import ALife.Creatur.Wain.GeneticSOM (Tweaker(..))
+import Data.Datamining.Clustering.SGMInternal (SGM(..))
+import Data.Map.Strict(fromList)
+
+Right m = makeMuser [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857] 1
+w = Wain {_name = "", _appearance = TestPattern 0, _brain = Brain (GeneticSOM (SGM (fromList [(0,(TestPattern 1,3))]) (toLearningFunction (LearningParams 9.216261092386324e-2 2.3259270479853884e-2 1)) 2 2.544193355999673e-2 False (diff (TestTweaker)) (adjust (TestTweaker)) 1) (LearningParams 9.216261092386324e-2 2.3259270479853884e-2 1) (TestTweaker)) m (GeneticSOM (SGM (fromList [(0,(Response {_labels = [0], _action = Crawl, _outcomes = [0.8404800128797656,0.5003591847743916,-0.2888568278254584,-0.8401326530039177]},1))]) (toLearningFunction (LearningParams 0.36166395091894016 0.29346581719678255 1)) 2 0.6555496379172718 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 1) (LearningParams 0.36166395091894016 0.29346581719678255 1) (ResponseTweaker)) (Weights [0.355561979179806,0.20876175007103576,5.623129712224465e-2,0.3794449736269135]) 0 242 [6.368733163477708e-2,4.7770720824711385e-2,0.26821854616322444,0.5949399230588744][0.24279309101429802,0.24134808626514642,0.8988683160497488,0.6497351290884337] (fromList [(Crawl,1)]), _devotion = 0.3217486395952306, _ageOfMaturity = 0, _passionDelta = 0.10524153113309342, _boredomDelta = 0.23163884627524162, _energy = 0.0, _passion = 1.0, _boredom = 1.0, _age = 0, _litter = [], _childrenBorneLifetime = 0, _childrenWeanedLifetime = 0, _genome = ([0,0,1,1,0,0,0,0,0,0,0,3,0,25,1,1,0,0,0,0,0,0,0,6,92,78,146,37,169,103,27,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,173,206,37,130,158,177,22,0,12,192,192,192,192,192,192,192,248,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,0,25,1,1,0,0,0,0,0,0,0,6,114,9,62,143,88,254,31,0,12,192,192,192,192,192,192,192,246,0,6,78,10,65,182,61,139,202,0,126,171,123,126,199,44,206,0,217,59,72,188,149,118,24,0,87,241,63,85,78,236,50,0,1,0,3,0,1,0,0,0,0,0,0,0,1,1,1,0,0,6,159,109,26,33,197,142,240,0,87,75,191,41,241,165,66,0,144,132,233,74,210,37,200,0,188,6,208,49,213,190,232,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,1,1,1,0,6,47,250,189,193,5,160,57,0,185,189,62,102,118,155,92,0,77,170,117,251,46,146,22,0,86,30,169,36,156,86,178,0,0,0,0,0,0,0,0,1,0,25,1,1,0,0,0,0,0,0,0,6,50,112,163,81,164,2,22,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,153,97,217,60,10,107,30,0,12,192,192,192,192,192,192,192,248,189,105,82,38,68,56,80,232,0,0,0,0,0,0,0,3,0,25,1,1,0,0,0,0,0,0,0,6,146,97,138,213,187,16,27,0,12,192,192,192,192,192,192,192,248,0,6,0,25,1,1,0,0,0,0,0,0,0,6,243,148,62,97,171,184,22,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,114,157,158,87,152,110,19,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,243,61,121,202,106,62,19,0,12,192,192,192,192,192,192,192,247,0,25,1,1,0,0,0,0,0,0,0,6,131,36,173,209,161,78,18,0,12,192,192,192,192,192,192,192,246,1,0,0,0,0,0,0,0,101,0,6,8,115,7,98,234,75,190,64,241,174,221,79,0,39,208,0,84,44,193,24,177,13,40,0,106,191,54,190,150,11,226,0,0,6,242,0,132,16,221,148,128,0,46,86,74,78,43,183,109,0,250,13,87,43,174,101,52,0,79,12,218,217,115,108,24,0,0,25,1,1,0,0,0,0,0,0,0,6,233,201,48,166,209,158,26,0,12,192,192,192,192,192,192,192,248,0,0,0,25,1,1,0,0,0,0,0,0,0,6,160,150,5,92,168,39,31,0,12,192,192,192,192,192,192,192,251,0,25,1,1,0,0,0,0,0,0,0,6,40,108,67,129,28,154,16,0,12,192,192,192,192,192,192,192,247],[0,0,1,0,0,0,0,0,0,0,0,1,0,25,1,1,0,0,0,0,0,0,0,6,99,187,188,237,143,207,18,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,140,61,116,111,132,247,20,0,12,192,192,192,192,192,192,192,249,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,0,25,1,1,0,0,0,0,0,0,0,6,69,72,165,86,28,190,31,0,12,192,192,192,192,192,192,192,251,0,6,91,199,132,174,9,33,82,0,156,140,68,161,121,102,164,0,46,88,96,181,253,108,49,0,195,98,133,137,236,173,112,0,1,0,0,0,25,1,1,0,0,0,0,0,0,0,6,30,73,72,11,217,19,26,0,12,192,192,192,192,192,192,192,249,0,25,1,1,0,0,0,0,0,0,0,6,143,84,198,218,89,180,22,0,12,192,192,192,192,192,192,192,249,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,0,25,1,1,0,0,0,0,0,0,0,6,244,181,57,185,19,52,30,0,12,192,192,192,192,192,192,192,246,0,6,0,25,1,1,0,0,0,0,0,0,0,6,202,140,248,180,6,180,29,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,23,188,200,13,189,193,30,0,12,192,192,192,192,192,192,192,251,0,25,1,1,0,0,0,0,0,0,0,6,147,237,25,147,20,5,18,0,12,192,192,192,192,192,192,192,248,0,25,1,1,0,0,0,0,0,0,0,6,123,34,107,111,84,183,26,0,12,192,192,192,192,192,192,192,244,1,0,0,0,0,0,0,0,100,0,6,4,187,178,222,92,9,184,32,91,214,217,190,113,50,66,0,170,83,19,80,50,140,164,0,92,178,246,229,73,178,58,0,0,6,4,90,248,55,41,236,106,32,151,199,65,82,228,232,16,0,184,199,140,224,91,49,176,0,208,214,97,59,25,34,28,0,0,25,1,1,0,0,0,0,0,0,0,6,15,46,30,73,86,198,19,0,12,192,192,192,192,192,192,192,251,0,1,0,25,1,1,0,0,0,0,0,0,0,6,0,15,21,107,31,91,27,0,12,192,192,192,192,192,192,192,244,0,25,1,1,0,0,0,0,0,0,0,6,119,150,210,252,220,88,27,0,12,192,192,192,192,192,192,192,248])}
+r = DecisionReport {wdrStimulus = [TestPattern 1], wdrClassifierReport = [ClassificationDetail {cPattern = TestPattern 1, cBmu = 0, cBmuModel = TestPattern 1, cBmuDiff = 0.0, cNovelty = 0, cDetails = fromList [(0,(TestPattern 1,0.0))]}], wdrScenarioReport = [([0],1.0)], wdrPredictorReport = [PredictionDetail {pResponse = Response {_labels = [0], _action = Skip, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]}, pProb = 1.0, pBmu = 1, pBmuModel = Response {_labels = [0], _action = Skip, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]}, pBmuDiff = 0.0, pNovelty = 0, pAdjustment = 1.0, pRawOutcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857], pDetails = fromList [(0,(Response {_labels = [0], _action = Crawl, _outcomes = [0.8404800128797656,0.5003591847743916,-0.2888568278254584,-0.8401326530039177]},1.0)),(1,(Response {_labels = [0], _action = Skip, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]},0.0))]},PredictionDetail {pResponse = Response {_labels = [0], _action = Jump, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]}, pProb = 1.0, pBmu = 1, pBmuModel = Response {_labels = [0], _action = Jump, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]}, pBmuDiff = 0.0, pNovelty = 0, pAdjustment = 1.0, pRawOutcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857], pDetails = fromList [(0,(Response {_labels = [0], _action = Crawl, _outcomes = [0.8404800128797656,0.5003591847743916,-0.2888568278254584,-0.8401326530039177]},1.0)),(1,(Response {_labels = [0], _action = Jump, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]},0.0))]},PredictionDetail {pResponse = Response {_labels = [0], _action = Run, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]}, pProb = 1.0, pBmu = 1, pBmuModel = Response {_labels = [0], _action = Run, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]}, pBmuDiff = 0.0, pNovelty = 0, pAdjustment = 1.0, pRawOutcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857], pDetails = fromList [(0,(Response {_labels = [0], _action = Crawl, _outcomes = [0.8404800128797656,0.5003591847743916,-0.2888568278254584,-0.8401326530039177]},1.0)),(1,(Response {_labels = [0], _action = Run, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]},0.0))]},PredictionDetail {pResponse = Response {_labels = [0], _action = Walk, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]}, pProb = 1.0, pBmu = 1, pBmuModel = Response {_labels = [0], _action = Walk, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]}, pBmuDiff = 0.0, pNovelty = 0, pAdjustment = 1.0, pRawOutcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857], pDetails = fromList [(0,(Response {_labels = [0], _action = Crawl, _outcomes = [0.8404800128797656,0.5003591847743916,-0.2888568278254584,-0.8401326530039177]},1.0)),(1,(Response {_labels = [0], _action = Walk, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]},0.0))]},PredictionDetail {pResponse = Response {_labels = [0], _action = Crawl, _outcomes = [0.5063776794610432,0.18005417282140507,-0.29316485122576363,-0.7053187248695947]}, pProb = 1.0, pBmu = 0, pBmuModel = Response {_labels = [0], _action = Crawl, _outcomes = [0.5063776794610432,0.18005417282140507,-0.29316485122576363,-0.7053187248695947]}, pBmuDiff = 0.0, pNovelty = 0, pAdjustment = 1.0, pRawOutcomes = [0.5063776794610432,0.18005417282140507,-0.29316485122576363,-0.7053187248695947], pDetails = fromList [(0,(Response {_labels = [0], _action = Crawl, _outcomes = [0.8404800128797656,0.5003591847743916,-0.2888568278254584,-0.8401326530039177]},0.0))]}], wdrActionReport = [(Skip,[-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857],0.0),(Jump,[-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857],0.0),(Run,[-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857],0.0),(Walk,[-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857],0.0),(Crawl,[0.5063776794610432,0.18005417282140507,-0.29316485122576363,-0.7053187248695947],0.21763707414743516)]}
+
+
+:l ALife.Creatur.Wain.PredictorQC
+import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+
+r = PredictionDetail {pResponse = Response {_labels = [0], _action = Skip, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]}, pProb = 1.0, pBmu = 1, pBmuModel = Response {_labels = [0], _action = Skip, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]}, pBmuDiff = 0.0, pNovelty = 0, pAdjustment = 1.0, pRawOutcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857], pDetails = fromList [(0,(Response {_labels = [0], _action = Crawl, _outcomes = [0.8404800128797656,0.5003591847743916,-0.2888568278254584,-0.8401326530039177]},1.0)),(1,(Response {_labels = [0], _action = Skip, _outcomes = [-0.5625588058016722,-0.844738770662631,-0.3069480635273085,-0.2739912180252857]},0.0))]}
+
+
+
+:set -package=numeric-tools
+:l ALife.Creatur.Wain.GeneticSOMQC
+import Data.Map.Strict (fromList)
+import Data.Datamining.Clustering.SGMInternal (SGM(..))
+
+som = GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.559092492638025 0.17529074285364812 31328440017)) 47 3.503761940255037e-2 False (diff (TestTweaker 199)) (adjust (TestTweaker 199)) 0) (LearningParams 0.559092492638025 0.17529074285364812 31328440017) (TestTweaker 199)
+p = TestPattern 194
+x = ALife.Creatur.Wain.GeneticSOMInternal.classify som p
+
+:set -package=numeric-tools
+:l ALife.Creatur.Wain.BrainQC
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Map.Strict (fromList)
+import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+import Data.Datamining.Clustering.SGMInternal (SGM(..))
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import ALife.Creatur.Wain.WeightsInternal (Weights(..))
+import ALife.Creatur.Wain.Pretty (Pretty(..))
+Right m = makeMuser [0.7973859319963239,-0.8415498149712981,0.935564783032987,0.32004234825822064] 57
+(ImprintEmptyBrainTestData b ps a c) = ImprintEmptyBrainTestData (Brain (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.911496992966319 0.2169996647872982 203188924)) 27 0.47461972438200767 False (diff (TestTweaker)) (adjust (TestTweaker)) 0) (LearningParams 0.911496992966319 0.2169996647872982 203188924) (TestTweaker)) m (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.7351513156262742 0.7318808121048526 67305191)) 36 3.54679875015445e-2 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 0) (LearningParams 0.7351513156262742 0.7318808121048526 67305191) (ResponseTweaker)) (Weights [0.3529877866278555,0.47981132866765175,0.1094116772927184,5.778920741177443e-2]) 23 148 [0.36629285976006504,0.2593237662512539,0.3478869233911367,0.6503991437344135][0.7226505790536788,0.34108287117307046,0.4400339581095237,0.7396785311534634] (fromList [])) [TestPattern 54,TestPattern 43,TestPattern 107] Run [0.13299598529824108,0.11595609483749125,5.919733151526607e-2,0.24222452043554654]
+badOutcomes = map (const (-1)) $ _imprintOutcomes b
+mModified = (_muser b) { _defaultOutcomes = badOutcomes }
+bModified = b { _muser = mModified }
+(iReport, bImprinted) = imprint bModified ps a
+(cReport, r, _) = chooseAction bImprinted ps c
+prettyImprintReport iReport
+
+λ> dActionReport cReport 
+[(Crawl,[-1.0,-1.0,-1.0,-1.0],0.0),(Skip,[-1.0,-1.0,-1.0,-1.0],0.0),(Jump,[-1.0,-1.0,-1.0,-1.0],0.0),(Walk,[-1.0,-1.0,-1.0,-1.0],0.0),(Run,[-0.6381391334902529,-0.6664697571851306,-0.6430139215240229,-0.5628939579296662],0.0)]
+λ> c
+[0.13299598529824108,0.11595609483749125,5.919733151526607e-2,0.24222452043554654]
+
+HAPPINESS SHOULD BE HIGHER FOR RUN
+HAPPINESS SHOULD BE HIGHER FOR RUN
+HAPPINESS SHOULD BE HIGHER FOR RUN
+HAPPINESS SHOULD BE HIGHER FOR RUN
+
+λ> pReport = dPredictorReport cReport
+λ> rs = map P.pResponse pReport
+λ> rs
+[Response {_labels = [0,0,0], _action = Crawl, _outcomes = [-1.0,-1.0,-1.0,-1.0]},Response {_labels = [0,0,0], _action = Skip, _outcomes = [-1.0,-1.0,-1.0,-1.0]},Response {_labels = [0,0,0], _action = Jump, _outcomes = [-1.0,-1.0,-1.0,-1.0]},Response {_labels = [0,0,0], _action = Walk, _outcomes = [-1.0,-1.0,-1.0,-1.0]},Response {_labels = [0,0,0], _action = Run, _outcomes = [-0.6381391334902529,-0.6664697571851306,-0.6430139215240229,-0.5628939579296662]}]
+λ> aos = sumByAction rs
+λ> aos
+[(Crawl,[-1.0,-1.0,-1.0,-1.0]),(Skip,[-1.0,-1.0,-1.0,-1.0]),(Jump,[-1.0,-1.0,-1.0,-1.0]),(Walk,[-1.0,-1.0,-1.0,-1.0]),(Run,[-0.6381391334902529,-0.6664697571851306,-0.6430139215240229,-0.5628939579296662])]
+λ> fillInAdjustedHappiness b c (Crawl,[-1.0,-1.0,-1.0,-1.0])
+(Crawl,[-1.0,-1.0,-1.0,-1.0],0.0)
+λ> fillInAdjustedHappiness b c (Run,[-0.6381391334902529,-0.6664697571851306,-0.6430139215240229,-0.5628939579296662])
+(Run,[-0.6381391334902529,-0.6664697571851306,-0.6430139215240229,-0.5628939579296662],0.0)
+
+MAYBE WE SHOULD ONLY TEST IMPRINTING ON WORST POSSIBLE CONDITION SO THAT HAPPINESS IS GUARANTEED TO INCREASE?
+OR ONLY TEST WHEN HAPPINESS WOULD INCREASE?
+MAYBE WE SHOULD ONLY TEST IMPRINTING ON WORST POSSIBLE CONDITION SO THAT HAPPINESS IS GUARANTEED TO INCREASE?
+OR ONLY TEST WHEN HAPPINESS WOULD INCREASE?
+MAYBE WE SHOULD ONLY TEST IMPRINTING ON WORST POSSIBLE CONDITION SO THAT HAPPINESS IS GUARANTEED TO INCREASE?
+OR ONLY TEST WHEN HAPPINESS WOULD INCREASE?
+MAYBE WE SHOULD ONLY TEST IMPRINTING ON WORST POSSIBLE CONDITION SO THAT HAPPINESS IS GUARANTEED TO INCREASE?
+OR ONLY TEST WHEN HAPPINESS WOULD INCREASE?
+MAYBE WE SHOULD ONLY TEST IMPRINTING ON WORST POSSIBLE CONDITION SO THAT HAPPINESS IS GUARANTEED TO INCREASE?
+OR ONLY TEST WHEN HAPPINESS WOULD INCREASE?
+MAYBE WE SHOULD ONLY TEST IMPRINTING ON WORST POSSIBLE CONDITION SO THAT HAPPINESS IS GUARANTEED TO INCREASE?
+OR ONLY TEST WHEN HAPPINESS WOULD INCREASE?
+
+:set -package=numeric-tools
+:l ALife.Creatur.Wain.GeneticSOMQC
+import Data.Datamining.Clustering.SGMInternal (SGM(..))
+import Data.Map.Strict (fromList)
+gs = GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.23234200953559167 0.10201355837062205 1)) 1 1.9470548807148796e-2 False (diff (TestTweaker 1)) (adjust (TestTweaker 1)) 0) (LearningParams 0.23234200953559167 0.10201355837062205 1) (TestTweaker 1)
+p = TestPattern 0
+import qualified Data.Datamining.Clustering.SGMInternal as SOM
+s = view patternMap gs
+(bmu, bmuDiff, rs, s') = SOM.trainAndClassify s p
+
+:set -package=numeric-tools
+:l ALife.Creatur.Wain.PredictorQC
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal (SGM(..))
+import Data.Map.Strict (fromList)
+import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+(ImprintTestData d r os ds prob) = ImprintTestData {iPredictor = GeneticSOM (SGM (fromList [(0,(Response {_labels = [1], _action = Run, _outcomes = [-0.9118618835776837]},1))]) (toLearningFunction (LearningParams 0.8763136398043194 0.4400594829462675 13181754671154646504)) 2 0.1 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 1) (LearningParams 0.8763136398043194 0.4400594829462675 13181754671154646504) (ResponseTweaker), iResponse = Response {_labels = [0], _action = Walk, _outcomes = [0.9778085588400764]}, iOutcomes = [0.42368097144328215], iDeltas = [0.37321203402085057], iProb = 0.912121077778048}
+os0 = map (const (-1)) os
+r0 = set outcomes os0 r
+r = r0
+p = d
+import ALife.Creatur.Wain.PredictorInternal
+import qualified ALife.Creatur.Wain.GeneticSOM as S
+(report, _) = S.trainAndClassify p r
+
+:set -package=numeric-tools
+:l ALife.Creatur.Wain.Predictor
+import ALife.Creatur.Wain.PredictorQC (ImprintTestData(..))
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal (SGM(..))
+import Data.Map.Strict (fromList)
+import ALife.Creatur.Wain.ResponseQC (TestAction(..))
+p = GeneticSOM (SGM (fromList [(0,(Response {_labels = [1], _action = Run, _outcomes = [-0.9118618835776837]},1))]) (toLearningFunction (LearningParams 0.8763136398043194 0.4400594829462675 13181754671154646504)) 2 0.1 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 1) (LearningParams 0.8763136398043194 0.4400594829462675 13181754671154646504) (ResponseTweaker)
+r = Response {_labels = [0], _action = Walk, _outcomes = [-1.0]}
+(ImprintTestData d r os ds prob) = ImprintTestData {iPredictor = GeneticSOM (SGM (fromList [(0,(Response {_labels = [1], _action = Run, _outcomes = [-0.9118618835776837]},1))]) (toLearningFunction (LearningParams 0.8763136398043194 0.4400594829462675 13181754671154646504)) 2 0.1 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 1) (LearningParams 0.8763136398043194 0.4400594829462675 13181754671154646504) (ResponseTweaker), iResponse = Response {_labels = [0], _action = Walk, _outcomes = [0.9778085588400764]}, iOutcomes = [0.42368097144328215], iDeltas = [0.37321203402085057], iProb = 0.912121077778048}
+
+
+---------------------------
+
+:set -package=numeric-tools
+:l ALife.Creatur.Wain.ProbabilityQC
+quickCheck prop_hypothesis_probabilities_eq_1
+
+*** Failed! (after 8 tests and 4 shrinks):                              
+Exception:
+  value 1.0000000000000002 not in (0,1)
+  CallStack (from HasCallStack):
+    error, called at /home/amy/néal/creatur-wains/src/ALife/Creatur/Wain/UnitInterval.hs:68:23 in main:ALife.Creatur.Wain.UnitInterval
+1
+TestSignatures [[(31,0.48593485679020587),(4,0.39319262688368684),(27,0.318122791269962)],[(20,0.45846431203959126),(4,0.23395511869688324),(22,0.17190603066722854)]]
+
+:l ALife.Creatur.Wain.ProbabilityInternal
+x = 1 :: Word64
+ldss = [[(31,0.48593485679020587),(4,0.39319262688368684),(27,0.318122791269962)],[(20,0.45846431203959126),(4,0.23395511869688324),(22,0.17190603066722854)]] :: [[(Label, Difference)]]
+hypothesise x ldss
+lds = head ldss
+diffsToProbs2 20 lds
+ds = map snd lds
+
+
+
+:l ALife.Creatur.Wain.BrainQC
+import qualified Data.Map.Strict as M
+import Data.Map.Strict (fromList)
+import Control.Lens
+import Data.Datamining.Clustering.SGMInternal (SGM(..))
+import ALife.Creatur.Wain.GeneticSOMInternal
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Wain.SimpleMuser 
+import ALife.Creatur.Wain.WeightsInternal
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import qualified ALife.Creatur.Wain.Predictor as P
+import qualified ALife.Creatur.Wain.Classifier as Cl
+Right m = makeMuser [0.1365962415159767,-0.9885286410696597,0.743509048284209,0.6534981276647125] 81
+(ImprintEmptyBrainTestData b ps a c) = ImprintEmptyBrainTestData (Brain (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.21534585170019116 0.15374826616271398 765138415612432124)) 8 0.36117187124077216 False (diff (TestTweaker)) (adjust (TestTweaker)) 0) (LearningParams 0.21534585170019116 0.15374826616271398 765138415612432124) (TestTweaker)) m (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.29259680029077056 0.15555948149729001 1017543062627104183)) 78 0.1371313365339711 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 0) (LearningParams 0.29259680029077056 0.15555948149729001 1017543062627104183) (ResponseTweaker)) (Weights [0.3198438768489266,0.3803355790490856,0.2009305606483559,9.888998345363186e-2]) 17 159 [0.9572670719596332,0.5029610937881921,0.41222998147075607,0.6661583266932228][0.3199790857405158,0.8380576225399298,5.1391621040665206e-2,0.37273749261077493] (fromList [])) [TestPattern 29,TestPattern 113,TestPattern 141] Walk [0.5338119870966347,0.12111912403287906,0.9757067292776909,0.38135781591068696]
+
+badOutcomes = map (const (-1)) $ _imprintOutcomes b
+mModified = (_muser b) { _defaultOutcomes = badOutcomes }
+bModified = b { _muser = mModified }
+(_, bImprinted) = imprint bModified 0 ps a
+(_, r, _) = chooseAction bImprinted 0 ps c
+
+(modelMap . _classifier) b
+(modelMap . _classifier) bImprinted
+(modelMap . _predictor) b
+(modelMap . _predictor) bImprinted
+
+ERROR??? bImprinted SHOULD HAVE [0,1,1], BUT IT HAS [0,0,1]
+ERROR??? bImprinted SHOULD HAVE [0,1,1], BUT IT HAS [0,0,1]
+ERROR??? bImprinted SHOULD HAVE [0,1,1], BUT IT HAS [0,0,1]
+ERROR??? bImprinted SHOULD HAVE [0,1,1], BUT IT HAS [0,0,1]
+ERROR??? bImprinted SHOULD HAVE [0,1,1], BUT IT HAS [0,0,1]
+
+(_, cReports, b2) = classifyInputs b 0 ps
+mapM_ putStrLn $ Cl.prettyClassifierReport cReports
+
+        lds = map (M.toList . M.map snd) cReports
+        sps = errorIfNull "sps" $ hypothesise 1 lds
+        ls = fst . head $ sps
+	
+        (bmu, r, b3) = imprintPredictor b2 ls a
+        report = ImprintReport cReports sps bmu r
+
+(_, r, _) = chooseAction bImprinted ps c
+
+
+        (_, cReports, b2) = classifyInputs b ps
+	(modelMap . _predictor) b2
+        lds = map (M.toList . M.map snd) cReports
+        sps = errorIfNull "sps" $ hypothesise 1 lds
+        ls = fst . head $ sps
+        (bmu, r2, b3) = imprintPredictor b2 ls a
+	(modelMap . _predictor) b3
+        report = ImprintReport cReports sps bmu r2
+
+        (cBmus, cReports, b2) = classifyInputs bImprinted ps
+        lds = map (M.toList . M.map snd) cReports
+        sps = errorIfNull "sps" $ hypothesise (_strictness bImprinted) lds
+        sps' = filter (P.hasScenario (_predictor bImprinted) . fst) sps
+        spsSafe = if null sps' then sps else sps'
+        as = P.actions $ _predictor bImprinted
+        rps = errorIfNull "rps" $ generateResponses (_muser b2) as spsSafe
+        rplos = errorIfNull "rplos" $ predictAll b2 rps
+        rs = errorIfNull "rs" $ map (\(r1, _, _, _, _) -> r1) rplos
+        aos = errorIfNull "aos" $ sumByAction $ rs
+        aohs = errorIfNull "aohs" $ map (fillInAdjustedHappiness b2 c) aos
+        (a, os, _) = chooseAny bImprinted . maximaBy thirdOfTriple $ aohs
+        b3 = adjustActionCounts b2 r
+        r = Response cBmus a os
+        report = DecisionReport cReports sps rplos aohs
+
+
+
+import Data.Either
+import qualified ALife.Creatur.Wain as W
+import qualified ALife.Creatur.Genetics.BRGCWord8 as G
+import ALife.Creatur.Wain.UnitInterval
+
+import ALife.Creatur.Wain.Weights
+
+type Pattern = [UIDouble]
+let diff = weightedUIVectorDiff :: Weights -> Pattern -> Pattern -> UIDouble
+let makeSimilar = adjustUIVector :: Pattern -> UIDouble -> Pattern -> Pattern
+
+data PatternTweaker = PatternTweaker Weights deriving (Eq, Show)
+
+data Action = Cooperate_a | Cooperate_b | Cooperate_c | Cooperate_d | Cooperate_e | Cooperate_f | Cooperate_g | Cooperate_h | Flirt | Ignore deriving (Show, Eq, Ord, Enum, Bounded)
+
+let (g1,g2) = ([0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,171,140,0,0,0,0,0,0,0,38,0,0,0,0,0,0,2,28,0,0,0,0,0,0,0,3,0,0,0,0,0,0,19,78,0,3,0,0,0,0,0,0,89,232,0,0,0,0,0,0,217,232,0,6,0,0,0,0,0,0,118,17,0,0,0,0,0,0,186,203,0,0,0,0,0,0,155,247,0,0,0,0,0,0,87,44,1,0,0,0,0,0,0,0,0,147,232,0,0,0,0,0,0,0,13,0,0,0,0,0,0,2,28,0,0,0,0,0,0,0,238,0,0,0,0,0,0,60,33,0,6,0,0,0,0,0,0,243,156,0,0,0,0,0,0,103,57,0,0,0,0,0,0,0,0,0,0,0,0,0,0,28,229,207,0,6,0,0,0,0,0,0,213,55,0,0,0,0,0,0,152,125,0,0,0,0,0,0,245,21,0,0,0,0,0,0,187,82,0,0,0,0,0,0,48,113,0,101,0,0,0,0,0,0,0,0,0,0,0,0,0,0,27,188],[0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,171,140,0,0,0,0,0,0,0,38,0,0,0,0,0,0,2,28,0,0,0,0,0,0,0,3,0,0,0,0,0,0,19,78,0,3,0,0,0,0,0,0,89,232,0,0,0,0,0,0,217,232,0,6,0,64,0,0,0,0,118,17,0,0,0,0,0,0,186,203,0,0,0,0,0,0,155,247,0,0,0,0,0,0,87,44,1,0,0,0,0,0,0,0,0,147,232,0,0,0,0,0,0,0,13,0,0,0,0,0,0,2,28,0,0,0,0,0,0,0,238,0,0,0,0,0,0,60,33,0,6,0,0,0,0,0,0,243,156,0,0,0,0,0,0,103,57,0,0,0,0,0,0,0,0,0,0,0,0,0,0,28,229,207,0,6,0,0,0,0,0,0,213,55,0,0,0,0,0,0,152,125,0,0,0,0,0,0,245,21,0,0,0,0,0,0,187,82,0,0,0,0,0,0,48,113,0,101,0,0,0,0,0,0,0,0,0,0,0,0,0,0,27,188]) :: ([GHC.Word.Word8],[GHC.Word.Word8])
+
+let w1 = G.read $ g1 :: Either [String] (W.Wain [UIDouble] PatternTweaker Action)
+
+
+:l ALife.Creatur.Wain.PredictorQC
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import qualified Data.Map.Strict as M
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PredictorInternal
+
+let  (ImprintTestData d r os ds prob) = ImprintTestData {iPredictor = GeneticSOM (SGM (M.fromList []) (toLearningFunction (LearningParams 0.309563381698846 0.2113000576463032 12924119936286143073)) 2 0.1 False (diff (PredictorTweaker)) (adjust (PredictorTweaker)) 0) (LearningParams 0.309563381698846 0.2113000576463032 12924119936286143073) (PredictorTweaker), iResponse = Response {_labels = [0], _action = Skip, _outcomes = [0.8543038081543632]}, iOutcomes = [0.6470359505452317], iDeltas = [0.7490654773790203], iProb = 0.8406725674105789}
+
+let ls = view ALife.Creatur.Wain.Response.labels r
+let a = view action r
+import ALife.Creatur.Wain.Response
+
+
+
+:l  ALife.Creatur.Wain.BrainQC
+import qualified Data.Map.Strict as M
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Wain.WeightsInternal
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import Control.Lens
+
+let (ImprintTestData b ps a _) = ImprintTestData (Brain (GeneticSOM (SGM (M.fromList [(0,(TestPattern 129,1))]) (toLearningFunction (LearningParams 0.414607874494806 3.595603771574424e-2 1461)) 2 3.3072467960818516e-2 False (diff (TestTweaker)) (adjust (TestTweaker)) 1) (LearningParams 0.414607874494806 3.595603771574424e-2 1461) (TestTweaker)) (makeMuser ([-0.8073696613150516,0.8438194823513241,-0.6855090366956049,0.805490273291287]) 66) (GeneticSOM (SGM (M.fromList [(0,(Response {_labels = [3318], _action = Skip, _outcomes = [0.19146276112355398,0.9681173702809207,-0.17632199085539257,0.6745248114415467]},1)),(1,(Response {_labels = [4050], _action = Walk, _outcomes = [-0.8721229378017148,0.37174722387446213,0.41663587987138184,0.4560619546170004]},1))]) (toLearningFunction (LearningParams 0.8217280443111088 0.35187306632791715 3755)) 2 0.6581730374663579 False (diff (PredictorTweaker)) (adjust (PredictorTweaker)) 2) (LearningParams 0.8217280443111088 0.35187306632791715 3755) (PredictorTweaker)) (Weights [0.2851780619221629,0.22867238741916046,0.18471440135306383,0.3014351493056128]) 146 [2.3730824911254e-2,-3.884651777386616e-2,0.9946908158789562,0.7686024944659915][-0.2800475694798631,-0.5229261622137472,-0.7765459671827841,-0.6001290352252896] (M.fromList [])) [TestPattern 28] Jump [0.2567556806562111,0.908165398091535,0.33612460237150055,0.5837963356885438]
+
+xs <- sample' $ sizedArbImprintTestData 5
+let (ImprintTestData b ps a _) = head xs
+
+a
+let (lds, sps, bmu, r, b2) = imprint b ps a
+view predictor b2
+
+
+let (ImprintTestData b ps a prob) = ImprintTestData (Brain (GeneticSOM (SGM (M.fromList []) (toLearningFunction (LearningParams 0.3598274535296447 0.3589169800248674 1)) 2 0.6388873523456919 False (diff (TestTweaker)) (adjust (TestTweaker)) 0) (LearningParams 0.3598274535296447 0.3589169800248674 1) (TestTweaker)) (makeMuser ([-0.5657447656460977,-0.9076363348061336,-0.5213932396524579,-0.5658946484275991]) 1) (GeneticSOM (SGM (M.fromList [(0,(Response {_labels = [0], _action = Crawl, _outcomes = [0.36946073398535173,0.47329800287698265,-0.7467314082593375,1.1840086174975006e-2]},1)),(1,(Response {_labels = [0], _action = Jump, _outcomes = [-0.24972447638547068,-0.9087078585370125,-0.9198272263265479,-0.7120725922714075]},1))]) (toLearningFunction (LearningParams 0.8052010264924795 0.5451239930477703 1)) 3 6.818769431347115e-3 False (diff (PredictorTweaker)) (adjust (PredictorTweaker)) 2) (LearningParams 0.8052010264924795 0.5451239930477703 1) (PredictorTweaker)) (Weights [0.32015942675722275,0.1845832321439103,0.21288040393909902,0.28237693715976797]) 0 [0.5974080341630164,0.24631242377684814,4.6603258419563254e-2,-0.5984948026039744][0.753249804254398,0.7733169104174236,-0.31224879543078077,0.2706321304495114] (M.fromList [])) [TestPattern 0] Jump [0.7050481786988908,0.31413938125098995,0.13616620856367667,0.6488687293668326]
+
+
+(ALife.Creatur.Wain.GeneticSOMInternal.modelMap $ view predictor bModified) M.! bmu
+
+let m = _muser b
+let mModified = m { _defaultOutcomes = undefined }
+let bModified = b { _imprintOutcomes = undefined, _muser = mModified }
+let (_, lds0, bClassified) = classifyInputs bModified ps
+let s = fst . maximumBy (comparing snd) . hypothesise $ lds0
+let rBad = Response s a undefined
+let  ((rBefore, _, _, _):_) = predictAll bClassified [(rBad, 1)]
+let  (_, _, _, _, bImprinted) = imprint bClassified ps a
+let ((rAfter, _, _, _):_) = predictAll bImprinted [(rBad, 1)]
+
+zipWith (>=) (_outcomes rAfter) (_outcomes rBefore)
+
+
+
+
+:l ALife.Creatur.Wain.PredictorQC
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import qualified Data.Map.Strict as M
+import ALife.Creatur.Wain.Response
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PredictorInternal
+
+let d = GeneticSOM (SGM (M.fromList [(0,(Response {_labels = [0], _action = Crawl, _outcomes = [0.36946073398535173,0.47329800287698265,-0.7467314082593375,1.1840086174975006e-2]},1)),(1,(Response {_labels = [0], _action = Jump, _outcomes = [-0.24972447638547068,-0.9087078585370125,-0.9198272263265479,-0.7120725922714075]},1))]) (toLearningFunction (LearningParams 0.8052010264924795 0.5451239930477703 1)) 3 6.818769431347115e-3 False (diff (PredictorTweaker)) (adjust (PredictorTweaker)) 2) (LearningParams 0.8052010264924795 0.5451239930477703 1) (PredictorTweaker)
+
+let ls = [0] :: [Label]
+let a = Jump
+let os = [0.5974080341630164,0.24631242377684814,4.6603258419563254e-2,-0.5984948026039744] :: [PM1Double]
+let deltas = [0.753249804254398,0.7733169104174236,-0.31224879543078077,0.2706321304495114] :: [PM1Double]
+
+let (bmu, r, d') = imprintOrReinforce d ls a os deltas
+
+(ALife.Creatur.Wain.GeneticSOMInternal.modelMap d) M.! bmu
+
+
+:l ALife.Creatur.Wain.TestUtils
+λ> testPatternDiff (TestPattern 14) (TestPattern 25)
+1.8608227604767396e-3
+λ> testPatternDiff (TestPattern 14) (TestPattern 50)
+1.9930795847750864e-2
+λ> testPatternDiff (TestPattern 14) (TestPattern 75)
+5.72241445597847e-2
+λ> testPatternDiff (TestPattern 14) (TestPattern 125)
+0.18948096885813148
+λ> testPatternDiff (TestPattern 14) (TestPattern 175)
+0.3986312956555171
+λ> testPatternDiff (TestPattern 14) (TestPattern 225)
+0.6846751249519415
+
+:l  ALife.Creatur.Wain.ProbabilityQC
+import ALife.Creatur.Wain.TestUtils
+
+let lds = [zip ([0..] :: [Label]) $ map (testPatternDiff (TestPattern 14)) $ map TestPattern [25,50,75,125,175,225]]
+hypothesise lds
+
+let ds = map snd . head $ lds
+diffsToProbs1 ds
+
+
+2|Jump|0.003|0.000|0.000|0.000 prob: 31.308% based on model 2 raw outcomes: 0.011 0.000 0.000 0.000
+3|Jump|0.000|0.000|0.000|0.000 prob: 41.658% based on model 6 raw outcomes: 0.000 0.000 0.000 0.000
+2|Run|-0.031|0.000|0.000|0.000 prob: 31.308% based on model 5 raw outcomes: -0.100 0.000 0.000 0.000
+3|Run|0.005|0.000|0.000|0.000 prob: 41.658% based on model 3 raw outcomes: 0.011 0.000 0.000 0.000
+
+0.003443
+
+-0.0313e-2
+0.004576
+
+
+
+:l ALife.Creatur.Wain.BrainQC
+import qualified Data.Map.Strict as M
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Wain.WeightsInternal
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import Control.Lens
+let (ImprintEmptyBrainTestData b ps a c) = ImprintEmptyBrainTestData (Brain (GeneticSOM (SGM (M.fromList []) (toLearningFunction (LearningParams 0.9683043336961056 0.5878640337024832 232578345)) 44 0.7611168565197994 False (diff (TestTweaker)) (adjust (TestTweaker)) 0) (LearningParams 0.9683043336961056 0.5878640337024832 232578345) (TestTweaker)) (makeMuser [-0.6322981222586062,0.712691275458746,-0.8409961379806214,0.789630272577514] 23) (GeneticSOM (SGM (M.fromList []) (toLearningFunction (LearningParams 0.39058394872897156 0.2264802134527226 1624224935)) 51 8.953532706165228e-2 False (diff (PredictorTweaker)) (adjust (PredictorTweaker)) 0) (LearningParams 0.39058394872897156 0.2264802134527226 1624224935) (PredictorTweaker)) (Weights [0.3943634057572276,0.31576109307467065,2.1263894778078225e-2,0.2686116063900235]) 94 228 [0.9273801462943884,0.10464190720030575,0.4306928366740053,0.8164293448172757][0.26108625097484106,6.1243897667003805e-2,0.8297264017111302,0.5762005807225697] (M.fromList [])) [TestPattern 2,TestPattern 104,TestPattern 229] Run [0.23313023059093552,0.7200912956365052,0.7822155580463498,0.399137512870707]
+let badOutcomes = map (const (-1)) $ _imprintOutcomes b
+let mModified = (_muser b) { _defaultOutcomes = badOutcomes }
+let bModified = b { _muser = mModified }
+let (_, _, _, _, bImprinted) = imprint bModified ps a
+let (_, _, _, _, r, _) = chooseAction bImprinted ps c
+
+λ> classifyInputs bModified ps
+([0,0,0],[[(0,0.0)],[(0,0.4)],[(0,0.5019607843137255)]],Brain (GeneticSOM (SGM (fromList [(0,(TestPattern 225,3))]) (toLearningFunction (LearningParams 0.9683043336961056 0.5878640337024832 232578345)) 44 0.7611168565197994 False (diff (TestTweaker)) (adjust (TestTweaker)) 1) (LearningParams 0.9683043336961056 0.5878640337024832 232578345) (TestTweaker)) (makeMuser [-1.0,-1.0,-1.0,-1.0] 23) (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.39058394872897156 0.2264802134527226 1624224935)) 51 8.953532706165228e-2 False (diff (PredictorTweaker)) (adjust (PredictorTweaker)) 0) (LearningParams 0.39058394872897156 0.2264802134527226 1624224935) (PredictorTweaker)) (Weights [0.3943634057572276,0.31576109307467065,2.1263894778078225e-2,0.2686116063900235]) 94 228 [0.9273801462943884,0.10464190720030575,0.4306928366740053,0.8164293448172757][0.26108625097484106,6.1243897667003805e-2,0.8297264017111302,0.5762005807225697] (fromList []))
+λ> classifyInputs bImprinted ps
+([1,1,0],[[(0,0.8745098039215686),(1,0.0)],[(0,0.4745098039215686),(1,0.4)],[(0,1.568627450980392e-2),(1,0.5019607843137255)]],Brain (GeneticSOM (SGM (fromList [(0,(TestPattern 229,4)),(1,(TestPattern 101,2))]) (toLearningFunction (LearningParams 0.9683043336961056 0.5878640337024832 232578345)) 44 0.7611168565197994 False (diff (TestTweaker)) (adjust (TestTweaker)) 2) (LearningParams 0.9683043336961056 0.5878640337024832 232578345) (TestTweaker)) (makeMuser [-1.0,-1.0,-1.0,-1.0] 23) (GeneticSOM (SGM (fromList [(0,(Response {_labels = [0,0,0], _action = Run, _outcomes = [0.9273801462943884,0.10464190720030575,0.4306928366740053,0.8164293448172757]},1))]) (toLearningFunction (LearningParams 0.39058394872897156 0.2264802134527226 1624224935)) 51 8.953532706165228e-2 False (diff (PredictorTweaker)) (adjust (PredictorTweaker)) 1) (LearningParams 0.39058394872897156 0.2264802134527226 1624224935) (PredictorTweaker)) (Weights [0.3943634057572276,0.31576109307467065,2.1263894778078225e-2,0.2686116063900235]) 94 228 [0.9273801462943884,0.10464190720030575,0.4306928366740053,0.8164293448172757][0.26108625097484106,6.1243897667003805e-2,0.8297264017111302,0.5762005807225697] (fromList []))
+
+:l ALife.Creatur.Wain.Classifier
+let ps = [TestPattern 2,TestPattern 104,TestPattern 229]
+let c1 = GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.9683043336961056 0.5878640337024832 232578345)) 44 0.7611168565197994 False (diff (TestTweaker)) (adjust (TestTweaker)) 0) (LearningParams 0.9683043336961056 0.5878640337024832 232578345) (TestTweaker)
+
+
+
+
+
+
+:l ALife.Creatur.Wain.BrainQC
+import qualified Data.Map.Strict as M
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Wain.WeightsInternal
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import Control.Lens
+let (Right m) = makeMuser [0.17529360533186256,-0.8927689593256556,-0.42709386572112096,-0.853466771266054] 7
+let (ImprintEmptyBrainTestData b ps a c) = ImprintEmptyBrainTestData (Brain (GeneticSOM (SGM (M.fromList []) (toLearningFunction (LearningParams 0.16194702276739048 0.11496072596719739 11)) 9 3.2793220686170806e-3 False (diff (TestTweaker)) (adjust (TestTweaker)) 0) (LearningParams 0.16194702276739048 0.11496072596719739 11) (TestTweaker)) m (GeneticSOM (SGM (M.fromList []) (toLearningFunction (LearningParams 0.6139952109395299 0.5514910279763114 13)) 12 0.3813207836252202 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 0) (LearningParams 0.6139952109395299 0.5514910279763114 13) (ResponseTweaker)) (Weights [0.3441257410950905,3.352877387768501e-2,0.5279821942337287,9.43632907934957e-2]) 3 169 [0.24848963165373283,0.863983036083473,0.4536477207828009,0.23476509785541094][0.7119499175368686,0.9662121934811752,0.5464124941188658,0.7962415569516308] (M.fromList [])) [TestPattern 7,TestPattern 16] Jump [0.7885088061168634,0.4930800136724831,0.11833731494932309,0.12685121028339197]
+
+
+
+
+
+
+. . .
+
+Extract all predictor models for the proposed action.
+If there are no predictor models for that action, create one.
+For each response, calculate the probability that all of its classifier labels are a good fit
+Normalise the probabilities
+Multiply the outcomes by the normalised probabilities, and sum them
+Return the response with the outcomes filled in
+
+
+let ldss = [[(0,0.8745098039215686),(1,0.0)],[(0,0.4745098039215686),(1,0.4)],[(0,1.568627450980392e-2),(1,0.5019607843137255)]] :: [[(GSOM.Label,GSOM.Difference)]]
+let ls = [1,1,0] :: [GSOM.Label]
+let lpss = diffsToProbs 16 ldss :: [[(GSOM.Label,Probability)]]
+
+
+
+
+:l ALife.Creatur.Wain.PredictorQC
+import ALife.Creatur.Wain.GeneticSOMInternal
+import ALife.Creatur.Wain.WeightsInternal
+import Data.Datamining.Clustering.SGMInternal
+import Data.Map.Strict (fromList)
+import ALife.Creatur.Wain.ResponseQC
+
+let  (ImprintTestData p r os ds) = ImprintTestData {iPredictor = GeneticSOM (SGM (fromList [(0,(Response {_labels = [1], _action = Skip, _outcomes = [0.9339679674349802]},2))]) (toLearningFunction (LearningParams 0.6936503171724362 0.2518687270754345 1)) 2 0.1 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 1) (LearningParams 0.6936503171724362 0.2518687270754345 1) (ResponseTweaker), iResponse = Response {_labels = [0], _action = Skip, _outcomes = [-0.32944849846979274]}, iOutcomes = [0.22906254271242169], iDeltas = [0.5303259380460353]}
+
+
+:l  ALife.Creatur.Wain.BrainQC
+import Data.Map.Strict (fromList)
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PlusMinusOne
+import ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Wain.UnitInterval
+import ALife.Creatur.Wain.WeightsInternal
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import Control.Lens
+
+let (ReflectionTestData b ps a cBefore cAfter) = ReflectionTestData (Brain (GeneticSOM (SGM (fromList [(0,(TestPattern 4,1))]) (toLearningFunction (LearningParams 0.16467945792629232 0.1213677370310812 1)) 7 0.24073403141057717 False (diff (TestTweaker)) (adjust (TestTweaker)) 1) (LearningParams 0.16467945792629232 0.1213677370310812 1) (TestTweaker)) (GeneticSOM (SGM (fromList [(0,(Response {_labels = [4,4], _action = Walk, _outcomes = [-0.5119443152798748,-0.7957753497595135,0.5920173458728903,-0.11353951582585209]},1)),(1,(Response {_labels = [16,14], _action = Run, _outcomes = [0.4420783200909446,0.4609216983128266,0.176034935657281,-0.587150306981306]},1)),(2,(Response {_labels = [1,10], _action = Skip, _outcomes = [-0.12601424274139306,-0.6951678708800202,1.9560960820560802e-2,-0.6074506319373243]},2)),(3,(Response {_labels = [0,11], _action = Jump, _outcomes = [0.7154912992507254,0.6959047531318805,7.570295501190039e-3,0.9779673339596098]},1))]) (toLearningFunction (LearningParams 0.5159464220683004 0.18393233746410984 13)) 9 0.928048123874059 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 4) (LearningParams 0.5159464220683004 0.18393233746410984 13) (ResponseTweaker)) (Weights [0.3035556345513864,3.005598707313242e-2,6.448206560890339e-2,0.6019063127665779]) 3 (Weights [2.102749312484127e-2,0.9789725068751587]) [0.8561555587275587,-0.5800762298459456,0.17684959251439558,-0.38842205707791866] [-0.3591124761653075,0.4806193488886745,-0.6091572286493085,-0.4126169956484954][-0.8906068822201827,-0.985816854322033,0.36595751227339557,0.684649110983534] (fromList [])) ([TestPattern 3,TestPattern 4]) Jump [0.167055052744161,0.4195316870791457,1.8047023380510563e-2,0.8417465607931954] [0.9107566879150876,0.8385613453067535,0.3675729865446836,0.3974973967928752]
+
+
+let (ls, ldss, b2) = classifyInputs b ps
+let (x, r2) = ALife.Creatur.Wain.BrainInternal.evaluateResponse testActionDiff b2 ls ldss a
+mapM_ putStrLn $ decisionReport x
+let (b3, errBefore) = reflect b2 r2 cBefore cAfter
+let (x3, r3) = ALife.Creatur.Wain.BrainInternal.evaluateResponse testActionDiff b3 ls ldss a
+mapM_ putStrLn $ decisionReport x3
+let (_, errAfter) = reflect b3 r3 cBefore cAfter
+
+λ> r2
+Response {_labels = [0,0], _action = Jump, _outcomes = [0.7023767121052136,0.6742253437364868,7.757166077100074e-3,0.9532591163207886]} YES!
+λ> r3
+Response {_labels = [0,0], _action = Jump, _outcomes = [0.7112778736914156,0.5868633936374406,0.11565388385443663,0.5045094490104319]} YES!
+Correct answer  [0.7437016351709266,0.41902965822760785,0.34952596316417306,-0.4442491640003202]
+
+IN EACH CASE, THE SECOND RESPONSE IS CLOSER TO THE CORRECT PREDICTION
+BUT THE ERROR IS CALCULATED BASED ON THE HAPPINESS CHANGE
+
+λ> happiness b cBefore
+0.5711362195410372
+λ> happiness b cAfter
+0.5646271711488995
+
+let c2 = adjustCondition cBefore (_outcomes r2)
+let c3 = adjustCondition cBefore (_outcomes r3)
+
+λ> happiness b c2
+0.8975471183552841
+λ> happiness b c3
+0.9072065193435317
+
+SO EVEN THOUGH THE PREDICTED OUTCOMES ARE MORE ACCURATE AFTER REFLECTION,
+THE PREDICTED HAPPINESS WAS MORE ACCURATE BEFORE
+
+SO EVEN THOUGH THE PREDICTED OUTCOMES ARE MORE ACCURATE AFTER REFLECTION,
+THE PREDICTED HAPPINESS WAS MORE ACCURATE BEFORE
+SO EVEN THOUGH THE PREDICTED OUTCOMES ARE MORE ACCURATE AFTER REFLECTION,
+THE PREDICTED HAPPINESS WAS MORE ACCURATE BEFORE
+SO EVEN THOUGH THE PREDICTED OUTCOMES ARE MORE ACCURATE AFTER REFLECTION,
+THE PREDICTED HAPPINESS WAS MORE ACCURATE BEFORE
+
+WHY????????????????????????????????????????????????????????????????????
+MAYBE I SHOULD USE THE PREDICTED OUTCOMES TO CALCULATE THE ERROR INSTEAD?
+
+THIS IS BECAUSE CONDITION IS RESTRICTED TO [0,1]???
+
+BRAIN SHOULD TAKE CURRENT CONDITION INTO ACCOUNT WHEN CHOOSING RESPONSE?
+
+let actualOutcome = zipWith (-) (map uiToDouble cAfter) (map uiToDouble cBefore)
+let err2 = sum $ zipWith (\x y -> abs(x-y)) (map pm1ToDouble $ _outcomes r2) actualOutcome
+let err3 = sum $ zipWith (\x y -> abs(x-y)) (map pm1ToDouble $ _outcomes r3) actualOutcome
+
+λ> err3 < err2
+True
+
+
+let err2a = sum $ zipWith (\x y -> abs(x-y)) (map uiToDouble c2) (map uiToDouble cAfter)
+let err3a = sum $ zipWith (\x y -> abs(x-y)) (map uiToDouble c3) (map uiToDouble cAfter)
+
+λ> err3a < err2a
+True
+
+
+BRAIN SHOULD CHOOSE THE OUTCOME THAT GIVES THE BEST RESULTING HAPPINESS
+
+
+let  osActual = map doubleToPM1 $ zipWith (-) (map uiToDouble cAfter) (map uiToDouble cBefore)
+
+λ> let deltaH = uiToDouble (happiness b cAfter) - uiToDouble (happiness b cBefore)
+λ> deltaH
+-6.5090483921377285e-3
+λ> let deltaH2 = uiToDouble (happiness b c2) - uiToDouble (happiness b cBefore)
+λ> let deltaH3 = uiToDouble (happiness b c3) - uiToDouble (happiness b cBefore)
+
+let h2 = happiness b c2
+let h3 = happiness b c3
+let hAfter = happiness b cAfter
+
+
+let (ReflectionTestData b ps a cBefore cAfter) = ReflectionTestData (Brain (GeneticSOM (SGM (fromList [(0,(TestPattern 3,4))]) (toLearningFunction (LearningParams 0.6369095017523341 0.21027560567865308 16)) 4 0.21304259172260284 False (diff (TestTweaker)) (adjust (TestTweaker)) 1) (LearningParams 0.6369095017523341 0.21027560567865308 16) (TestTweaker)) (GeneticSOM (SGM (fromList [(0,(Response {_labels = [12,15,16,22,11,22], _action = Crawl, _outcomes = [0.26398978827145747,-0.44396498967382136,-0.5330149344765873,0.15585827586261125]},1)),(1,(Response {_labels = [20,25,2,19,30,29], _action = Run, _outcomes = [0.355100003380419,-3.2949329422560236e-2,-0.8752348130154721,-0.6579559958170058]},1)),(2,(Response {_labels = [25,28,23,17,19,10], _action = Skip, _outcomes = [0.3691760623616198,0.7086827718115387,0.6576260094621444,0.29525939835677684]},1)),(3,(Response {_labels = [29,21,5,14,26,5], _action = Crawl, _outcomes = [0.8199865989092874,0.8294875398769521,-0.6280461966880839,0.6525711258361966]},1)),(4,(Response {_labels = [19,25,10,30,1,9], _action = Walk, _outcomes = [-0.6156758535062223,-0.5293744629439467,0.988036011800075,1.669808495303693e-2]},1)),(5,(Response {_labels = [4,28,32,4,15,13], _action = Run, _outcomes = [0.2932361165838544,0.8941599789293198,-0.7262250717882726,0.6406330172292853]},1)),(6,(Response {_labels = [16,22,17,26,8,2], _action = Run, _outcomes = [-0.7661517057946055,-0.9947467323961217,-0.8173684397922083,0.24018715228198184]},1))]) (toLearningFunction (LearningParams 0.44895848270796884 0.4434776173439217 10)) 10 0.686837891608131 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 7) (LearningParams 0.44895848270796884 0.4434776173439217 10) (ResponseTweaker)) (Weights [0.3557561347418757,4.980013700265391e-2,0.2503725023818951,0.34407122587357525]) 3 (Weights [0.261454366807994,0.30458327802555935,0.16901683019542763,0.17224904379231146,1.8820828420048428e-2,7.387565275865907e-2]) [0.11760038869693412,-0.6642363726998635,0.5406612862755782,-0.4788322505071043] [-0.24260104514072345,-0.379743821626949,0.7969972006859904,-0.5333360785162][-0.4655742413914554,0.4638024611072642,3.060880555408496e-2,0.9062715942238373] (fromList [])) ([TestPattern 5,TestPattern 5,TestPattern 0,TestPattern 1,TestPattern 3,TestPattern 0]) Jump [0.3860851724726959,0.8553789083949173,0.8342316669824827,0.8585714442853749] [0.40276610959319914,0.7543215409141472,0.35760757742243,0.12126237484721891]
+let actualOutcome = zipWith (-) (map uiToDouble cAfter) (map uiToDouble cBefore)
+let (ls, ldss, b2) = classifyInputs b ps
+let (_, r2) = ALife.Creatur.Wain.BrainInternal.evaluateResponse testActionDiff b2 ls ldss a
+let (b3, _) = reflect b2 r2 cBefore cAfter
+let errBefore = sum $ zipWith (\x y -> abs(x-y)) (map pm1ToDouble $ _outcomes r2) actualOutcome
+let (_, r3) = ALife.Creatur.Wain.BrainInternal.evaluateResponse testActionDiff b3 ls ldss a
+
+λ> r3
+Response {_labels = [0,0,0,0,0,0], _action = Jump, _outcomes = [*** Exception: value -3.544836255139583e-17 not in (0,1)
+
+
+
+
+:l ALife.Creatur.Wain.PredictorQC
+import ALife.Creatur.Wain.ResponseQC
+let p = GeneticSOM (SGM (fromList [(0,(Response {_labels = [12,15,16,22,11,22], _action = Crawl, _outcomes = [0.26398978827145747,-0.44396498967382136,-0.5330149344765873,0.15585827586261125]},1)),(1,(Response {_labels = [20,25,2,19,30,29], _action = Run, _outcomes = [0.355100003380419,-3.2949329422560236e-2,-0.8752348130154721,-0.6579559958170058]},1)),(2,(Response {_labels = [25,28,23,17,19,10], _action = Skip, _outcomes = [0.3691760623616198,0.7086827718115387,0.6576260094621444,0.29525939835677684]},1)),(3,(Response {_labels = [29,21,5,14,26,5], _action = Crawl, _outcomes = [0.8199865989092874,0.8294875398769521,-0.6280461966880839,0.6525711258361966]},1)),(4,(Response {_labels = [19,25,10,30,1,9], _action = Walk, _outcomes = [-0.6156758535062223,-0.5293744629439467,0.988036011800075,1.669808495303693e-2]},1)),(5,(Response {_labels = [4,28,32,4,15,13], _action = Run, _outcomes = [0.2932361165838544,0.8941599789293198,-0.7262250717882726,0.6406330172292853]},1)),(6,(Response {_labels = [16,22,17,26,8,2], _action = Run, _outcomes = [-0.7661517057946055,-0.9947467323961217,-0.8173684397922083,0.24018715228198184]},1)),(7,(Response {_labels = [0,0,0,0,0,0], _action = Jump, _outcomes = [1.6680937120503225e-2,-0.1010573674807701,-0.47662408956005275,-0.737309069438156]},1))]) (toLearningFunction (LearningParams 0.44895848270796884 0.4434776173439217 10)) 10 0.686837891608131 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 8) (LearningParams 0.44895848270796884 0.4434776173439217 10) (ResponseTweaker)
+let ws = Weights [0.261454366807994,0.30458327802555935,0.16901683019542763,0.17224904379231146,1.8820828420048428e-2,7.387565275865907e-2]
+let actionDiff = testActionDiff
+let dos = [0.11760038869693412,-0.6642363726998635,0.5406612862755782,-0.4788322505071043]
+let ldss = [[(0,7.84313725490196e-3)],[(0,3.92156862745098e-3)],[(0,1.568627450980392e-2)],[(0,3.92156862745098e-3)],[(0,3.92156862745098e-3)],[(0,7.84313725490196e-3)]]
+let a = Jump
+
+:l ALife.Creatur.Wain.UnitInterval
+let ws = [2.220446049250313e-16,2.220446049250313e-16,0.1960907751059957,2.220446049250313e-16,2.220446049250313e-16,2.220446049250313e-16,2.220446049250313e-16,0.993882839048649]
+
+
+
+
+:l  ALife.Creatur.Wain.BrainQC
+import Data.Map.Strict (fromList)
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PlusMinusOne
+import ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Wain.UnitInterval
+import ALife.Creatur.Wain.WeightsInternal
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import Control.Lens
+
+let (ImprintEmptyBrainTestData b ps a c) = ImprintEmptyBrainTestData (Brain (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.6356327860939339 0.5355173140762937 15088601899905160162)) 1 0.2169973357622178 False (diff (TestTweaker)) (adjust (TestTweaker)) 0) (LearningParams 0.6356327860939339 0.5355173140762937 15088601899905160162) (TestTweaker)) (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.5240840029898309 0.4225657310868612 1)) 2 3.163938592446597e-2 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 0) (LearningParams 0.5240840029898309 0.4225657310868612 1) (ResponseTweaker)) (Weights [0.34948311267890136,0.17283682440481676,0.44186585291573066,3.581421000055126e-2]) 1 (Weights [1.0]) [-0.7854284600968287,-0.2854187148848757,0.9318563889714178,0.5658014302646286] [0.42311846061849223,0.8208058135270037,0.15143876931224726,0.457343679840562][0.13436986659038733,0.8827701287379329,0.8970184182815849,0.7434307154061536] (fromList [])) [TestPattern 0] Crawl [0.1056937007238754,0.2870958685844315,0.20169003126442853,5.4515058755236545e-2]
+
+
+
+:l ALife.Creatur.Wain.PredictorQC
+import qualified Data.Map.Strict as M
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Wain.WeightsInternal
+import Control.Lens
+let (TrainingTestData p ws _ ldss a1) = TrainingTestData {xPredictor = GeneticSOM (SGM (fromList [(0,(Response {_labels = [8], _action = Crawl, _outcomes = [0.32275359377497415]},1)),(1,(Response {_labels = [4], _action = Skip, _outcomes = [0.9306958799377523]},1))]) (toLearningFunction (LearningParams 0.59580485336424 0.48787934924387294 3)) 4 0.1 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 2) (LearningParams 0.59580485336424 0.48787934924387294 3) (ResponseTweaker), xWeights = Weights [0.3472080633071934,0.6527919366928066], xDefaultOutcomes = [1.7464029241251122e-2], xLdss = [[(1,0.3092938223068795),(4,0.775092600465374),(3,0.28772999346919925),(0,0.17004092034172924),(2,0.9131814691630118)]], xAction = Crawl}
+let a2 = Jump
+let (_, os1) = evaluateResponse ws testActionDiff undefined p ldss a1
+let (_, os2) = evaluateResponse ws testActionDiff undefined p ldss a2
+λ> os1
+[0.12435265653605607]
+λ> os2
+[0.18950074917647255]
+λ> ldss
+[[(1,0.3092938223068795),(4,0.775092600465374),(3,0.28772999346919925),(0,0.17004092034172924),(2,0.9131814691630118)]]
+λ> ws
+Weights [0.3472080633071934,0.6527919366928066]
+
+
+λ> let rs = M.elems . ALife.Creatur.Wain.GeneticSOMInternal.modelMap $ p
+λ> rs
+[Response {_labels = [8], _action = Crawl, _outcomes = [0.32275359377497415]},Response {_labels = [4], _action = Skip, _outcomes = [0.9306958799377523]}]
+
+λ> let ds = map (responseDiff ws testActionDiff ldss a1) rs
+λ> ds
+[0.6527919366928066,0.8531822630812487]
+λ> let n = length ds
+λ> let ss = map (\x -> doubleToUI $ (1 - uiToDouble x)/fromIntegral n) ds
+λ> ss
+[0.17360403165359672,7.340886845937566e-2]
+λ> let oss = map (view outcomes) rs
+λ> oss
+[[0.32275359377497415],[0.9306958799377523]]
+λ> let oss' = zipWith contribution ss oss
+λ> oss'
+[[5.603132511002271e-2],[6.832133142603335e-2]]
+λ> let os = sumColumns oss'
+λ> os
+[0.12435265653605607]
+
+λ> let ds = map (responseDiff ws testActionDiff ldss a2) rs
+λ> ds
+[1.0,0.5927762156008536]
+λ> let n = length ds
+λ> let ss = map (\x -> doubleToUI $ (1 - uiToDouble x)/fromIntegral n) ds
+λ> ss
+[0.0,0.2036118921995732]
+λ> let oss = map (view outcomes) rs
+λ> oss
+[[0.32275359377497415],[0.9306958799377523]]
+λ> let oss' = zipWith contribution ss oss
+λ> oss'
+[[0.0],[0.18950074917647255]]
+λ> let os = sumColumns oss'
+λ> os
+[0.18950074917647255]
+
+rs[2] is Response {_labels = [4], _action = Skip, _outcomes = [0.9306958799377523]}
+
+
+
+:l ALife.Creatur.Wain.PredictorQC
+import qualified Data.Map.Strict as M
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Wain.WeightsInternal
+import Control.Lens
+let (TrainingTestData p ws _ ldss a1) = TrainingTestData {xPredictor = GeneticSOM (SGM (fromList [(0,(Response {_labels = [0], _action = Skip, _outcomes = [0.8424973901200623]},1)),(1,(Response {_labels = [7], _action = Crawl, _outcomes = [0.8138336403677457]},1)),(2,(Response {_labels = [5], _action = Jump, _outcomes = [-0.504116534005566]},1)),(3,(Response {_labels = [4], _action = Skip, _outcomes = [-6.774327415593118e-2]},1))]) (toLearningFunction (LearningParams 0.22710444605370086 9.966870280832274e-2 6)) 6 0.1 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 4) (LearningParams 0.22710444605370086 9.966870280832274e-2 6) (ResponseTweaker), xWeights = Weights [0.24560175301508422,0.7543982469849158], xDefaultOutcomes = [-0.3840091728099091], xLdss = [[(5,0.7253330204364107),(2,3.932735820717148e-2)]], xAction = Crawl}
+let a2 = Run
+
+
+
+λ> let rs = M.elems . ALife.Creatur.Wain.GeneticSOMInternal.modelMap $ p
+λ> rs
+[Response {_labels = [0], _action = Skip, _outcomes = [0.8424973901200623]},Response {_labels = [7], _action = Crawl, _outcomes = [0.8138336403677457]},Response {_labels = [5], _action = Jump, _outcomes = [-0.504116534005566]},Response {_labels = [4], _action = Skip, _outcomes = [-6.774327415593118e-2]}]
+
+λ> let ds = map (responseDiff ws testActionDiff ldss a1) rs
+λ> ds
+[1.0,0.7543982469849158,0.7927917121125866,1.0]
+λ> let n = length ds
+λ> let ss = map (\x -> doubleToUI $ (1 - uiToDouble x)/fromIntegral n) ds
+λ> let oss = map (view outcomes) rs
+λ> oss
+[[0.8424973901200623],[0.8138336403677457],[-0.504116534005566],[-6.774327415593118e-2]]
+λ> let oss' = zipWith contribution ss oss
+λ> oss'
+[[0.0],[4.9969742184241495e-2],[-2.6114280976757588e-2],[-0.0]]
+λ> let os = sumColumns oss'
+λ> os
+[2.3855461207483906e-2]
+
+λ> let ds = map (responseDiff ws testActionDiff ldss a2) rs
+λ> ds
+[1.0,1.0,0.7927917121125866,1.0]
+λ> let ss = map (\x -> doubleToUI $ (1 - uiToDouble x)/fromIntegral n) ds
+λ> let oss = map (view outcomes) rs
+λ> oss
+[[0.8424973901200623],[0.8138336403677457],[-0.504116534005566],[-6.774327415593118e-2]]
+λ> let oss' = zipWith contribution ss oss
+λ> oss'
+[[0.0],[0.0],[-2.6114280976757588e-2],[-0.0]]
+λ> let os = sumColumns oss'
+λ> os
+[-2.6114280976757588e-2]
+
+
+:l ALife.Creatur.Wain.PredictorQC
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import Data.Map.Strict (fromList)
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PredictorInternal
+
+let (ImprintTestData p r os ds) = ImprintTestData {iPredictor = GeneticSOM (SGM (fromList [(0,(Response {_labels = [1], _action = Crawl, _outcomes = [0.7997052292899742]},1))]) (toLearningFunction (LearningParams 0.2850202653805709 9.83500992534999e-3 1)) 3 0.1 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 1) (LearningParams 0.2850202653805709 9.83500992534999e-3 1) (ResponseTweaker), iResponse = Response {_labels = [1], _action = Crawl, _outcomes = [0.9374549689571057]}, iOutcomes = [6.963877777479364e-2], iDeltas = [0.20856001726452209]}
+
+
+
+:l  ALife.Creatur.Wain.BrainQC
+import Data.Map.Strict (fromList)
+import ALife.Creatur.Wain.GeneticSOMInternal
+import Data.Datamining.Clustering.SGMInternal
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.PlusMinusOne
+import ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Wain.UnitInterval
+import ALife.Creatur.Wain.WeightsInternal
+import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
+import Control.Lens
+
+let (ReflectionTestData b ps a cBefore cAfter) = ReflectionTestData (Brain (GeneticSOM (SGM (fromList []) (toLearningFunction (LearningParams 0.47022883236036794 0.20790581766596578 11)) 1 0.47451360292677436 False (diff (TestTweaker)) (adjust (TestTweaker)) 0) (LearningParams 0.47022883236036794 0.20790581766596578 11) (TestTweaker)) (GeneticSOM (SGM (fromList [(0,(Response {_labels = [7], _action = Crawl, _outcomes = [0.7106055415108543,0.31732829770029003,-0.30393968859954734,0.3091016865718652]},1)),(1,(Response {_labels = [0], _action = Skip, _outcomes = [0.8906945445213561,-0.4703086814484174,0.8782119863284288,-0.11692314347403521]},1)),(2,(Response {_labels = [4], _action = Run, _outcomes = [-0.7622897073031292,0.9647468528507503,-0.12606516931453138,-0.5470987571072392]},1))]) (toLearningFunction (LearningParams 0.27922853281900634 0.21532930141320492 6)) 9 0.6005704295371322 False (diff (ResponseTweaker)) (adjust (ResponseTweaker)) 3) (LearningParams 0.27922853281900634 0.21532930141320492 6) (ResponseTweaker)) (Weights [0.13015537104471378,0.4190643944840638,0.22576455668689485,0.22501567778432752]) 3 (Weights [0.15992321321100367,0.8400767867889963]) 5[-0.7795540247068107,0.792939510683873,0.8416411844122902,0.5604319239011131] [0.41316336944770504,0.7256417827499382,0.18348751689089116,-0.36472688209822435][0.8774902110211513,0.2506961624299924,-0.7627879144451728,0.21965205707296898] (fromList [])) ([TestPattern 2]) Jump [0.9330195143808238,8.88376248404329e-2,0.2189470288578288,0.3566934558633994] [0.8986316525800212,0.4919948009446272,0.9167081852604243,0.5012675330102653]
+
+let actualOutcome = zipWith (-) (map uiToDouble cAfter) (map uiToDouble cBefore)
+let (ls, ldss, b2) = classifyInputs b ps
+let (xss2, r2) = ALife.Creatur.Wain.BrainInternal.evaluateResponse testActionDiff b2 ls ldss a
+let (b3, _) = reflect b2 r2 cBefore cAfter
+let errBefore = sum $ zipWith (\x y -> abs(x-y)) (map pm1ToDouble $ _outcomes r2) actualOutcome
+let (xss3, r3) = ALife.Creatur.Wain.BrainInternal.evaluateResponse testActionDiff b3 ls ldss a
+let errAfter = sum $ zipWith (\x y -> abs(x-y)) (map pm1ToDouble $ _outcomes r3) actualOutcome
+
+
+mapM_ putStrLn $ ALife.Creatur.Wain.BrainInternal.decisionReport (xss2, r2, 0)
+mapM_ putStrLn $ ALife.Creatur.Wain.BrainInternal.decisionReport (xss3, r3, 0)
+zipWith (\x y -> abs(x-y)) (map pm1ToDouble $ _outcomes r2) actualOutcome
+zipWith (\x y -> abs(x-y)) (map pm1ToDouble $ _outcomes r3) actualOutcome
+
+Predicted output of action Jump is [3.853525340694425e-2,0.17419938983013944,0.8595535966668568,0.22866279186605357] with happiness 0.0 based on the following models
+Based on predictor response model Response {_labels = [0], _action = Jump, _outcomes = [-0.7795540247068107,0.792939510683873,0.8416411844122902,0.5604319239011131]}
+diff=0.00, normalised similarity=0.51
+contribution is [-0.3977277498202091,0.4045570125129509,0.429404561868836,0.2859318545682995]
+
+Based on predictor response model Response {_labels = [7], _action = Crawl, _outcomes = [0.7106055415108543,0.31732829770029003,-0.30393968859954734,0.3091016865718652]}
+diff=0.04, normalised similarity=0.49
+contribution is [0.43626300322715333,-0.23035762268281146,0.4301490347980208,-5.7269062702245944e-2]
+
+Based on predictor response model Response {_labels = [0], _action = Skip, _outcomes = [0.8906945445213561,-0.4703086814484174,0.8782119863284288,-0.11692314347403521]}
+diff=1.00, normalised similarity=0.00
+contribution is [-0.0,0.0,-0.0,-0.0]
+
+Based on predictor response model Response {_labels = [4], _action = Run, _outcomes = [-0.7622897073031292,0.9647468528507503,-0.12606516931453138,-0.5470987571072392]}
+diff=1.00, normalised similarity=0.00
+contribution is [0.0,0.0,-0.0,0.0]
+
+
+Predicted output of action Jump is [0.41871834761421434,-2.4667200474937923e-2,0.7861461380806648,1.6492499118414765e-2] with happiness 0.0 based on the following models
+Based on predictor response model Response {_labels = [7], _action = Crawl, _outcomes = [0.7106055415108543,0.31732829770029003,-0.30393968859954734,0.3091016865718652]}
+diff=0.00, normalised similarity=0.51
+contribution is [-1.7544655612938987e-2,0.20569042220787354,0.355997103282644,7.376156182066071e-2]
+
+Based on predictor response model Response {_labels = [0], _action = Skip, _outcomes = [0.8906945445213561,-0.4703086814484174,0.8782119863284288,-0.11692314347403521]}
+diff=0.04, normalised similarity=0.49
+contribution is [0.43626300322715333,-0.23035762268281146,0.4301490347980208,-5.7269062702245944e-2]
+
+Based on predictor response model Response {_labels = [4], _action = Run, _outcomes = [-0.7622897073031292,0.9647468528507503,-0.12606516931453138,-0.5470987571072392]}
+diff=1.00, normalised similarity=0.00
+contribution is [-0.0,0.0,-0.0,-0.0]
+
+Based on predictor response model Response {_labels = [0], _action = Jump, _outcomes = [-3.4387861800802555e-2,0.4031571761041943,0.6977611564025955,0.14457407714686588]}
+diff=1.00, normalised similarity=0.00
+contribution is [0.0,0.0,-0.0,0.0]
