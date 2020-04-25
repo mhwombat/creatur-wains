@@ -5,10 +5,12 @@ let
         overrides = haskellPackagesNew: haskellPackagesOld: rec {
           project =
             haskellPackagesNew.callPackage ./project.nix { };
-          grid =
-            haskellPackagesNew.callPackage ./grid.nix { };
+          creatur =
+            haskellPackagesNew.callPackage ./creatur.nix { };
           som =
             haskellPackagesNew.callPackage ./som.nix { };
+          grid =
+            haskellPackagesNew.callPackage ./grid.nix { };
           gray-extended =
             haskellPackagesNew.callPackage ./gray-extended.nix { };
         };
