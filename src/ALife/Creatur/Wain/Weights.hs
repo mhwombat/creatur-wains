@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Weights
--- Copyright   :  (c) Amy de Buitléir 2015-2019
+-- Copyright   :  (c) 2015-2021 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental

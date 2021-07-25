@@ -1,0 +1,4 @@
+packages: .
+          ../creatur
+          ../gray-extended
+          ../som

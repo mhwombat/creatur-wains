@@ -1,13 +1,33 @@
-# Build artifacts
-.ghc.environment*
-.stack-work
-cabal.project.local
-dist
-dist-newstyle
-result
-
-# Backup files
+# misc
+*.lock
 *~
 
-# Stuff I'm not ready to publish
+# nix
+result
+result-*
+
+# haskell
+dist
+dist-newstyle
+cabal-dev
+*.o
+*.hi
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+.hpc
+.hsenv
+.cabal-sandbox/
+cabal.sandbox.config
+*.prof
+*.aux
+*.hp
+*.eventlog
+.stack-work/
+cabal.project.local
+.HTF/
+.ghc.environment.*
+
+# Not ready to publish
 unpublished
