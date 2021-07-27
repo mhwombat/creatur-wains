@@ -282,6 +282,8 @@ test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
       prop_classify_never_causes_error_unless_empty,
     testProperty "prop_train_never_causes_error"
       prop_train_never_causes_error,
+    testProperty "prop_imprint_never_causes_error"
+      prop_imprint_never_causes_error,
     testProperty "prop_novelty_btw_0_and_1"
       prop_novelty_btw_0_and_1,
     testProperty "prop_familiar_patterns_have_min_novelty"

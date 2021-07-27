@@ -24,11 +24,10 @@ import           ALife.Creatur.Wain.Classifier              (bmus)
 import           ALife.Creatur.Wain.ClassifierQC
     (TestClassifierTweaker (..))
 import           ALife.Creatur.Wain.GeneticSOMInternal
-    (LearningParams (..), buildGeneticSOM, modelMap, schemaQuality)
+    (LearningParams (..), buildGeneticSOM, schemaQuality)
 import           ALife.Creatur.Wain.PlusMinusOne            (doubleToPM1)
-import           ALife.Creatur.Wain.Pretty                  (pretty)
 import           ALife.Creatur.Wain.Response
-    (action, labels, outcomes)
+    (action, labels)
 import           ALife.Creatur.Wain.ResponseQC              (TestAction (..))
 import           ALife.Creatur.Wain.SimpleMuser
     (SimpleMuser, makeMuser)
@@ -44,9 +43,6 @@ import           Control.Lens
 import           Control.Monad                              (foldM_)
 import           Control.Monad.Random
     (evalRand, getRandoms, mkStdGen)
-import           Data.List                                  (minimumBy)
-import qualified Data.Map.Strict                            as M
-import           Data.Ord                                   (comparing)
 
 reward :: Double
 reward = 0.1

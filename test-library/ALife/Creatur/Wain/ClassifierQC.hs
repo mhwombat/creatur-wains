@@ -100,7 +100,6 @@ prop_classifySetAndTrain_never_causes_error
   :: TestClassifier -> [TestPattern] -> Property
 prop_classifySetAndTrain_never_causes_error c ps
   = property $ deepseq (classifySetAndTrain c ps) True
-  where x = classifySetAndTrain c ps
 
 -- prop_prettyClassifierReport_never_causes_error
 --   :: TestClassifier -> [TestPattern] -> Property

@@ -180,15 +180,15 @@ instance Arbitrary ImprintTestData where
 
 prop_imprintResponse_never_causes_error
   :: ImprintTestData -> Property
-prop_imprintResponse_never_causes_error (ImprintTestData w ps ls a _)
+prop_imprintResponse_never_causes_error (ImprintTestData w _ ls a _)
   = property $ deepseq x True
   where x = imprintResponse ls a w
 
 prop_imprintResponse_twice_never_causes_error
   :: ImprintTestData -> Property
-prop_imprintResponse_twice_never_causes_error (ImprintTestData w ps ls a _)
+prop_imprintResponse_twice_never_causes_error (ImprintTestData w _ ls a _)
   = property $ deepseq x True
-  where (r', w') = imprintResponse ls a w
+  where (_, w') = imprintResponse ls a w
         x = imprintResponse ls a w'
 
 -- prop_prettyClassifierModels_never_causes_error

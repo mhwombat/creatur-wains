@@ -11,7 +11,6 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NoMonadFailDesugaring #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.BrainQC
@@ -29,7 +28,6 @@ module ALife.Creatur.Wain.BrainQC
 import           ALife.Creatur.Wain.BrainInternal
 import qualified ALife.Creatur.Wain.Classifier            as Cl
 import qualified ALife.Creatur.Wain.ClassifierQC          as CQC
-import           ALife.Creatur.Wain.GeneticSOM            (numModels)
 import           ALife.Creatur.Wain.GeneticSOMQC
     (equivGSOM, sizedArbGeneticSOM)
 import           ALife.Creatur.Wain.PlusMinusOne          (PM1Double)
@@ -54,7 +52,7 @@ type TestBrain
 
 sizedArbTestBrain :: Int -> Gen TestBrain
 sizedArbTestBrain n = do
-  cSize:nObjects:[] <- divvy n 2
+  ~(cSize:nObjects:[]) <- divvy n 2
   let nConditions = 4
   let pSize = n + 1
   arbTestBrain cSize nObjects nConditions pSize
@@ -131,7 +129,7 @@ instance Show ChoosingTestData where
 
 sizedArbChoosingTestData :: Int -> Gen ChoosingTestData
 sizedArbChoosingTestData n = do
-  cSize:nObjects:[] <- divvy (min 10 n) 2
+  ~(cSize:nObjects:[]) <- divvy (min 10 n) 2
   -- nConditions <- choose (0, n - cSize - nObjects)
   let nConditions = 4
   let pSize = n + 1
@@ -167,7 +165,7 @@ instance Show ReflectionTestData where
 
 sizedArbReflectionTestData :: Int -> Gen ReflectionTestData
 sizedArbReflectionTestData n = do
-  cSize:nObjects:[] <- divvy (min 10 n) 2
+  ~(cSize:nObjects:[]) <- divvy (min 10 n) 2
   let nConditions = 4
   c <- vectorOf nConditions arbitrary
   ps <- vectorOf nObjects arbitrary
@@ -226,7 +224,7 @@ data ImprintTestData
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
 sizedArbImprintTestData n = do
-  cSize:nO:[] <- divvy (min 10 n) 2
+  ~(cSize:nO:[]) <- divvy (min 10 n) 2
   let nObjects = min 3 nO
   let nConditions = 4
   let pSize = n + 1
@@ -247,7 +245,7 @@ instance Show ImprintTestData where
 
 prop_imprintStimulus_never_causes_error
   :: ImprintTestData -> Property
-prop_imprintStimulus_never_causes_error (ImprintTestData b ps a _ ls)
+prop_imprintStimulus_never_causes_error (ImprintTestData b ps _ _ ls)
   = property $ deepseq (imprintStimulus b lps) True
   where lps = zip ls ps
 
@@ -335,6 +333,8 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
       prop_reflect_error_in_range,
     testProperty "prop_reflect_never_causes_error"
       prop_reflect_never_causes_error,
+    testProperty "prop_imprintStimulus_never_causes_error"
+      prop_imprintStimulus_never_causes_error,
     testProperty "prop_imprintResponse_never_causes_error"
       prop_imprintResponse_never_causes_error,
     testProperty "prop_imprint_makes_predictions_more_accurate"

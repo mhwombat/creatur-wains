@@ -12,7 +12,6 @@
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE NoMonadFailDesugaring #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.PredictorQC
@@ -55,7 +54,7 @@ type TestPredictor = Predictor TestAction (ResponseTweaker TestAction)
 
 sizedArbTestPredictor :: Int -> Gen TestPredictor
 sizedArbTestPredictor n = do
-  nObjects:nConditions:capacity:[] <- divvy n 3
+  ~(nObjects:nConditions:capacity:[]) <- divvy n 3
   arbTestPredictor nObjects nConditions capacity
 
 arbEmptyTestPredictor :: Int -> Gen TestPredictor
@@ -80,7 +79,7 @@ data TrainingTestData
 
 sizedArbTrainingTestData :: Int -> Gen TrainingTestData
 sizedArbTrainingTestData n = do
-  nO:nConditions:capacity:[] <- divvy n 3
+  ~(nO:nConditions:capacity:[]) <- divvy n 3
   let nObjects = min 3 nO
   p <- arbTestPredictor nObjects nConditions capacity
   let pm = view patternMap p
@@ -134,7 +133,7 @@ data ImprintTestData
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
 sizedArbImprintTestData n = do
-  nO:nConditions:capacity:[] <- divvy n 3
+  ~(nO:nConditions:capacity:[]) <- divvy n 3
   let nObjects = min 3 nO
   p <- arbTestPredictor nObjects nConditions capacity
   ls <- vectorOf nObjects arbitrary

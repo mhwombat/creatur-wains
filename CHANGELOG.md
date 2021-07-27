@@ -1,5 +1,7 @@
 # Changelog for creatur-wains
 
+9.7   Simplified nix build config.
+
 9.6   Reformatted source code.
       Improved reports.
 

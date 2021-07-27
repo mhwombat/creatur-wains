@@ -4,7 +4,9 @@ in
   pkgs.haskellPackages.developPackage {
     root = ./.;
     source-overrides = {
-      som = ../som;
       creatur = ../creatur;
+      gray-extended = ../gray-extended;
+      grid = ../grid;
+      som = ../som;
     };
   }
