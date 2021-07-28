@@ -23,33 +23,32 @@ source-repository head
 common common-stuff
   default-language: Haskell2010
   build-depends:
-    , base         >=4.7     && <5
-    , lens         >=4.19 && <6.0
-    , MonadRandom  >= 0.5.1 && < 0.6
-    , random       >= 1.1 && < 1.3
+    , base         >=4.7   && <5
+    , lens         ^>=5.1
+    , MonadRandom  ^>=0.5.1
+    , random       >=1.1   && <1.3
 
 common common-stuff2
   build-depends:
-    , cereal       ^>=0.5.7
-    , containers   >=0.5.7   && <0.7
-    , creatur      ^>=5.9.27
-    , mtl          >= 2.2.2 && < 2.3
-    , som          >= 10.1.11 && < 10.2
+    , cereal      ^>=0.5.7
+    , containers  >=0.5.7   && <0.7
+    , creatur     ^>=5.9.27
+    , mtl         ^>=2.2.2
+    , som         ^>=10.1.11
 
 common test-stuff
   build-depends:
-    , deepseq                    ^>=1.4.3
-    , QuickCheck                 >= 2.14.2 && < 2.15
-    , test-framework-quickcheck2 >= 0.3.0 && < 0.4
-  
+    , deepseq                     ^>=1.4.3
+    , QuickCheck                  ^>=2.14.2
+    , test-framework-quickcheck2  ^>=0.3.0
+
 common exe-stuff
   ghc-options:
     -threaded -rtsopts -with-rtsopts=-N -Wall -Wunused-packages
-  build-depends:
-    , test-library
+  build-depends: test-library
 
 library
-  import:          common-stuff, common-stuff2
+  import:           common-stuff, common-stuff2
   hs-source-dirs:   src
   exposed-modules:
     ALife.Creatur.Wain
@@ -83,15 +82,15 @@ library
     ALife.Creatur.Wain.WeightsInternal
     ALife.Creatur.WainInternal
   other-modules:    Paths_creatur_wains
-  autogen-modules:    Paths_creatur_wains
+  autogen-modules:  Paths_creatur_wains
   ghc-options:      -Wall -Wunused-packages
   default-language: Haskell2010
   build-depends:
-    , deepseq    ^>=1.4.3
-    , bytestring >=0.10.8 && <0.12
-    , directory  ^>=1.3.1
-    , filepath   ^>=1.4.2
-    , unix       ^>=2.7.2
+    , bytestring  >=0.10.8 && <0.12
+    , deepseq     ^>=1.4.3
+    , directory   ^>=1.3.1
+    , filepath    ^>=1.4.2
+    , unix        ^>=2.7.2
 
 library test-library
   import:          common-stuff, common-stuff2, test-stuff
@@ -113,8 +112,8 @@ library test-library
     ALife.Creatur.WainQC
   build-depends:
     , creatur-wains
-    , numeric-tools  >= 0.2.0 && < 0.3
-    , test-framework >= 0.8.2 && < 0.9
+    , numeric-tools   ^>=0.2.0
+    , test-framework  ^>=0.8.2
 
 test-suite creatur-wains-test
   import:           exe-stuff
@@ -122,29 +121,25 @@ test-suite creatur-wains-test
   type:             exitcode-stdio-1.0
   hs-source-dirs:   test
   main-is:          Spec.hs
-  other-modules:
-    Paths_creatur_wains
+  other-modules:    Paths_creatur_wains
   build-depends:
     , base
-    , test-framework >= 0.8.2 && < 0.9
+    , test-framework  ^>=0.8.2
 
 executable creatur-wains-learning-test
   import:         common-stuff, exe-stuff
   hs-source-dirs: appLearningTest
   main-is:        Main.hs
-  build-depends:
-    , creatur-wains
+  build-depends:  creatur-wains
 
 executable creatur-wains-learning-test2
   import:         common-stuff, exe-stuff
   hs-source-dirs: appLearningTest2
   main-is:        Main.hs
-  build-depends:
-    , creatur-wains
+  build-depends:  creatur-wains
 
 executable creatur-wains-teaching-test
   import:         common-stuff, exe-stuff
   hs-source-dirs: appTeachingTest
   main-is:        Main.hs
-  build-depends:
-    , creatur-wains
+  build-depends:  creatur-wains
