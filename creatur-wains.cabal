@@ -32,7 +32,7 @@ common common-stuff2
   build-depends:
     , cereal      ^>=0.5.7
     , containers  >=0.5.7   && <0.7
-    , creatur     ^>=5.9.27
+    , creatur     ^>=5.9.30
     , mtl         ^>=2.2.2
     , som         ^>=10.1.11
 
