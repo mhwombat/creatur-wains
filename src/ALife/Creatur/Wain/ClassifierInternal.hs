@@ -55,10 +55,7 @@ prettyClassifierReport r =
 
 -- | Updates the classifier models based on the stimulus (set of
 --   input patterns).
---   Returns the labels of the (possibly new) models that are closest
---   to each input pattern,
---   information about the classification,
---   and the updated classifier.
+--   Returns the classification report and the updated classifier.
 classifySetAndTrain
   :: Classifier p t
     -> [p]

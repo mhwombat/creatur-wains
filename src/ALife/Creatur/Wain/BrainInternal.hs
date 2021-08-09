@@ -32,6 +32,7 @@ import qualified ALife.Creatur.Wain.Predictor     as P
 import           ALife.Creatur.Wain.Pretty        (Pretty, pretty)
 import           ALife.Creatur.Wain.Probability
     (Probability, hypothesise, prettyProbability)
+import           ALife.Creatur.Wain.Report        (Report, report)
 import           ALife.Creatur.Wain.Response      (Response (..))
 import           ALife.Creatur.Wain.Statistics
     (Statistical, dStat, iStat, prefix, stats)
@@ -244,7 +245,7 @@ chooseAction
         -> [p]
         -> Condition
         -> (DecisionReport p a, Brain p ct pt m a)
-chooseAction b ps c = (report, b4)
+chooseAction b ps c = (dReport, b4)
   where (cReport, b2) = classifyInputs b ps
         -- cReport = The classifier report.
         -- b2  = the updated brain after classification
@@ -259,7 +260,7 @@ chooseAction b ps c = (report, b4)
         -- os = the expected outcomes
         b3 = adjustActionCounts b2 a
         b4 = pruneObsoleteResponses b3
-        report = DecisionReport
+        dReport = DecisionReport
                    {
                      bdrStimulus = ps,
                      bdrClassifierReport = cReport,
@@ -362,17 +363,13 @@ adjustActionCounts b a = set actionCounts cs' b
         inc (Just n) = Just (n+1)
 
 -- | Evaluates the input patterns and the current condition.
---   Returns the labels of the (possibly new) models that are closest
---   to each input pattern,
---   the SGM labels paired with the difference between the
---   inputs and the corresponding model,
---   and the updated brain.
+--   Returns the classification report and the updated brain.
 classifyInputs
   :: Brain p ct pt m a
     -> [p]
     -> (Cl.ClassifierReport p, Brain p ct pt m a)
-classifyInputs b ps = (report, b')
-  where (report, c') = Cl.classifySetAndTrain (_classifier b) ps
+classifyInputs b ps = (cReport, b')
+  where (cReport, c') = Cl.classifySetAndTrain (_classifier b) ps
         b' = set classifier c' b
 
 -- | Internal method
@@ -457,7 +454,7 @@ reflect b r cBefore cAfter = (report', set predictor d' b)
   where osActual = map doubleToPM1 $ zipWith (-) (map uiToDouble cAfter)
           (map uiToDouble cBefore)
         rReflect = r {_outcomes = osActual}
-        (report, d') = P.learn (_predictor b) rReflect
+        (lReport, d') = P.learn (_predictor b) rReflect
         osPredicted = _outcomes r
         cPredicted = adjustCondition cBefore osPredicted
         deltaH = uiToDouble (happiness b cAfter)
@@ -466,7 +463,7 @@ reflect b r cBefore cAfter = (report', set predictor d' b)
                    - uiToDouble (happiness b cBefore)
         report' = ReflectionReport
                    {
-                     brrLearningReport = report,
+                     brrLearningReport = lReport,
                      brrErr = abs (deltaH - predictedDeltaH)
                    }
 
@@ -475,8 +472,8 @@ imprintStimulus
   :: Brain p ct pt m a
   -> [(Cl.Label, p)]
   -> ([GSOM.ImprintDetail p], Brain p ct pt m a)
-imprintStimulus b lps = (report, set classifier d b)
-  where (report, d) = Cl.imprintSet (_classifier b) lps
+imprintStimulus b lps = (iReport, set classifier d b)
+  where (iReport, d) = Cl.imprintSet (_classifier b) lps
 
 -- | Teaches the brain a desirable action to take in response to a
 --   stimulus.
@@ -492,9 +489,9 @@ imprintResponse
       -> [P.Label]
       -> a
       -> (P.LearningReport a, Brain p ct pt m a)
-imprintResponse b ls a = (report, set predictor d2 b)
+imprintResponse b ls a = (irReport, set predictor d2 b)
   where d = _predictor b
-        (report, d2) = P.imprintOrReinforce d ls a os deltas
+        (irReport, d2) = P.imprintOrReinforce d ls a os deltas
         os = _imprintOutcomes b
         deltas = _reinforcementDeltas b
 
@@ -512,3 +509,14 @@ pruneObsoleteResponses b = over predictor prune b
   where prune = P.filterLabels ls
         ls = Cl.labels $ view classifier b
 
+instance (Pretty p, Pretty ct, Pretty pt, Pretty m, Pretty a)
+  => Report (Brain p ct pt m a) where
+  report b = [ "muser: " ++ pretty (_muser b),
+               "DSQ: " ++ pretty (decisionQuality b),
+               "happiness weights: " ++ pretty (_happinessWeights b),
+               "strictness: " ++ pretty (_strictness b),
+               "imprint outcomes: " ++ pretty (_imprintOutcomes b),
+               "reinforcement deltas: " ++ pretty (_reinforcementDeltas b),
+               "action counts: " ++ pretty (M.elems $ _actionCounts b) ]
+             ++ (map ("classifier " ++) $ report (_classifier b))
+             ++ (map ("predictor " ++) $ report (_predictor b))

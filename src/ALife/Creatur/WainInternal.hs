@@ -38,6 +38,7 @@ import qualified ALife.Creatur.Wain.GeneticSOM              as GSOM
 import           ALife.Creatur.Wain.Muser                   (Action, Muser)
 import qualified ALife.Creatur.Wain.Predictor               as P
 import           ALife.Creatur.Wain.Pretty                  (Pretty, pretty)
+import           ALife.Creatur.Wain.Report                  (Report, report)
 import qualified ALife.Creatur.Wain.Response                as R
 import           ALife.Creatur.Wain.Statistics
     (Statistical, dStat, iStat, stats)
@@ -57,6 +58,7 @@ import           Data.Version                               (showVersion)
 import           Data.Word                                  (Word16, Word8)
 import           GHC.Generics                               (Generic)
 import           Paths_creatur_wains                        (version)
+import           Text.Printf                     (printf)
 
 -- | Returns the current version number of this library.
 packageVersion :: String
@@ -343,23 +345,23 @@ chooseAction
      R.Response a ~ GSOM.Pattern pt)
       => [p] -> Wain p ct pt m a
         -> (DecisionReport p a, R.Response a, Wain p ct pt m a)
-chooseAction ps w = (report', r, set litter litter' w')
-  where (report, b')
+chooseAction ps w = (dReport', r, set litter litter' w')
+  where (dReport, b')
           = B.chooseAction (_brain w) ps (condition w)
-        r = B.bdrRecommendedResponse report
+        r = B.bdrRecommendedResponse dReport
         w' = set brain b' w
         ls = R._labels r
         lps = zip ls ps
         iResults = map (imprintStimulus lps) (_litter w')
         litter' = map snd iResults
-        report' = DecisionReport
+        dReport' = DecisionReport
                     {
-                      wdrStimulus = B.bdrStimulus report,
+                      wdrStimulus = B.bdrStimulus dReport,
                       wdrClassifierReport
-                        = B.bdrClassifierReport report,
-                      wdrScenarioReport = B.bdrScenarioReport report,
-                      wdrPredictorReport = B.bdrPredictorReport report,
-                      wdrActionReport = B.bdrActionReport report,
+                        = B.bdrClassifierReport dReport,
+                      wdrScenarioReport = B.bdrScenarioReport dReport,
+                      wdrPredictorReport = B.bdrPredictorReport dReport,
+                      wdrActionReport = B.bdrActionReport dReport,
                       wdrImprintReports = map fst iResults
                     }
 
@@ -449,13 +451,13 @@ reflect
   => R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
   -> (ReflectionReport p a, Wain p ct pt m a)
 reflect r wBefore wAfter =
-  (report, set litter litter' wReflected)
+  (rReport', set litter litter' wReflected)
   where (rReport, wReflected) = reflect1 r wBefore wAfter
         a = R._action r
         ls = R._labels r
         iResults = map (imprintResponse ls a) (_litter wAfter)
         litter' = map snd iResults
-        report = ReflectionReport
+        rReport' = ReflectionReport
                    {
                      rReflectionReport = rReport,
                      rImprintReports = map fst iResults
@@ -466,8 +468,8 @@ reflect1
   :: Eq a
   => R.Response a -> Wain p ct pt m a -> Wain p ct pt m a
   -> (B.ReflectionReport a, Wain p ct pt m a)
-reflect1 r wBefore wAfter = (report, set brain b' wAfter)
-  where (report, b') = B.reflect (_brain wAfter) r (condition wBefore)
+reflect1 r wBefore wAfter = (rReport, set brain b' wAfter)
+  where (rReport, b') = B.reflect (_brain wAfter) r (condition wBefore)
                         (condition wAfter)
 
 type StimulusImprintReport p = [GSOM.ImprintDetail p]
@@ -477,8 +479,8 @@ imprintStimulus
   :: [(Cl.Label, p)]
   -> Wain p ct pt m a
   -> (StimulusImprintReport p, Wain p ct pt m a)
-imprintStimulus lps w = (report, set brain b' w)
-  where (report, b') = B.imprintStimulus (_brain w) lps
+imprintStimulus lps w = (iReport, set brain b' w)
+  where (iReport, b') = B.imprintStimulus (_brain w) lps
 
 type ResponseImprintReport a = P.LearningReport a
 
@@ -494,8 +496,8 @@ imprintResponse
     R.Response a ~ GSOM.Pattern pt)
   => [Cl.Label] -> a -> Wain p ct pt m a
   -> (P.LearningReport a, Wain p ct pt m a )
-imprintResponse ls a w = (report, set brain b' w)
-  where (report, b') = B.imprintResponse (_brain w) ls a
+imprintResponse ls a w = (iReport, set brain b' w)
+  where (iReport, b') = B.imprintResponse (_brain w) ls a
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.
@@ -674,3 +676,32 @@ prettyResponseImprintReport w r
 
 indent :: [String] -> [String]
 indent = map ("...." ++ )
+
+instance (Pretty p, Pretty ct, Pretty pt, Pretty m, Pretty a)
+    => Report (Wain p ct pt m a) where
+  report w = report' w
+             ++ map ("child " ++) childReport
+    where childReport = concatMap report' (_litter w)
+
+report'
+  :: (Pretty p, Pretty ct, Pretty pt, Pretty m, Pretty a)
+  => Wain p ct pt m a -> [String]
+report' w = map (\s -> n ++ ' ':s) xs
+  where n = _name w
+        xs = [ "appearance: " ++ pretty (_appearance w),
+               "devotion: " ++ printf "%5.3f" (uiToDouble $ _devotion w),
+               "ageOfMaturity: " ++ printf "%d" (_ageOfMaturity w),
+               "passionDelta: " ++ pretty (_passionDelta w),
+               "boredomDelta: " ++ pretty (_boredomDelta w),
+               "energy: " ++ printf "%5.3f" (uiToDouble $ _energy w),
+               "passion: " ++ printf "%5.3f" (uiToDouble $ _passion w),
+               "boredom: " ++ printf "%5.3f" (uiToDouble $ _boredom w),
+               "age: " ++ pretty (_age w),
+               "total # children borne: "
+                 ++ pretty (_childrenBorneLifetime w),
+               "total # children weaned: "
+                 ++ pretty (_childrenWeanedLifetime w),
+               "children: " ++ childrensNames ]
+             ++ report (_brain w)
+        childrensNames = intercalate ", " $ map _name (_litter w)
+

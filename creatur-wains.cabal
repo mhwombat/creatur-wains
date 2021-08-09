@@ -44,7 +44,7 @@ common test-stuff
 
 common exe-stuff
   ghc-options:
-    -threaded -rtsopts -with-rtsopts=-N -Wall -Wunused-packages
+    -threaded -rtsopts -with-rtsopts=-N -Wall -Wunused-packages -Werror
   build-depends: test-library
 
 library
@@ -70,6 +70,7 @@ library
     ALife.Creatur.Wain.Probability
     ALife.Creatur.Wain.ProbabilityInternal
     ALife.Creatur.Wain.Raw
+    ALife.Creatur.Wain.Report
     ALife.Creatur.Wain.Response
     ALife.Creatur.Wain.ResponseInternal
     ALife.Creatur.Wain.SimpleMuser
@@ -83,7 +84,7 @@ library
     ALife.Creatur.WainInternal
   other-modules:    Paths_creatur_wains
   autogen-modules:  Paths_creatur_wains
-  ghc-options:      -Wall -Wunused-packages
+  ghc-options:      -Wall -Wunused-packages -Werror
   default-language: Haskell2010
   build-depends:
     , bytestring  >=0.10.8 && <0.12

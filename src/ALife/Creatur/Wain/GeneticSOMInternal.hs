@@ -27,6 +27,7 @@ import           ALife.Creatur.Genetics.BRGCWord8        (Genetic)
 import qualified ALife.Creatur.Genetics.BRGCWord8        as G
 import           ALife.Creatur.Genetics.Diploid          (Diploid, express)
 import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
+import           ALife.Creatur.Wain.Report               (Report, report)
 import           ALife.Creatur.Wain.Statistics
     (Statistical, dStat, iStat, kvToIStats, prefix, stats)
 import           ALife.Creatur.Wain.UnitInterval
@@ -515,3 +516,14 @@ adjNovelty d a = round $ uiToDouble d * fromIntegral a
 --   returns False.
 filterByPattern :: (p -> Bool) -> GeneticSOM p t -> GeneticSOM p t
 filterByPattern f s = over patternMap (SOM.filter f) s
+
+instance (Pretty p, Pretty t) => Report (GeneticSOM p t) where
+  report s = [ "max models: " ++ pretty (maxSize s),
+               "num models: " ++ pretty (numModels s),
+               "SQ: " ++ pretty (schemaQuality s),
+               "learning function: " ++ pretty (_learningParams s),
+               "tweaker: " ++ pretty (_tweaker s),
+               "counts: " ++ pretty (counterMap s) ]
+             ++ map f ms
+    where ms = M.toList . modelMap $ s
+          f (l, r) = pretty l ++ ": " ++ pretty r
