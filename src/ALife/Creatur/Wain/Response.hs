@@ -22,7 +22,9 @@ module ALife.Creatur.Wain.Response
     -- responseDiff,
     labelSimilarity,
     -- makeResponseSimilar,
-    addToOutcomes
+    addToOutcomes,
+    sizedArbResponse,
+    arbResponse
   ) where
 
 import           ALife.Creatur.Wain.ResponseInternal

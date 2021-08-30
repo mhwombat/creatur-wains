@@ -28,8 +28,8 @@ module ALife.Creatur.Wain.GeneticSOMQC
 import qualified ALife.Creatur.Genetics.BRGCWord8      as W8
 import           ALife.Creatur.Genetics.Diploid        (Diploid, express)
 import           ALife.Creatur.Wain.GeneticSOMInternal
-import           ALife.Creatur.Wain.TestUtils
-import           ALife.Creatur.Wain.UnitIntervalQC     ()
+import qualified ALife.Creatur.Gene.Test               as GT
+import           ALife.Creatur.Gene.Numeric.UnitInterval ()
 import           Control.DeepSeq                       (NFData, deepseq)
 import           Control.Lens
 import           Control.Monad.Random                  (evalRand, runRand)
@@ -114,9 +114,9 @@ instance Arbitrary TestTweaker where
   arbitrary = TestTweaker <$> arbitrary
 
 instance Tweaker TestTweaker where
-  type Pattern TestTweaker = TestPattern
-  diff _ = testPatternDiff
-  adjust _ = makeTestPatternSimilar
+  type Pattern TestTweaker = GT.TestPattern
+  diff _ = GT.testPatternDiff
+  adjust _ = GT.makeTestPatternSimilar
 
 -- | Used by other test modules
 sizedArbEmptyGeneticSOM
@@ -138,7 +138,7 @@ sizedArbGeneticSOM arbPattern n = do
   let s = trainBatch (_patternMap som) xs
   return $ som { _patternMap = s }
 
-type TestGSOM = GeneticSOM TestPattern TestTweaker
+type TestGSOM = GeneticSOM GT.TestPattern TestTweaker
 
 instance Arbitrary TestGSOM where
   arbitrary = sized (sizedArbGeneticSOM arbitrary)
@@ -152,20 +152,20 @@ equivGSOM x y =
     && (view tweaker x) == (view tweaker y)
 
 prop_classify_never_causes_error_unless_empty
-  :: TestGSOM -> TestPattern -> Property
+  :: TestGSOM -> GT.TestPattern -> Property
 prop_classify_never_causes_error_unless_empty s p
   = not (isEmpty s) ==> property $ deepseq x True
   where x = classify s p
 
-prop_train_never_causes_error :: TestGSOM -> TestPattern -> Property
+prop_train_never_causes_error :: TestGSOM -> GT.TestPattern -> Property
 prop_train_never_causes_error s p
   = property $ deepseq (trainAndClassify s p) True
 
-prop_imprint_never_causes_error :: TestGSOM -> Label -> TestPattern -> Property
+prop_imprint_never_causes_error :: TestGSOM -> Label -> GT.TestPattern -> Property
 prop_imprint_never_causes_error s l p
   = property $ deepseq (imprint s l p) True
 
-prop_novelty_btw_0_and_1 :: TestPattern -> TestGSOM -> Property
+prop_novelty_btw_0_and_1 :: GT.TestPattern -> TestGSOM -> Property
 prop_novelty_btw_0_and_1 p s
   = property $ 0 <= novelty && novelty <= 1
     where (r, _) = trainAndClassify s p
@@ -182,19 +182,19 @@ prop_familiar_patterns_have_min_novelty k s
 -- prop_new_patterns_have_max_novelty :: LearningParams -> Property
 -- prop_new_patterns_have_max_novelty e = property $ novelty == 1
 --     where s = buildGeneticSOM e 10 (TestTweaker 0)
---           novelty = cNovelty $ classify s (TestPattern 0)
+--           novelty = cNovelty $ classify s (GT.TestPattern 0)
 
 -- -- The constraint is needed because the novelty won't decrease if the
 -- -- model is already close to the input pattern and the learning rate
 -- -- isn't high enough.
--- prop_novelty_decreases :: TestPattern -> TestGSOM -> Property
+-- prop_novelty_decreases :: GT.TestPattern -> TestGSOM -> Property
 -- prop_novelty_decreases p s
 --   = novelty1 > 0.004 ==> novelty2 <= novelty1
 --     where (r1, s') = trainAndClassify s p
 --           novelty1 = cNovelty r1
 --           novelty2 = cNovelty $ classify s' p
 
-prop_novelty_never_increases :: TestPattern -> TestGSOM -> Property
+prop_novelty_never_increases :: GT.TestPattern -> TestGSOM -> Property
 prop_novelty_never_increases p s
   = property $ novelty2 <= novelty1
     where (r1, s') = trainAndClassify s p
@@ -205,7 +205,7 @@ prop_novelty_never_increases p s
 --   value so that after training they become identical.
 --   If it does fail, just run it again.
 prop_classification_is_consistent
-  :: TestGSOM -> TestPattern -> Property
+  :: TestGSOM -> GT.TestPattern -> Property
 prop_classification_is_consistent s p = property $ bmu == bmu'
   where (r, s') = trainAndClassify s p
         bmu = cBmu r
@@ -214,55 +214,39 @@ prop_classification_is_consistent s p = property $ bmu == bmu'
 test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
   [
-    testProperty "prop_serialize_round_trippable - TestPattern"
-      (prop_serialize_round_trippable :: TestPattern -> Property),
-    testProperty "prop_genetic_round_trippable - TestPattern"
-      (prop_genetic_round_trippable (==) :: TestPattern -> Property),
-    -- testProperty "prop_genetic_round_trippable2 - TestPattern"
-    --   (prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> TestPattern -> Property),
-    testProperty "prop_diploid_identity - TestPattern"
-      (prop_diploid_identity (==) :: TestPattern -> Property),
-    testProperty "prop_show_read_round_trippable - TestPattern"
-      (prop_show_read_round_trippable (==) :: TestPattern -> Property),
-    testProperty "prop_diploid_expressable - TestPattern"
-      (prop_diploid_expressable :: TestPattern -> TestPattern -> Property),
-    testProperty "prop_diploid_readable - TestPattern"
-      (prop_diploid_readable :: TestPattern -> TestPattern -> Property),
-
     testProperty "prop_serialize_round_trippable - LearningParams"
-      (prop_serialize_round_trippable :: LearningParams -> Property),
+      (GT.prop_serialize_round_trippable :: LearningParams -> Property),
     testProperty "prop_genetic_round_trippable - LearningParams"
-      (prop_genetic_round_trippable (==) :: LearningParams -> Property),
+      (GT.prop_genetic_round_trippable (==) :: LearningParams -> Property),
     -- testProperty "prop_genetic_round_trippable2 - LearningParams"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> LearningParams -> Property),
     testProperty "prop_diploid_identity - LearningParams"
-      (prop_diploid_identity (==) :: LearningParams -> Property),
+      (GT.prop_diploid_identity (==) :: LearningParams -> Property),
     testProperty "prop_show_read_round_trippable - LearningParams"
-      (prop_show_read_round_trippable (==) :: LearningParams -> Property),
+      (GT.prop_show_read_round_trippable (==) :: LearningParams -> Property),
     testProperty "prop_diploid_expressable - LearningParams"
-      (prop_diploid_expressable
+      (GT.prop_diploid_expressable
        :: LearningParams -> LearningParams -> Property),
     testProperty "prop_diploid_readable - LearningParams"
-      (prop_diploid_readable
+      (GT.prop_diploid_readable
        :: LearningParams -> LearningParams -> Property),
 
     testProperty "prop_serialize_round_trippable - TestGSOM"
-      (prop_serialize_round_trippable :: TestGSOM -> Property),
+      (GT.prop_serialize_round_trippable :: TestGSOM -> Property),
     testProperty "prop_genetic_round_trippable - TestGSOM"
-      (prop_genetic_round_trippable equivGSOM :: TestGSOM -> Property),
+      (GT.prop_genetic_round_trippable equivGSOM :: TestGSOM -> Property),
     -- testProperty "prop_genetic_round_trippable2 - TestGSOM"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestGSOM -> Property),
     testProperty "prop_diploid_identity - TestGSOM"
-      (prop_diploid_identity equivGSOM :: TestGSOM -> Property),
+      (GT.prop_diploid_identity equivGSOM :: TestGSOM -> Property),
     -- testProperty "prop_show_read_round_trippable - TestGSOM"
     --   (prop_show_read_round_trippable (==) :: TestGSOM -> Property),
     testProperty "prop_diploid_expressable - TestGSOM"
-      (prop_diploid_expressable :: TestGSOM -> TestGSOM -> Property),
+      (GT.prop_diploid_expressable :: TestGSOM -> TestGSOM -> Property),
     testProperty "prop_diploid_readable - TestGSOM"
-      (prop_diploid_readable :: TestGSOM -> TestGSOM -> Property),
+      (GT.prop_diploid_readable :: TestGSOM -> TestGSOM -> Property),
 
     testProperty "prop_random_learning_rate_always_in_range"
       prop_random_learning_rate_always_in_range,

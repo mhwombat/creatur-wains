@@ -25,12 +25,13 @@ module ALife.Creatur.Wain.BrainQC
     sizedArbImprintTestData
   ) where
 
+import qualified ALife.Creatur.Gene.Test                  as GT
 import           ALife.Creatur.Wain.BrainInternal
 import qualified ALife.Creatur.Wain.Classifier            as Cl
 import qualified ALife.Creatur.Wain.ClassifierQC          as CQC
 import           ALife.Creatur.Wain.GeneticSOMQC
     (equivGSOM, sizedArbGeneticSOM)
-import           ALife.Creatur.Wain.PlusMinusOne          (PM1Double)
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne          (PM1Double)
 import qualified ALife.Creatur.Wain.Predictor             as P
 import qualified ALife.Creatur.Wain.PredictorQC           as PQC
 import           ALife.Creatur.Wain.Response              (Response (..))
@@ -40,19 +41,18 @@ import           ALife.Creatur.Wain.SimpleMuser
     (SimpleMuser, makeMuser)
 import           ALife.Creatur.Wain.SimpleResponseTweaker
     (ResponseTweaker (..), responseDiff)
-import           ALife.Creatur.Wain.TestUtils
-import           ALife.Creatur.Wain.Weights               (makeWeights)
+import           ALife.Creatur.Gene.Numeric.Weights               (makeWeights)
 import           Control.DeepSeq                          (deepseq)
 import           Test.Framework                           (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2     (testProperty)
 import           Test.QuickCheck
 
 type TestBrain
-  = Brain TestPattern CQC.TestClassifierTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
+  = Brain GT.TestPattern CQC.TestClassifierTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
 
 sizedArbTestBrain :: Int -> Gen TestBrain
 sizedArbTestBrain n = do
-  ~(cSize:nObjects:[]) <- divvy n 2
+  ~(cSize:nObjects:[]) <- GT.divvy n 2
   let nConditions = 4
   let pSize = n + 1
   arbTestBrain cSize nObjects nConditions pSize
@@ -120,7 +120,7 @@ equivBrain b1 b2 = _classifier b1 `equivGSOM` _classifier b2
 --   return b
 
 data ChoosingTestData
-  = ChoosingTestData TestBrain [TestPattern] Condition
+  = ChoosingTestData TestBrain [GT.TestPattern] Condition
 
 instance Show ChoosingTestData where
   show (ChoosingTestData b ps c)
@@ -129,7 +129,7 @@ instance Show ChoosingTestData where
 
 sizedArbChoosingTestData :: Int -> Gen ChoosingTestData
 sizedArbChoosingTestData n = do
-  ~(cSize:nObjects:[]) <- divvy (min 10 n) 2
+  ~(cSize:nObjects:[]) <- GT.divvy (min 10 n) 2
   -- nConditions <- choose (0, n - cSize - nObjects)
   let nConditions = 4
   let pSize = n + 1
@@ -165,7 +165,7 @@ instance Show ReflectionTestData where
 
 sizedArbReflectionTestData :: Int -> Gen ReflectionTestData
 sizedArbReflectionTestData n = do
-  ~(cSize:nObjects:[]) <- divvy (min 10 n) 2
+  ~(cSize:nObjects:[]) <- GT.divvy (min 10 n) 2
   let nConditions = 4
   c <- vectorOf nConditions arbitrary
   ps <- vectorOf nObjects arbitrary
@@ -207,7 +207,7 @@ prop_reflect_never_causes_error (ReflectionTestData b r cBefore cAfter)
   = property $ deepseq x True
   where x = reflect b r cBefore cAfter
 
--- data AFewPatterns = AFewPatterns [TestPattern]
+-- data AFewPatterns = AFewPatterns [GT.TestPattern]
 --   deriving (Eq, Show)
 
 -- sizedArbAFewPatterns :: Int -> Gen AFewPatterns
@@ -219,12 +219,12 @@ prop_reflect_never_causes_error (ReflectionTestData b r cBefore cAfter)
 --   arbitrary = sized sizedArbAFewPatterns
 
 data ImprintTestData
-  = ImprintTestData TestBrain [TestPattern] TestAction [PM1Double] [Cl.Label]
+  = ImprintTestData TestBrain [GT.TestPattern] TestAction [PM1Double] [Cl.Label]
     deriving Eq
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
 sizedArbImprintTestData n = do
-  ~(cSize:nO:[]) <- divvy (min 10 n) 2
+  ~(cSize:nO:[]) <- GT.divvy (min 10 n) 2
   let nObjects = min 3 nO
   let nConditions = 4
   let pSize = n + 1
@@ -309,20 +309,20 @@ test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"
   [
     testProperty "prop_serialize_round_trippable - Brain"
-      (prop_serialize_round_trippable :: TestBrain -> Property),
+      (GT.prop_serialize_round_trippable :: TestBrain -> Property),
     testProperty "prop_genetic_round_trippable - Brain"
-      (prop_genetic_round_trippable equivBrain :: TestBrain -> Property),
+      (GT.prop_genetic_round_trippable equivBrain :: TestBrain -> Property),
     -- testProperty "prop_genetic_round_trippable2 - Brain"
-    --   (prop_genetic_round_trippable2
+    --   (GT.prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestBrain -> Property),
     testProperty "prop_diploid_identity - Brain"
-      (prop_diploid_identity equivBrain :: TestBrain -> Property),
+      (GT.prop_diploid_identity equivBrain :: TestBrain -> Property),
     -- testProperty "prop_show_read_round_trippable - Brain"
-    --   (prop_show_read_round_trippable (==) :: TestBrain -> Property),
+    --   (GT.prop_show_read_round_trippable (==) :: TestBrain -> Property),
     testProperty "prop_diploid_expressable - Brain"
-      (prop_diploid_expressable :: TestBrain -> TestBrain -> Property),
+      (GT.prop_diploid_expressable :: TestBrain -> TestBrain -> Property),
     testProperty "prop_diploid_readable - Brain"
-      (prop_diploid_readable :: TestBrain -> TestBrain -> Property),
+      (GT.prop_diploid_readable :: TestBrain -> TestBrain -> Property),
     -- testProperty "prop_chooseAction_doesnt_add_predictor_models"
     --   prop_chooseAction_doesnt_add_predictor_models,
     testProperty "prop_chooseAction_never_causes_error"

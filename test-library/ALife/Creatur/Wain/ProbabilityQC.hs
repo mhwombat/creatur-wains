@@ -21,8 +21,7 @@ module ALife.Creatur.Wain.ProbabilityQC
 
 import           ALife.Creatur.Wain.GeneticSOMInternal  (Difference, Label)
 import           ALife.Creatur.Wain.ProbabilityInternal
-import           ALife.Creatur.Wain.UnitInterval        (uiToDouble)
-import           ALife.Creatur.Wain.UnitIntervalQC      ()
+import           ALife.Creatur.Gene.Numeric.UnitInterval        (uiToDouble)
 import           Data.List                              (nub)
 import           Data.Word                              (Word64)
 import qualified Numeric.ApproxEq                       as N

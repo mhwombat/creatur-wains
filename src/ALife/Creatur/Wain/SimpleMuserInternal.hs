@@ -26,7 +26,7 @@ import           ALife.Creatur.Genetics.Diploid
 import           ALife.Creatur.Wain.GeneticSOM
     (Label)
 import qualified ALife.Creatur.Wain.Muser         as M
-import           ALife.Creatur.Wain.PlusMinusOne
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne
     (PM1Double, pm1ToDouble)
 import           ALife.Creatur.Wain.Pretty
     (Pretty)

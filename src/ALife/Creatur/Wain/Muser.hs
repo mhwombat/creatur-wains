@@ -21,7 +21,7 @@ module ALife.Creatur.Wain.Muser
 
 import           ALife.Creatur.Wain.GeneticSOM
     (Label)
-import           ALife.Creatur.Wain.PlusMinusOne
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne
     (PM1Double)
 import           ALife.Creatur.Wain.Probability
     (Probability)

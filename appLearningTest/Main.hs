@@ -24,7 +24,7 @@ import           ALife.Creatur.Wain.ClassifierQC
     (TestClassifierTweaker (..))
 import           ALife.Creatur.Wain.GeneticSOMInternal
     (LearningParams (..), buildGeneticSOM, schemaQuality)
-import           ALife.Creatur.Wain.PlusMinusOne            (doubleToPM1)
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne    (doubleToPM1)
 import           ALife.Creatur.Wain.Response                (action)
 import           ALife.Creatur.Wain.ResponseQC              (TestAction (..))
 import           ALife.Creatur.Wain.SimpleMuser
@@ -33,9 +33,9 @@ import           ALife.Creatur.Wain.SimpleResponseTweaker
     (ResponseTweaker (..))
 import           ALife.Creatur.Wain.SimpleResponseTweakerQC ()
 import           ALife.Creatur.Wain.Statistics              (stats)
-import           ALife.Creatur.Wain.TestUtils               (TestPattern (..))
-import           ALife.Creatur.Wain.UnitInterval            (uiToDouble)
-import           ALife.Creatur.Wain.Weights                 (makeWeights)
+import           ALife.Creatur.Gene.Test                    (TestPattern (..))
+import           ALife.Creatur.Gene.Numeric.UnitInterval    (uiToDouble)
+import           ALife.Creatur.Gene.Numeric.Weights         (makeWeights)
 import           ALife.Creatur.WainInternal
 import           Control.Lens
 import           Control.Monad                              (foldM_)

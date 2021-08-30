@@ -30,9 +30,9 @@ import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
 import           ALife.Creatur.Wain.Report               (Report, report)
 import           ALife.Creatur.Wain.Statistics
     (Statistical, dStat, iStat, kvToIStats, prefix, stats)
-import           ALife.Creatur.Wain.UnitInterval
+import           ALife.Creatur.Gene.Numeric.UnitInterval
     (UIDouble, doubleToUI, uiToDouble)
-import           ALife.Creatur.Wain.Util                 (inRange, intersection)
+import           ALife.Creatur.Gene.Numeric.Util         (inRange, intersection)
 import           Control.DeepSeq                         (NFData)
 import           Control.Lens
 import           Control.Monad.Random

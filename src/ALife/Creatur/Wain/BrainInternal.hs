@@ -26,7 +26,7 @@ import           ALife.Creatur.Genetics.Diploid   (Diploid)
 import qualified ALife.Creatur.Wain.Classifier    as Cl
 import qualified ALife.Creatur.Wain.GeneticSOM    as GSOM
 import qualified ALife.Creatur.Wain.Muser         as M
-import           ALife.Creatur.Wain.PlusMinusOne
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne
     (PM1Double, doubleToPM1, pm1ToDouble)
 import qualified ALife.Creatur.Wain.Predictor     as P
 import           ALife.Creatur.Wain.Pretty        (Pretty, pretty)
@@ -36,10 +36,9 @@ import           ALife.Creatur.Wain.Report        (Report, report)
 import           ALife.Creatur.Wain.Response      (Response (..))
 import           ALife.Creatur.Wain.Statistics
     (Statistical, dStat, iStat, prefix, stats)
-import           ALife.Creatur.Wain.UnitInterval
+import           ALife.Creatur.Gene.Numeric.UnitInterval
     (UIDouble, forceDoubleToUI, uiToDouble)
-import           ALife.Creatur.Wain.Util          (thirdOfTriple)
-import           ALife.Creatur.Wain.Weights
+import           ALife.Creatur.Gene.Numeric.Weights
     (Weights, numWeights, weightAt, weightedSum)
 import           Control.DeepSeq                  (NFData)
 import           Control.Lens
@@ -255,7 +254,7 @@ chooseAction b ps c = (dReport, b4)
         sReport = generateScenarios b2 cReport
         pReport = generateResponses b2 sReport
         aReport = evaluateActions b2 c pReport
-        (a, os, _) = chooseAny b . maximaBy thirdOfTriple $ aReport
+        (a, os, _) = chooseAny b . maximaBy (\(_,_,x) -> x) $ aReport
         -- a = the action that we predict will give the best outcome
         -- os = the expected outcomes
         b3 = adjustActionCounts b2 a

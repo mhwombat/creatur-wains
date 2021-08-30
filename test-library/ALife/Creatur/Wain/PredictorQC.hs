@@ -23,11 +23,12 @@ module ALife.Creatur.Wain.PredictorQC
     ImprintTestData(..)
   ) where
 
+import qualified ALife.Creatur.Gene.Test                 as GT
 import           ALife.Creatur.Wain.GeneticSOMInternal
     (Label, maxSize, numModels, patternMap, trainAndClassify)
 import           ALife.Creatur.Wain.GeneticSOMQC
     (equivGSOM, sizedArbEmptyGeneticSOM, sizedArbGeneticSOM)
-import           ALife.Creatur.Wain.PlusMinusOne
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne
     (PM1Double, pm1ToDouble)
 import           ALife.Creatur.Wain.PredictorInternal
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
@@ -37,7 +38,6 @@ import           ALife.Creatur.Wain.ResponseQC
     (TestAction, TestResponse, arbTestResponse)
 import           ALife.Creatur.Wain.SimpleResponseTweaker
     (ResponseTweaker (..), responseDiff)
-import           ALife.Creatur.Wain.TestUtils
 import           Control.DeepSeq                          (deepseq)
 import           Control.Lens
 import           Test.Framework                           (Test, testGroup)
@@ -54,7 +54,7 @@ type TestPredictor = Predictor TestAction (ResponseTweaker TestAction)
 
 sizedArbTestPredictor :: Int -> Gen TestPredictor
 sizedArbTestPredictor n = do
-  ~(nObjects:nConditions:capacity:[]) <- divvy n 3
+  ~(nObjects:nConditions:capacity:[]) <- GT.divvy n 3
   arbTestPredictor nObjects nConditions capacity
 
 arbEmptyTestPredictor :: Int -> Gen TestPredictor
@@ -79,7 +79,7 @@ data TrainingTestData
 
 sizedArbTrainingTestData :: Int -> Gen TrainingTestData
 sizedArbTrainingTestData n = do
-  ~(nO:nConditions:capacity:[]) <- divvy n 3
+  ~(nO:nConditions:capacity:[]) <- GT.divvy n 3
   let nObjects = min 3 nO
   p <- arbTestPredictor nObjects nConditions capacity
   let pm = view patternMap p
@@ -133,7 +133,7 @@ data ImprintTestData
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
 sizedArbImprintTestData n = do
-  ~(nO:nConditions:capacity:[]) <- divvy n 3
+  ~(nO:nConditions:capacity:[]) <- GT.divvy n 3
   let nObjects = min 3 nO
   p <- arbTestPredictor nObjects nConditions capacity
   ls <- vectorOf nObjects arbitrary
@@ -189,36 +189,36 @@ test :: Test
 test = testGroup "ALife.Creatur.Wain.PredictorQC"
   [
     testProperty "prop_serialize_round_trippable - Tweaker"
-      (prop_serialize_round_trippable :: TestPredictorTweaker -> Property),
+      (GT.prop_serialize_round_trippable :: TestPredictorTweaker -> Property),
     testProperty "prop_genetic_round_trippable - Tweaker"
-      (prop_genetic_round_trippable (==) :: TestPredictorTweaker -> Property),
+      (GT.prop_genetic_round_trippable (==) :: TestPredictorTweaker -> Property),
     -- testProperty "prop_genetic_round_trippable2 - Tweaker"
-    --   (prop_genetic_round_trippable2
+    --   (GT.prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestPredictorTweaker -> Property),
     testProperty "prop_diploid_identity - Tweaker"
-      (prop_diploid_identity (==) :: TestPredictorTweaker -> Property),
+      (GT.prop_diploid_identity (==) :: TestPredictorTweaker -> Property),
     testProperty "prop_show_read_round_trippable - Tweaker"
-      (prop_show_read_round_trippable (==) :: TestPredictorTweaker -> Property),
+      (GT.prop_show_read_round_trippable (==) :: TestPredictorTweaker -> Property),
     testProperty "prop_diploid_expressable - Tweaker"
-      (prop_diploid_expressable :: TestPredictorTweaker -> TestPredictorTweaker -> Property),
+      (GT.prop_diploid_expressable :: TestPredictorTweaker -> TestPredictorTweaker -> Property),
     testProperty "prop_diploid_readable - Tweaker"
-      (prop_diploid_readable :: TestPredictorTweaker -> TestPredictorTweaker -> Property),
+      (GT.prop_diploid_readable :: TestPredictorTweaker -> TestPredictorTweaker -> Property),
 
     testProperty "prop_serialize_round_trippable - Predictor"
-      (prop_serialize_round_trippable :: TestPredictor -> Property),
+      (GT.prop_serialize_round_trippable :: TestPredictor -> Property),
     testProperty "prop_genetic_round_trippable - Predictor"
-      (prop_genetic_round_trippable equivGSOM :: TestPredictor -> Property),
+      (GT.prop_genetic_round_trippable equivGSOM :: TestPredictor -> Property),
     -- testProperty "prop_genetic_round_trippable2 - Predictor"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestPredictor -> Property),
     testProperty "prop_diploid_identity - Predictor"
-      (prop_diploid_identity (==) :: TestPredictor -> Property),
+      (GT.prop_diploid_identity (==) :: TestPredictor -> Property),
     -- testProperty "prop_show_read_round_trippable - Predictor"
     --   (prop_show_read_round_trippable (==) :: TestPredictor -> Property),
     testProperty "prop_diploid_expressable - Predictor"
-      (prop_diploid_expressable :: TestPredictor -> TestPredictor -> Property),
+      (GT.prop_diploid_expressable :: TestPredictor -> TestPredictor -> Property),
     testProperty "prop_diploid_readable - Predictor"
-      (prop_diploid_readable :: TestPredictor -> TestPredictor -> Property),
+      (GT.prop_diploid_readable :: TestPredictor -> TestPredictor -> Property),
 
     testProperty "prop_predict_never_causes_error"
       prop_predict_never_causes_error,

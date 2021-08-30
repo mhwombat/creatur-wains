@@ -30,8 +30,7 @@ import           ALife.Creatur.Genetics.Diploid             (Diploid, express)
 import           ALife.Creatur.Genetics.Recombination
     (mutatePairedLists, randomCrossover, randomCutAndSplice, randomOneOfPair,
     repeatWithProbability, withProbability)
-import           ALife.Creatur.Genetics.Reproduction.Sexual
-    (Reproductive, Strand, build, makeOffspring, produceGamete)
+import qualified ALife.Creatur.Genetics.Reproduction.Sexual as RS
 import qualified ALife.Creatur.Wain.Brain                   as B
 import qualified ALife.Creatur.Wain.Classifier              as Cl
 import qualified ALife.Creatur.Wain.GeneticSOM              as GSOM
@@ -42,9 +41,9 @@ import           ALife.Creatur.Wain.Report                  (Report, report)
 import qualified ALife.Creatur.Wain.Response                as R
 import           ALife.Creatur.Wain.Statistics
     (Statistical, dStat, iStat, stats)
-import           ALife.Creatur.Wain.UnitInterval
+import           ALife.Creatur.Gene.Numeric.UnitInterval
     (UIDouble, doubleToUI, forceDoubleToUI, uiToDouble)
-import           ALife.Creatur.Wain.Util
+import           ALife.Creatur.Gene.Numeric.Util
     (enforceRange, unitInterval)
 import           Control.DeepSeq                            (NFData)
 import           Control.Lens
@@ -266,8 +265,9 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
   Serialize p, Serialize ct, Serialize pt, Serialize a,
   Eq a, Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
   R.Response a ~ GSOM.Pattern pt, Muser m)
-  => Reproductive (Wain p ct pt m a) where
+  => RS.Reproductive (Wain p ct pt m a) where
   type Strand (Wain p ct pt m a) = Sequence
+  genome = _genome
   produceGamete a =
     repeatWithProbability 0.1 randomCrossover (_genome a) >>=
     withProbability 0.01 randomCutAndSplice >>=
@@ -533,7 +533,7 @@ mate'
 mate' a b babyName = do
   let a2 = coolPassion a
   let b2 = coolPassion b
-  result <- makeOffspring a b babyName
+  result <- RS.makeOffspring a b babyName
   case result of
     Right baby -> do
       let (a3, b3, baby3, aContribution, bContribution)

@@ -19,7 +19,7 @@ module ALife.Creatur.Wain.ProbabilityInternal where
 
 import           ALife.Creatur.Wain.GeneticSOM
     (Difference, Label)
-import           ALife.Creatur.Wain.UnitInterval
+import           ALife.Creatur.Gene.Numeric.UnitInterval
     (UIDouble, doubleToUI, uiToDouble)
 import           Data.Word
     (Word64)

@@ -25,11 +25,11 @@ import           ALife.Creatur.Genetics.Diploid
     (Diploid)
 import           ALife.Creatur.Wain.GeneticSOM
     (Difference, Tweaker (..))
-import           ALife.Creatur.Wain.PlusMinusOne
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne
     (adjustPM1Vector)
 import           ALife.Creatur.Wain.Response
     (Response (..), labelSimilarity)
-import           ALife.Creatur.Wain.UnitInterval
+import           ALife.Creatur.Gene.Numeric.UnitInterval
     (UIDouble)
 import           Control.DeepSeq
     (NFData)

@@ -19,16 +19,14 @@ module ALife.Creatur.Wain.SimpleResponseTweakerQC
     test
   ) where
 
+import qualified ALife.Creatur.Gene.Test as GT
 import           ALife.Creatur.Wain.ResponseQC
     (TestAction, TestResponse)
 import           ALife.Creatur.Wain.SimpleResponseTweaker
 import           ALife.Creatur.Wain.Statistics
     (Statistical (..))
-import           ALife.Creatur.Wain.TestUtils
-import           ALife.Creatur.Wain.UnitInterval
+import           ALife.Creatur.Gene.Numeric.UnitInterval
     (UIDouble)
-import           ALife.Creatur.Wain.UnitIntervalQC
-    ()
 import           Test.Framework
     (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2
@@ -56,7 +54,7 @@ prop_responseDiff_in_range a b = property $ 0 <= x && x <= 1
 prop_makeResponseSimilar_works
   :: TestResponse -> UIDouble -> TestResponse -> Property
 prop_makeResponseSimilar_works
-  = prop_makeSimilar_works responseDiff makeResponseSimilar
+  = GT.prop_makeSimilar_works responseDiff makeResponseSimilar
 
 
 test :: Test

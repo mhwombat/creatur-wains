@@ -23,16 +23,18 @@ module ALife.Creatur.Wain.ResponseInternal where
 import           ALife.Creatur.Genetics.BRGCWord8 (Genetic)
 import           ALife.Creatur.Genetics.Diploid   (Diploid)
 import           ALife.Creatur.Wain.Classifier    (Label)
-import           ALife.Creatur.Wain.PlusMinusOne
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne
     (PM1Double, forceDoubleToPM1, pm1ToDouble)
 import           ALife.Creatur.Wain.Pretty        (Pretty, pretty)
 import           ALife.Creatur.Wain.Statistics    (Statistical (..), dStat)
-import           ALife.Creatur.Wain.UnitInterval  (UIDouble, doubleToUI)
+import           ALife.Creatur.Gene.Numeric.UnitInterval
+    (UIDouble, doubleToUI)
 import           Control.DeepSeq                  (NFData)
 import           Control.Lens
 import           Data.List                        (intercalate)
 import           Data.Serialize                   (Serialize)
 import           GHC.Generics                     (Generic)
+import           Test.QuickCheck                  (arbitrary, choose, Gen, vectorOf)
 import           Text.Printf                      (printf)
 
 -- | A model of a scenario that a wain might encounter
@@ -92,3 +94,21 @@ instance (Statistical a)
                   dStat "Δb" (os !! 2),
                   dStat "Δl" (os !! 3)]
     where os = _outcomes r
+
+-- This method is used by other test classes to ensure that all of the
+-- scenarios have the same number of objects and condition parameters.
+sizedArbResponse :: Gen a -> Int -> Gen (Response a)
+sizedArbResponse genAction n = do
+  nObjects <- choose (0, n)
+  let nConditions = n - nObjects
+  arbResponse nObjects nConditions genAction
+
+-- This method is used by other test classes to ensure that all of the
+-- scenarios have the same number of objects and condition parameters.
+arbResponse :: Int -> Int -> Gen a -> Gen (Response a)
+arbResponse nObjects nConditions genAction = do
+  s <- vectorOf nObjects arbitrary
+  a <- genAction
+  o <- vectorOf nConditions arbitrary
+  return $ Response s a o
+

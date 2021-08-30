@@ -16,6 +16,13 @@ module ALife.Creatur.Wain.Pretty
     Pretty(..)
   ) where
 
+import           ALife.Creatur.Gene.Test (TestPattern)
+import           ALife.Creatur.Gene.Numeric.UnitInterval
+    (UIDouble, uiToDouble)
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne
+    (PM1Double, pm1ToDouble)
+import           ALife.Creatur.Gene.Numeric.Weights
+    (Weights)
 import qualified Data.Map.Strict as MS
 import           Data.Word
     (Word16, Word32, Word64, Word8)
@@ -62,3 +69,13 @@ instance (Pretty a) => Pretty [a] where
 instance (Pretty a) => Pretty (Maybe a) where
   pretty (Just x) = pretty x
   pretty _        = "ø"
+
+instance Pretty UIDouble where
+  pretty = pretty . uiToDouble
+
+instance Pretty PM1Double where
+  pretty = pretty . pm1ToDouble
+
+instance Pretty Weights
+
+instance Pretty TestPattern

@@ -19,14 +19,14 @@ module ALife.Creatur.Wain.PredictorInternal where
 
 import qualified ALife.Creatur.Wain.Classifier   as Cl
 import qualified ALife.Creatur.Wain.GeneticSOM   as S
-import           ALife.Creatur.Wain.PlusMinusOne
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne
     (PM1Double, adjustPM1Vector, pm1ToDouble)
 import           ALife.Creatur.Wain.Pretty       (Pretty (..))
 import           ALife.Creatur.Wain.Probability
     (Probability, prettyProbability)
 import           ALife.Creatur.Wain.Response
     (Response (..), addToOutcomes, labels, outcomes)
-import           ALife.Creatur.Wain.UnitInterval (UIDouble)
+import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble)
 import           Control.DeepSeq                 (NFData)
 import           Control.Lens
 import           Data.List                       (intercalate, nub, (\\))

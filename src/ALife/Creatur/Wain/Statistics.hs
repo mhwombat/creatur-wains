@@ -35,6 +35,9 @@ module ALife.Creatur.Wain.Statistics
     popStdDev
   ) where
 
+import           ALife.Creatur.Gene.Test (TestPattern(..))
+import           ALife.Creatur.Gene.Numeric.Weights
+    (Weights, toUIDoubles)
 import           ALife.Creatur.Wain.Pretty
     (Pretty, pretty)
 import           ALife.Creatur.Wain.Raw
@@ -118,6 +121,12 @@ instance (Show k, Statistical v)
     => Statistical [(k, v)] where
   stats = concatMap f
     where f (k, v) = map (prefix ("[" ++ show k ++ "]")) $ stats v
+
+instance Statistical TestPattern where
+  stats (TestPattern x) = [iStat "" x]
+
+instance Statistical Weights where
+  stats = dStats "" . toUIDoubles
 
 kvToDStats :: (Show k, Real v) => [(k, v)] -> [Statistic]
 kvToDStats = map f

@@ -20,12 +20,10 @@ module ALife.Creatur.Wain.SimpleMuserQC
     sizedArbMuser
   ) where
 
-import ALife.Creatur.Wain.PlusMinusOneQC
-    ()
+import qualified ALife.Creatur.Gene.Test as GT
 import ALife.Creatur.Wain.ResponseQC
     (TestAction)
 import ALife.Creatur.Wain.SimpleMuserInternal
-import ALife.Creatur.Wain.TestUtils
 import Test.Framework
     (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2
@@ -46,18 +44,18 @@ test :: Test
 test = testGroup "ALife.Creatur.Wain.SimpleMuserQC"
   [
     testProperty "prop_serialize_round_trippable - SimpleMuser"
-      (prop_serialize_round_trippable :: SimpleMuser TestAction -> Property),
+      (GT.prop_serialize_round_trippable :: SimpleMuser TestAction -> Property),
     testProperty "prop_genetic_round_trippable - SimpleMuser"
-      (prop_genetic_round_trippable (==) :: SimpleMuser TestAction -> Property),
+      (GT.prop_genetic_round_trippable (==) :: SimpleMuser TestAction -> Property),
     -- testProperty "prop_genetic_round_trippable2 - SimpleMuser"
-    --   (prop_genetic_round_trippable2
+    --   (GT.prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> SimpleMuser TestAction -> Property),
     testProperty "prop_diploid_identity - SimpleMuser"
-      (prop_diploid_identity (==) :: SimpleMuser TestAction -> Property),
+      (GT.prop_diploid_identity (==) :: SimpleMuser TestAction -> Property),
     testProperty "prop_show_read_round_trippable - SimpleMuser"
-      (prop_show_read_round_trippable (==) :: SimpleMuser TestAction -> Property),
+      (GT.prop_show_read_round_trippable (==) :: SimpleMuser TestAction -> Property),
     testProperty "prop_diploid_expressable - SimpleMuser"
-      (prop_diploid_expressable :: SimpleMuser TestAction -> SimpleMuser TestAction -> Property),
+      (GT.prop_diploid_expressable :: SimpleMuser TestAction -> SimpleMuser TestAction -> Property),
     testProperty "prop_diploid_readable - SimpleMuser"
-      (prop_diploid_readable :: SimpleMuser TestAction -> SimpleMuser TestAction -> Property)
+      (GT.prop_diploid_readable :: SimpleMuser TestAction -> SimpleMuser TestAction -> Property)
   ]

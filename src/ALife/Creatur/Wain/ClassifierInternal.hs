@@ -19,7 +19,7 @@ module ALife.Creatur.Wain.ClassifierInternal where
 
 import qualified ALife.Creatur.Wain.GeneticSOM   as S
 import           ALife.Creatur.Wain.Pretty       (Pretty, pretty)
-import           ALife.Creatur.Wain.UnitInterval (UIDouble)
+import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble)
 import           Control.DeepSeq                 (NFData)
 import           Data.List                       (foldl')
 import qualified Data.Map.Strict                 as M

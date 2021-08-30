@@ -27,16 +27,12 @@ import ALife.Creatur.Genetics.Diploid
     (Diploid)
 import ALife.Creatur.Wain.GeneticSOM
     (Label)
-import ALife.Creatur.Wain.PlusMinusOneQC
-    ()
 import ALife.Creatur.Wain.Pretty
     (Pretty)
 import ALife.Creatur.Wain.ResponseInternal
 import ALife.Creatur.Wain.Statistics
     (Statistical (..))
-import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.UnitIntervalQC
-    ()
+import ALife.Creatur.Gene.Test
 import Control.DeepSeq
     (NFData)
 import Data.Serialize
@@ -63,14 +59,14 @@ instance Statistical TestAction where
 
 type TestResponse = Response TestAction
 
+-- TODO: Rewrite using sizedArbResponse from ALife.Creatur.Wain.ResponseInternal
 sizedArbTestResponse :: Int -> Gen TestResponse
 sizedArbTestResponse n = do
   nObjects <- choose (0, n)
   let nConditions = n - nObjects
   arbTestResponse nObjects nConditions
 
--- This method is used by other test classes to ensure that all of the
--- scenarios have the same number of objects and condition parameters.
+-- TODO: Rewrite using arbResponse from ALife.Creatur.Wain.ResponseInternal
 arbTestResponse :: Int -> Int -> Gen TestResponse
 arbTestResponse nObjects nConditions = do
   s <- vectorOf nObjects arbitrary

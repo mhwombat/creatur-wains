@@ -17,6 +17,7 @@ module ALife.Creatur.WainQC
     test
   ) where
 
+import qualified ALife.Creatur.Gene.Test as GT
 import           ALife.Creatur.Genetics.BRGCWord8
     (runDiploidReader, write)
 import qualified ALife.Creatur.Wain.Brain                 as B
@@ -29,10 +30,7 @@ import           ALife.Creatur.Wain.ResponseQC
     (TestAction, TestResponse)
 import           ALife.Creatur.Wain.SimpleMuser           (SimpleMuser)
 import           ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker (..))
-import           ALife.Creatur.Wain.TestUtils
-    (TestPattern, prop_diploid_identity, prop_genetic_round_trippable,
-    prop_serialize_round_trippable)
-import           ALife.Creatur.Wain.UnitInterval          (doubleToUI)
+import           ALife.Creatur.Gene.Numeric.UnitInterval          (doubleToUI)
 import           ALife.Creatur.WainInternal
 import           Control.DeepSeq                          (deepseq)
 import           Control.Lens
@@ -41,7 +39,7 @@ import           Test.Framework.Providers.QuickCheck2     (testProperty)
 import           Test.QuickCheck
     (Arbitrary, Gen, Property, arbitrary, choose, property, sized, vectorOf)
 
-type TestWain = Wain TestPattern TestClassifierTweaker
+type TestWain = Wain GT.TestPattern TestClassifierTweaker
                   (ResponseTweaker TestAction) (SimpleMuser TestAction)
                   TestAction
 
@@ -108,7 +106,7 @@ prop_adjustEnergy_balances_energy e w
   where (w', used) = adjustEnergy e w
 
 data ChoosingTestData
-  = ChoosingTestData TestWain [TestPattern]
+  = ChoosingTestData TestWain [GT.TestPattern]
 
 instance Show ChoosingTestData where
   show (ChoosingTestData w ps)
@@ -131,7 +129,7 @@ prop_chooseAction_never_causes_error (ChoosingTestData w ps)
   where x = chooseAction ps w
 
 data ReflectionTestData
-  = ReflectionTestData [TestPattern] TestResponse TestWain TestWain
+  = ReflectionTestData [GT.TestPattern] TestResponse TestWain TestWain
 
 instance Show ReflectionTestData where
   show (ReflectionTestData ps a wBefore wAfter)
@@ -163,7 +161,7 @@ prop_reflect_never_causes_error (ReflectionTestData _ r wBefore wAfter)
   where x = reflect r wBefore wAfter
 
 data ImprintTestData
-  = ImprintTestData TestWain [TestPattern] [Cl.Label] TestAction B.Condition
+  = ImprintTestData TestWain [GT.TestPattern] [Cl.Label] TestAction B.Condition
     deriving (Eq, Show)
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
@@ -254,16 +252,16 @@ test :: Test
 test = testGroup "ALife.Creatur.WainQC"
   [
     testProperty "prop_serialize_round_trippable - Wain"
-      (prop_serialize_round_trippable :: TestWain -> Property),
+      (GT.prop_serialize_round_trippable :: TestWain -> Property),
     testProperty "prop_genetic_round_trippable - Wain"
-      (prop_genetic_round_trippable equiv :: TestWain -> Property),
+      (GT.prop_genetic_round_trippable equiv :: TestWain -> Property),
     -- testProperty "prop_genetic_round_trippable2 - Wain"
-    --   (prop_genetic_round_trippable2
+    --   (GT.prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestWain -> Property),
     testProperty "prop_diploid_identity - Wain"
-      (prop_diploid_identity equiv :: TestWain -> Property),
+      (GT.prop_diploid_identity equiv :: TestWain -> Property),
     -- testProperty "prop_show_read_round_trippable - Wain"
-    --   (prop_show_read_round_trippable (==) :: TestWain -> Property),
+    --   (GT.prop_show_read_round_trippable (==) :: TestWain -> Property),
 
     testProperty "prop_adjustEnergy_balances_energy"
       prop_adjustEnergy_balances_energy,
