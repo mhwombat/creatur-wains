@@ -105,7 +105,7 @@ prop_random_express_learningFunction_valid seed p1 p2
         (a, g') = runRand (randomLearningParams p1) g
         b = evalRand (randomLearningParams p2) g'
 
-data TestTweaker = TestTweaker Word8
+newtype TestTweaker = TestTweaker Word8
   deriving (Eq, Show, Generic, Serialize, W8.Genetic, Diploid, NFData)
   -- The parameter isn't used; it's just there to force something to
   -- be written to the gene sequence
@@ -124,8 +124,7 @@ sizedArbEmptyGeneticSOM
     => Int -> Gen (GeneticSOM p t)
 sizedArbEmptyGeneticSOM maxSz = do
   e <- arbitrary
-  t <- arbitrary
-  return $ buildGeneticSOM e (fromIntegral maxSz) t
+  buildGeneticSOM e (fromIntegral maxSz) <$> arbitrary
 
 -- | Used by other test modules
 sizedArbGeneticSOM
@@ -148,8 +147,8 @@ equivGSOM :: Eq t => GeneticSOM p t -> GeneticSOM p t -> Bool
 equivGSOM x y =
   -- TODO when initial models are made genetic: models x == models y
   maxSize x == maxSize y
-    && (view learningParams x) == (view learningParams y)
-    && (view tweaker x) == (view tweaker y)
+    && view learningParams x == view learningParams y
+    && view tweaker x == view tweaker y
 
 prop_classify_never_causes_error_unless_empty
   :: TestGSOM -> GT.TestPattern -> Property
@@ -174,7 +173,7 @@ prop_novelty_btw_0_and_1 p s
 prop_familiar_patterns_have_min_novelty :: Int -> TestGSOM -> Property
 prop_familiar_patterns_have_min_novelty k s
   = (not . isEmpty) s ==> novelty == 0
-    where k' = k `mod` (fromIntegral $ numModels s)
+    where k' = k `mod` fromIntegral (numModels s)
           l = (keys . toMap . _patternMap $ s) !! k'
           p = modelMap s ! l
           novelty = cNovelty $ classify s p

@@ -37,7 +37,7 @@ hypothesise x = map jointProbability . permute . diffsToProbs x
 
 -- | Internal method.
 permute :: [[a]] -> [[a]]
-permute (xs:[])  = [ [y] | y <- xs ]
+permute [xs]  = [ [y] | y <- xs ]
 permute (xs:xss) = [ y:ys | y <- xs, ys <- permute xss]
 permute []       = []
 

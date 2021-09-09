@@ -29,7 +29,7 @@ import           ALife.Creatur.Wain.Response
 import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble)
 import           Control.DeepSeq                 (NFData)
 import           Control.Lens
-import           Data.List                       (intercalate, nub, (\\))
+import           Data.List                       (nub, (\\))
 import qualified Data.Map.Strict                 as M
 import           Data.Word                       (Word64)
 import           GHC.Generics                    (Generic)
@@ -80,7 +80,7 @@ instance (Pretty a) => Pretty (PredictionDetail a) where
                ++ " prob: " ++ prettyProbability (pProb r)
                ++ bmuMsg
                ++ " raw outcomes: "
-               ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
+               ++ unwords (map (printf "%.3f" . pm1ToDouble) os)
     where os = pRawOutcomes r
           bmuMsg = case pBmu r of
                      Just bmu -> " based on model " ++ show bmu
@@ -190,7 +190,7 @@ imprintOrReinforce d ls a os deltas =
     else (reportR, dR)
   where (reportI, dI) = learn d rI -- imprinting new model
         (reportR, dR) = learn d rR -- reinforcing existing model
-        r = (S.modelMap d) M.! bmuI
+        r = S.modelMap d M.! bmuI
         rI = Response ls a os
         rR = deltas `addToOutcomes` r
         bmuI = lBmu reportI
@@ -223,7 +223,7 @@ scenarios = map (_labels . snd) . M.toList . S.modelMap
 -- | Returns @True@ if the predictor has a response for the scenario;
 --   returns @False@ otherwise.
 hasScenario :: Predictor a t -> [Cl.Label] -> Bool
-hasScenario p ls = ls `elem` (scenarios p)
+hasScenario p ls = ls `elem` scenarios p
 
 actions :: Eq a => Predictor a t -> [a]
 actions = nub . map (_action . snd) . M.toList . S.modelMap

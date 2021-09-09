@@ -84,7 +84,7 @@ instance G.Genetic LearningParams where
     rf <- G.get
     tf <- G.get
     -- Use the safe constructor!
-    case (mkLearningParams <$> r0 <*> rf <*> tf) of
+    case mkLearningParams <$> r0 <*> rf <*> tf of
       Left msgs -> return $ Left msgs
       Right p   -> return p
 
@@ -356,7 +356,7 @@ hasLabel gs l = M.member l (modelMap gs)
 
 -- | Returns the model at the specified location in the SOM.
 modelAt :: GeneticSOM p t -> Label -> p
-modelAt gs k = (_patternMap gs) `SOM.modelAt` k
+modelAt gs k = _patternMap gs `SOM.modelAt` k
 
 -- -- | Returns a list containing each index (grid location) in the SOM,
 -- --   paired with the model at that index.
@@ -515,7 +515,7 @@ adjNovelty d a = round $ uiToDouble d * fromIntegral a
 --   patterns for which, and removes those for which the function @f@
 --   returns False.
 filterByPattern :: (p -> Bool) -> GeneticSOM p t -> GeneticSOM p t
-filterByPattern f s = over patternMap (SOM.filter f) s
+filterByPattern f = over patternMap (SOM.filter f)
 
 instance (Pretty p, Pretty t) => Report (GeneticSOM p t) where
   report s = [ "max models: " ++ pretty (maxSize s),

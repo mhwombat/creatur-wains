@@ -51,7 +51,7 @@ data ClassifierReport p =
 prettyClassifierReport :: Pretty p => ClassifierReport p -> [String]
 prettyClassifierReport r =
     ("classifier learning rate: " ++ pretty (cLearningRate r))
-    : (concatMap S.prettyClassificationDetail $ cDetails r)
+    : concatMap S.prettyClassificationDetail (cDetails r)
 
 -- | Updates the classifier models based on the stimulus (set of
 --   input patterns).

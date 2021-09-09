@@ -40,9 +40,9 @@ import           Control.DeepSeq
     (NFData)
 import           Control.Lens
 import           Data.List
-    (nub, sortBy)
+    (nub, sortOn)
 import           Data.Ord
-    (comparing)
+    (Down(..))
 import           Data.Serialize
     (Serialize)
 import           Data.Word
@@ -84,7 +84,7 @@ instance G.Genetic (SimpleMuser a) where
     o <- G.get
     d <- G.get
     -- Use the safe constructor!
-    case (makeMuser <$> o <*> d) of
+    case makeMuser <$> o <*> d of
       Left msgs -> return $ Left msgs
       Right b   -> return b
 
@@ -128,4 +128,4 @@ generateResponse m a (ls, p) = (Response ls a os, p)
 bestHypotheses
   :: SimpleMuser a -> [([Label], Probability)] -> [([Label], Probability)]
 bestHypotheses m
-  = take (fromIntegral . _depth $ m) . reverse. sortBy (comparing snd)
+  = take (fromIntegral . _depth $ m) . sortOn (Down . snd)

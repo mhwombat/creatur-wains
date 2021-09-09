@@ -52,7 +52,7 @@ type TestBrain
 
 sizedArbTestBrain :: Int -> Gen TestBrain
 sizedArbTestBrain n = do
-  ~(cSize:nObjects:[]) <- GT.divvy n 2
+  ~[cSize, nObjects] <- GT.divvy n 2
   let nConditions = 4
   let pSize = n + 1
   arbTestBrain cSize nObjects nConditions pSize
@@ -129,7 +129,7 @@ instance Show ChoosingTestData where
 
 sizedArbChoosingTestData :: Int -> Gen ChoosingTestData
 sizedArbChoosingTestData n = do
-  ~(cSize:nObjects:[]) <- GT.divvy (min 10 n) 2
+  ~[cSize, nObjects] <- GT.divvy (min 10 n) 2
   -- nConditions <- choose (0, n - cSize - nObjects)
   let nConditions = 4
   let pSize = n + 1
@@ -165,7 +165,7 @@ instance Show ReflectionTestData where
 
 sizedArbReflectionTestData :: Int -> Gen ReflectionTestData
 sizedArbReflectionTestData n = do
-  ~(cSize:nObjects:[]) <- GT.divvy (min 10 n) 2
+  ~[cSize, nObjects] <- GT.divvy (min 10 n) 2
   let nConditions = 4
   c <- vectorOf nConditions arbitrary
   ps <- vectorOf nObjects arbitrary
@@ -224,7 +224,7 @@ data ImprintTestData
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
 sizedArbImprintTestData n = do
-  ~(cSize:nO:[]) <- GT.divvy (min 10 n) 2
+  ~[cSize, nO] <- GT.divvy (min 10 n) 2
   let nObjects = min 3 nO
   let nConditions = 4
   let pSize = n + 1

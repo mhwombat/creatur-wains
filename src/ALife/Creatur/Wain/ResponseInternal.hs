@@ -69,9 +69,9 @@ labelSimilarity xs ys =
 
 -- | Internal method
 labelSimilarity' :: [Label] -> [Label] -> [Bool]
-labelSimilarity' (x:xs) (y:ys) = (x == y) : (labelSimilarity' xs ys)
-labelSimilarity' (_:xs) []     = False : (labelSimilarity' xs [])
-labelSimilarity' [] (_:ys)     = False : (labelSimilarity' [] ys)
+labelSimilarity' (x:xs) (y:ys) = (x == y) : labelSimilarity' xs ys
+labelSimilarity' (_:xs) []     = False : labelSimilarity' xs []
+labelSimilarity' [] (_:ys)     = False : labelSimilarity' [] ys
 labelSimilarity' [] []         = []
 
 -- | Updates the outcomes in the second response to match the first.

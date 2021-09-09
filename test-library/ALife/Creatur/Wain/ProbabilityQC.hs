@@ -10,8 +10,6 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass    #-}
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.ProbabilityQC
@@ -29,7 +27,7 @@ import           Test.Framework                         (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2   (testProperty)
 import           Test.QuickCheck
 
-data PermuteTestData = PermuteTestData [[Char]] deriving (Eq, Show)
+newtype PermuteTestData = PermuteTestData [[Char]] deriving (Eq, Show)
 
 sizedArbString :: Int -> Gen String
 sizedArbString n = do
@@ -59,7 +57,7 @@ prop_normalise_works :: [Double] -> Property
 prop_normalise_works ps = not (null ps) ==>
   N.within 10000 (sum . normalise $ ps) 1
 
-data TestSignatures = TestSignatures [[(Label, Difference)]]
+newtype TestSignatures = TestSignatures [[(Label, Difference)]]
   deriving (Eq, Show)
 
 sizedArbTestSignatures :: Int -> Gen TestSignatures

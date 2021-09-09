@@ -43,9 +43,7 @@ import           ALife.Creatur.Wain.Pretty
 import           ALife.Creatur.Wain.Raw
     (Raw, raw)
 import           Data.List
-    (groupBy, sortBy)
-import           Data.Ord
-    (comparing)
+    (groupBy, sortOn)
 import           Data.Serialize
     (Serialize)
 import           GHC.Generics
@@ -150,7 +148,7 @@ summarise xss = [maxima,minima,averages,stdDevs,sums]
         sums     = compile "total " sum yss
 
 groupByName :: [Statistic] -> [(String, [Double])]
-groupByName = map f . groupBy g . sortBy (comparing name)
+groupByName = map f . groupBy g . sortOn name
   where f xs = (name $ head xs, map value xs)
         g a b = name a == name b
 

@@ -10,8 +10,6 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass    #-}
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.SimpleResponseTweakerQC
@@ -43,7 +41,7 @@ instance Statistical (ResponseTweaker TestAction) where
 --         ws = toDoubles w
 
 prop_responseDiff_can_be_0 :: TestResponse -> Property
-prop_responseDiff_can_be_0 r = property $ abs (x - 0) < 1e-8
+prop_responseDiff_can_be_0 r = property $ abs x < 1e-8
   where x = responseDiff r r
 
 prop_responseDiff_in_range

@@ -10,7 +10,6 @@
 -- Generate reports about objects.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DefaultSignatures #-}
 module ALife.Creatur.Wain.Report
   (
     Report(..)

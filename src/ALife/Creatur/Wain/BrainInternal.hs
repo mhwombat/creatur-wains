@@ -44,7 +44,7 @@ import           Control.DeepSeq                  (NFData)
 import           Control.Lens
 import           Data.Function                    (on)
 import           Data.List
-    (foldl', groupBy, intercalate, sortBy)
+    (foldl', groupBy, sortBy)
 import qualified Data.Map.Strict                  as M
 import           Data.Ord                         (comparing)
 import           Data.Serialize                   (Serialize)
@@ -130,23 +130,22 @@ instance (Eq a, Ord a,
     | length rds < 4 = error "rds not long enough"
     | otherwise =
       map (prefix "classifier ") (stats c)
-      ++ (stats m)
-      ++ map (prefix "predictor ") (stats p)
-      ++ [ iStat "DQ" $ decisionQuality b,
-           dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
-           dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
-           dStat "boredomWeight" . uiToDouble $ hw `weightAt` 2,
-           dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 3,
-           dStat "energyImprint" . pm1ToDouble $ ios !! 0,
-           dStat "passionImprint" . pm1ToDouble $ ios !! 1,
-           dStat "boredomImprint" . pm1ToDouble $ ios !! 2,
-           dStat "litterSizeImprint" . pm1ToDouble $ ios !! 3,
-           dStat "energyReinforcement" . pm1ToDouble $ rds !! 0,
-           dStat "passionReinforcement" . pm1ToDouble $ rds !! 1,
-           dStat "boredomReinforcement" . pm1ToDouble $ rds !! 2,
-           dStat "litterSizeReinforcement" . pm1ToDouble $ rds !! 3,
-           iStat "tiebreaker" t,
-           iStat "strictness" s]
+        ++ stats m
+        ++ map (prefix "predictor ") (stats p)
+        ++ [ iStat "DQ" $ decisionQuality b,
+             dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
+             dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
+             dStat "boredomWeight" . uiToDouble $ hw `weightAt` 2,
+             dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 3,
+             dStat "energyImprint" . pm1ToDouble $ head ios,
+             dStat "passionImprint" . pm1ToDouble $ ios !! 1,
+             dStat "boredomImprint" . pm1ToDouble $ ios !! 2,
+             dStat "litterSizeImprint" . pm1ToDouble $ ios !! 3,
+             dStat "energyReinforcement" . pm1ToDouble $ head rds,
+             dStat "passionReinforcement" . pm1ToDouble $ rds !! 1,
+             dStat "boredomReinforcement" . pm1ToDouble $ rds !! 2,
+             dStat "litterSizeReinforcement" . pm1ToDouble $ rds !! 3,
+             iStat "tiebreaker" t, iStat "strictness" s ]
 
 instance (Show p, Show a, Show ct, Show pt, Show m, Eq a)
       => Show (Brain p ct pt m a) where
@@ -172,8 +171,8 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
       ios <- get
       rds <- get
       -- Use the safe constructor!
-      case (makeBrain <$> c <*> m <*> p <*> hw <*> t <*> s <*> ios
-             <*> rds) of
+      case makeBrain <$> c <*> m <*> p <*> hw <*> t <*> s <*> ios
+             <*> rds of
         Left msgs -> return $ Left msgs
         Right b   -> return b
 
@@ -218,7 +217,7 @@ type ActionReport a = [(a, [PM1Double], UIDouble)]
 prettyActionReport :: Pretty a => ActionReport a -> [String]
 prettyActionReport = map f
   where f (a, os, h) = "predicted outcomes of " ++ pretty a ++ " are "
-          ++ intercalate " " (map (printf "%.3f" . pm1ToDouble) os)
+          ++ unwords (map (printf "%.3f" . pm1ToDouble) os)
           ++ " with resulting happiness "
           ++ printf "%.3f" (uiToDouble h)
 
@@ -321,12 +320,12 @@ errorIfNull desc xs = if null xs
 
 -- | Internal method
 onlyModelsIn :: Brain p ct pt m a -> [(Cl.Label, GSOM.Difference)] -> Bool
-onlyModelsIn b = and . map (GSOM.hasLabel (_classifier b) . fst)
+onlyModelsIn b = all (GSOM.hasLabel (_classifier b) . fst)
 
 -- | Internal method
 maximaBy :: Ord b => (a -> b) -> [a] -> [a]
 maximaBy _ [] = error "maximaBy: empty list"
-maximaBy f xs = map snd . head . reverse . groupBy ((==) `on` fst)
+maximaBy f xs = map snd . last . groupBy ((==) `on` fst)
                . sortBy (comparing fst) . map (\x -> (f x, x)) $ xs
 
 -- | Internal method
@@ -387,7 +386,7 @@ sumByAction' rs = (a, os)
 -- | Internal method
 sumTermByTerm :: Num a => [[a]] -> [a]
 sumTermByTerm [] = []
-sumTermByTerm (xs:[]) = xs
+sumTermByTerm [xs] = xs
 sumTermByTerm (xs:ys:zss) = sumTermByTerm (ws:zss)
   where ws = zipWith (+) xs ys
 
@@ -414,7 +413,7 @@ predictAll
   :: (Eq a, GSOM.Tweaker pt, Response a ~ GSOM.Pattern pt)
     => Brain p ct pt m a -> [(Response a, Probability)]
       -> PredictorReport a
-predictAll b rps = foldl' (predictOne b) [] rps
+predictAll b = foldl' (predictOne b) []
 
 -- | Internal method
 predictOne
@@ -423,7 +422,7 @@ predictOne
       -> PredictorReport a
         -> (Response a, Probability)
           -> PredictorReport a
-predictOne b xs (r, p) = (P.predict (_predictor b) r p):xs
+predictOne b xs (r, p) = P.predict (_predictor b) r p:xs
 
 -- | Detailed information about the wain's reflection on the outcome
 --   of an action.
@@ -517,5 +516,5 @@ instance (Pretty p, Pretty ct, Pretty pt, Pretty m, Pretty a)
                "imprint outcomes: " ++ pretty (_imprintOutcomes b),
                "reinforcement deltas: " ++ pretty (_reinforcementDeltas b),
                "action counts: " ++ pretty (M.elems $ _actionCounts b) ]
-             ++ (map ("classifier " ++) $ report (_classifier b))
-             ++ (map ("predictor " ++) $ report (_predictor b))
+             ++ map ("classifier " ++) (report (_classifier b))
+             ++ map ("predictor " ++) (report (_predictor b))

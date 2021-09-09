@@ -47,9 +47,9 @@ fetchObjects f = do
 
 fetchAllObjects :: DS.Serialize b => FilePath -> IO [b]
 fetchAllObjects f =
-  map (combine f) <$> listDirectory f
-    >>= filterM (liftM isRegularFile . getFileStatus)
-    >>= mapM fetchObject
+  (listDirectory f
+    >>= filterM (liftM isRegularFile . getFileStatus) . map (combine f))
+  >>= mapM fetchObject
 
 fetchObject :: DS.Serialize b => FilePath -> IO b
 fetchObject f = do
@@ -61,7 +61,7 @@ agentToCSV
   :: (Ord a, S.Statistical ct, S.Statistical pt, S.Statistical m,
      S.Statistical [(Label, p)], S.Statistical [(Label, Response a)])
     => Wain p ct pt m a -> IO ()
-agentToCSV a = mapM_ putStrLn $ map f ss
+agentToCSV a = mapM_ (putStrLn . f) ss
   where agentName = view name a
         ss = S.stats a
         f s = agentName ++ "," ++ S.name s ++ "," ++ show (S.value s)

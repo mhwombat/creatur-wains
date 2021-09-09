@@ -80,7 +80,7 @@ testWain = w'
               wDevotion wAgeOfMaturity wPassionDelta wBoredomDelta
         (w', _) = adjustEnergy 0.5 w
 
-tryOne :: TestWain -> (Int, TestPattern) -> IO (TestWain)
+tryOne :: TestWain -> (Int, TestPattern) -> IO TestWain
 tryOne w (n, p) = do
   putStrLn $ "----- Round " ++ show n ++ " -----"
   putStrLn $ "stats=" ++ show (stats w)

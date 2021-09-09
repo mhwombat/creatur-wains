@@ -20,7 +20,7 @@ module ALife.Creatur.Wain.ExamineAgent
 import           ALife.Creatur.Wain
 import           ALife.Creatur.Wain.Pretty
 import           ALife.Creatur.Wain.Report
-import           Control.Monad                   (filterM, liftM)
+import           Control.Monad                   (filterM)
 import qualified Data.ByteString                 as BS
 import qualified Data.Serialize                  as DS
 import           System.Directory                (listDirectory)
@@ -39,14 +39,15 @@ fetchObjects f = do
 
 fetchAllObjects :: DS.Serialize b => FilePath -> IO [b]
 fetchAllObjects f =
-  map (combine f) <$> listDirectory f
-    >>= filterM (liftM isRegularFile . getFileStatus)
-    >>= mapM fetchObject
+  (listDirectory f
+     >>=
+       filterM (fmap isRegularFile . getFileStatus) . map (combine f))
+  >>= mapM fetchObject
 
 fetchObject :: DS.Serialize b => FilePath -> IO b
 fetchObject f = do
   x <- BS.readFile f
-  case (DS.decode x) of
+  case DS.decode x of
     Right w -> return w
     Left s  -> error $ "Cannot read " ++ f ++ ". " ++ s
 

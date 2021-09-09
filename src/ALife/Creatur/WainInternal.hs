@@ -49,9 +49,8 @@ import           Control.DeepSeq                            (NFData)
 import           Control.Lens
 import           Control.Monad.Random                       (Rand, RandomGen)
 import           Data.List
-    (intercalate, partition, sortBy)
+    (intercalate, partition, sortOn)
 import qualified Data.Map.Strict                            as M
-import           Data.Ord                                   (comparing)
 import           Data.Serialize                             (Serialize)
 import           Data.Version                               (showVersion)
 import           Data.Word                                  (Word16, Word8)
@@ -62,6 +61,17 @@ import           Text.Printf                     (printf)
 -- | Returns the current version number of this library.
 packageVersion :: String
 packageVersion = "creatur-wains-" ++ showVersion version
+
+-- Anything that modifies a wain is an event.
+data Event p = IncAge
+             -- | Adjusts the energy of a wain.
+             --   NOTE: A wain's energy is capped to the range [0,1],
+             --   so the actual change in energy may be less than
+             --   the specified amount.
+             | EnergyAdjustment Double String
+             | BoredomAdjustment Double String
+             | ChooseAction [p]
+             deriving (Eq, Show, Read, Generic, NFData, Serialize)
 
 -- | A data mining agent that can learn, reproduce, and evolve.
 data Wain p ct pt m a = Wain
@@ -103,7 +113,9 @@ data Wain p ct pt m a = Wain
     -- | The number of children this wain has reared to maturity.
     _childrenWeanedLifetime :: Word16,
     -- | The wain's genes.
-    _genome                 :: ([Word8],[Word8])
+    _genome                 :: ([Word8],[Word8]),
+    -- | The events that occurred during the wain's life.
+    _biography              :: [Event p]
   } deriving (Eq, Generic, NFData)
 makeLenses ''Wain
 
@@ -133,7 +145,8 @@ buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
         _litter = [],
         _childrenBorneLifetime = 0,
         _childrenWeanedLifetime = 0,
-        _genome = g
+        _genome = g,
+        _biography  = []
       }
 
 -- | Constructs a wain with the specified parameters, with the
@@ -191,22 +204,21 @@ instance (Eq a, Ord a,
   stats w =
     iStat "age" (_age w)
       : stats (_brain w)
-      ++ dStat "devotion" (_devotion w)
-      : iStat "maturity" (_ageOfMaturity w)
-      : dStat "Δp" (_passionDelta w)
-      : dStat "Δb" (_boredomDelta w)
-      : dStat "energy" (uiToDouble e + uiToDouble ec)
-      : dStat "passion" (_passion w)
-      : dStat "boredom" (_boredom w)
-      : dStat "happiness" (happiness w)
-      : iStat "current litter size" (length . _litter $ w)
-      : iStat "children borne (lifetime)" (_childrenBorneLifetime w)
-      : iStat "children reared (lifetime)" (_childrenWeanedLifetime w)
-      : dStat "adult energy" (uiToDouble e)
-      : dStat "child energy" (uiToDouble ec)
-      : iStat "genome length" ( (length . fst . _genome $ w)
-                                  + (length . snd . _genome $ w) )
-      : []
+      ++ [dStat "devotion" (_devotion w),
+          iStat "maturity" (_ageOfMaturity w),
+          dStat "Δp" (_passionDelta w),
+          dStat "Δb" (_boredomDelta w),
+          dStat "energy" (uiToDouble e + uiToDouble ec),
+          dStat "passion" (_passion w),
+          dStat "boredom" (_boredom w),
+          dStat "happiness" (happiness w),
+          iStat "current litter size" (length . _litter $ w),
+          iStat "children borne (lifetime)" (_childrenBorneLifetime w),
+          iStat "children reared (lifetime)" (_childrenWeanedLifetime w),
+          dStat "adult energy" (uiToDouble e),
+          dStat "child energy" (uiToDouble ec),
+          iStat "genome length" ( (length . fst . _genome $ w)
+                                  + (length . snd . _genome $ w) )]
     where e = _energy w
           ec = sum . map (view energy) $ _litter w
 
@@ -274,6 +286,17 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
     withProbability 0.001 mutatePairedLists >>=
     randomOneOfPair
   build n = runDiploidReader (buildWainFromGenome False n)
+
+
+recordEvent :: Event p -> Wain p ct pt m a -> Wain p ct pt m a
+recordEvent e = over biography (e:)
+
+runEvent :: Event p -> Wain p ct pt m a -> Wain p ct pt m a
+runEvent e = over biography (e:) . runEvent' e
+
+runEvent' :: Event p -> Wain p ct pt m a -> Wain p ct pt m a
+runEvent' _ _ = undefined
+
 
 -- | Returns the total energy of all children in the litter.
 childEnergy :: Wain p ct pt m a -> Double
@@ -349,7 +372,7 @@ chooseAction ps w = (dReport', r, set litter litter' w')
   where (dReport, b')
           = B.chooseAction (_brain w) ps (condition w)
         r = B.bdrRecommendedResponse dReport
-        w' = set brain b' w
+        w' = recordEvent (ChooseAction ps) . set brain b' $ w
         ls = R._labels r
         lps = zip ls ps
         iResults = map (imprintStimulus lps) (_litter w')
@@ -365,8 +388,6 @@ chooseAction ps w = (dReport', r, set litter litter' w')
                       wdrImprintReports = map fst iResults
                     }
 
--- | Adjusts the energy of a wain.
---   NOTE: A wain's energy is capped to the range [0,1].
 adjustEnergy
   :: Double -> Wain p ct pt m a -> (Wain p ct pt m a, Double)
 adjustEnergy delta w = (wAfter, delta')
@@ -611,7 +632,7 @@ prettyBrainSummary w
   = (agentId w ++ "'s brain summary") : map f rs
   where ps = M.toList . GSOM.modelMap
                . view (brain . B.classifier) $ w
-        rs = sortBy (comparing (R._labels . snd)) . M.toList
+        rs = sortOn (R._labels . snd) . M.toList
                . GSOM.modelMap . view (brain . B.predictor) $ w
         f (l, r) = show l ++ ": "
                      ++ intercalate "," (map g (R._labels r)) ++ " "

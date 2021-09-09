@@ -10,8 +10,6 @@
 -- A classifier based on a Kohonen Self-organising Map (SOM).
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass      #-}
-{-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}

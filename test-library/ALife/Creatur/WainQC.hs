@@ -55,7 +55,7 @@ equiv a1 a2 =
   && _passionDelta a1 == _passionDelta a2
 --  && genome a1 == genome a2
 
-strawMan :: Gen (TestWain)
+strawMan :: Gen TestWain
 strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- appearance
                 <*> arbitrary     -- brain
@@ -71,10 +71,11 @@ strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- children borne during lifetime
                 <*> arbitrary     -- children weanded during lifetime
                 <*> pure ([],[])  -- genome
+                <*> pure []       -- biography
 
 -- | Can't just generate an arbitrary genome and build an agent from
 --   it, because random genomes tend to be invalid.
-arbWain :: Gen (TestWain)
+arbWain :: Gen TestWain
 arbWain = do
   n <- arbitrary
   a1 <- strawMan
@@ -86,7 +87,7 @@ arbWain = do
     (Left s)   -> error . show $ s
     (Right r') -> return r'
 
-sizedArbWain :: Int -> Gen (TestWain)
+sizedArbWain :: Int -> Gen TestWain
 sizedArbWain n = do
   w <- arbWain
   if n > 1
@@ -96,7 +97,7 @@ sizedArbWain n = do
       return $ set litter cs w
     else return w
 
-instance Arbitrary (TestWain) where
+instance Arbitrary TestWain where
   arbitrary = sized sizedArbWain
 
 prop_adjustEnergy_balances_energy

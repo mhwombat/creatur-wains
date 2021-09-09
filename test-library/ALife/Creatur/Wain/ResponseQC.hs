@@ -101,7 +101,7 @@ prop_labelSimilarity_can_be_1 xs = property $ abs (x - 1) < 1e-8
 
 prop_labelSimilarity_can_be_0 :: [Label] -> Property
 prop_labelSimilarity_can_be_0 xs
-  = (not . null $ xs) ==> abs (x - 0) < 1e-8
+  = (not . null $ xs) ==> abs x < 1e-8
   where x = labelSimilarity xs ys
         ys = map (+255) xs
 
