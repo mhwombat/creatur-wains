@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               creatur-wains
-version:            9.8.0
+version:            9.8.1
 synopsis:           Artificial agent specialised for for pattern discovery.
 description:
   Please see the README on GitHub at <https://github.com/mhwombat/creatur-wains#readme>

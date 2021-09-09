@@ -1,5 +1,7 @@
 # Changelog for creatur-wains
 
+9.8.1 De-linting.
+
 9.8.0 Moved some modules to creatur-genes package.
 
 9.7   Simplified nix build config.
