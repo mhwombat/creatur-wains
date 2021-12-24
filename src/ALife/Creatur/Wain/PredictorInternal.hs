@@ -17,23 +17,24 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.PredictorInternal where
 
-import qualified ALife.Creatur.Wain.Classifier   as Cl
-import qualified ALife.Creatur.Wain.GeneticSOM   as S
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne
-    (PM1Double, adjustPM1Vector, pm1ToDouble)
-import           ALife.Creatur.Wain.Pretty       (Pretty (..))
-import           ALife.Creatur.Wain.Probability
-    (Probability, prettyProbability)
-import           ALife.Creatur.Wain.Response
-    (Response (..), addToOutcomes, labels, outcomes)
-import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble)
-import           Control.DeepSeq                 (NFData)
+import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
+import qualified ALife.Creatur.Wain.Classifier           as Cl
+import qualified ALife.Creatur.Wain.GeneticSOM           as S
+import           ALife.Creatur.Wain.Pretty               (Pretty (..))
+import           ALife.Creatur.Wain.Probability          (Probability,
+                                                          prettyProbability)
+import           ALife.Creatur.Wain.Response             (Response (..),
+                                                          addToOutcomes, labels,
+                                                          outcomes)
+import           Control.DeepSeq                         (NFData)
 import           Control.Lens
-import           Data.List                       (nub, (\\))
-import qualified Data.Map.Strict                 as M
-import           Data.Word                       (Word64)
-import           GHC.Generics                    (Generic)
-import           Text.Printf                     (printf)
+import qualified Data.Datamining.Pattern.List            as L
+import           Data.List                               (nub, (\\))
+import qualified Data.Map.Strict                         as M
+import           Data.Word                               (Word64)
+import           GHC.Generics                            (Generic)
+import           Text.Printf                             (printf)
 
 -- | A predictor predicts the outcome of a response to a scenario.
 type Predictor a t = S.GeneticSOM (Response a) t
@@ -70,7 +71,7 @@ data PredictionDetail a
         --   matches the proposed response
         pAdjustment  :: Probability,
         -- | The unadjusted outcomes from the model
-        pRawOutcomes :: [PM1Double],
+        pRawOutcomes :: [PM1.PM1Double],
         -- | Even more details about the prediction
         pDetails     :: M.Map S.Label (Response a, S.Difference)
       } deriving (Generic, Show, NFData)
@@ -80,7 +81,7 @@ instance (Pretty a) => Pretty (PredictionDetail a) where
                ++ " prob: " ++ prettyProbability (pProb r)
                ++ bmuMsg
                ++ " raw outcomes: "
-               ++ unwords (map (printf "%.3f" . pm1ToDouble) os)
+               ++ unwords (map (printf "%.3f" . PM1.wide) os)
     where os = pRawOutcomes r
           bmuMsg = case pBmu r of
                      Just bmu -> " based on model " ++ show bmu
@@ -128,7 +129,7 @@ predict p r prob = PredictionDetail
         -- the model.
         zeroes = map (const 0) rawOutcomes
         adjustedOutcomes
-          = adjustPM1Vector rawOutcomes adjustment zeroes
+          = L.makeSimilar PM1.makeSimilar rawOutcomes adjustment zeroes
         r' = set outcomes adjustedOutcomes r
 
 -- | Information about how a predictor learned.
@@ -136,7 +137,7 @@ data LearningReport a
   = LearningReport
       {
         -- | The current learning rate for the predictor
-        lLearningRate :: UIDouble,
+        lLearningRate :: UI.UIDouble,
         -- | Is the pattern new (imprinted) or old (reinforced)
         lNew          :: Bool,
         -- | The response that was learned
@@ -182,7 +183,7 @@ prettyLearningReport r =
 --   outcomes + @deltas@.
 imprintOrReinforce
   :: (Eq a)
-    => Predictor a t -> [S.Label] -> a -> [PM1Double] -> [PM1Double]
+    => Predictor a t -> [S.Label] -> a -> [PM1.PM1Double] -> [PM1.PM1Double]
       -> (LearningReport a, Predictor a t)
 imprintOrReinforce d ls a os deltas =
   if lNew reportI

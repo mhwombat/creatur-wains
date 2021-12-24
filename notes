@@ -1,3 +1,17 @@
+nix-shell
+ghci
+:l test-library/ALife/Creatur/Wain/ResponseQC.hs
+g = Response {_labels = [98,118,59,46], _action = Skip, _outcomes = [0.1333898519407018,-0.40157694054231263,-0.8893793314748806,-0.1469137840758581,-6.0108254608488565e-2]}
+import qualified ALife.Creatur.Genetics.BRGCWord8        as W8
+x = W8.write g
+:set -XScopedTypeVariables
+import           Control.Monad.State.Lazy                (runState)
+(result :: Either [String] TestResponse, (_, i, _)) = runState W8.get (x, 0, [])
+Right g' = result
+
+------
+
+
 cabal repl creatur-wains-test
 
 :l ALife.Creatur.Wain.GeneticSOMQC

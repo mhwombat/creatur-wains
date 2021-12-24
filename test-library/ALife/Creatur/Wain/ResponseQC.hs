@@ -21,31 +21,20 @@ module ALife.Creatur.Wain.ResponseQC
     arbTestResponse
   ) where
 
-import ALife.Creatur.Genetics.BRGCWord8
-    (Genetic)
-import ALife.Creatur.Genetics.Diploid
-    (Diploid)
-import ALife.Creatur.Wain.GeneticSOM
-    (Label)
-import ALife.Creatur.Wain.Pretty
-    (Pretty)
-import ALife.Creatur.Wain.ResponseInternal
-import ALife.Creatur.Wain.Statistics
-    (Statistical (..))
-import ALife.Creatur.Gene.Test
-import Control.DeepSeq
-    (NFData)
-import Data.Serialize
-    (Serialize)
-import GHC.Generics
-    (Generic)
-import System.Random
-    (Random, random, randomR)
-import Test.Framework
-    (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2
-    (testProperty)
-import Test.QuickCheck
+import           ALife.Creatur.Gene.Test
+import           ALife.Creatur.Genetics.BRGCWord8     (Genetic)
+import           ALife.Creatur.Genetics.Diploid       (Diploid)
+import           ALife.Creatur.Wain.GeneticSOM        (Label)
+import           ALife.Creatur.Wain.Pretty            (Pretty)
+import           ALife.Creatur.Wain.ResponseInternal
+import           ALife.Creatur.Wain.Statistics        (Statistical (..))
+import           Control.DeepSeq                      (NFData)
+import           Data.Serialize                       (Serialize)
+import           GHC.Generics                         (Generic)
+import           System.Random                        (Random, random, randomR)
+import           Test.Framework                       (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2 (testProperty)
+import           Test.QuickCheck
 
 data TestAction = Walk | Run | Jump | Skip | Crawl
   deriving ( Show, Pretty, Read, Eq, Ord, Generic, Enum, Bounded,
@@ -83,20 +72,8 @@ instance Random TestAction where
     where (n, g') = randomR (fromEnum a, fromEnum b) g
   random = randomR (minBound,maxBound)
 
--- newtype TestOutcome = TestOutcome Double deriving (Show, Eq)
-
--- instance Random TestOutcome where
---   randomR (TestOutcome a, TestOutcome b) g = (TestOutcome x, g')
---     where (x, g') = randomR (a', b') g
---           (a', b') = intersection (-1,1) (a,b)
---   random g = (TestOutcome x, g')
---     where (x, g') = randomR (-1,1) g
-
--- instance Arbitrary TestOutcome where
---   arbitrary = TestOutcome <$> choose (-1,1)
-
-prop_labelSimilarity_can_be_1 :: [Label] -> Property
-prop_labelSimilarity_can_be_1 xs = property $ abs (x - 1) < 1e-8
+prop_labelSimilarity_can_be_1 :: [Label] -> Bool
+prop_labelSimilarity_can_be_1 xs = abs (x - 1) < 1e-8
   where x = labelSimilarity xs xs
 
 prop_labelSimilarity_can_be_0 :: [Label] -> Property
@@ -105,58 +82,30 @@ prop_labelSimilarity_can_be_0 xs
   where x = labelSimilarity xs ys
         ys = map (+255) xs
 
--- -- prop_responseDiff_can_be_1 :: Weights -> Property
--- -- prop_responseDiff_can_be_1 w = not (null ws) ==> abs (x - 1) < 1e-8
--- --   where x = responseDiff w (Response [0] [0] (Condition 0 0 0))
--- --               (Response [1] [1] (Condition 1 1 1))
--- --         ws = toDoubles w
-
--- prop_responseDiff_can_be_0 :: TestResponse -> Property
--- prop_responseDiff_can_be_0 r = property $ abs (x - 0) < 1e-8
---   where x = responseDiff r r
-
--- prop_responseDiff_in_range
---   :: TestResponse -> TestResponse -> Property
--- prop_responseDiff_in_range a b = property $ 0 <= x && x <= 1
---   where x = responseDiff a b
-
--- prop_makeResponseSimilar_works
---   :: TestResponse -> UIDouble -> TestResponse -> Property
--- prop_makeResponseSimilar_works
---   = prop_makeSimilar_works responseDiff makeResponseSimilar
-
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ResponseQC"
   [
     testProperty "prop_serialize_round_trippable - TestResponse"
-      (prop_serialize_round_trippable :: TestResponse -> Property),
+      (prop_serialize_round_trippable :: TestResponse -> Bool),
     testProperty "prop_genetic_round_trippable - TestResponse"
       (prop_genetic_round_trippable (==)
-       :: TestResponse -> Property),
+       :: TestResponse -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - TestResponse"
     --   (prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> TestResponse -> Property),
+    --    :: Int -> [Word8] -> TestResponse -> Bool),
     testProperty "prop_diploid_identity - TestResponse"
-      (prop_diploid_identity (==) :: TestResponse -> Property),
+      (prop_diploid_identity (==) :: TestResponse -> Bool),
     testProperty "prop_show_read_round_trippable - TestResponse"
-      (prop_show_read_round_trippable (==) :: TestResponse -> Property),
+      (prop_show_read_round_trippable (==) :: TestResponse -> Bool),
     testProperty "prop_diploid_expressable - TestResponse"
       (prop_diploid_expressable
-       :: TestResponse -> TestResponse -> Property),
+       :: TestResponse -> TestResponse -> Bool),
     testProperty "prop_diploid_readable - TestResponse"
-      (prop_diploid_readable :: TestResponse -> TestResponse -> Property),
+      (prop_diploid_readable :: TestResponse -> TestResponse -> Bool),
 
     testProperty "prop_labelSimilarity_can_be_1"
       prop_labelSimilarity_can_be_1,
     testProperty "prop_labelSimilarity_can_be_0"
       prop_labelSimilarity_can_be_0
-    -- -- testProperty "prop_responseDiff_can_be_1"
-    -- --   prop_responseDiff_can_be_1,
-    -- testProperty "prop_responseDiff_can_be_0"
-    --   prop_responseDiff_can_be_0,
-    -- testProperty "prop_responseDiff_in_range"
-    --   prop_responseDiff_in_range,
-    -- testProperty "prop_makeResponseSimilar_works"
-    --   prop_makeResponseSimilar_works
   ]

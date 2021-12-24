@@ -17,14 +17,11 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.ProbabilityInternal where
 
-import           ALife.Creatur.Wain.GeneticSOM
-    (Difference, Label)
-import           ALife.Creatur.Gene.Numeric.UnitInterval
-    (UIDouble, doubleToUI, uiToDouble)
-import           Data.Word
-    (Word64)
-import           Text.Printf
-    (printf)
+import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, narrow,
+                                                          wide)
+import           ALife.Creatur.Wain.GeneticSOM           (Difference, Label)
+import           Data.Word                               (Word64)
+import           Text.Printf                             (printf)
 
 -- | Estimated probability that a set of labels is accurate.
 type Probability = UIDouble
@@ -37,7 +34,7 @@ hypothesise x = map jointProbability . permute . diffsToProbs x
 
 -- | Internal method.
 permute :: [[a]] -> [[a]]
-permute [xs]  = [ [y] | y <- xs ]
+permute [xs]     = [ [y] | y <- xs ]
 permute (xs:xss) = [ y:ys | y <- xs, ys <- permute xss]
 permute []       = []
 
@@ -72,18 +69,18 @@ diffsToProbs2 x lds = zip ls ps
 -- | Given a set of differences between an input pattern and a model,
 --   calculate the probability that the pattern should match each model.
 diffsToProbs1 :: Word64 -> [Difference] -> [Probability]
-diffsToProbs1 x ds = map doubleToUI . normalise . map uiToDouble $ ps
+diffsToProbs1 x ds = map narrow . normalise . map wide $ ps
   where ps = map (diffToProb x) ds'
-        ds' = map doubleToUI . normalise $ map uiToDouble ds
+        ds' = map narrow . normalise $ map wide ds
 
 -- | @'diffToProb' x d@ converts a difference metric @d@
 --   into an estimated probability that the classification is "sound".
 --   The parameter @x@ controls how quickly the probability falls as
 --   the difference increases.
 diffToProb :: Word64 -> UIDouble -> UIDouble
-diffToProb x d = doubleToUI $ 1 - exp(1 - 1/(1 - (1 - d')^x'))
+diffToProb x d = narrow $ 1 - exp(1 - 1/(1 - (1 - d')^x'))
   where x' = fromIntegral x :: Integer
-        d' = uiToDouble d
+        d' = wide d
 
 prettyProbability :: Probability -> String
-prettyProbability p = printf "%.3f" (uiToDouble p * 100) ++ "%"
+prettyProbability p = printf "%.3f" (wide p * 100) ++ "%"

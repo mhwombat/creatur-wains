@@ -17,27 +17,28 @@ module ALife.Creatur.WainQC
     test
   ) where
 
-import qualified ALife.Creatur.Gene.Test as GT
-import           ALife.Creatur.Genetics.BRGCWord8
-    (runDiploidReader, write)
+import           ALife.Creatur.Gene.Numeric.UnitInterval  (narrow)
+import qualified ALife.Creatur.Gene.Test                  as GT
+import           ALife.Creatur.Genetics.BRGCWord8         (runDiploidReader,
+                                                           write)
 import qualified ALife.Creatur.Wain.Brain                 as B
 import qualified ALife.Creatur.Wain.BrainQC               as BQC
 import qualified ALife.Creatur.Wain.Classifier            as Cl
-import           ALife.Creatur.Wain.ClassifierQC
-    (TestClassifierTweaker)
+import           ALife.Creatur.Wain.ClassifierQC          (TestClassifierTweaker)
 import           ALife.Creatur.Wain.ResponseInternal      (labels)
-import           ALife.Creatur.Wain.ResponseQC
-    (TestAction, TestResponse)
+import           ALife.Creatur.Wain.ResponseQC            (TestAction,
+                                                           TestResponse)
 import           ALife.Creatur.Wain.SimpleMuser           (SimpleMuser)
 import           ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker (..))
-import           ALife.Creatur.Gene.Numeric.UnitInterval          (doubleToUI)
 import           ALife.Creatur.WainInternal
 import           Control.DeepSeq                          (deepseq)
 import           Control.Lens
 import           Test.Framework                           (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2     (testProperty)
-import           Test.QuickCheck
-    (Arbitrary, Gen, Property, arbitrary, choose, property, sized, vectorOf)
+import           Test.QuickCheck                          (Arbitrary, Gen,
+                                                           Property, arbitrary,
+                                                           choose, sized,
+                                                           vectorOf)
 
 type TestWain = Wain GT.TestPattern TestClassifierTweaker
                   (ResponseTweaker TestAction) (SimpleMuser TestAction)
@@ -101,9 +102,9 @@ instance Arbitrary TestWain where
   arbitrary = sized sizedArbWain
 
 prop_adjustEnergy_balances_energy
-  :: Double -> TestWain -> Property
+  :: Double -> TestWain -> Bool
 prop_adjustEnergy_balances_energy e w
-  = property $ _energy w' == _energy w + doubleToUI used
+  = _energy w' == _energy w + narrow used
   where (w', used) = adjustEnergy e w
 
 data ChoosingTestData
@@ -124,9 +125,9 @@ instance Arbitrary ChoosingTestData where
   arbitrary = sized sizedArbChoosingTestData
 
 prop_chooseAction_never_causes_error
-  :: ChoosingTestData -> Property
+  :: ChoosingTestData -> Bool
 prop_chooseAction_never_causes_error (ChoosingTestData w ps)
-  = property $ deepseq x True
+  = deepseq x True
   where x = chooseAction ps w
 
 data ReflectionTestData
@@ -156,9 +157,9 @@ instance Arbitrary ReflectionTestData where
   arbitrary = sized sizedArbReflectionTestData
 
 prop_reflect_never_causes_error
-  :: ReflectionTestData -> Property
+  :: ReflectionTestData -> Bool
 prop_reflect_never_causes_error (ReflectionTestData _ r wBefore wAfter)
-  = property $ deepseq x True
+  = deepseq x True
   where x = reflect r wBefore wAfter
 
 data ImprintTestData
@@ -178,74 +179,74 @@ instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
 
 prop_imprintResponse_never_causes_error
-  :: ImprintTestData -> Property
+  :: ImprintTestData -> Bool
 prop_imprintResponse_never_causes_error (ImprintTestData w _ ls a _)
-  = property $ deepseq x True
+  = deepseq x True
   where x = imprintResponse ls a w
 
 prop_imprintResponse_twice_never_causes_error
-  :: ImprintTestData -> Property
+  :: ImprintTestData -> Bool
 prop_imprintResponse_twice_never_causes_error (ImprintTestData w _ ls a _)
-  = property $ deepseq x True
+  = deepseq x True
   where (_, w') = imprintResponse ls a w
         x = imprintResponse ls a w'
 
 -- prop_prettyClassifierModels_never_causes_error
---   :: ChoosingTestData -> Property
+--   :: ChoosingTestData -> Bool
 -- prop_prettyClassifierModels_never_causes_error (ChoosingTestData w ps)
---   = property $ deepseq x True
+--   = deepseq x True
 --   where (_, _, w') = chooseAction ps w
 --         x = prettyClassifierModels w'
 
 -- prop_prettyPredictorModels_never_causes_error
---   :: ChoosingTestData -> Property
+--   :: ChoosingTestData -> Bool
 -- prop_prettyPredictorModels_never_causes_error (ChoosingTestData w ps)
---   = property $ deepseq x True
+--   = deepseq x True
 --   where (_, _, w') = chooseAction ps w
 --         x = prettyPredictorModels w'
 
 -- prop_prettyClassificationReport_never_causes_error
---   :: ChoosingTestData -> Property
+--   :: ChoosingTestData -> Bool
 -- prop_prettyClassificationReport_never_causes_error
 --   (ChoosingTestData w ps)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, _, w') = chooseAction ps w
 --         x' = prettyClassificationReport w' x
 
 -- prop_prettyScenarioReport_never_causes_error
---   :: ChoosingTestData -> Property
+--   :: ChoosingTestData -> Bool
 -- prop_prettyScenarioReport_never_causes_error (ChoosingTestData w ps)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, _, w') = chooseAction ps w
 --         x' = prettyScenarioReport w' x
 
 -- prop_prettyPredictionReport_never_causes_error
---   :: ChoosingTestData -> Property
+--   :: ChoosingTestData -> Bool
 -- prop_prettyPredictionReport_never_causes_error (ChoosingTestData w ps)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, _, w') = chooseAction ps w
 --         x' = prettyPredictionReport w' x
 
 -- prop_prettyActionReport_never_causes_error
---   :: ChoosingTestData -> Property
+--   :: ChoosingTestData -> Bool
 -- prop_prettyActionReport_never_causes_error (ChoosingTestData w ps)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, _, w') = chooseAction ps w
 --         x' = prettyActionReport w' x
 
 -- prop_prettyReflectionReport_never_causes_error
---   :: ReflectionTestData -> Property
+--   :: ReflectionTestData -> Bool
 -- prop_prettyReflectionReport_never_causes_error
 --   (ReflectionTestData ps r wBefore wAfter)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, w') = reflect ps r wBefore wAfter
 --         x' = prettyReflectionReport w' x
 
 -- prop_prettyImprintReport_never_causes_error
---   :: ImprintTestData -> Property
+--   :: ImprintTestData -> Bool
 -- prop_prettyImprintReport_never_causes_error
 --   (ImprintTestData w ps a _)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, w') = imprint ps a w
 --         x' = prettyImprintReport w' x
 
@@ -253,16 +254,16 @@ test :: Test
 test = testGroup "ALife.Creatur.WainQC"
   [
     testProperty "prop_serialize_round_trippable - Wain"
-      (GT.prop_serialize_round_trippable :: TestWain -> Property),
+      (GT.prop_serialize_round_trippable :: TestWain -> Bool),
     testProperty "prop_genetic_round_trippable - Wain"
-      (GT.prop_genetic_round_trippable equiv :: TestWain -> Property),
+      (GT.prop_genetic_round_trippable equiv :: TestWain -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - Wain"
     --   (GT.prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> TestWain -> Property),
+    --    :: Int -> [Word8] -> TestWain -> Bool),
     testProperty "prop_diploid_identity - Wain"
-      (GT.prop_diploid_identity equiv :: TestWain -> Property),
+      (GT.prop_diploid_identity equiv :: TestWain -> Bool),
     -- testProperty "prop_show_read_round_trippable - Wain"
-    --   (GT.prop_show_read_round_trippable (==) :: TestWain -> Property),
+    --   (GT.prop_show_read_round_trippable (==) :: TestWain -> Bool),
 
     testProperty "prop_adjustEnergy_balances_energy"
       prop_adjustEnergy_balances_energy,

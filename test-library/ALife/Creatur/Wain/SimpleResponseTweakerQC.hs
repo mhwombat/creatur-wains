@@ -17,18 +17,14 @@ module ALife.Creatur.Wain.SimpleResponseTweakerQC
     test
   ) where
 
-import qualified ALife.Creatur.Gene.Test as GT
-import           ALife.Creatur.Wain.ResponseQC
-    (TestAction, TestResponse)
+import           ALife.Creatur.Gene.Numeric.UnitInterval  (UIDouble)
+import qualified ALife.Creatur.Gene.Test                  as GT
+import           ALife.Creatur.Wain.ResponseQC            (TestAction,
+                                                           TestResponse)
 import           ALife.Creatur.Wain.SimpleResponseTweaker
-import           ALife.Creatur.Wain.Statistics
-    (Statistical (..))
-import           ALife.Creatur.Gene.Numeric.UnitInterval
-    (UIDouble)
-import           Test.Framework
-    (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2
-    (testProperty)
+import           ALife.Creatur.Wain.Statistics            (Statistical (..))
+import           Test.Framework                           (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2     (testProperty)
 import           Test.QuickCheck
 
 instance Statistical (ResponseTweaker TestAction) where
@@ -40,17 +36,17 @@ instance Statistical (ResponseTweaker TestAction) where
 --               (Response [1] [1] (Condition 1 1 1))
 --         ws = toDoubles w
 
-prop_responseDiff_can_be_0 :: TestResponse -> Property
-prop_responseDiff_can_be_0 r = property $ abs x < 1e-8
+prop_responseDiff_can_be_0 :: TestResponse -> Bool
+prop_responseDiff_can_be_0 r = abs x < 1e-8
   where x = responseDiff r r
 
 prop_responseDiff_in_range
-  :: TestResponse -> TestResponse -> Property
-prop_responseDiff_in_range a b = property $ 0 <= x && x <= 1
+  :: TestResponse -> TestResponse -> Bool
+prop_responseDiff_in_range a b = 0 <= x && x <= 1
   where x = responseDiff a b
 
 prop_makeResponseSimilar_works
-  :: TestResponse -> UIDouble -> TestResponse -> Property
+  :: TestResponse -> UIDouble -> TestResponse -> Bool
 prop_makeResponseSimilar_works
   = GT.prop_makeSimilar_works responseDiff makeResponseSimilar
 
@@ -60,27 +56,27 @@ test = testGroup "ALife.Creatur.Wain.SimpleResponseTweakerQC"
   [
     -- testProperty "prop_serialize_round_trippable - ResponseTweaker"
     --   (prop_serialize_round_trippable
-    --    :: ResponseTweaker TestAction -> Property),
+    --    :: ResponseTweaker TestAction -> Bool),
     -- testProperty "prop_genetic_round_trippable - ResponseTweaker"
     --   (prop_genetic_round_trippable (==)
-    --    :: ResponseTweaker TestAction -> Property),
+    --    :: ResponseTweaker TestAction -> Bool),
     -- -- testProperty "prop_genetic_round_trippable2 - ResponseTweaker"
     -- --   (prop_genetic_round_trippable2
-    -- --    :: Int -> [Word8] -> ResponseTweaker TestAction -> Property),
+    -- --    :: Int -> [Word8] -> ResponseTweaker TestAction -> Bool),
     -- testProperty "prop_diploid_identity - ResponseTweaker"
     --   (prop_diploid_identity (==)
-    --    :: ResponseTweaker TestAction -> Property),
+    --    :: ResponseTweaker TestAction -> Bool),
     -- testProperty "prop_show_read_round_trippable - ResponseTweaker"
     --   (prop_show_read_round_trippable (==)
-    --    :: ResponseTweaker TestAction -> Property),
+    --    :: ResponseTweaker TestAction -> Bool),
     -- testProperty "prop_diploid_expressable - ResponseTweaker"
     --   (prop_diploid_expressable
     --    :: ResponseTweaker TestAction -> ResponseTweaker TestAction
-    --    -> Property),
+    --    -> Bool),
     -- testProperty "prop_diploid_readable - ResponseTweaker"
     --   (prop_diploid_readable
     --    :: ResponseTweaker TestAction -> ResponseTweaker TestAction
-    --    -> Property),
+    --    -> Bool),
 
     -- testProperty "prop_responseDiff_can_be_1"
     --   prop_responseDiff_can_be_1,

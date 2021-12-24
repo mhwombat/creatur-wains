@@ -17,14 +17,14 @@ module ALife.Creatur.Wain.ProbabilityQC
     test
   ) where
 
-import           ALife.Creatur.Wain.GeneticSOMInternal  (Difference, Label)
+import           ALife.Creatur.Gene.Numeric.UnitInterval (wide)
+import           ALife.Creatur.Wain.GeneticSOMInternal   (Difference, Label)
 import           ALife.Creatur.Wain.ProbabilityInternal
-import           ALife.Creatur.Gene.Numeric.UnitInterval        (uiToDouble)
-import           Data.List                              (nub)
-import           Data.Word                              (Word64)
-import qualified Numeric.ApproxEq                       as N
-import           Test.Framework                         (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2   (testProperty)
+import           Data.List                               (nub)
+import           Data.Word                               (Word64)
+import qualified Numeric.ApproxEq                        as N
+import           Test.Framework                          (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2    (testProperty)
 import           Test.QuickCheck
 
 newtype PermuteTestData = PermuteTestData [[Char]] deriving (Eq, Show)
@@ -43,14 +43,14 @@ sizedArbPermuteTestData n = do
 instance Arbitrary PermuteTestData where
   arbitrary = sized sizedArbPermuteTestData
 
-prop_number_of_permutations_is_correct :: PermuteTestData -> Property
+prop_number_of_permutations_is_correct :: PermuteTestData -> Bool
 prop_number_of_permutations_is_correct (PermuteTestData xss)
-  = property $ length ys == product (map length xss)
+  = length ys == product (map length xss)
   where ys = permute xss
 
-prop_permutations_are_distinct :: PermuteTestData -> Property
-prop_permutations_are_distinct (PermuteTestData xss) = property $
-  length ys == length (nub ys)
+prop_permutations_are_distinct :: PermuteTestData -> Bool
+prop_permutations_are_distinct (PermuteTestData xss)
+  = length ys == length (nub ys)
   where ys = permute xss
 
 prop_normalise_works :: [Double] -> Property
@@ -71,7 +71,7 @@ instance Arbitrary TestSignatures where
 
 prop_hypothesis_probabilities_eq_1 :: Word64 -> TestSignatures -> Property
 prop_hypothesis_probabilities_eq_1 s (TestSignatures lds) = s >= 1 ==>
-  N.within 100 (sum . map (uiToDouble . snd) $ hps) 1
+  N.within 100 (sum . map (wide . snd) $ hps) 1
   where hps = hypothesise s lds
 
 test :: Test

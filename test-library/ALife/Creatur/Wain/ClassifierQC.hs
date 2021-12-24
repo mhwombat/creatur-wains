@@ -10,10 +10,10 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass       #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.ClassifierQC
   (
@@ -22,14 +22,14 @@ module ALife.Creatur.Wain.ClassifierQC
     TestClassifier
   ) where
 
+import qualified ALife.Creatur.Gene.Test                 as GT
 import qualified ALife.Creatur.Genetics.BRGCWord8        as W8
 import           ALife.Creatur.Genetics.Diploid          (Diploid)
 import           ALife.Creatur.Wain.ClassifierInternal
 import qualified ALife.Creatur.Wain.GeneticSOMInternal   as GSOM
-import           ALife.Creatur.Wain.GeneticSOMQC
-    (equivGSOM, sizedArbGeneticSOM)
+import           ALife.Creatur.Wain.GeneticSOMQC         (equivGSOM,
+                                                          sizedArbGeneticSOM)
 import           ALife.Creatur.Wain.Statistics           (Statistical (..))
-import qualified ALife.Creatur.Gene.Test                 as GT
 import           Control.DeepSeq                         (NFData, deepseq)
 import           Control.Lens
 import qualified Data.Datamining.Clustering.SGM4Internal as SOM
@@ -38,8 +38,8 @@ import           Data.Serialize                          (Serialize)
 import           GHC.Generics                            (Generic)
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck                         hiding
-    (classify, maxSize)
+import           Test.QuickCheck                         hiding (classify,
+                                                          maxSize)
 
 data TestClassifierTweaker = TestClassifierTweaker
   deriving (Eq, Show, Generic, Serialize, W8.Genetic, Diploid, NFData)
@@ -61,15 +61,14 @@ instance Statistical TestClassifierTweaker where
   stats _ = []
 
 classifySetAndTrain_label_count
-  :: TestClassifier -> [GT.TestPattern] -> Property
-classifySetAndTrain_label_count c ps = property $ length xs == length ps
+  :: TestClassifier -> [GT.TestPattern] -> Bool
+classifySetAndTrain_label_count c ps = length xs == length ps
   where (r, _) = classifySetAndTrain c ps
         xs = bmus r
 
 prop_classifier_behaves_like_sgm
-  :: TestClassifier -> GT.TestPattern -> Property
-prop_classifier_behaves_like_sgm c p =
-  property $ cModels == sModels
+  :: TestClassifier -> GT.TestPattern -> Bool
+prop_classifier_behaves_like_sgm c p = cModels == sModels
   where s = view GSOM.patternMap c
         (_, c') = classifySetAndTrain c [p]
         (_, _, _, s') = SOM.trainAndClassify s p
@@ -77,18 +76,16 @@ prop_classifier_behaves_like_sgm c p =
         sModels = M.elems . SOM.modelMap $ s'
 
 prop_classifier_behaves_like_sgm2
-  :: TestClassifier -> GT.TestPattern -> Property
-prop_classifier_behaves_like_sgm2 c p =
-  property $ cLds == [sLds]
+  :: TestClassifier -> GT.TestPattern -> Bool
+prop_classifier_behaves_like_sgm2 c p = cLds == [sLds]
   where s = view GSOM.patternMap c
         (report, _) = classifySetAndTrain c [p]
         cLds = bmus report
         (sLds, _, _, _) = SOM.trainAndClassify s p
 
 prop_classifier_behaves_like_sgm3
-  :: TestClassifier -> [GT.TestPattern] -> Property
-prop_classifier_behaves_like_sgm3 c ps =
-  property $ cModels == sModels
+  :: TestClassifier -> [GT.TestPattern] -> Bool
+prop_classifier_behaves_like_sgm3 c ps = cModels == sModels
   where s = view GSOM.patternMap c
         (_, c') = classifySetAndTrain c ps
         s' = SOM.trainBatch s ps
@@ -96,42 +93,42 @@ prop_classifier_behaves_like_sgm3 c ps =
         sModels = M.elems . SOM.modelMap $ s'
 
 prop_classifySetAndTrain_never_causes_error
-  :: TestClassifier -> [GT.TestPattern] -> Property
+  :: TestClassifier -> [GT.TestPattern] -> Bool
 prop_classifySetAndTrain_never_causes_error c ps
-  = property $ deepseq (classifySetAndTrain c ps) True
+  = deepseq (classifySetAndTrain c ps) True
 
 -- prop_prettyClassifierReport_never_causes_error
---   :: TestClassifier -> [TestPattern] -> Property
+--   :: TestClassifier -> [TestPattern] -> Bool
 -- prop_prettyClassifierReport_never_causes_error c ps
---   = property $ deepseq x True
+--   = deepseq x True
 --   where (r, _) = classifySetAndTrain c ps
 --         x = prettyClassifierReport r
 
 prop_imprintSet_never_causes_error
-  :: TestClassifier -> [(GSOM.Label, GT.TestPattern)] -> Property
+  :: TestClassifier -> [(GSOM.Label, GT.TestPattern)] -> Bool
 prop_imprintSet_never_causes_error c lps
-  = property $ deepseq (imprintSet c lps) True
+  = deepseq (imprintSet c lps) True
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.ClassifierQC"
   [
     testProperty "prop_serialize_round_trippable - Classifier"
-      (GT.prop_serialize_round_trippable :: TestClassifier -> Property),
+      (GT.prop_serialize_round_trippable :: TestClassifier -> Bool),
     testProperty "prop_genetic_round_trippable - Classifier"
-      (GT.prop_genetic_round_trippable equivGSOM :: TestClassifier -> Property),
+      (GT.prop_genetic_round_trippable equivGSOM :: TestClassifier -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - Classifier"
     --   (prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> TestClassifier -> Property),
+    --    :: Int -> [Word8] -> TestClassifier -> Bool),
     testProperty "prop_diploid_identity - Classifier"
-      (GT.prop_diploid_identity (==) :: TestClassifier -> Property),
+      (GT.prop_diploid_identity (==) :: TestClassifier -> Bool),
     -- testProperty "prop_show_read_round_trippable - Classifier"
-    --   (GT.prop_show_read_round_trippable (==) :: TestClassifier -> Property),
+    --   (GT.prop_show_read_round_trippable (==) :: TestClassifier -> Bool),
     testProperty "prop_diploid_expressable - Classifier"
       (GT.prop_diploid_expressable
-       :: TestClassifier -> TestClassifier -> Property),
+       :: TestClassifier -> TestClassifier -> Bool),
     testProperty "prop_diploid_readable - Classifier"
       (GT.prop_diploid_readable
-       :: TestClassifier -> TestClassifier -> Property),
+       :: TestClassifier -> TestClassifier -> Bool),
 
     testProperty "classifySetAndTrain_label_count"
       classifySetAndTrain_label_count,

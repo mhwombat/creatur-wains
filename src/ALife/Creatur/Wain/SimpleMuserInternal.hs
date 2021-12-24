@@ -20,35 +20,23 @@
 {-# LANGUAGE UndecidableInstances #-}
 module ALife.Creatur.Wain.SimpleMuserInternal where
 
-import qualified ALife.Creatur.Genetics.BRGCWord8 as G
-import           ALife.Creatur.Genetics.Diploid
-    (Diploid)
-import           ALife.Creatur.Wain.GeneticSOM
-    (Label)
-import qualified ALife.Creatur.Wain.Muser         as M
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne
-    (PM1Double, pm1ToDouble)
-import           ALife.Creatur.Wain.Pretty
-    (Pretty)
-import           ALife.Creatur.Wain.Probability
-    (Probability)
-import           ALife.Creatur.Wain.Response
-    (Response (..))
-import           ALife.Creatur.Wain.Statistics
-    (Statistical, dStat, iStat, stats)
-import           Control.DeepSeq
-    (NFData)
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne (PM1Double, wide)
+import qualified ALife.Creatur.Genetics.BRGCWord8        as G
+import           ALife.Creatur.Genetics.Diploid          (Diploid)
+import           ALife.Creatur.Wain.GeneticSOM           (Label)
+import qualified ALife.Creatur.Wain.Muser                as M
+import           ALife.Creatur.Wain.Pretty               (Pretty)
+import           ALife.Creatur.Wain.Probability          (Probability)
+import           ALife.Creatur.Wain.Response             (Response (..))
+import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
+                                                          iStat, stats)
+import           Control.DeepSeq                         (NFData)
 import           Control.Lens
-import           Data.List
-    (nub, sortOn)
-import           Data.Ord
-    (Down(..))
-import           Data.Serialize
-    (Serialize)
-import           Data.Word
-    (Word8)
-import           GHC.Generics
-    (Generic)
+import           Data.List                               (nub, sortOn)
+import           Data.Ord                                (Down (..))
+import           Data.Serialize                          (Serialize)
+import           Data.Word                               (Word8)
+import           GHC.Generics                            (Generic)
 
 
 -- | Object responsible for generating potential responses for
@@ -71,10 +59,10 @@ instance Pretty (SimpleMuser a)
 
 instance Statistical (SimpleMuser a) where
   stats (SimpleMuser (eo:po:bo:lso:_) d) = [iStat "depth" d,
-         dStat "default energy outcome" . pm1ToDouble $ eo,
-         dStat "default passion outcome" . pm1ToDouble $ po,
-         dStat "default boredom outcome" . pm1ToDouble $ bo,
-         dStat "default litterSize outcome" . pm1ToDouble $ lso]
+         dStat "default energy outcome" . wide $ eo,
+         dStat "default passion outcome" . wide $ po,
+         dStat "default boredom outcome" . wide $ bo,
+         dStat "default litterSize outcome" . wide $ lso]
   stats _ = error "default outcome list is too short"
 
 

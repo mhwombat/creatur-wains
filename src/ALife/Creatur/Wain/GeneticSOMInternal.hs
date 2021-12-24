@@ -23,20 +23,21 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.GeneticSOMInternal where
 
+import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, narrow,
+                                                          wide)
+import           ALife.Creatur.Gene.Numeric.Util         (inRange, intersection)
 import           ALife.Creatur.Genetics.BRGCWord8        (Genetic)
 import qualified ALife.Creatur.Genetics.BRGCWord8        as G
 import           ALife.Creatur.Genetics.Diploid          (Diploid, express)
 import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
 import           ALife.Creatur.Wain.Report               (Report, report)
-import           ALife.Creatur.Wain.Statistics
-    (Statistical, dStat, iStat, kvToIStats, prefix, stats)
-import           ALife.Creatur.Gene.Numeric.UnitInterval
-    (UIDouble, doubleToUI, uiToDouble)
-import           ALife.Creatur.Gene.Numeric.Util         (inRange, intersection)
+import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
+                                                          iStat, kvToIStats,
+                                                          prefix, stats)
 import           Control.DeepSeq                         (NFData)
 import           Control.Lens
-import           Control.Monad.Random
-    (Rand, RandomGen, getRandomR)
+import           Control.Monad.Random                    (Rand, RandomGen,
+                                                          getRandomR)
 import qualified Data.Datamining.Clustering.SGM4Internal as SOM
 import qualified Data.Map.Strict                         as M
 import qualified Data.Serialize                          as S
@@ -72,7 +73,7 @@ data LearningParams = LearningParams UIDouble UIDouble Word64
 mkLearningParams
   :: UIDouble -> UIDouble -> Word64 -> Either [String] LearningParams
 mkLearningParams r0 rf tf
-  | r0 == 0   = Left ["r0 must be > 0"]
+  | r0 == 0    = Left ["r0 must be > 0"]
   | rf > r0   = Left ["rf must be <= r0"]
   | otherwise = Right $ LearningParams r0 rf tf
 
@@ -93,14 +94,14 @@ instance Diploid LearningParams
 
 instance Statistical LearningParams where
   stats (LearningParams r0 rf tf)
-    = [dStat "r0" (uiToDouble r0), dStat "rf" (uiToDouble rf),
+    = [dStat "r0" (wide r0), dStat "rf" (wide rf),
        iStat "tf" tf]
 
 -- | @'toLearningFunction' p t@ returns the learning rate at time @t@,
 --   given an exponential learning function with parameters @p@.
 toLearningFunction :: LearningParams -> Word64 -> UIDouble
 toLearningFunction (LearningParams r0 rf tf) t
-  | inRange (0,1) r = doubleToUI r
+  | inRange (0,1) r = narrow r
   | otherwise       = error $ "toLearningFunction: out of bounds"
                                 ++ " r0=" ++ show r0
                                 ++ " rf=" ++ show rf
@@ -108,8 +109,8 @@ toLearningFunction (LearningParams r0 rf tf) t
                                 ++ " t=" ++ show t
                                 ++ " r=" ++ show r
   where r = r0' * exp (-d*t')
-        r0' = uiToDouble r0
-        rf' = uiToDouble rf
+        r0' = wide r0
+        rf' = wide rf
         t' = fromIntegral t
         tf' = fromIntegral tf
         d = log (r0'/rf') / tf'
@@ -131,11 +132,11 @@ makeLenses ''LearningParamRanges
 
 -- | Range of values permitted for @r0@
 r0RangeLimits :: (UIDouble, UIDouble)
-r0RangeLimits = (doubleToUI (1/65535), 1)
+r0RangeLimits = (narrow (1/65535), 1)
 
 -- | Range of values permitted for @rf@
 rfRangeLimits :: (UIDouble, UIDouble)
-rfRangeLimits = (doubleToUI (1/65535), 1)
+rfRangeLimits = (narrow (1/65535), 1)
 
 -- | Range of values permitted for @rf@
 tfRangeLimits :: (Word64, Word64)
@@ -501,7 +502,7 @@ imprint gs l p
 -- | Calculates the novelty of the input by scaling the BMU difference
 --   according to the age of the classifier (wain).
 adjNovelty :: Difference -> Word64 -> Int
-adjNovelty d a = round $ uiToDouble d * fromIntegral a
+adjNovelty d a = round $ wide d * fromIntegral a
 
 -- -- | @'train' s p@ identifies the model in @s@ that most closely
 -- --   matches @p@, and updates it to be a somewhat better match.

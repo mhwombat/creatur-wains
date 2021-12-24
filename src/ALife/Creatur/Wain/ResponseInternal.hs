@@ -20,22 +20,22 @@
 {-# LANGUAGE TypeFamilies      #-}
 module ALife.Creatur.Wain.ResponseInternal where
 
-import           ALife.Creatur.Genetics.BRGCWord8 (Genetic)
-import           ALife.Creatur.Genetics.Diploid   (Diploid)
-import           ALife.Creatur.Wain.Classifier    (Label)
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne
-    (PM1Double, forceDoubleToPM1, pm1ToDouble)
-import           ALife.Creatur.Wain.Pretty        (Pretty, pretty)
-import           ALife.Creatur.Wain.Statistics    (Statistical (..), dStat)
-import           ALife.Creatur.Gene.Numeric.UnitInterval
-    (UIDouble, doubleToUI)
-import           Control.DeepSeq                  (NFData)
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne (PM1Double, crop, wide)
+import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, narrow)
+import           ALife.Creatur.Genetics.BRGCWord8        (Genetic)
+import           ALife.Creatur.Genetics.Diploid          (Diploid)
+import           ALife.Creatur.Wain.Classifier           (Label)
+import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
+import           ALife.Creatur.Wain.Statistics           (Statistical (..),
+                                                          dStat)
+import           Control.DeepSeq                         (NFData)
 import           Control.Lens
-import           Data.List                        (intercalate)
-import           Data.Serialize                   (Serialize)
-import           GHC.Generics                     (Generic)
-import           Test.QuickCheck                  (arbitrary, choose, Gen, vectorOf)
-import           Text.Printf                      (printf)
+import           Data.List                               (intercalate)
+import           Data.Serialize                          (Serialize)
+import           GHC.Generics                            (Generic)
+import           Test.QuickCheck                         (Gen, arbitrary,
+                                                          choose, vectorOf)
+import           Text.Printf                             (printf)
 
 -- | A model of a scenario that a wain might encounter
 data Response a = Response
@@ -55,14 +55,14 @@ instance (Genetic a) => Genetic (Response a)
 instance (Pretty a) => Pretty (Response a) where
   pretty (Response ls a os) =
     intercalate "|" (map show ls) ++ '|':pretty a ++ '|':format os
-    where format xs =  intercalate "|" . map (printf "%.3f" .  pm1ToDouble) $ xs
+    where format xs =  intercalate "|" . map (printf "%.3f" .  wide) $ xs
 
 -- | Internal method
 labelSimilarity :: [Label] -> [Label] -> UIDouble
 labelSimilarity xs ys =
   if count == 0
     then 1
-    else doubleToUI $ fromIntegral matchCount / fromIntegral count
+    else narrow $ fromIntegral matchCount / fromIntegral count
   where comparisons =  labelSimilarity' xs ys
         count = length comparisons
         matchCount = length $ filter id comparisons
@@ -82,9 +82,9 @@ copyOutcomesTo source = set outcomes (_outcomes source)
 --   Note: Outcomes are capped at 1.
 addToOutcomes :: [PM1Double] -> Response a -> Response a
 addToOutcomes deltas r = set outcomes ys r
-  where xs = map pm1ToDouble . _outcomes $ r
-        deltas' = map pm1ToDouble deltas
-        ys = map forceDoubleToPM1 $ zipWith (+) xs deltas'
+  where xs = map wide . _outcomes $ r
+        deltas' = map wide deltas
+        ys = map crop $ zipWith (+) xs deltas'
 
 instance (Statistical a)
     => Statistical (Response a) where

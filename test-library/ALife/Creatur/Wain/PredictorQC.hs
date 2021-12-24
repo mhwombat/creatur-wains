@@ -10,7 +10,7 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.Wain.PredictorQC
   (
@@ -21,27 +21,30 @@ module ALife.Creatur.Wain.PredictorQC
     ImprintTestData(..)
   ) where
 
-import qualified ALife.Creatur.Gene.Test                 as GT
-import           ALife.Creatur.Wain.GeneticSOMInternal
-    (Label, maxSize, numModels, patternMap, trainAndClassify)
-import           ALife.Creatur.Wain.GeneticSOMQC
-    (equivGSOM, sizedArbEmptyGeneticSOM, sizedArbGeneticSOM)
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne
-    (PM1Double, pm1ToDouble)
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne  (PM1Double, wide)
+import qualified ALife.Creatur.Gene.Test                  as GT
+import           ALife.Creatur.Wain.GeneticSOMInternal    (Label, maxSize,
+                                                           numModels,
+                                                           patternMap,
+                                                           trainAndClassify)
+import           ALife.Creatur.Wain.GeneticSOMQC          (equivGSOM,
+                                                           sizedArbEmptyGeneticSOM,
+                                                           sizedArbGeneticSOM)
 import           ALife.Creatur.Wain.PredictorInternal
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
 import           ALife.Creatur.Wain.Probability           (Probability)
 import           ALife.Creatur.Wain.Response              (Response (..))
-import           ALife.Creatur.Wain.ResponseQC
-    (TestAction, TestResponse, arbTestResponse)
-import           ALife.Creatur.Wain.SimpleResponseTweaker
-    (ResponseTweaker (..), responseDiff)
+import           ALife.Creatur.Wain.ResponseQC            (TestAction,
+                                                           TestResponse,
+                                                           arbTestResponse)
+import           ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker (..),
+                                                           responseDiff)
 import           Control.DeepSeq                          (deepseq)
 import           Control.Lens
 import           Test.Framework                           (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2     (testProperty)
-import           Test.QuickCheck                          hiding
-    (labels, maxSize)
+import           Test.QuickCheck                          hiding (labels,
+                                                           maxSize)
 
 type TestPredictorTweaker = ResponseTweaker TestAction
 
@@ -90,24 +93,24 @@ instance Arbitrary TrainingTestData where
   arbitrary = sized sizedArbTrainingTestData
 
 prop_predict_never_causes_error
-  :: TrainingTestData -> Probability -> Property
+  :: TrainingTestData -> Probability -> Bool
 prop_predict_never_causes_error (TrainingTestData p r _) prob
-  = property $ deepseq x True
+  = deepseq x True
   where x = predict p r prob
 
 -- prop_prettyPredictionDetail_never_causes_error
---   :: TrainingTestData -> Probability -> Property
+--   :: TrainingTestData -> Probability -> Bool
 -- prop_prettyPredictionDetail_never_causes_error
 --   (TrainingTestData p r _) prob
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where x = predict p r prob
 --         x' = pretty x
 
 -- NOTE: I've tested this with maxSuccess=10000!
 prop_training_makes_predictions_more_accurate
-  :: TrainingTestData -> Property
+  :: TrainingTestData -> Bool
 prop_training_makes_predictions_more_accurate (TrainingTestData d r os)
-  = property $ errAfter < 0.1 || errAfter <= errBefore
+  = errAfter < 0.1 || errAfter <= errBefore
   where r2 = pResponse $ predict d r 1
         errBefore = rawDiff os (_outcomes r2)
         rActual = r { _outcomes = os }
@@ -117,7 +120,7 @@ prop_training_makes_predictions_more_accurate (TrainingTestData d r os)
 
 rawDiff :: [PM1Double] ->  [PM1Double] -> Double
 rawDiff xs ys =
-  sum $ zipWith (\x y -> abs $ pm1ToDouble x - pm1ToDouble y) xs ys
+  sum $ zipWith (\x y -> abs $ wide x - wide y) xs ys
 
 data ImprintTestData
   = ImprintTestData
@@ -144,16 +147,16 @@ instance Arbitrary ImprintTestData where
   arbitrary = sized sizedArbImprintTestData
 
 prop_imprintOrReinforce_never_causes_error
-  :: ImprintTestData -> Property
+  :: ImprintTestData -> Bool
 prop_imprintOrReinforce_never_causes_error (ImprintTestData p ls a os ds)
-  = property $ deepseq x True
+  = deepseq x True
   where x = imprintOrReinforce p ls a os ds
 
 -- prop_prettyImprintReport_never_causes_error
---   :: ImprintTestData -> Property
+--   :: ImprintTestData -> Bool
 -- prop_prettyImprintReport_never_causes_error
 --   (ImprintTestData d r os ds _)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, _)
 --           = imprintOrReinforce d (view labels r) (view action r) os ds
 --         x' = prettyLearningReport x
@@ -169,17 +172,17 @@ prop_imprintOrReinforce_works (ImprintTestData p ls a os ds) =
         diffAfter = responseDiff rAfter r0
 
 prop_learn_never_causes_error
-  :: ImprintTestData -> Property
+  :: ImprintTestData -> Bool
 prop_learn_never_causes_error (ImprintTestData p ls a os _)
-  = property $ deepseq x True
+  = deepseq x True
   where x = learn p r
         r = Response ls a os
 
 -- prop_prettyLearningReport_never_causes_error
---   :: ImprintTestData -> Property
+--   :: ImprintTestData -> Bool
 -- prop_prettyLearningReport_never_causes_error
 --   (ImprintTestData d r _ _ _)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, _) = learn d r
 --         x' = prettyLearningReport x
 
@@ -187,36 +190,36 @@ test :: Test
 test = testGroup "ALife.Creatur.Wain.PredictorQC"
   [
     testProperty "prop_serialize_round_trippable - Tweaker"
-      (GT.prop_serialize_round_trippable :: TestPredictorTweaker -> Property),
+      (GT.prop_serialize_round_trippable :: TestPredictorTweaker -> Bool),
     testProperty "prop_genetic_round_trippable - Tweaker"
-      (GT.prop_genetic_round_trippable (==) :: TestPredictorTweaker -> Property),
+      (GT.prop_genetic_round_trippable (==) :: TestPredictorTweaker -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - Tweaker"
     --   (GT.prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> TestPredictorTweaker -> Property),
+    --    :: Int -> [Word8] -> TestPredictorTweaker -> Bool),
     testProperty "prop_diploid_identity - Tweaker"
-      (GT.prop_diploid_identity (==) :: TestPredictorTweaker -> Property),
+      (GT.prop_diploid_identity (==) :: TestPredictorTweaker -> Bool),
     testProperty "prop_show_read_round_trippable - Tweaker"
-      (GT.prop_show_read_round_trippable (==) :: TestPredictorTweaker -> Property),
+      (GT.prop_show_read_round_trippable (==) :: TestPredictorTweaker -> Bool),
     testProperty "prop_diploid_expressable - Tweaker"
-      (GT.prop_diploid_expressable :: TestPredictorTweaker -> TestPredictorTweaker -> Property),
+      (GT.prop_diploid_expressable :: TestPredictorTweaker -> TestPredictorTweaker -> Bool),
     testProperty "prop_diploid_readable - Tweaker"
-      (GT.prop_diploid_readable :: TestPredictorTweaker -> TestPredictorTweaker -> Property),
+      (GT.prop_diploid_readable :: TestPredictorTweaker -> TestPredictorTweaker -> Bool),
 
     testProperty "prop_serialize_round_trippable - Predictor"
-      (GT.prop_serialize_round_trippable :: TestPredictor -> Property),
+      (GT.prop_serialize_round_trippable :: TestPredictor -> Bool),
     testProperty "prop_genetic_round_trippable - Predictor"
-      (GT.prop_genetic_round_trippable equivGSOM :: TestPredictor -> Property),
+      (GT.prop_genetic_round_trippable equivGSOM :: TestPredictor -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - Predictor"
     --   (prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> TestPredictor -> Property),
+    --    :: Int -> [Word8] -> TestPredictor -> Bool),
     testProperty "prop_diploid_identity - Predictor"
-      (GT.prop_diploid_identity (==) :: TestPredictor -> Property),
+      (GT.prop_diploid_identity (==) :: TestPredictor -> Bool),
     -- testProperty "prop_show_read_round_trippable - Predictor"
-    --   (prop_show_read_round_trippable (==) :: TestPredictor -> Property),
+    --   (prop_show_read_round_trippable (==) :: TestPredictor -> Bool),
     testProperty "prop_diploid_expressable - Predictor"
-      (GT.prop_diploid_expressable :: TestPredictor -> TestPredictor -> Property),
+      (GT.prop_diploid_expressable :: TestPredictor -> TestPredictor -> Bool),
     testProperty "prop_diploid_readable - Predictor"
-      (GT.prop_diploid_readable :: TestPredictor -> TestPredictor -> Property),
+      (GT.prop_diploid_readable :: TestPredictor -> TestPredictor -> Bool),
 
     testProperty "prop_predict_never_causes_error"
       prop_predict_never_causes_error,

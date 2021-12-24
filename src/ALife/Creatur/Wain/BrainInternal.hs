@@ -21,39 +21,38 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.BrainInternal where
 
-import           ALife.Creatur.Genetics.BRGCWord8 (Genetic, get, put)
-import           ALife.Creatur.Genetics.Diploid   (Diploid)
-import qualified ALife.Creatur.Wain.Classifier    as Cl
-import qualified ALife.Creatur.Wain.GeneticSOM    as GSOM
-import qualified ALife.Creatur.Wain.Muser         as M
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne
-    (PM1Double, doubleToPM1, pm1ToDouble)
-import qualified ALife.Creatur.Wain.Predictor     as P
-import           ALife.Creatur.Wain.Pretty        (Pretty, pretty)
-import           ALife.Creatur.Wain.Probability
-    (Probability, hypothesise, prettyProbability)
-import           ALife.Creatur.Wain.Report        (Report, report)
-import           ALife.Creatur.Wain.Response      (Response (..))
-import           ALife.Creatur.Wain.Statistics
-    (Statistical, dStat, iStat, prefix, stats)
-import           ALife.Creatur.Gene.Numeric.UnitInterval
-    (UIDouble, forceDoubleToUI, uiToDouble)
-import           ALife.Creatur.Gene.Numeric.Weights
-    (Weights, numWeights, weightAt, weightedSum)
-import           Control.DeepSeq                  (NFData)
+import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
+import           ALife.Creatur.Gene.Numeric.Weights      (Weights, numWeights,
+                                                          weightAt, weightedSum)
+import           ALife.Creatur.Genetics.BRGCWord8        (Genetic, get, put)
+import           ALife.Creatur.Genetics.Diploid          (Diploid)
+import qualified ALife.Creatur.Wain.Classifier           as Cl
+import qualified ALife.Creatur.Wain.GeneticSOM           as GSOM
+import qualified ALife.Creatur.Wain.Muser                as M
+import qualified ALife.Creatur.Wain.Predictor            as P
+import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
+import           ALife.Creatur.Wain.Probability          (Probability,
+                                                          hypothesise,
+                                                          prettyProbability)
+import           ALife.Creatur.Wain.Report               (Report, report)
+import           ALife.Creatur.Wain.Response             (Response (..))
+import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
+                                                          iStat, prefix, stats)
+import           Control.DeepSeq                         (NFData)
 import           Control.Lens
-import           Data.Function                    (on)
-import           Data.List
-    (foldl', groupBy, sortBy)
-import qualified Data.Map.Strict                  as M
-import           Data.Ord                         (comparing)
-import           Data.Serialize                   (Serialize)
-import           Data.Word                        (Word64, Word8)
-import           GHC.Generics                     (Generic)
-import           Text.Printf                      (printf)
+import           Data.Function                           (on)
+import           Data.List                               (foldl', groupBy,
+                                                          sortBy)
+import qualified Data.Map.Strict                         as M
+import           Data.Ord                                (comparing)
+import           Data.Serialize                          (Serialize)
+import           Data.Word                               (Word64, Word8)
+import           GHC.Generics                            (Generic)
+import           Text.Printf                             (printf)
 
 -- | A wain's condition
-type Condition = [UIDouble]
+type Condition = [UI.UIDouble]
 
 -- | A brain which recommends reponses to stimuli, and learns from the
 --   outcomes.
@@ -76,12 +75,12 @@ data Brain p ct pt m a = Brain
     -- | When a wain observes a response that it has never seen before,
     --   it will assume the action has the following outcomes.
     --   Normally these values should all be positive.
-    _imprintOutcomes     :: [PM1Double],
+    _imprintOutcomes     :: [PM1.PM1Double],
     -- | When a wain observes a response that it already knows, it will
     --   reinforce it by re-learning the model augmented with these
     --   delta outcomes.
     --   Normally these values should all be positive.
-    _reinforcementDeltas :: [PM1Double],
+    _reinforcementDeltas :: [PM1.PM1Double],
     -- | Number of times each action has been used
     _actionCounts        :: M.Map a Int
   } deriving (Generic, Eq, NFData)
@@ -94,7 +93,7 @@ makeLenses ''Brain
 makeBrain
   :: M.Muser m
      => Cl.Classifier p ct -> m -> P.Predictor a pt -> Weights -> Word8
-       -> Word64 -> [PM1Double] -> [PM1Double]
+       -> Word64 -> [PM1.PM1Double] -> [PM1.PM1Double]
        -> Either [String] (Brain p ct pt m a)
 makeBrain c m p hw t x ios rds
   | x < 1
@@ -133,18 +132,18 @@ instance (Eq a, Ord a,
         ++ stats m
         ++ map (prefix "predictor ") (stats p)
         ++ [ iStat "DQ" $ decisionQuality b,
-             dStat "energyWeight" . uiToDouble $ hw `weightAt` 0,
-             dStat "passionWeight" . uiToDouble $ hw `weightAt` 1,
-             dStat "boredomWeight" . uiToDouble $ hw `weightAt` 2,
-             dStat "litterSizeWeight" . uiToDouble $ hw `weightAt` 3,
-             dStat "energyImprint" . pm1ToDouble $ head ios,
-             dStat "passionImprint" . pm1ToDouble $ ios !! 1,
-             dStat "boredomImprint" . pm1ToDouble $ ios !! 2,
-             dStat "litterSizeImprint" . pm1ToDouble $ ios !! 3,
-             dStat "energyReinforcement" . pm1ToDouble $ head rds,
-             dStat "passionReinforcement" . pm1ToDouble $ rds !! 1,
-             dStat "boredomReinforcement" . pm1ToDouble $ rds !! 2,
-             dStat "litterSizeReinforcement" . pm1ToDouble $ rds !! 3,
+             dStat "energyWeight" . UI.wide $ hw `weightAt` 0,
+             dStat "passionWeight" . UI.wide $ hw `weightAt` 1,
+             dStat "boredomWeight" . UI.wide $ hw `weightAt` 2,
+             dStat "litterSizeWeight" . UI.wide $ hw `weightAt` 3,
+             dStat "energyImprint" . PM1.wide $ head ios,
+             dStat "passionImprint" . PM1.wide $ ios !! 1,
+             dStat "boredomImprint" . PM1.wide $ ios !! 2,
+             dStat "litterSizeImprint" . PM1.wide $ ios !! 3,
+             dStat "energyReinforcement" . PM1.wide $ head rds,
+             dStat "passionReinforcement" . PM1.wide $ rds !! 1,
+             dStat "boredomReinforcement" . PM1.wide $ rds !! 2,
+             dStat "litterSizeReinforcement" . PM1.wide $ rds !! 3,
              iStat "tiebreaker" t, iStat "strictness" s ]
 
 instance (Show p, Show a, Show ct, Show pt, Show m, Eq a)
@@ -211,15 +210,15 @@ prettyScenarioReport = map f
 type PredictorReport a = [P.PredictionDetail a]
 
 -- | For each action, the expected outcomes and resulting happiness
-type ActionReport a = [(a, [PM1Double], UIDouble)]
+type ActionReport a = [(a, [PM1.PM1Double], UI.UIDouble)]
 
 -- | Generates a human readable summary of a decision.
 prettyActionReport :: Pretty a => ActionReport a -> [String]
 prettyActionReport = map f
   where f (a, os, h) = "predicted outcomes of " ++ pretty a ++ " are "
-          ++ unwords (map (printf "%.3f" . pm1ToDouble) os)
+          ++ unwords (map (printf "%.3f" . UI.wide) os)
           ++ " with resulting happiness "
-          ++ printf "%.3f" (uiToDouble h)
+          ++ printf "%.3f" (UI.wide h)
 
 -- | Chooses a response based on the classification of the stimulus
 --   (input patterns) and the wain's condition.
@@ -336,20 +335,20 @@ chooseAny b xs = xs !! (seed `mod` n)
 
 -- | Internal method
 fillInAdjustedHappiness
-  :: Brain p ct pt m a -> Condition -> (a, [PM1Double])
-    -> (a, [PM1Double], UIDouble)
+  :: Brain p ct pt m a -> Condition -> (a, [PM1.PM1Double])
+    -> (a, [PM1.PM1Double], UI.UIDouble)
 fillInAdjustedHappiness b c (a, os) = (a, os, adjustedHappiness b c os)
 
 -- | Internal method
 adjustedHappiness
-  :: Brain p ct pt m a -> Condition -> [PM1Double] -> UIDouble
+  :: Brain p ct pt m a -> Condition -> [PM1.PM1Double] -> UI.UIDouble
 adjustedHappiness b c = happiness b . adjustCondition c
 
 -- | Internal method
-adjustCondition :: Condition -> [PM1Double] -> Condition
+adjustCondition :: Condition -> [PM1.PM1Double] -> Condition
 adjustCondition c os =
-  map forceDoubleToUI $
-    zipWith (+) (map uiToDouble c) (map pm1ToDouble os)
+  map PM1.crop $
+    zipWith (+) (map UI.wide c) (map UI.wide os)
 
 -- | Internal method
 adjustActionCounts
@@ -371,13 +370,13 @@ classifyInputs b ps = (cReport, b')
         b' = set classifier c' b
 
 -- | Internal method
-sumByAction :: Eq a => [Response a] -> [(a, [PM1Double])]
+sumByAction :: Eq a => [Response a] -> [(a, [PM1.PM1Double])]
 sumByAction rs = map sumByAction' rss
   where rss = groupBy sameAction rs
         sameAction x y = _action x == _action y
 
 -- | Internal method
-sumByAction' :: [Response a] -> (a, [PM1Double])
+sumByAction' :: [Response a] -> (a, [PM1.PM1Double])
 sumByAction' [] = error "no responses to sum"
 sumByAction' rs = (a, os)
   where a = _action $ head rs
@@ -449,16 +448,16 @@ reflect
     => Brain p ct pt m a -> Response a -> Condition -> Condition
       -> (ReflectionReport a, Brain p ct pt m a)
 reflect b r cBefore cAfter = (report', set predictor d' b)
-  where osActual = map doubleToPM1 $ zipWith (-) (map uiToDouble cAfter)
-          (map uiToDouble cBefore)
+  where osActual = map UI.narrow $ zipWith (-) (map UI.wide cAfter)
+          (map UI.wide cBefore)
         rReflect = r {_outcomes = osActual}
         (lReport, d') = P.learn (_predictor b) rReflect
         osPredicted = _outcomes r
         cPredicted = adjustCondition cBefore osPredicted
-        deltaH = uiToDouble (happiness b cAfter)
-                   - uiToDouble (happiness b cBefore)
-        predictedDeltaH = uiToDouble (happiness b cPredicted)
-                   - uiToDouble (happiness b cBefore)
+        deltaH = UI.wide (happiness b cAfter)
+                   - UI.wide (happiness b cBefore)
+        predictedDeltaH = PM1.wide (happiness b cPredicted)
+                   - PM1.wide (happiness b cBefore)
         report' = ReflectionReport
                    {
                      brrLearningReport = lReport,
@@ -494,7 +493,7 @@ imprintResponse b ls a = (irReport, set predictor d2 b)
         deltas = _reinforcementDeltas b
 
 -- | Evaluates a condition and reports the resulting happiness.
-happiness :: Brain p ct pt m a -> Condition -> UIDouble
+happiness :: Brain p ct pt m a -> Condition -> UI.UIDouble
 happiness b = weightedSum (_happinessWeights b)
 
 -- | A metric for how flexible a brain is at making decisions.

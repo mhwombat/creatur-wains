@@ -16,20 +16,15 @@ module ALife.Creatur.Wain.Pretty
     Pretty(..)
   ) where
 
-import           ALife.Creatur.Gene.Test (TestPattern)
-import           ALife.Creatur.Gene.Numeric.UnitInterval
-    (UIDouble, uiToDouble)
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne
-    (PM1Double, pm1ToDouble)
-import           ALife.Creatur.Gene.Numeric.Weights
-    (Weights)
-import qualified Data.Map.Strict as MS
-import           Data.Word
-    (Word16, Word32, Word64, Word8)
-import           Numeric
-    (showHex)
-import           Text.Printf
-    (printf)
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne (PM1Double)
+import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, wide)
+import           ALife.Creatur.Gene.Numeric.Weights      (Weights)
+import           ALife.Creatur.Gene.Test                 (TestPattern)
+import qualified Data.Map.Strict                         as MS
+import           Data.Word                               (Word16, Word32,
+                                                          Word64, Word8)
+import           Numeric                                 (showHex)
+import           Text.Printf                             (printf)
 
 -- | Values that have a pretty format.
 class Pretty a where
@@ -71,10 +66,10 @@ instance (Pretty a) => Pretty (Maybe a) where
   pretty _        = "ø"
 
 instance Pretty UIDouble where
-  pretty = pretty . uiToDouble
+  pretty = pretty . wide
 
 instance Pretty PM1Double where
-  pretty = pretty . pm1ToDouble
+  pretty = pretty . wide
 
 instance Pretty Weights
 

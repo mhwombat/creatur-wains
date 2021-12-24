@@ -18,31 +18,32 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main where
 
-import           ALife.Creatur.Wain.BrainInternal
-    (classifier, decisionQuality, makeBrain, predictor)
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne    (narrow)
+import           ALife.Creatur.Gene.Numeric.UnitInterval    (wide)
+import           ALife.Creatur.Gene.Numeric.Weights         (makeWeights)
+import           ALife.Creatur.Gene.Test                    (TestPattern (..))
+import           ALife.Creatur.Wain.BrainInternal           (classifier,
+                                                             decisionQuality,
+                                                             makeBrain,
+                                                             predictor)
 import           ALife.Creatur.Wain.Classifier              (bmus)
-import           ALife.Creatur.Wain.ClassifierQC
-    (TestClassifierTweaker (..))
-import           ALife.Creatur.Wain.GeneticSOMInternal
-    (LearningParams (..), buildGeneticSOM, schemaQuality)
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne    (doubleToPM1)
-import           ALife.Creatur.Wain.Response
-    (action, labels)
+import           ALife.Creatur.Wain.ClassifierQC            (TestClassifierTweaker (..))
+import           ALife.Creatur.Wain.GeneticSOMInternal      (LearningParams (..),
+                                                             buildGeneticSOM,
+                                                             schemaQuality)
+import           ALife.Creatur.Wain.Response                (action, labels)
 import           ALife.Creatur.Wain.ResponseQC              (TestAction (..))
-import           ALife.Creatur.Wain.SimpleMuser
-    (SimpleMuser, makeMuser)
-import           ALife.Creatur.Wain.SimpleResponseTweaker
-    (ResponseTweaker (..))
+import           ALife.Creatur.Wain.SimpleMuser             (SimpleMuser,
+                                                             makeMuser)
+import           ALife.Creatur.Wain.SimpleResponseTweaker   (ResponseTweaker (..))
 import           ALife.Creatur.Wain.SimpleResponseTweakerQC ()
 import           ALife.Creatur.Wain.Statistics              (stats)
-import           ALife.Creatur.Gene.Test                    (TestPattern (..))
-import           ALife.Creatur.Gene.Numeric.UnitInterval    (uiToDouble)
-import           ALife.Creatur.Gene.Numeric.Weights         (makeWeights)
 import           ALife.Creatur.WainInternal
 import           Control.Lens
 import           Control.Monad                              (foldM_)
-import           Control.Monad.Random
-    (evalRand, getRandoms, mkStdGen)
+import           Control.Monad.Random                       (evalRand,
+                                                             getRandoms,
+                                                             mkStdGen)
 
 reward :: Double
 reward = 0.1
@@ -72,8 +73,8 @@ testWain = w'
         wClassifierSize = 10
         wClassifier = buildGeneticSOM ec wClassifierSize TestClassifierTweaker
         (Right wMuser) = makeMuser [0, 0, 0, 0] 3
-        wIos = [doubleToPM1 reward, 0, 0, 0]
-        wRds = [doubleToPM1 reward, 0, 0, 0]
+        wIos = [narrow reward, 0, 0, 0]
+        wRds = [narrow reward, 0, 0, 0]
         wPredictor = buildGeneticSOM ep (wClassifierSize*5) ResponseTweaker
         wHappinessWeights = makeWeights [1, 0, 0, 0]
         ec = LearningParams 0.1 0.0001 1000
@@ -113,7 +114,7 @@ tryOne w (n, p) = do
   let (iReport, wAfterImprint) = imprintResponse ls (correctAnswer p) wainAfterReflection
   mapM_ putStrLn $ prettyResponseImprintReport wAfterImprint iReport
   -- keep the wain's energy constant
-  let restorationEnergy = uiToDouble (view energy w) - uiToDouble (view energy wAfterImprint)
+  let restorationEnergy = wide (view energy w) - wide (view energy wAfterImprint)
   let (wainFinal, _) = adjustEnergy restorationEnergy wAfterImprint
   putStrLn "Final classifier models"
   mapM_ putStrLn $ prettyClassifierModels wainFinal

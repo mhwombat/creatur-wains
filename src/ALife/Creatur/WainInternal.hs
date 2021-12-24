@@ -18,18 +18,28 @@
 {-# LANGUAGE TypeFamilies       #-}
 module ALife.Creatur.WainInternal where
 
-import           ALife.Creatur
-    (Agent, agentId, isAlive)
-import           ALife.Creatur.Database
-    (Record, SizedRecord, key)
+import           ALife.Creatur                              (Agent, agentId,
+                                                             isAlive)
+import           ALife.Creatur.Database                     (Record,
+                                                             SizedRecord, key)
 import qualified ALife.Creatur.Database                     (size)
-import           ALife.Creatur.Genetics.BRGCWord8
-    (DiploidReader, Genetic, Sequence, consumed2, copy, copy2, get,
-    getAndExpress, put, runDiploidReader, write)
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval    as UI
+import           ALife.Creatur.Gene.Numeric.Util            (enforceRange,
+                                                             unitInterval)
+import           ALife.Creatur.Genetics.BRGCWord8           (DiploidReader,
+                                                             Genetic, Sequence,
+                                                             consumed2, copy,
+                                                             copy2, get,
+                                                             getAndExpress, put,
+                                                             runDiploidReader,
+                                                             write)
 import           ALife.Creatur.Genetics.Diploid             (Diploid, express)
-import           ALife.Creatur.Genetics.Recombination
-    (mutatePairedLists, randomCrossover, randomCutAndSplice, randomOneOfPair,
-    repeatWithProbability, withProbability)
+import           ALife.Creatur.Genetics.Recombination       (mutatePairedLists,
+                                                             randomCrossover,
+                                                             randomCutAndSplice,
+                                                             randomOneOfPair,
+                                                             repeatWithProbability,
+                                                             withProbability)
 import qualified ALife.Creatur.Genetics.Reproduction.Sexual as RS
 import qualified ALife.Creatur.Wain.Brain                   as B
 import qualified ALife.Creatur.Wain.Classifier              as Cl
@@ -39,24 +49,20 @@ import qualified ALife.Creatur.Wain.Predictor               as P
 import           ALife.Creatur.Wain.Pretty                  (Pretty, pretty)
 import           ALife.Creatur.Wain.Report                  (Report, report)
 import qualified ALife.Creatur.Wain.Response                as R
-import           ALife.Creatur.Wain.Statistics
-    (Statistical, dStat, iStat, stats)
-import           ALife.Creatur.Gene.Numeric.UnitInterval
-    (UIDouble, doubleToUI, forceDoubleToUI, uiToDouble)
-import           ALife.Creatur.Gene.Numeric.Util
-    (enforceRange, unitInterval)
+import           ALife.Creatur.Wain.Statistics              (Statistical, dStat,
+                                                             iStat, stats)
 import           Control.DeepSeq                            (NFData)
 import           Control.Lens
 import           Control.Monad.Random                       (Rand, RandomGen)
-import           Data.List
-    (intercalate, partition, sortOn)
+import           Data.List                                  (intercalate,
+                                                             partition, sortOn)
 import qualified Data.Map.Strict                            as M
 import           Data.Serialize                             (Serialize)
 import           Data.Version                               (showVersion)
 import           Data.Word                                  (Word16, Word8)
 import           GHC.Generics                               (Generic)
 import           Paths_creatur_wains                        (version)
-import           Text.Printf                     (printf)
+import           Text.Printf                                (printf)
 
 -- | Returns the current version number of this library.
 packageVersion :: String
@@ -86,24 +92,24 @@ data Wain p ct pt m a = Wain
     _brain                  :: B.Brain p ct pt m a,
     -- | The amount of energy the wain will give to offspring at birth.
     --   This is a number between 0 and 1, inclusive.
-    _devotion               :: UIDouble,
+    _devotion               :: UI.UIDouble,
     -- | The age at which this wain will/has left its parent.
     _ageOfMaturity          :: Word16,
     -- | The amount that a wain's passion increases at each CPU turn.
     --   this influences the frequency of mating.
-    _passionDelta           :: UIDouble,
+    _passionDelta           :: UI.UIDouble,
     -- | The amount that a wain's boredom increases at each CPU turn.
     --   this influences the frequency of mating.
-    _boredomDelta           :: UIDouble,
+    _boredomDelta           :: UI.UIDouble,
     -- | The wain's current energy level.
     --   This is a number between 0 and 1, inclusive.
-    _energy                 :: UIDouble,
+    _energy                 :: UI.UIDouble,
     -- | The wain's current passion level
     --   This is a number between 0 and 1, inclusive.
-    _passion                :: UIDouble,
+    _passion                :: UI.UIDouble,
     -- | The wain's current boredom level
     --   This is a number between 0 and 1, inclusive.
-    _boredom                :: UIDouble,
+    _boredom                :: UI.UIDouble,
     -- | The wain's current age.
     _age                    :: Word16,
     -- | The children this wain is currently rearing.
@@ -125,8 +131,8 @@ buildWain
     GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
     R.Response a ~ GSOM.Pattern pt,
     Serialize p, Serialize ct, Serialize pt, Serialize a, Ord a)
-  => String -> p -> B.Brain p ct pt m a -> UIDouble -> Word16
-  -> UIDouble -> UIDouble -> (Sequence, Sequence) -> Wain p ct pt m a
+  => String -> p -> B.Brain p ct pt m a -> UI.UIDouble -> Word16
+  -> UI.UIDouble -> UI.UIDouble -> (Sequence, Sequence) -> Wain p ct pt m a
 buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
   wPassionDelta wBoredomDelta g =
     Wain
@@ -157,8 +163,8 @@ buildWainAndGenerateGenome
     Serialize p, Serialize ct, Serialize pt, Serialize a,
     Eq a, Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
     R.Response a ~ GSOM.Pattern pt, Muser m)
-  => String -> p -> B.Brain p ct pt m a -> UIDouble -> Word16
-  -> UIDouble -> UIDouble -> Wain p ct pt m a
+  => String -> p -> B.Brain p ct pt m a -> UI.UIDouble -> Word16
+  -> UI.UIDouble -> UI.UIDouble -> Wain p ct pt m a
 buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
   wAgeOfMaturity wPassionDelta wBoredomDelta = set genome (g,g) strawMan
   where strawMan = buildWain wName wAppearance wBrain wDevotion
@@ -208,15 +214,15 @@ instance (Eq a, Ord a,
           iStat "maturity" (_ageOfMaturity w),
           dStat "Δp" (_passionDelta w),
           dStat "Δb" (_boredomDelta w),
-          dStat "energy" (uiToDouble e + uiToDouble ec),
+          dStat "energy" (UI.wide e + UI.wide ec),
           dStat "passion" (_passion w),
           dStat "boredom" (_boredom w),
           dStat "happiness" (happiness w),
           iStat "current litter size" (length . _litter $ w),
           iStat "children borne (lifetime)" (_childrenBorneLifetime w),
           iStat "children reared (lifetime)" (_childrenWeanedLifetime w),
-          dStat "adult energy" (uiToDouble e),
-          dStat "child energy" (uiToDouble ec),
+          dStat "adult energy" (UI.wide e),
+          dStat "child energy" (UI.wide ec),
           iStat "genome length" ( (length . fst . _genome $ w)
                                   + (length . snd . _genome $ w) )]
     where e = _energy w
@@ -300,7 +306,7 @@ runEvent' _ _ = undefined
 
 -- | Returns the total energy of all children in the litter.
 childEnergy :: Wain p ct pt m a -> Double
-childEnergy = sum . map (uiToDouble . view energy) . view litter
+childEnergy = sum . map (UI.wide . view energy) . view litter
 
 -- | Returns @True@ if a wain is currently raising children; returns
 --   @False@ otherwise.
@@ -324,7 +330,7 @@ condition w = [ _energy w, 1 - _passion w, 1 - _boredom w,
 
 -- | Returns the wain's current happiness level.
 --   This is a number between 0 and 1, inclusive.
-happiness :: Wain p ct pt m a -> UIDouble
+happiness :: Wain p ct pt m a -> UI.UIDouble
 happiness w = B.happiness (_brain w) (condition w)
 
 --numModels . view B.classifier . view brain $ w
@@ -343,7 +349,7 @@ data DecisionReport p a =
 
 -- | Returns the measure of how novel each input pattern was to the
 --   wain.
-novelties :: DecisionReport p a -> [UIDouble]
+novelties :: DecisionReport p a -> [UI.UIDouble]
 novelties = map GSOM.cNovelty . Cl.cDetails . wdrClassifierReport
 
 -- | Returns the measure of how novel each input pattern was to the
@@ -392,9 +398,9 @@ adjustEnergy
   :: Double -> Wain p ct pt m a -> (Wain p ct pt m a, Double)
 adjustEnergy delta w = (wAfter, delta')
   where eBefore = _energy w
-        eAfter = forceDoubleToUI $ uiToDouble (_energy w) + delta
+        eAfter = UI.crop $ UI.wide (_energy w) + delta
         wAfter = set energy eAfter w
-        delta' = uiToDouble eAfter - uiToDouble eBefore
+        delta' = UI.wide eAfter - UI.wide eBefore
 
 -- | Adjusts the boredom level of a wain.
 --   Note: A wain's boredom is capped to the range [0,1].
@@ -408,9 +414,9 @@ adjustBoredom1
   :: Double -> Wain p ct pt m a -> (Wain p ct pt m a, Double, Double)
 adjustBoredom1 delta w = (wAfter, delta', leftover)
   where bBefore = _boredom w
-        bAfter = forceDoubleToUI $ uiToDouble (_boredom w) + delta
+        bAfter = UI.crop $ UI.wide (_boredom w) + delta
         wAfter = set boredom bAfter w
-        delta' = uiToDouble bAfter - uiToDouble bBefore
+        delta' = UI.wide bAfter - UI.wide bBefore
         leftover = delta - delta'
 
 -- | Adjusts the wain's passion by the genetically-determined amount.
@@ -418,16 +424,16 @@ adjustBoredom1 delta w = (wAfter, delta', leftover)
 --   affected.
 autoAdjustPassion :: Wain p ct pt m a -> Wain p ct pt m a
 autoAdjustPassion w = set passion p w
-  where p = doubleToUI . enforceRange unitInterval $
-              uiToDouble (_passion w) + uiToDouble (_passionDelta w)
+  where p = UI.narrow . enforceRange unitInterval $
+              UI.wide (_passion w) + UI.wide (_passionDelta w)
 
 -- | Adjusts the wain's boredom by the genetically-determined amount.
 --   Note: The boredom is capped to the range [0,1]. The litter is not
 --   affected.
 autoAdjustBoredom :: Wain p ct pt m a -> Wain p ct pt m a
 autoAdjustBoredom w = set boredom p w
-  where p = doubleToUI . enforceRange unitInterval $
-              uiToDouble (_boredom w) + uiToDouble (_boredomDelta w)
+  where p = UI.narrow . enforceRange unitInterval $
+              UI.wide (_boredom w) + UI.wide (_boredomDelta w)
 
 -- | Resets the wain's passion to zero.
 --   This would normally be called immediately after mating.
@@ -570,8 +576,8 @@ donateParentEnergy
      -> (Wain p ct pt m a, Wain p ct pt m a, Wain p ct pt m a,
           Double, Double)
 donateParentEnergy a b c = (a', b', c', aContribution', bContribution')
-  where aContribution = - uiToDouble (_devotion a * _energy a)
-        bContribution = - uiToDouble (_devotion b * _energy b)
+  where aContribution = - UI.wide (_devotion a * _energy a)
+        bContribution = - UI.wide (_devotion b * _energy b)
         (a', aContribution') = adjustEnergy aContribution a
         (b', bContribution') = adjustEnergy bContribution b
         cContribution = -(aContribution' + bContribution')
@@ -710,13 +716,13 @@ report'
 report' w = map (\s -> n ++ ' ':s) xs
   where n = _name w
         xs = [ "appearance: " ++ pretty (_appearance w),
-               "devotion: " ++ printf "%5.3f" (uiToDouble $ _devotion w),
+               "devotion: " ++ printf "%5.3f" (UI.wide $ _devotion w),
                "ageOfMaturity: " ++ printf "%d" (_ageOfMaturity w),
                "passionDelta: " ++ pretty (_passionDelta w),
                "boredomDelta: " ++ pretty (_boredomDelta w),
-               "energy: " ++ printf "%5.3f" (uiToDouble $ _energy w),
-               "passion: " ++ printf "%5.3f" (uiToDouble $ _passion w),
-               "boredom: " ++ printf "%5.3f" (uiToDouble $ _boredom w),
+               "energy: " ++ printf "%5.3f" (UI.wide $ _energy w),
+               "passion: " ++ printf "%5.3f" (UI.wide $ _passion w),
+               "boredom: " ++ printf "%5.3f" (UI.wide $ _boredom w),
                "age: " ++ pretty (_age w),
                "total # children borne: "
                  ++ pretty (_childrenBorneLifetime w),

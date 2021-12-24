@@ -35,20 +35,15 @@ module ALife.Creatur.Wain.Statistics
     popStdDev
   ) where
 
-import           ALife.Creatur.Gene.Test (TestPattern(..))
-import           ALife.Creatur.Gene.Numeric.Weights
-    (Weights, toUIDoubles)
-import           ALife.Creatur.Wain.Pretty
-    (Pretty, pretty)
-import           ALife.Creatur.Wain.Raw
-    (Raw, raw)
-import           Data.List
-    (groupBy, sortOn)
-import           Data.Serialize
-    (Serialize)
+import           ALife.Creatur.Gene.Numeric.UnitInterval (wide)
+import           ALife.Creatur.Gene.Numeric.Weights      (Weights, toUIDoubles)
+import           ALife.Creatur.Gene.Test                 (TestPattern (..))
+import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
+import           ALife.Creatur.Wain.Raw                  (Raw, raw)
+import           Data.List                               (groupBy, sortOn)
+import           Data.Serialize                          (Serialize)
 import           GHC.Generics
-import           Prelude                   hiding
-    (lookup)
+import           Prelude                                 hiding (lookup)
 
 -- | A value for calculating statistics with.
 data Statistic = DStatistic {sName :: String, sVal :: Double}
@@ -124,7 +119,7 @@ instance Statistical TestPattern where
   stats (TestPattern x) = [iStat "" x]
 
 instance Statistical Weights where
-  stats = dStats "" . toUIDoubles
+  stats = dStats "" . map wide . toUIDoubles
 
 kvToDStats :: (Show k, Real v) => [(k, v)] -> [Statistic]
 kvToDStats = map f

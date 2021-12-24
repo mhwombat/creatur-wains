@@ -25,25 +25,25 @@ module ALife.Creatur.Wain.GeneticSOMQC
     equivGSOM
   ) where
 
-import qualified ALife.Creatur.Genetics.BRGCWord8      as W8
-import           ALife.Creatur.Genetics.Diploid        (Diploid, express)
-import           ALife.Creatur.Wain.GeneticSOMInternal
-import qualified ALife.Creatur.Gene.Test               as GT
 import           ALife.Creatur.Gene.Numeric.UnitInterval ()
-import           Control.DeepSeq                       (NFData, deepseq)
+import qualified ALife.Creatur.Gene.Test                 as GT
+import qualified ALife.Creatur.Genetics.BRGCWord8        as W8
+import           ALife.Creatur.Genetics.Diploid          (Diploid, express)
+import           ALife.Creatur.Wain.GeneticSOMInternal
+import           Control.DeepSeq                         (NFData, deepseq)
 import           Control.Lens
-import           Control.Monad.Random                  (evalRand, runRand)
-import           Data.Datamining.Clustering.SGM4       (toMap, trainBatch)
-import           Data.Map.Strict                       (keys, (!))
-import           Data.Serialize                        (Serialize)
-import           Data.Word                             (Word64, Word8)
-import           GHC.Generics                          (Generic)
-import           System.Random                         (mkStdGen)
-import           Test.Framework                        (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2  (testProperty)
-import           Test.QuickCheck                       hiding
-    (classify, maxSize)
-import           Test.QuickCheck.Gen                   (Gen (MkGen))
+import           Control.Monad.Random                    (evalRand, runRand)
+import           Data.Datamining.Clustering.SGM4         (toMap, trainBatch)
+import           Data.Map.Strict                         (keys, (!))
+import           Data.Serialize                          (Serialize)
+import           Data.Word                               (Word64, Word8)
+import           GHC.Generics                            (Generic)
+import           System.Random                           (mkStdGen)
+import           Test.Framework                          (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2    (testProperty)
+import           Test.QuickCheck                         hiding (classify,
+                                                          maxSize)
+import           Test.QuickCheck.Gen                     (Gen (MkGen))
 
 instance Arbitrary LearningParams where
   arbitrary = do
@@ -60,23 +60,23 @@ prop_random_learning_rate_always_in_range f t = t >= 0 ==> deepseq r True
   where r = toLearningFunction f t
 
 prop_express_learningFunction_valid
-  :: LearningParams -> LearningParams -> Property
+  :: LearningParams -> LearningParams -> Bool
 prop_express_learningFunction_valid a b
-  = property . validLearningParams $ express a b
+  = validLearningParams $ express a b
 
 prop_diploid_learningFunction_valid
-  :: LearningParams -> LearningParams -> Property
-prop_diploid_learningFunction_valid a b = property . validLearningParams $ c
+  :: LearningParams -> LearningParams -> Bool
+prop_diploid_learningFunction_valid a b = validLearningParams $ c
   where g1 = W8.write a
         g2 = W8.write b
         Right c = W8.runDiploidReader W8.getAndExpress (g1, g2)
 
-prop_learningFunction_valid :: LearningParams -> Property
-prop_learningFunction_valid f = property $ validLearningParams f
+prop_learningFunction_valid :: LearningParams -> Bool
+prop_learningFunction_valid f = validLearningParams f
 
 prop_learningFunction_always_valid
-  :: LearningParams -> Word64 -> Property
-prop_learningFunction_always_valid f t = property $ r >= 0 && r <= 1
+  :: LearningParams -> Word64 -> Bool
+prop_learningFunction_always_valid f t = r >= 0 && r <= 1
   where r = toLearningFunction f t
 
 instance Arbitrary LearningParamRanges where
@@ -91,16 +91,15 @@ instance Arbitrary LearningParamRanges where
                (tfstart,tfstop)
 
 prop_random_learningFunction_valid
-  :: Int -> LearningParamRanges -> Property
-prop_random_learningFunction_valid seed params
-  = property $ validLearningParams f
+  :: Int -> LearningParamRanges -> Bool
+prop_random_learningFunction_valid seed params = validLearningParams f
   where g = mkStdGen seed
         f = evalRand (randomLearningParams params) g
 
 prop_random_express_learningFunction_valid
-  :: Int -> LearningParamRanges -> LearningParamRanges -> Property
+  :: Int -> LearningParamRanges -> LearningParamRanges -> Bool
 prop_random_express_learningFunction_valid seed p1 p2
-  = property . validLearningParams $ express a b
+  = validLearningParams $ express a b
   where g = mkStdGen seed
         (a, g') = runRand (randomLearningParams p1) g
         b = evalRand (randomLearningParams p2) g'
@@ -153,20 +152,17 @@ equivGSOM x y =
 prop_classify_never_causes_error_unless_empty
   :: TestGSOM -> GT.TestPattern -> Property
 prop_classify_never_causes_error_unless_empty s p
-  = not (isEmpty s) ==> property $ deepseq x True
+  = not (isEmpty s) ==> deepseq x True
   where x = classify s p
 
-prop_train_never_causes_error :: TestGSOM -> GT.TestPattern -> Property
-prop_train_never_causes_error s p
-  = property $ deepseq (trainAndClassify s p) True
+prop_train_never_causes_error :: TestGSOM -> GT.TestPattern -> Bool
+prop_train_never_causes_error s p = deepseq (trainAndClassify s p) True
 
-prop_imprint_never_causes_error :: TestGSOM -> Label -> GT.TestPattern -> Property
-prop_imprint_never_causes_error s l p
-  = property $ deepseq (imprint s l p) True
+prop_imprint_never_causes_error :: TestGSOM -> Label -> GT.TestPattern -> Bool
+prop_imprint_never_causes_error s l p = deepseq (imprint s l p) True
 
-prop_novelty_btw_0_and_1 :: GT.TestPattern -> TestGSOM -> Property
-prop_novelty_btw_0_and_1 p s
-  = property $ 0 <= novelty && novelty <= 1
+prop_novelty_btw_0_and_1 :: GT.TestPattern -> TestGSOM -> Bool
+prop_novelty_btw_0_and_1 p s = 0 <= novelty && novelty <= 1
     where (r, _) = trainAndClassify s p
           novelty = cNovelty r
 
@@ -178,24 +174,23 @@ prop_familiar_patterns_have_min_novelty k s
           p = modelMap s ! l
           novelty = cNovelty $ classify s p
 
--- prop_new_patterns_have_max_novelty :: LearningParams -> Property
--- prop_new_patterns_have_max_novelty e = property $ novelty == 1
+-- prop_new_patterns_have_max_novelty :: LearningParams -> Bool
+-- prop_new_patterns_have_max_novelty e = novelty == 1
 --     where s = buildGeneticSOM e 10 (TestTweaker 0)
 --           novelty = cNovelty $ classify s (GT.TestPattern 0)
 
 -- -- The constraint is needed because the novelty won't decrease if the
 -- -- model is already close to the input pattern and the learning rate
 -- -- isn't high enough.
--- prop_novelty_decreases :: GT.TestPattern -> TestGSOM -> Property
+-- prop_novelty_decreases :: GT.TestPattern -> TestGSOM -> Bool
 -- prop_novelty_decreases p s
 --   = novelty1 > 0.004 ==> novelty2 <= novelty1
 --     where (r1, s') = trainAndClassify s p
 --           novelty1 = cNovelty r1
 --           novelty2 = cNovelty $ classify s' p
 
-prop_novelty_never_increases :: GT.TestPattern -> TestGSOM -> Property
-prop_novelty_never_increases p s
-  = property $ novelty2 <= novelty1
+prop_novelty_never_increases :: GT.TestPattern -> TestGSOM -> Bool
+prop_novelty_never_increases p s = novelty2 <= novelty1
     where (r1, s') = trainAndClassify s p
           novelty1 = cNovelty r1
           novelty2 = cNovelty $ classify s' p
@@ -204,8 +199,8 @@ prop_novelty_never_increases p s
 --   value so that after training they become identical.
 --   If it does fail, just run it again.
 prop_classification_is_consistent
-  :: TestGSOM -> GT.TestPattern -> Property
-prop_classification_is_consistent s p = property $ bmu == bmu'
+  :: TestGSOM -> GT.TestPattern -> Bool
+prop_classification_is_consistent s p = bmu == bmu'
   where (r, s') = trainAndClassify s p
         bmu = cBmu r
         bmu' = cBmu $ classify s' p
@@ -214,38 +209,38 @@ test :: Test
 test = testGroup "ALife.Creatur.Wain.GeneticSOMQC"
   [
     testProperty "prop_serialize_round_trippable - LearningParams"
-      (GT.prop_serialize_round_trippable :: LearningParams -> Property),
+      (GT.prop_serialize_round_trippable :: LearningParams -> Bool),
     testProperty "prop_genetic_round_trippable - LearningParams"
-      (GT.prop_genetic_round_trippable (==) :: LearningParams -> Property),
+      (GT.prop_genetic_round_trippable (==) :: LearningParams -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - LearningParams"
     --   (prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> LearningParams -> Property),
+    --    :: Int -> [Word8] -> LearningParams -> Bool),
     testProperty "prop_diploid_identity - LearningParams"
-      (GT.prop_diploid_identity (==) :: LearningParams -> Property),
+      (GT.prop_diploid_identity (==) :: LearningParams -> Bool),
     testProperty "prop_show_read_round_trippable - LearningParams"
-      (GT.prop_show_read_round_trippable (==) :: LearningParams -> Property),
+      (GT.prop_show_read_round_trippable (==) :: LearningParams -> Bool),
     testProperty "prop_diploid_expressable - LearningParams"
       (GT.prop_diploid_expressable
-       :: LearningParams -> LearningParams -> Property),
+       :: LearningParams -> LearningParams -> Bool),
     testProperty "prop_diploid_readable - LearningParams"
       (GT.prop_diploid_readable
-       :: LearningParams -> LearningParams -> Property),
+       :: LearningParams -> LearningParams -> Bool),
 
     testProperty "prop_serialize_round_trippable - TestGSOM"
-      (GT.prop_serialize_round_trippable :: TestGSOM -> Property),
+      (GT.prop_serialize_round_trippable :: TestGSOM -> Bool),
     testProperty "prop_genetic_round_trippable - TestGSOM"
-      (GT.prop_genetic_round_trippable equivGSOM :: TestGSOM -> Property),
+      (GT.prop_genetic_round_trippable equivGSOM :: TestGSOM -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - TestGSOM"
     --   (prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> TestGSOM -> Property),
+    --    :: Int -> [Word8] -> TestGSOM -> Bool),
     testProperty "prop_diploid_identity - TestGSOM"
-      (GT.prop_diploid_identity equivGSOM :: TestGSOM -> Property),
+      (GT.prop_diploid_identity equivGSOM :: TestGSOM -> Bool),
     -- testProperty "prop_show_read_round_trippable - TestGSOM"
-    --   (prop_show_read_round_trippable (==) :: TestGSOM -> Property),
+    --   (prop_show_read_round_trippable (==) :: TestGSOM -> Bool),
     testProperty "prop_diploid_expressable - TestGSOM"
-      (GT.prop_diploid_expressable :: TestGSOM -> TestGSOM -> Property),
+      (GT.prop_diploid_expressable :: TestGSOM -> TestGSOM -> Bool),
     testProperty "prop_diploid_readable - TestGSOM"
-      (GT.prop_diploid_readable :: TestGSOM -> TestGSOM -> Property),
+      (GT.prop_diploid_readable :: TestGSOM -> TestGSOM -> Bool),
 
     testProperty "prop_random_learning_rate_always_in_range"
       prop_random_learning_rate_always_in_range,

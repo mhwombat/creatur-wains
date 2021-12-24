@@ -25,23 +25,23 @@ module ALife.Creatur.Wain.BrainQC
     sizedArbImprintTestData
   ) where
 
+import           ALife.Creatur.Gene.Numeric.PlusMinusOne  (PM1Double)
+import           ALife.Creatur.Gene.Numeric.Weights       (makeWeights)
 import qualified ALife.Creatur.Gene.Test                  as GT
 import           ALife.Creatur.Wain.BrainInternal
 import qualified ALife.Creatur.Wain.Classifier            as Cl
 import qualified ALife.Creatur.Wain.ClassifierQC          as CQC
-import           ALife.Creatur.Wain.GeneticSOMQC
-    (equivGSOM, sizedArbGeneticSOM)
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne          (PM1Double)
+import           ALife.Creatur.Wain.GeneticSOMQC          (equivGSOM,
+                                                           sizedArbGeneticSOM)
 import qualified ALife.Creatur.Wain.Predictor             as P
 import qualified ALife.Creatur.Wain.PredictorQC           as PQC
 import           ALife.Creatur.Wain.Response              (Response (..))
-import           ALife.Creatur.Wain.ResponseQC
-    (TestAction, TestResponse)
-import           ALife.Creatur.Wain.SimpleMuser
-    (SimpleMuser, makeMuser)
-import           ALife.Creatur.Wain.SimpleResponseTweaker
-    (ResponseTweaker (..), responseDiff)
-import           ALife.Creatur.Gene.Numeric.Weights               (makeWeights)
+import           ALife.Creatur.Wain.ResponseQC            (TestAction,
+                                                           TestResponse)
+import           ALife.Creatur.Wain.SimpleMuser           (SimpleMuser,
+                                                           makeMuser)
+import           ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker (..),
+                                                           responseDiff)
 import           Control.DeepSeq                          (deepseq)
 import           Test.Framework                           (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2     (testProperty)
@@ -142,17 +142,17 @@ instance Arbitrary ChoosingTestData where
   arbitrary = sized sizedArbChoosingTestData
 
 -- prop_chooseAction_doesnt_add_predictor_models
---   :: ChoosingTestData -> Property
+--   :: ChoosingTestData -> Bool
 -- prop_chooseAction_doesnt_add_predictor_models (ChoosingTestData b ps c)
---   = property $ n' == n
+--   = n' == n
 --   where n = numModels . _predictor $ b
 --         (_, b') = chooseAction b ps c
 --         n' = numModels . _predictor $ b'
 
 prop_chooseAction_never_causes_error
-  :: ChoosingTestData -> Property
+  :: ChoosingTestData -> Bool
 prop_chooseAction_never_causes_error (ChoosingTestData b ps c)
-  = property $ deepseq x True
+  = deepseq x True
   where x = chooseAction b ps c
 
 data ReflectionTestData
@@ -181,10 +181,10 @@ instance Arbitrary ReflectionTestData where
   arbitrary = sized sizedArbReflectionTestData
 
 prop_reflect_makes_predictions_more_accurate
-  :: ReflectionTestData -> Property
+  :: ReflectionTestData -> Bool
 prop_reflect_makes_predictions_more_accurate
   (ReflectionTestData b r cBefore cAfter)
-    = property $ errAfter <= errBefore
+    = errAfter <= errBefore
   where (report:_) = predictAll b . zip [r] $ repeat 1
         r2 = P.pResponse report
         (report2, b2) = reflect b r2 cBefore cAfter
@@ -195,16 +195,15 @@ prop_reflect_makes_predictions_more_accurate
         errAfter = brrErr report4
 
 prop_reflect_error_in_range
-  :: TestBrain -> TestResponse -> Condition -> Condition -> Property
-prop_reflect_error_in_range b r cBefore cAfter
-  = property $ -2 <= x && x <= 2
+  :: TestBrain -> TestResponse -> Condition -> Condition -> Bool
+prop_reflect_error_in_range b r cBefore cAfter = -2 <= x && x <= 2
   where (report, _) = reflect b r cBefore cAfter
         x = brrErr report
 
 prop_reflect_never_causes_error
-  :: ReflectionTestData -> Property
+  :: ReflectionTestData -> Bool
 prop_reflect_never_causes_error (ReflectionTestData b r cBefore cAfter)
-  = property $ deepseq x True
+  = deepseq x True
   where x = reflect b r cBefore cAfter
 
 -- data AFewPatterns = AFewPatterns [GT.TestPattern]
@@ -244,24 +243,24 @@ instance Show ImprintTestData where
       ++ show a ++ " " ++ show os ++ " " ++ show ls
 
 prop_imprintStimulus_never_causes_error
-  :: ImprintTestData -> Property
+  :: ImprintTestData -> Bool
 prop_imprintStimulus_never_causes_error (ImprintTestData b ps _ _ ls)
-  = property $ deepseq (imprintStimulus b lps) True
+  = deepseq (imprintStimulus b lps) True
   where lps = zip ls ps
 
 prop_imprintResponse_never_causes_error
-  :: ImprintTestData -> Property
+  :: ImprintTestData -> Bool
 prop_imprintResponse_never_causes_error (ImprintTestData b ps a _ _)
-  = property $ deepseq x True
+  = deepseq x True
   where (report1, bClassified) = classifyInputs b ps
         ls = Cl.bmus report1
         x = imprintResponse bClassified ls a
 
 prop_imprint_makes_predictions_more_accurate
-  :: ImprintTestData -> Property
+  :: ImprintTestData -> Bool
 prop_imprint_makes_predictions_more_accurate
   (ImprintTestData b ps a os _)
-    = property $ diffAfter <= diffBefore
+    = diffAfter <= diffBefore
   where (report1, bClassified) = classifyInputs b ps
         ls = Cl.bmus report1
         r = Response ls a os
@@ -274,34 +273,34 @@ prop_imprint_makes_predictions_more_accurate
         diffAfter = responseDiff rAfter r
 
 -- prop_prettyScenarioReport_never_causes_error
---   :: ChoosingTestData -> Property
+--   :: ChoosingTestData -> Bool
 -- prop_prettyScenarioReport_never_causes_error
 --   (ChoosingTestData b ps c)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, _) = chooseAction b ps c
 --         x' = prettyScenarioReport $ bdrScenarioReport x
 
 -- prop_prettyActionReport_never_causes_error
---   :: ChoosingTestData -> Property
+--   :: ChoosingTestData -> Bool
 -- prop_prettyActionReport_never_causes_error
 --   (ChoosingTestData b ps c)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, _) = chooseAction b ps c
 --         x' = prettyActionReport $ bdrActionReport x
 
 -- prop_prettyReflectionReport_never_causes_error
---   :: ReflectionTestData -> Property
+--   :: ReflectionTestData -> Bool
 -- prop_prettyReflectionReport_never_causes_error
 --   (ReflectionTestData b r cBefore cAfter)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, _) = reflect b r cBefore cAfter
 --         x' = prettyReflectionReport x
 
 -- prop_prettyImprintReport_never_causes_error
---   :: ImprintTestData -> Property
+--   :: ImprintTestData -> Bool
 -- prop_prettyImprintReport_never_causes_error
 --   (ImprintTestData b ps a _)
---   = property $ deepseq x' True
+--   = deepseq x' True
 --   where (x, _) = imprint b ps a
 --         x' = prettyImprintReport x
 
@@ -309,20 +308,20 @@ test :: Test
 test = testGroup "ALife.Creatur.Wain.BrainQC"
   [
     testProperty "prop_serialize_round_trippable - Brain"
-      (GT.prop_serialize_round_trippable :: TestBrain -> Property),
+      (GT.prop_serialize_round_trippable :: TestBrain -> Bool),
     testProperty "prop_genetic_round_trippable - Brain"
-      (GT.prop_genetic_round_trippable equivBrain :: TestBrain -> Property),
+      (GT.prop_genetic_round_trippable equivBrain :: TestBrain -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - Brain"
     --   (GT.prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> TestBrain -> Property),
+    --    :: Int -> [Word8] -> TestBrain -> Bool),
     testProperty "prop_diploid_identity - Brain"
-      (GT.prop_diploid_identity equivBrain :: TestBrain -> Property),
+      (GT.prop_diploid_identity equivBrain :: TestBrain -> Bool),
     -- testProperty "prop_show_read_round_trippable - Brain"
-    --   (GT.prop_show_read_round_trippable (==) :: TestBrain -> Property),
+    --   (GT.prop_show_read_round_trippable (==) :: TestBrain -> Bool),
     testProperty "prop_diploid_expressable - Brain"
-      (GT.prop_diploid_expressable :: TestBrain -> TestBrain -> Property),
+      (GT.prop_diploid_expressable :: TestBrain -> TestBrain -> Bool),
     testProperty "prop_diploid_readable - Brain"
-      (GT.prop_diploid_readable :: TestBrain -> TestBrain -> Property),
+      (GT.prop_diploid_readable :: TestBrain -> TestBrain -> Bool),
     -- testProperty "prop_chooseAction_doesnt_add_predictor_models"
     --   prop_chooseAction_doesnt_add_predictor_models,
     testProperty "prop_chooseAction_never_causes_error"

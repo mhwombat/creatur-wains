@@ -20,23 +20,18 @@ module ALife.Creatur.Wain.SimpleResponseTweaker
     makeResponseSimilar
   ) where
 
-import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import           ALife.Creatur.Genetics.Diploid
-    (Diploid)
-import           ALife.Creatur.Wain.GeneticSOM
-    (Difference, Tweaker (..))
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne
-    (adjustPM1Vector)
-import           ALife.Creatur.Wain.Response
-    (Response (..), labelSimilarity)
-import           ALife.Creatur.Gene.Numeric.UnitInterval
-    (UIDouble)
-import           Control.DeepSeq
-    (NFData)
-import           Data.Serialize
-    (Serialize)
-import           GHC.Generics
-    (Generic)
+import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
+import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble)
+import qualified ALife.Creatur.Genetics.BRGCWord8        as W8
+import           ALife.Creatur.Genetics.Diploid          (Diploid)
+import           ALife.Creatur.Wain.GeneticSOM           (Difference,
+                                                          Tweaker (..))
+import           ALife.Creatur.Wain.Response             (Response (..),
+                                                          labelSimilarity)
+import           Control.DeepSeq                         (NFData)
+import qualified Data.Datamining.Pattern.List            as L
+import           Data.Serialize                          (Serialize)
+import           GHC.Generics                            (Generic)
 
 -- | @'ResponseTweaker'@ constructs an object which is
 --   responsible for comparing and adjusting response patterns.
@@ -81,4 +76,4 @@ makeResponseSimilar target r x =
        else x
     where s = _labels x -- never change this
           a = _action x -- never change this
-          o = adjustPM1Vector (_outcomes target) r (_outcomes x)
+          o = L.makeSimilar PM1.makeSimilar (_outcomes target) r (_outcomes x)
