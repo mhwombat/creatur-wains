@@ -75,7 +75,6 @@ data Event p = IncAge
              --   so the actual change in energy may be less than
              --   the specified amount.
              | EnergyAdjustment Double String
-             | BoredomAdjustment Double String
              | ChooseAction [p]
              deriving (Eq, Show, Read, Generic, NFData, Serialize)
 
@@ -98,18 +97,12 @@ data Wain p ct pt m a = Wain
     -- | The amount that a wain's passion increases at each CPU turn.
     --   this influences the frequency of mating.
     _passionDelta           :: UI.UIDouble,
-    -- | The amount that a wain's boredom increases at each CPU turn.
-    --   this influences the frequency of mating.
-    _boredomDelta           :: UI.UIDouble,
     -- | The wain's current energy level.
     --   This is a number between 0 and 1, inclusive.
     _energy                 :: UI.UIDouble,
     -- | The wain's current passion level
     --   This is a number between 0 and 1, inclusive.
     _passion                :: UI.UIDouble,
-    -- | The wain's current boredom level
-    --   This is a number between 0 and 1, inclusive.
-    _boredom                :: UI.UIDouble,
     -- | The wain's current age.
     _age                    :: Word16,
     -- | The children this wain is currently rearing.
@@ -132,9 +125,9 @@ buildWain
     R.Response a ~ GSOM.Pattern pt,
     Serialize p, Serialize ct, Serialize pt, Serialize a, Ord a)
   => String -> p -> B.Brain p ct pt m a -> UI.UIDouble -> Word16
-  -> UI.UIDouble -> UI.UIDouble -> (Sequence, Sequence) -> Wain p ct pt m a
+  -> UI.UIDouble -> (Sequence, Sequence) -> Wain p ct pt m a
 buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
-  wPassionDelta wBoredomDelta g =
+  wPassionDelta g =
     Wain
       {
         _name = wName,
@@ -143,10 +136,8 @@ buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
         _devotion = wDevotion,
         _ageOfMaturity = wAgeOfMaturity,
         _passionDelta = wPassionDelta,
-        _boredomDelta = wBoredomDelta,
         _energy = 0,
         _passion = 1,
-        _boredom = 1,
         _age = 0,
         _litter = [],
         _childrenBorneLifetime = 0,
@@ -164,11 +155,11 @@ buildWainAndGenerateGenome
     Eq a, Ord a, GSOM.Tweaker ct, GSOM.Tweaker pt, p ~ GSOM.Pattern ct,
     R.Response a ~ GSOM.Pattern pt, Muser m)
   => String -> p -> B.Brain p ct pt m a -> UI.UIDouble -> Word16
-  -> UI.UIDouble -> UI.UIDouble -> Wain p ct pt m a
+  -> UI.UIDouble -> Wain p ct pt m a
 buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
-  wAgeOfMaturity wPassionDelta wBoredomDelta = set genome (g,g) strawMan
+  wAgeOfMaturity wPassionDelta = set genome (g,g) strawMan
   where strawMan = buildWain wName wAppearance wBrain wDevotion
-                     wAgeOfMaturity wPassionDelta wBoredomDelta ([], [])
+                     wAgeOfMaturity wPassionDelta ([], [])
         g = write strawMan
 
 -- | Constructs a wain from its genome. This is used when a child is
@@ -187,11 +178,9 @@ buildWainFromGenome truncateGenome wName = do
   wDevotion <- getAndExpress
   wAgeOfMaturity <- getAndExpress
   wPassionDelta <- getAndExpress
-  wBoredomDelta <- getAndExpress
   g <- if truncateGenome then consumed2 else copy2
   return $ buildWain wName <$> wAppearance <*> wBrain <*> wDevotion
-             <*> wAgeOfMaturity <*> wPassionDelta <*> wBoredomDelta
-             <*> pure g
+             <*> wAgeOfMaturity <*> wPassionDelta <*> pure g
 
 deriving instance (Show p, Show ct, Show pt, Show m, Show a, Eq a)
     => Show (Wain p ct pt m a)
@@ -213,10 +202,8 @@ instance (Eq a, Ord a,
       ++ [dStat "devotion" (_devotion w),
           iStat "maturity" (_ageOfMaturity w),
           dStat "Δp" (_passionDelta w),
-          dStat "Δb" (_boredomDelta w),
           dStat "energy" (UI.wide e + UI.wide ec),
           dStat "passion" (_passion w),
-          dStat "boredom" (_boredom w),
           dStat "happiness" (happiness w),
           iStat "current litter size" (length . _litter $ w),
           iStat "children borne (lifetime)" (_childrenBorneLifetime w),
@@ -245,7 +232,6 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
             >> put (_devotion w)
             >> put (_ageOfMaturity w)
             >> put (_passionDelta w)
-            >> put (_boredomDelta w)
   get = do
     g <- copy
     wAppearance <- get
@@ -253,10 +239,8 @@ instance (Genetic p, Genetic ct, Genetic pt, Genetic m, Genetic a,
     wDevotion <- get
     wAgeOfMaturity <- get
     wPassionDelta <- get
-    wBoredomDelta <- get
     return $ buildWain "" <$> wAppearance <*> wBrain <*> wDevotion
-             <*> wAgeOfMaturity <*> wPassionDelta <*> wBoredomDelta
-               <*> pure (g, g)
+             <*> wAgeOfMaturity <*> wPassionDelta <*> pure (g, g)
 
 -- This implementation is useful for testing
 instance (Diploid p, Diploid ct, Diploid pt, Diploid m, Diploid a,
@@ -265,14 +249,13 @@ instance (Diploid p, Diploid ct, Diploid pt, Diploid m, Diploid a,
       GSOM.Tweaker pt, p ~ GSOM.Pattern ct, R.Response a ~ GSOM.Pattern pt)
         => Diploid (Wain p ct pt m a) where
   express x y = buildWain "" wAppearance wBrain wDevotion
-                  wAgeOfMaturity wPassionDelta wBoredomDelta ([],[])
+                  wAgeOfMaturity wPassionDelta ([],[])
     where wAppearance     = express (_appearance x)    (_appearance y)
           wBrain          = express (_brain x)         (_brain y)
           wDevotion       = express (_devotion x)      (_devotion y)
           wAgeOfMaturity  = express (_ageOfMaturity x)
                                                       (_ageOfMaturity y)
           wPassionDelta   = express (_passionDelta x)  (_passionDelta y)
-          wBoredomDelta   = express (_boredomDelta x)  (_boredomDelta y)
 
 instance Agent (Wain p ct pt m a) where
   agentId = view name
@@ -324,8 +307,7 @@ mature a = _age a >= _ageOfMaturity a
 -- | Returns the wain's current condition. This is useful for making
 --   decisions.
 condition :: Wain p ct pt m a -> B.Condition
-condition w = [ _energy w, 1 - _passion w, 1 - _boredom w,
-                if l > 0 then 1 else 0 ]
+condition w = [ _energy w, 1 - _passion w, if l > 0 then 1 else 0 ]
   where l = length . _litter $ w
 
 -- | Returns the wain's current happiness level.
@@ -402,23 +384,6 @@ adjustEnergy delta w = (wAfter, delta')
         wAfter = set energy eAfter w
         delta' = UI.wide eAfter - UI.wide eBefore
 
--- | Adjusts the boredom level of a wain.
---   Note: A wain's boredom is capped to the range [0,1].
-adjustBoredom
-  :: Double -> Wain p ct pt m a -> (Wain p ct pt m a, Double)
-adjustBoredom delta w = (w', delta')
-  where (w', delta', _) = adjustBoredom1 delta w
-
--- | Internal method
-adjustBoredom1
-  :: Double -> Wain p ct pt m a -> (Wain p ct pt m a, Double, Double)
-adjustBoredom1 delta w = (wAfter, delta', leftover)
-  where bBefore = _boredom w
-        bAfter = UI.crop $ UI.wide (_boredom w) + delta
-        wAfter = set boredom bAfter w
-        delta' = UI.wide bAfter - UI.wide bBefore
-        leftover = delta - delta'
-
 -- | Adjusts the wain's passion by the genetically-determined amount.
 --   NOTE: The passion is capped to the range [0,1]. The litter is not
 --   affected.
@@ -426,14 +391,6 @@ autoAdjustPassion :: Wain p ct pt m a -> Wain p ct pt m a
 autoAdjustPassion w = set passion p w
   where p = UI.narrow . enforceRange unitInterval $
               UI.wide (_passion w) + UI.wide (_passionDelta w)
-
--- | Adjusts the wain's boredom by the genetically-determined amount.
---   Note: The boredom is capped to the range [0,1]. The litter is not
---   affected.
-autoAdjustBoredom :: Wain p ct pt m a -> Wain p ct pt m a
-autoAdjustBoredom w = set boredom p w
-  where p = UI.narrow . enforceRange unitInterval $
-              UI.wide (_boredom w) + UI.wide (_boredomDelta w)
 
 -- | Resets the wain's passion to zero.
 --   This would normally be called immediately after mating.
@@ -719,10 +676,8 @@ report' w = map (\s -> n ++ ' ':s) xs
                "devotion: " ++ printf "%5.3f" (UI.wide $ _devotion w),
                "ageOfMaturity: " ++ printf "%d" (_ageOfMaturity w),
                "passionDelta: " ++ pretty (_passionDelta w),
-               "boredomDelta: " ++ pretty (_boredomDelta w),
                "energy: " ++ printf "%5.3f" (UI.wide $ _energy w),
                "passion: " ++ printf "%5.3f" (UI.wide $ _passion w),
-               "boredom: " ++ printf "%5.3f" (UI.wide $ _boredom w),
                "age: " ++ pretty (_age w),
                "total # children borne: "
                  ++ pretty (_childrenBorneLifetime w),

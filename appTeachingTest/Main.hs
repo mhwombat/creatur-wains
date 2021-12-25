@@ -85,21 +85,20 @@ testWain = w'
         wDevotion = 0.1
         wAgeOfMaturity = 100
         wPassionDelta = 0
-        wBoredomDelta = 0
         wClassifierSize = 5
         wClassifier = buildGeneticSOM ec wClassifierSize TestClassifierTweaker
-        (Right wMuser) = makeMuser [0, 0, 0, 0] 1
-        wIos = [narrow reward, 0, 0, 0]
-        wRds = [narrow reward, 0, 0, 0]
+        (Right wMuser) = makeMuser [0, 0, 0] 1
+        wIos = [narrow reward, 0, 0]
+        wRds = [narrow reward, 0, 0]
         wPredictor = buildGeneticSOM ep (wClassifierSize*5) ResponseTweaker
-        wHappinessWeights = makeWeights [1, 0, 0, 0]
+        wHappinessWeights = makeWeights [1, 0, 0]
         ec = LearningParams 0.1 0.0001 1000
         -- This wain will be taught the correct actions up front.
         -- After storing those initial action models, it doesn't need to
         -- learn anything.
         ep = LearningParams 0.1 0.0001 1000
         w = buildWainAndGenerateGenome wName wAppearance wBrain
-              wDevotion wAgeOfMaturity wPassionDelta wBoredomDelta
+              wDevotion wAgeOfMaturity wPassionDelta
         (w', _) = adjustEnergy 0.5 w
 
 tryOne :: TestWain -> (Int, TestPattern) -> IO TestWain

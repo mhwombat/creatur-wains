@@ -98,13 +98,13 @@ makeBrain
 makeBrain c m p hw t x ios rds
   | x < 1
       = Left ["strictness < 1"]
-  | numWeights hw /= 4
+  | numWeights hw /= 3
       = Left ["incorrect number of happiness weights"]
-  | length (M.defaultOutcomes m) /= 4
+  | length (M.defaultOutcomes m) /= 3
       = Left ["incorrect number of default outcomes"]
-  | length ios /= 4
+  | length ios /= 3
       = Left ["incorrect number of imprint outcomes"]
-  | length rds /= 4
+  | length rds /= 3
       = Left ["incorrect number of reinforcement deltas"]
   | otherwise
       = Right $ Brain c m p hw t x ios rds M.empty
@@ -125,8 +125,8 @@ instance (Eq a, Ord a,
           Statistical [(GSOM.Label, Response a)])
     => Statistical (Brain p ct pt m a) where
   stats b@(Brain c m p hw t s ios rds _)
-    | length ios < 4 = error "ios not long enough"
-    | length rds < 4 = error "rds not long enough"
+    | length ios < 3 = error "ios not long enough"
+    | length rds < 3 = error "rds not long enough"
     | otherwise =
       map (prefix "classifier ") (stats c)
         ++ stats m
@@ -134,16 +134,13 @@ instance (Eq a, Ord a,
         ++ [ iStat "DQ" $ decisionQuality b,
              dStat "energyWeight" . UI.wide $ hw `weightAt` 0,
              dStat "passionWeight" . UI.wide $ hw `weightAt` 1,
-             dStat "boredomWeight" . UI.wide $ hw `weightAt` 2,
-             dStat "litterSizeWeight" . UI.wide $ hw `weightAt` 3,
+             dStat "litterSizeWeight" . UI.wide $ hw `weightAt` 2,
              dStat "energyImprint" . PM1.wide $ head ios,
              dStat "passionImprint" . PM1.wide $ ios !! 1,
-             dStat "boredomImprint" . PM1.wide $ ios !! 2,
-             dStat "litterSizeImprint" . PM1.wide $ ios !! 3,
+             dStat "litterSizeImprint" . PM1.wide $ ios !! 2,
              dStat "energyReinforcement" . PM1.wide $ head rds,
              dStat "passionReinforcement" . PM1.wide $ rds !! 1,
-             dStat "boredomReinforcement" . PM1.wide $ rds !! 2,
-             dStat "litterSizeReinforcement" . PM1.wide $ rds !! 3,
+             dStat "litterSizeReinforcement" . PM1.wide $ rds !! 2,
              iStat "tiebreaker" t, iStat "strictness" s ]
 
 instance (Show p, Show a, Show ct, Show pt, Show m, Eq a)

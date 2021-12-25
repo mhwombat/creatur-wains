@@ -32,7 +32,7 @@ import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
                                                           iStat, stats)
 import           Control.DeepSeq                         (NFData)
 import           Control.Lens
-import           Data.List                               (nub, sortOn)
+import           Data.List                               (sortOn)
 import           Data.Ord                                (Down (..))
 import           Data.Serialize                          (Serialize)
 import           Data.Word                               (Word8)
@@ -58,10 +58,9 @@ makeLenses ''SimpleMuser
 instance Pretty (SimpleMuser a)
 
 instance Statistical (SimpleMuser a) where
-  stats (SimpleMuser (eo:po:bo:lso:_) d) = [iStat "depth" d,
+  stats (SimpleMuser (eo:po:lso:_) d) = [iStat "depth" d,
          dStat "default energy outcome" . wide $ eo,
          dStat "default passion outcome" . wide $ po,
-         dStat "default boredom outcome" . wide $ bo,
          dStat "default litterSize outcome" . wide $ lso]
   stats _ = error "default outcome list is too short"
 
@@ -85,15 +84,15 @@ instance (Bounded a, Enum a, Eq a) => M.Muser (SimpleMuser a) where
 makeMuser :: [PM1Double] -> Word8 -> Either [String] (SimpleMuser a)
 makeMuser os d
  | d == 0         = Left ["zero depth"]
- | length os < 4 = Left ["default outcome list is too short"]
+ | length os < 3 = Left ["default outcome list is too short"]
  | otherwise     = Right $ SimpleMuser os d
 
 generateResponses
   :: (Bounded a, Enum a, Eq a)
     => SimpleMuser a -> [a] -> [([Label], Probability)] -> [(Response a, Probability)]
-generateResponses m as sps = concatMap (generateResponses' m sps') as'
+generateResponses m _ sps = concatMap (generateResponses' m sps') as'
   where sps' = bestHypotheses m sps
-        as' = nub $ as ++ [minBound .. maxBound]
+        as' = [minBound .. maxBound]
 
 -- | Internal method
 generateResponses'

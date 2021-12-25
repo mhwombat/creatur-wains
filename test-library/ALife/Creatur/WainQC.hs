@@ -63,10 +63,8 @@ strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- devotion
                 <*> arbitrary     -- age of maturity
                 <*> arbitrary     -- delta passion
-                <*> arbitrary     -- delta boredom
                 <*> arbitrary     -- energy
                 <*> arbitrary     -- passion
-                <*> arbitrary     -- boredom
                 <*> arbitrary     -- age
                 <*> pure []       -- litter
                 <*> arbitrary     -- children borne during lifetime
@@ -146,11 +144,9 @@ sizedArbReflectionTestData n = do
   ps <- vectorOf nObjects arbitrary
   w <- arbitrary :: Gen TestWain
   let wBefore = w { _brain = b, _energy = head cBefore,
-                    _passion = 1 - cBefore !! 1,
-                    _boredom = cBefore !! 2}
+                    _passion = 1 - cBefore !! 1 }
   let wAfter = wBefore { _energy = head cAfter,
-                         _passion = 1 - cAfter !! 1,
-                         _boredom = cAfter !! 2}
+                         _passion = 1 - cAfter !! 1 }
   return $ ReflectionTestData ps r wBefore wAfter
 
 instance Arbitrary ReflectionTestData where
@@ -168,7 +164,7 @@ data ImprintTestData
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
 sizedArbImprintTestData n = do
-  let nConditions = 4
+  let nConditions = 3
   (BQC.ImprintTestData b ps a _ ls) <- BQC.sizedArbImprintTestData n
   w <- arbitrary
   let w' = w {_brain = b}
