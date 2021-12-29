@@ -24,26 +24,24 @@ module ALife.Creatur.Wain.PredictorQC
 import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import qualified ALife.Creatur.Gene.Test                 as GT
-import           ALife.Creatur.Wain.GeneticSOM           (Label, maxSize,
-                                                          numModels,
+import           ALife.Creatur.Wain.GeneticSOM           (Label,
                                                           trainAndClassify)
 import           ALife.Creatur.Wain.GeneticSOMQC         (sizedArbEmptyGeneticSOM,
                                                           sizedArbGeneticSOM)
 import           ALife.Creatur.Wain.PredictorInternal
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
-import           ALife.Creatur.Wain.Pattern              (diff)
 import           ALife.Creatur.Wain.Response             (Response (..))
-import           ALife.Creatur.Wain.ResponseAdjusterQC   ()
 import           ALife.Creatur.Wain.ResponseQC           (TestAction,
                                                           TestResponse,
+                                                          TestResponseAdjuster,
                                                           arbTestResponse)
 import           Control.DeepSeq                         (deepseq)
+import qualified Data.Datamining.Clustering.SGM4Internal as SOM
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck                         hiding (labels,
-                                                          maxSize)
+import           Test.QuickCheck.Counterexamples         hiding (labels)
 
-type TestPredictor = Predictor TestAction
+type TestPredictor = Predictor TestResponseAdjuster TestAction
 
 sizedArbTestPredictor :: Int -> Gen TestPredictor
 sizedArbTestPredictor n = do
@@ -153,13 +151,13 @@ prop_imprintOrReinforce_never_causes_error (ImprintTestData p ls a os ds)
 
 prop_imprintOrReinforce_works :: ImprintTestData -> Property
 prop_imprintOrReinforce_works (ImprintTestData p ls a os ds) =
-  numModels p < maxSize p ==> diffAfter <= diffBefore
+  SOM.numModels p < SOM.maxSize p ==> diffAfter <= diffBefore
   where r0 = Response ls a os
         rBefore = pResponse $ predict p r0 1
         (_, p2) = imprintOrReinforce p ls a os ds
         rAfter = pResponse $ predict p2 r0 1
-        diffBefore = diff rBefore r0
-        diffAfter = diff rAfter r0
+        diffBefore = SOM.difference (SOM.adjuster p) rBefore r0
+        diffAfter = SOM.difference (SOM.adjuster p) rAfter r0
 
 prop_learn_never_causes_error
   :: ImprintTestData -> Bool

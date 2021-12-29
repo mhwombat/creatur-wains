@@ -35,16 +35,18 @@ import           ALife.Creatur.Wain.BrainInternal
 import qualified ALife.Creatur.Wain.Classifier           as Cl
 import           ALife.Creatur.Wain.GeneticSOM           (Label)
 import           ALife.Creatur.Wain.GeneticSOMQC         (sizedArbGeneticSOM)
-import           ALife.Creatur.Wain.Pattern              (diff)
-import           ALife.Creatur.Wain.PatternQC            (TestPattern)
+import           ALife.Creatur.Wain.PatternQC            (TestPattern,
+                                                          TestPatternAdjuster)
 import qualified ALife.Creatur.Wain.Predictor            as P
 import qualified ALife.Creatur.Wain.PredictorQC          as PQC
 import           ALife.Creatur.Wain.Response             (Response (..))
 import           ALife.Creatur.Wain.ResponseQC           (TestAction,
-                                                          TestResponse)
+                                                          TestResponse,
+                                                          TestResponseAdjuster)
 import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser,
                                                           makeMuser)
 import           Control.DeepSeq                         (deepseq)
+import qualified Data.Datamining.Clustering.SGM4Internal as SOM
 import qualified Numeric.ApproxEq                        as EQ
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
@@ -59,13 +61,14 @@ equivWeights x y
   where wx = map UI.wide $ toUIDoubles x
         wy = map UI.wide $ toUIDoubles y
 
-equivBrain :: (Eq p, Eq a, Eq m) => Brain p a m -> Brain p a m -> Bool
+equivBrain :: (Eq ct, Eq pt, Eq p, Eq a, Eq m) => Brain ct pt p a m -> Brain ct pt p a m -> Bool
 equivBrain x y = x == y' && (equivWeights wx wy)
   where wx = happinessWeights x
         wy = happinessWeights y
         y' = y { happinessWeights=wx }
 
-type TestBrain = Brain TestPattern TestAction (SimpleMuser TestAction)
+type TestBrain = Brain TestPatternAdjuster TestResponseAdjuster
+                       TestPattern TestAction (SimpleMuser TestAction)
 
 sizedArbTestBrain :: Int -> Gen TestBrain
 sizedArbTestBrain n = do
@@ -282,8 +285,9 @@ prop_imprint_makes_predictions_more_accurate
         (_, bImprinted) = imprintResponse bClassified ls a
         (report3:_) = predictAll bImprinted . zip [r] $ repeat 1
         rAfter = P.pResponse report3
-        diffBefore = diff rBefore r
-        diffAfter = diff rAfter r
+        responseAdj = SOM.adjuster $ predictor b
+        diffBefore = SOM.difference responseAdj rBefore r
+        diffAfter = SOM.difference responseAdj rAfter r
 
 -- prop_prettyScenarioReport_never_causes_error
 --   :: ChoosingTestData -> Bool

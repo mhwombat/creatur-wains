@@ -18,16 +18,17 @@ module ALife.Creatur.Wain.ExamineAgent
   ) where
 
 import           ALife.Creatur.Wain
-import           ALife.Creatur.Wain.Pattern (Pattern)
 import           ALife.Creatur.Wain.Pretty
 import           ALife.Creatur.Wain.Report
-import           Control.Monad              (filterM)
-import qualified Data.ByteString            as BS
-import qualified Data.Serialize             as DS
-import           System.Directory           (listDirectory)
-import           System.FilePath.Posix      (combine)
-import           System.Posix               (isDirectory, isRegularFile)
-import           System.Posix.Files         (getFileStatus)
+import           Control.Monad                           (filterM)
+import qualified Data.ByteString                         as BS
+import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Serialize                          as DS
+import           System.Directory                        (listDirectory)
+import           System.FilePath.Posix                   (combine)
+import           System.Posix                            (isDirectory,
+                                                          isRegularFile)
+import           System.Posix.Files                      (getFileStatus)
 
 fetchObjects :: DS.Serialize b => FilePath -> IO [b]
 fetchObjects f = do
@@ -53,6 +54,7 @@ fetchObject f = do
     Left s  -> error $ "Cannot read " ++ f ++ ". " ++ s
 
 examine
-  :: (Pattern p, Pretty p, Eq a, Pretty a, Pretty m)
-    => Wain p a m -> IO ()
+  :: (SOM.Adjuster ct, Report ct, SOM.Adjuster pt, Report pt,
+     Pretty p, Eq a, Pretty a, Pretty m)
+    => Wain ct pt p a m -> IO ()
 examine = mapM_ putStrLn . report

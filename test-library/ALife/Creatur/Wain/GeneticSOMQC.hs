@@ -24,19 +24,18 @@ module ALife.Creatur.Wain.GeneticSOMQC
     sizedArbEmptyGeneticSOM
   ) where
 
-import           ALife.Creatur.Gene.Numeric.UnitInterval ()
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import qualified ALife.Creatur.Gene.Test                 as GT
 import           ALife.Creatur.Wain.GeneticSOM
-import           ALife.Creatur.Wain.Pattern              (Pattern)
-import           ALife.Creatur.Wain.PatternAdjuster      (PatternAdjuster)
-import           ALife.Creatur.Wain.PatternAdjusterQC    ()
-import           ALife.Creatur.Wain.PatternQC            (TestPattern)
+import           ALife.Creatur.Wain.PatternQC            (TestPattern,
+                                                          TestPatternAdjuster)
 import           Control.DeepSeq                         (deepseq)
 import qualified Data.Datamining.Clustering.SGM4Internal as SOM
 import           Data.Map.Strict                         (keys, (!))
+import           Data.Word                               (Word32)
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck                         hiding (classify)
+import           Test.QuickCheck.Counterexamples         hiding (classify)
 
 -- | @'classify' s p@ identifies the model @s@ that most closely
 --   matches the pattern @p@.
@@ -45,8 +44,9 @@ import           Test.QuickCheck                         hiding (classify)
 --   the counts are not updated.)
 --   For this reason, it should only be used for testing.
 classify
-  :: Pattern p
-  => GeneticSOM p -> p -> ClassificationDetail p
+  :: (SOM.Adjuster t, SOM.PatternType t ~ p, SOM.TimeType t ~ Word32,
+     SOM.MetricType t ~ UI.UIDouble)
+  => GeneticSOM t p -> p -> ClassificationDetail p
 classify gs p = detail
   where (bmu, novelty, rs) = SOM.classify gs p
         age = SOM.time gs
@@ -54,26 +54,27 @@ classify gs p = detail
                    {
                      cPattern = p,
                      cBmu = bmu,
-                     cBmuModel = gs `modelAt` bmu,
+                     cBmuModel = gs `SOM.modelAt` bmu,
                      cNovelty = novelty,
                      cAdjNovelty = adjNovelty novelty age,
                      cDetails = rs
                    }
 
-type TestGSOM = GeneticSOM TestPattern
+type TestGSOM = GeneticSOM TestPatternAdjuster TestPattern
 
 -- | Used by other test modules
 sizedArbEmptyGeneticSOM
-  :: (Pattern p, Arbitrary (PatternAdjuster p))
-  => Int -> Gen (GeneticSOM p)
+  :: (Arbitrary t, SOM.Adjuster t)
+  => Int -> Gen (GeneticSOM t p)
 sizedArbEmptyGeneticSOM maxSz = do
   a <- arbitrary
-  return $ makeSGM a maxSz
+  return $ SOM.makeSGM a maxSz
 
 -- | Used by other test modules
 sizedArbGeneticSOM
-  :: (Pattern p, Arbitrary (PatternAdjuster p))
-  => Gen p -> Int -> Gen (GeneticSOM p)
+  :: (Arbitrary t, SOM.Adjuster t, SOM.PatternType t ~ p,
+     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+  => Gen p -> Int -> Gen (GeneticSOM t p)
 sizedArbGeneticSOM arbPattern n = do
   som <- sizedArbEmptyGeneticSOM (n+1)
   k <- choose (0, n+1)
@@ -86,7 +87,7 @@ instance Arbitrary TestGSOM where
 prop_classify_never_causes_error_unless_empty
   :: TestGSOM -> TestPattern -> Property
 prop_classify_never_causes_error_unless_empty s p
-  = not (isEmpty s) ==> deepseq x True
+  = not (SOM.isEmpty s) ==> deepseq x True
   where x = classify s p
 
 prop_train_never_causes_error :: TestGSOM -> TestPattern -> Bool
@@ -102,10 +103,10 @@ prop_novelty_btw_0_and_1 p s = 0 <= novelty && novelty <= 1
 
 prop_familiar_patterns_have_min_novelty :: Int -> TestGSOM -> Property
 prop_familiar_patterns_have_min_novelty k s
-  = (not . isEmpty) s ==> novelty == 0
-    where k' = k `mod` fromIntegral (numModels s)
-          l = (keys . modelMap $ s) !! k'
-          p = modelMap s ! l
+  = (not . SOM.isEmpty) s ==> novelty == 0
+    where k' = k `mod` fromIntegral (SOM.numModels s)
+          l = (keys . SOM.modelMap $ s) !! k'
+          p = SOM.modelMap s ! l
           novelty = cNovelty $ classify s p
 
 -- prop_new_patterns_have_max_novelty :: LearningParams -> Bool

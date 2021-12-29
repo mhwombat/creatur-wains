@@ -16,6 +16,7 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -23,16 +24,8 @@ module ALife.Creatur.Wain.GeneticSOM
   (
     -- * Construction
     GeneticSOM,
-    SOM.makeSGM,
     -- * Deconstruction
-    SOM.isEmpty,
-    SOM.atCapacity,
-    SOM.maxSize,
-    SOM.numModels,
-    SOM.modelMap,
-    SOM.counterMap,
-    SOM.modelAt,
-    SOM.filter,
+    filter,
     hasLabel,
     currentLearningRate,
     schemaQuality,
@@ -54,8 +47,6 @@ module ALife.Creatur.Wain.GeneticSOM
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import qualified ALife.Creatur.Genetics.BRGCWord8        as G
 import           ALife.Creatur.Genetics.Diploid          (Diploid, express)
-import           ALife.Creatur.Wain.Pattern              (Pattern)
-import           ALife.Creatur.Wain.PatternAdjuster      (PatternAdjuster)
 import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
 import           ALife.Creatur.Wain.Report               (Report, report)
 import           ALife.Creatur.Wain.Statistics           (Statistical, iStat,
@@ -86,13 +77,13 @@ instance (Ord k, Diploid p) => Diploid (M.Map k p) where
 -- | A Simplified Self-Organising Map (SOM).
 --   @p@ is the type of the input patterns and models.
 --   @t@ is the type of the tweaker.
-type GeneticSOM p = SOM.SGM (PatternAdjuster p) Word32 Label p
+type GeneticSOM t p = SOM.SGM t Word32 Label p
 
-instance (S.Serialize p) => S.Serialize (GeneticSOM p)
-instance (G.Genetic p) => G.Genetic (GeneticSOM p)
-instance (Diploid p) => Diploid (GeneticSOM p)
+instance (S.Serialize p, S.Serialize t) => S.Serialize (GeneticSOM t p)
+instance (G.Genetic p, G.Genetic t) => G.Genetic (GeneticSOM t p)
+instance (Diploid p, Diploid t) => Diploid (GeneticSOM t p)
 
-instance (Pattern p) => Statistical (GeneticSOM p) where
+instance (SOM.Adjuster t, Statistical t) => Statistical (GeneticSOM t p) where
   stats s =
     (iStat "num models" . SOM.numModels $ s)
       : (iStat "max. size" . SOM.maxSize $ s)
@@ -103,17 +94,19 @@ instance (Pattern p) => Statistical (GeneticSOM p) where
 
 -- | Returns @True@ if the SOM has a model with the specified label;
 --   returns @False@ otherwise.
-hasLabel :: GeneticSOM p -> Label -> Bool
+hasLabel :: GeneticSOM t p -> Label -> Bool
 hasLabel s l = M.member l (SOM.modelMap s)
 
 
 -- | Returns the SOM's current learning rate.
-currentLearningRate :: Pattern p => GeneticSOM p -> UI.UIDouble
+currentLearningRate
+  :: (SOM.Adjuster t, SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+  => GeneticSOM t p -> UI.UIDouble
 currentLearningRate s = (SOM.learningRate $ SOM.adjuster s) (SOM.time s)
 
 -- | Measures the quality of the classification system represented by
 --   the SOM, and returns the result.
-schemaQuality :: Pattern p => GeneticSOM p -> Int
+schemaQuality :: SOM.Adjuster t => GeneticSOM t p -> Int
 schemaQuality = discrimination . M.elems . SOM.counterMap
 
 -- | Internal method.
@@ -160,8 +153,9 @@ prettyClassificationMoreDetail = map f . M.toList
   where f (l, (p, d)) = show l ++ " " ++ pretty p ++ " " ++ pretty d
 
 trainAndClassify
-  :: Pattern p
-  => GeneticSOM p -> p -> (ClassificationDetail p, GeneticSOM p)
+  :: (SOM.Adjuster t, SOM.PatternType t ~ p,
+     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+  => GeneticSOM t p -> p -> (ClassificationDetail p, GeneticSOM t p)
 trainAndClassify gs p = (detail, gs')
   where (bmu, novelty, rs, gs') = SOM.trainAndClassify gs p
         age = SOM.time gs
@@ -203,12 +197,13 @@ prettyImprintDetail r =
 
 -- | Teaches the classifier a pattern and a label for that pattern.
 imprint
-  :: Pattern p
-  => GeneticSOM p -> Label -> p -> (ImprintDetail p, GeneticSOM p)
+  :: (SOM.Adjuster t, SOM.PatternType t ~ p, SOM.TimeType t ~ Word32,
+    SOM.MetricType t ~ UI.UIDouble)
+  => GeneticSOM t p -> Label -> p -> (ImprintDetail p, GeneticSOM t p)
 imprint gs l p
   | existing          = (detail, gs')
   | SOM.atCapacity gs = (detail0, gs)
-  | otherwise     = (detail, gs')
+  | otherwise         = (detail, gs')
   where gs' = SOM.imprint gs l p
         existing = gs `hasLabel` l
         detail0 = ImprintDetail
@@ -225,7 +220,7 @@ imprint gs l p
 adjNovelty :: UI.UIDouble -> Word32 -> Int
 adjNovelty d a = round $ UI.wide d * fromIntegral a
 
-instance (Pretty p, Pattern p) => Report (GeneticSOM p) where
+instance (SOM.Adjuster t, Report t, Pretty p) => Report (GeneticSOM t p) where
   report s = [ "max models: " ++ pretty (SOM.maxSize s),
                "num models: " ++ pretty (SOM.numModels s),
                "SQ: " ++ pretty (schemaQuality s),

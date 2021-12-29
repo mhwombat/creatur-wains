@@ -24,13 +24,10 @@ import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, narrow)
 import           ALife.Creatur.Genetics.BRGCWord8        (Genetic)
 import           ALife.Creatur.Genetics.Diploid          (Diploid)
 import           ALife.Creatur.Wain.GeneticSOM           (Label)
-import           ALife.Creatur.Wain.Pattern              (Pattern, diff,
-                                                          makeSimilar)
 import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
 import           ALife.Creatur.Wain.Statistics           (Statistical (..),
                                                           dStat)
 import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Pattern.List            as L
 import           Data.List                               (intercalate)
 import           Data.Serialize                          (Serialize)
 import           GHC.Generics                            (Generic)
@@ -56,21 +53,6 @@ instance (Pretty a) => Pretty (Response a) where
   pretty (Response ls a os) =
     intercalate "|" (map show ls) ++ '|':pretty a ++ '|':format os
     where format xs =  intercalate "|" . map (printf "%.3f" .  PM1.wide) $ xs
-
-instance (Eq a) => Pattern (Response a) where
-  diff x y =
-    if action x == action y
-      then 1 - labelSimilarity (labels x) (labels y)
-      else 1
-
-  makeSimilar target r x =
-      if action target == action x
-         then Response s a o
-         else x
-      where s = labels x -- never change this
-            a = action x -- never change this
-            o = L.makeSimilar PM1.makeSimilar (outcomes target) r (outcomes x)
-
 
 -- | Internal method
 labelSimilarity :: [Label] -> [Label] -> UIDouble
@@ -126,3 +108,4 @@ arbResponse nObjects nConditions genAction = do
   a <- genAction
   o <- vectorOf nConditions arbitrary
   return $ Response s a o
+

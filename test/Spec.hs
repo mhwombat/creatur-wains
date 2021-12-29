@@ -10,30 +10,26 @@
 -- Runs the QuickCheck tests.
 --
 ------------------------------------------------------------------------
-import           ALife.Creatur.Wain.BrainQC            (test)
-import           ALife.Creatur.Wain.ClassifierQC       (test)
-import           ALife.Creatur.Wain.GeneticSOMQC       (test)
-import           ALife.Creatur.Wain.LearningParamsQC   (test)
-import           ALife.Creatur.Wain.PatternAdjusterQC  (test)
-import           ALife.Creatur.Wain.PatternQC          (test)
-import           ALife.Creatur.Wain.PredictorQC        (test)
-import           ALife.Creatur.Wain.ProbabilityQC      (test)
-import           ALife.Creatur.Wain.ResponseAdjusterQC (test)
-import           ALife.Creatur.Wain.ResponseQC         (test)
-import           ALife.Creatur.Wain.SimpleMuserQC      (test)
-import           ALife.Creatur.WainQC                  (test)
+import           ALife.Creatur.Wain.BrainQC          (test)
+import           ALife.Creatur.Wain.ClassifierQC     (test)
+import           ALife.Creatur.Wain.GeneticSOMQC     (test)
+import           ALife.Creatur.Wain.LearningParamsQC (test)
+import           ALife.Creatur.Wain.PatternQC        (test)
+import           ALife.Creatur.Wain.PredictorQC      (test)
+import           ALife.Creatur.Wain.ProbabilityQC    (test)
+import           ALife.Creatur.Wain.ResponseQC       (test)
+import           ALife.Creatur.Wain.SimpleMuserQC    (test)
+import           ALife.Creatur.WainQC                (test)
 
-import qualified Test.Framework                        as TF
+import qualified Test.Framework                      as TF
 
 tests :: [TF.Test]
 tests =
   [
     -- In increasing order of complexity
     ALife.Creatur.Wain.PatternQC.test,
-    ALife.Creatur.Wain.PatternAdjusterQC.test,
     ALife.Creatur.Wain.ProbabilityQC.test,
     ALife.Creatur.Wain.ResponseQC.test,
-    ALife.Creatur.Wain.ResponseAdjusterQC.test,
     ALife.Creatur.Wain.SimpleMuserQC.test,
     ALife.Creatur.Wain.LearningParamsQC.test,
     ALife.Creatur.Wain.GeneticSOMQC.test,

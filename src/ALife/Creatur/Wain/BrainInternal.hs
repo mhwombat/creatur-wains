@@ -29,7 +29,6 @@ import           ALife.Creatur.Genetics.Diploid          (Diploid)
 import qualified ALife.Creatur.Wain.Classifier           as Cl
 import qualified ALife.Creatur.Wain.GeneticSOM           as GSOM
 import qualified ALife.Creatur.Wain.Muser                as M
-import           ALife.Creatur.Wain.Pattern              (Pattern)
 import qualified ALife.Creatur.Wain.Predictor            as P
 import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
 import           ALife.Creatur.Wain.Probability          (hypothesise,
@@ -39,13 +38,14 @@ import           ALife.Creatur.Wain.Response             (Response (..))
 import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
                                                           iStat, prefix, stats)
 import           Control.DeepSeq                         (NFData)
+import qualified Data.Datamining.Clustering.SGM4Internal as SOM
 import           Data.Function                           (on)
 import           Data.List                               (foldl', groupBy,
                                                           sortBy)
 import qualified Data.Map.Strict                         as M
 import           Data.Ord                                (comparing)
 import           Data.Serialize                          (Serialize)
-import           Data.Word                               (Word64, Word8)
+import           Data.Word                               (Word32, Word64, Word8)
 import           GHC.Generics                            (Generic)
 import           Text.Printf                             (printf)
 
@@ -54,14 +54,14 @@ type Condition = [UI.UIDouble]
 
 -- | A brain which recommends reponses to stimuli, and learns from the
 --   outcomes.
-data Brain p a m = Brain
+data Brain ct pt p a m = Brain
   {
     -- | Component that categorises and identifies patterns
-    classifier          :: Cl.Classifier p,
+    classifier          :: Cl.Classifier ct p,
     -- | Component that generates response models for consideration
     muser               :: m,
     -- | Component that decides what actions to take
-    predictor           :: P.Predictor a,
+    predictor           :: P.Predictor pt a,
     -- | Weights for evaluating happiness
     happinessWeights    :: Weights,
     -- | Used to break ties when actions seem equally promising
@@ -89,9 +89,9 @@ data Brain p a m = Brain
 --   @rds@. See @Brain@ for an explanation of these parameters.
 makeBrain
   :: M.Muser m
-     => Cl.Classifier p -> m -> P.Predictor a -> Weights -> Word8
+     => Cl.Classifier ct p -> m -> P.Predictor pt a -> Weights -> Word8
        -> Word64 -> [PM1.PM1Double] -> [PM1.PM1Double]
-       -> Either [String] (Brain p a m)
+       -> Either [String] (Brain ct pt p a m)
 makeBrain c m p hw t x ios rds
   | x < 1
       = Left ["strictness < 1"]
@@ -106,14 +106,16 @@ makeBrain c m p hw t x ios rds
   | otherwise
       = Right $ Brain c m p hw t x ios rds M.empty
 
-instance (Serialize p, Serialize a, Ord a, Serialize m)
-  => Serialize (Brain p a m)
+instance (Serialize ct, Serialize pt, Serialize p, Serialize a, Ord a,
+          Serialize m)
+  => Serialize (Brain ct pt p a m)
 
-instance (Diploid p, Diploid a, Ord a, Diploid m)
-  => Diploid (Brain p a m)
+instance (Diploid ct, Diploid pt, Diploid p, Diploid a, Ord a, Diploid m)
+  => Diploid (Brain ct pt p a m)
 
-instance (Pattern p, Eq a, Statistical m)
-  => Statistical (Brain p a m) where
+instance (Statistical ct, SOM.Adjuster ct,
+          Statistical pt, SOM.Adjuster pt, Eq a, Statistical m)
+  => Statistical (Brain ct pt p a m) where
   stats b@(Brain c m p hw t s ios rds _)
     | length ios < 3 = error "ios not long enough"
     | length rds < 3 = error "rds not long enough"
@@ -133,15 +135,15 @@ instance (Pattern p, Eq a, Statistical m)
              dStat "litterSizeReinforcement" . PM1.wide $ rds !! 2,
              iStat "tiebreaker" t, iStat "strictness" s ]
 
-instance (Show p, Show a, Show m)
-  => Show (Brain p a m) where
+instance (Show ct, Show pt, Show p, Show a, Show m)
+  => Show (Brain ct pt p a m) where
   show (Brain c m p hw t s ios rds ks) = "Brain (" ++ show c ++ ") ("
     ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") "
     ++ show t ++ " " ++ show s ++ " " ++ show ios ++ show rds
     ++ " (" ++ show ks ++ ")"
 
-instance (Genetic p, Genetic a, Genetic m, M.Muser m)
-  => Genetic (Brain p a m) where
+instance (Genetic ct, Genetic pt, Genetic p, Genetic a, Genetic m, M.Muser m)
+  => Genetic (Brain ct pt p a m) where
     put (Brain c m p hw t s ios rds _)
       = put c >> put m >> put p >> put hw >> put t >> put s >> put ios
           >> put rds
@@ -221,8 +223,13 @@ prettyActionReport = map f
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: (Pattern p, Eq a, Ord a, M.Muser m, Pretty m, a ~ M.Action m)
-  => Brain p a m -> [p] -> Condition -> (DecisionReport p a, Brain p a m)
+  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.UIDouble, SOM.TimeType ct ~ Word32,
+     SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
+     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32,
+     Eq a, Ord a, M.Muser m, Pretty m, a ~ M.Action m)
+  => Brain ct pt p a m -> [p] -> Condition
+  -> (DecisionReport p a, Brain ct pt p a m)
 chooseAction b ps c = (dReport, b4)
   where (cReport, b2) = classifyInputs b ps
         -- cReport = The classifier report.
@@ -250,7 +257,7 @@ chooseAction b ps c = (dReport, b4)
 
 -- | Internal method
 generateScenarios
-  :: Brain p a m -> Cl.ClassifierReport p -> ScenarioReport
+  :: Brain ct pt p a m -> Cl.ClassifierReport p -> ScenarioReport
 generateScenarios b cReport = sps
   where ldss = Cl.diffs cReport
         -- ldss = the SGM labels paired with the difference between the
@@ -263,8 +270,10 @@ generateScenarios b cReport = sps
 
 -- | Internal method
 generateResponses
-  :: (M.Muser m, Eq a, a ~ M.Action m)
-  => Brain p a m -> ScenarioReport -> PredictorReport a
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
+     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32,
+     M.Muser m, Eq a, a ~ M.Action m)
+  => Brain ct pt p a m -> ScenarioReport -> PredictorReport a
 generateResponses b sReport = errorIfNull "pReport" $ predictAll b rps
   where as = P.actions $ predictor b
         -- as = list of actions to evaluate
@@ -277,7 +286,7 @@ generateResponses b sReport = errorIfNull "pReport" $ predictAll b rps
 -- | Internal method
 evaluateActions
   :: Eq a
-  => Brain p a m -> Condition -> PredictorReport a -> ActionReport a
+  => Brain ct pt p a m -> Condition -> PredictorReport a -> ActionReport a
 evaluateActions b c pReport
   = errorIfNull "aohs" $ map (fillInAdjustedHappiness b c) aos
   where rs = errorIfNull "rs" $ map P.pResponse pReport
@@ -292,7 +301,7 @@ errorIfNull desc xs = if null xs
                         else xs
 
 -- | Internal method
-onlyModelsIn :: Brain p a m -> [(GSOM.Label, UI.UIDouble)] -> Bool
+onlyModelsIn :: Brain ct pt p a m -> [(GSOM.Label, UI.UIDouble)] -> Bool
 onlyModelsIn b = all (GSOM.hasLabel (classifier b) . fst)
 
 -- | Internal method
@@ -302,20 +311,20 @@ maximaBy f xs = map snd . last . groupBy ((==) `on` fst)
                . sortBy (comparing fst) . map (\x -> (f x, x)) $ xs
 
 -- | Internal method
-chooseAny :: Brain p a m -> [x] -> x
+chooseAny :: Brain ct pt p a m -> [x] -> x
 chooseAny b xs = xs !! (seed `mod` n)
   where seed = fromIntegral $ tiebreaker b
         n = length xs -- the list will be short
 
 -- | Internal method
 fillInAdjustedHappiness
-  :: Brain p a m -> Condition -> (a, [PM1.PM1Double])
+  :: Brain ct pt p a m -> Condition -> (a, [PM1.PM1Double])
       -> (a, [PM1.PM1Double], UI.UIDouble)
 fillInAdjustedHappiness b c (a, os) = (a, os, adjustedHappiness b c os)
 
 -- | Internal method
 adjustedHappiness
-  :: Brain p a m -> Condition -> [PM1.PM1Double] -> UI.UIDouble
+  :: Brain ct pt p a m -> Condition -> [PM1.PM1Double] -> UI.UIDouble
 adjustedHappiness b c = happiness b . adjustCondition c
 
 -- | Internal method
@@ -326,7 +335,7 @@ adjustCondition c os =
 
 -- | Internal method
 adjustActionCounts
-  :: Ord a => Brain p a m -> a -> Brain p a m
+  :: Ord a => Brain ct pt p a m -> a -> Brain ct pt p a m
 adjustActionCounts b a = b { actionCounts=cs' }
   where cs = actionCounts b
         cs' = M.alter inc a cs
@@ -336,8 +345,9 @@ adjustActionCounts b a = b { actionCounts=cs' }
 -- | Evaluates the input patterns and the current condition.
 --   Returns the classification report and the updated brain.
 classifyInputs
-  :: Pattern p
-  => Brain p a m -> [p] -> (Cl.ClassifierReport p, Brain p a m)
+  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.UIDouble, SOM.TimeType ct ~ Word32)
+  => Brain ct pt p a m -> [p] -> (Cl.ClassifierReport p, Brain ct pt p a m)
 classifyInputs b ps = (cReport, b')
   where (cReport, c') = Cl.classifySetAndTrain (classifier b) ps
         b' = b { classifier=c' }
@@ -382,14 +392,16 @@ sumTermByTerm (xs:ys:zss) = sumTermByTerm (ws:zss)
 --   that best matches the response, and the unadjusted outcomes from
 --   the model.
 predictAll
-  :: Eq a
-  => Brain p a m -> [(Response a, UI.UIDouble)] -> PredictorReport a
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
+     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+  => Brain ct pt p a m -> [(Response a, UI.UIDouble)] -> PredictorReport a
 predictAll b = foldl' (predictOne b) []
 
 -- | Internal method
 predictOne
-  :: Eq a
-  => Brain p a m -> PredictorReport a -> (Response a, UI.UIDouble)
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
+     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+  => Brain ct pt p a m -> PredictorReport a -> (Response a, UI.UIDouble)
       -> PredictorReport a
 predictOne b xs (r, p) = P.predict (predictor b) r p:xs
 
@@ -414,9 +426,10 @@ prettyReflectionReport r =
 --   Returns the updated brain, and the error in the brain's
 --   prediction of the change to happiness.
 reflect
-  :: Eq a
-  => Brain p a m -> Response a -> Condition -> Condition
-      -> (ReflectionReport a, Brain p a m)
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
+     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+  => Brain ct pt p a m -> Response a -> Condition -> Condition
+      -> (ReflectionReport a, Brain ct pt p a m)
 reflect b r cBefore cAfter = (report', b { predictor=d' })
   where osActual = map UI.narrow $ zipWith (-) (map UI.wide cAfter)
           (map UI.wide cBefore)
@@ -436,8 +449,10 @@ reflect b r cBefore cAfter = (report', b { predictor=d' })
 
 -- | Teaches the brain a set of patterns, and a label for each of them.
 imprintStimulus
-  :: Pattern p
-  => Brain p a m -> [(GSOM.Label, p)] -> ([GSOM.ImprintDetail p], Brain p a m)
+  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.UIDouble, SOM.TimeType ct ~ Word32)
+  => Brain ct pt p a m -> [(GSOM.Label, p)]
+  -> ([GSOM.ImprintDetail p], Brain ct pt p a m)
 imprintStimulus b lps = (iReport, b { classifier=d })
   where (iReport, d) = Cl.imprintSet (classifier b) lps
 
@@ -450,8 +465,10 @@ imprintStimulus b lps = (iReport, b { classifier=d })
 --   * a detailed report of the imprint process
 --   * the updated brain.
 imprintResponse
-  :: Eq a
-  => Brain p a m -> [GSOM.Label] -> a -> (P.LearningReport a, Brain p a m)
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
+     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+  => Brain ct pt p a m -> [GSOM.Label] -> a
+  -> (P.LearningReport a, Brain ct pt p a m)
 imprintResponse b ls a = (irReport, b { predictor=d2 })
   where d = predictor b
         (irReport, d2) = P.imprintOrReinforce d ls a os deltas
@@ -459,21 +476,23 @@ imprintResponse b ls a = (irReport, b { predictor=d2 })
         deltas = reinforcementDeltas b
 
 -- | Evaluates a condition and reports the resulting happiness.
-happiness :: Brain p a m -> Condition -> UI.UIDouble
+happiness :: Brain ct pt p a m -> Condition -> UI.UIDouble
 happiness b = weightedSum (happinessWeights b)
 
 -- | A metric for how flexible a brain is at making decisions.
-decisionQuality :: Brain p a m -> Int
+decisionQuality :: Brain ct pt p a m -> Int
 decisionQuality = GSOM.discrimination . M.elems . actionCounts
 
 -- | Eliminate any responses that refer to obsolete classifier models.
-pruneObsoleteResponses :: (Eq a, Pretty m) => Brain p a m -> Brain p a m
+pruneObsoleteResponses
+  :: (SOM.Adjuster pt, Eq a, Pretty m) => Brain ct pt p a m -> Brain ct pt p a m
 pruneObsoleteResponses b = b { predictor=prune $ predictor b }
   where prune = P.filterLabels ls
         ls = Cl.labels $ classifier b
 
-instance (Pattern p, Pretty p, Pretty a, Eq a, Pretty m)
-  => Report (Brain p a m) where
+instance (SOM.Adjuster ct, Report ct, SOM.Adjuster pt, Report pt,
+          Pretty p, Pretty a, Eq a, Pretty m)
+  => Report (Brain ct pt p a m) where
   report b = [ "muser: " ++ pretty (muser b),
                "DSQ: " ++ pretty (decisionQuality b),
                "happiness weights: " ++ pretty (happinessWeights b),

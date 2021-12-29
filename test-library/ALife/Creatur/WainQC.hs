@@ -25,21 +25,25 @@ import qualified ALife.Creatur.Wain.Brain                as B
 import qualified ALife.Creatur.Wain.BrainQC              as BQC
 import qualified ALife.Creatur.Wain.Classifier           as Cl
 import           ALife.Creatur.Wain.GeneticSOM           (Label)
-import           ALife.Creatur.Wain.PatternQC            (TestPattern)
+import           ALife.Creatur.Wain.PatternQC            (TestPattern,
+                                                          TestPatternAdjuster)
 import           ALife.Creatur.Wain.ResponseInternal     (labels)
 import           ALife.Creatur.Wain.ResponseQC           (TestAction,
-                                                          TestResponse)
+                                                          TestResponse,
+                                                          TestResponseAdjuster)
 import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser)
 import           ALife.Creatur.WainInternal
 import           Control.DeepSeq                         (deepseq)
+import qualified Data.Datamining.Clustering.SGM4Internal as SOM
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck                         (Arbitrary, Gen,
+import           Test.QuickCheck.Counterexamples         (Arbitrary, Gen,
                                                           Property, arbitrary,
                                                           choose, sized,
                                                           vectorOf)
 
-type TestWain = Wain TestPattern TestAction (SimpleMuser TestAction)
+type TestWain = Wain TestPatternAdjuster TestResponseAdjuster
+                   TestPattern TestAction (SimpleMuser TestAction)
 
 equiv
   :: TestWain

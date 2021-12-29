@@ -19,21 +19,23 @@ module ALife.Creatur.Wain.PredictorInternal where
 
 import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import qualified ALife.Creatur.Wain.GeneticSOM           as S
+import qualified ALife.Creatur.Wain.GeneticSOM           as GSOM
 import           ALife.Creatur.Wain.Pretty               (Pretty (..))
 import           ALife.Creatur.Wain.Probability          (prettyProbability)
 import           ALife.Creatur.Wain.Response             (Response (..),
                                                           addToOutcomes, labels,
                                                           outcomes)
 import           Control.DeepSeq                         (NFData)
+import qualified Data.Datamining.Clustering.SGM4Internal as SOM
 import qualified Data.Datamining.Pattern.List            as L
 import           Data.List                               (nub, (\\))
 import qualified Data.Map.Strict                         as M
+import           Data.Word                               (Word32)
 import           GHC.Generics                            (Generic)
 import           Text.Printf                             (printf)
 
 -- | A predictor predicts the outcome of a response to a scenario.
-type Predictor a = S.GeneticSOM (Response a)
+type Predictor t a = GSOM.GeneticSOM t (Response a)
 
 -- | Information about how a predictor generated a prediction
 data PredictionDetail a
@@ -45,7 +47,7 @@ data PredictionDetail a
         --   is based
         pProb        :: UI.UIDouble,
         -- | The label of the node that best matches the input
-        pBmu         :: Maybe S.Label,
+        pBmu         :: Maybe GSOM.Label,
         -- | The BMU's model
         pBmuModel    :: Response a,
         -- | A measure of how novel the response pattern was to the wain.
@@ -61,7 +63,7 @@ data PredictionDetail a
         -- | The unadjusted outcomes from the model
         pRawOutcomes :: [PM1.PM1Double],
         -- | Even more details about the prediction
-        pDetails     :: M.Map S.Label (Response a, UI.UIDouble)
+        pDetails     :: M.Map GSOM.Label (Response a, UI.UIDouble)
       } deriving (Generic, Read, Show, NFData)
 
 instance (Pretty a) => Pretty (PredictionDetail a) where
@@ -82,8 +84,9 @@ instance (Pretty a) => Pretty (PredictionDetail a) where
 --   Returns a detailed report including the prediction and
 --   information about how the prediction was generated.
 predict
-  :: Eq a
-  => Predictor a -> Response a -> UI.UIDouble -> PredictionDetail a
+  :: (SOM.Adjuster t, Eq a, SOM.PatternType t ~ Response a,
+     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+  => Predictor t a -> Response a -> UI.UIDouble -> PredictionDetail a
 predict p r prob = PredictionDetail
                      {
                        pResponse = r',
@@ -91,18 +94,18 @@ predict p r prob = PredictionDetail
                        pBmu = bmu',
                        pBmuModel = model,
                        pNovelty = novelty,
-                       pAdjNovelty = S.cAdjNovelty report,
+                       pAdjNovelty = GSOM.cAdjNovelty report,
                        pAdjustment = adjustment,
                        pRawOutcomes = rawOutcomes,
-                       pDetails = S.cDetails report
+                       pDetails = GSOM.cDetails report
                      }
-  where (report, _) = S.trainAndClassify p r
-        bmu = S.cBmu report
-        novelty = S.cNovelty report
+  where (report, _) = GSOM.trainAndClassify p r
+        bmu = GSOM.cBmu report
+        novelty = GSOM.cNovelty report
         -- If the predictor already contained a suitable model, then
         -- use it. Otherwise, use r (which has default outcomes).
-        (bmu', model) | p `S.hasLabel` bmu
-                          = (Just bmu, p `S.modelAt` bmu)
+        (bmu', model) | p `GSOM.hasLabel` bmu
+                          = (Just bmu, p `SOM.modelAt` bmu)
                       | otherwise = (Nothing, r)
         rawOutcomes = outcomes model
         -- Adjust the outcome based on how well the model
@@ -130,14 +133,14 @@ data LearningReport a
         -- | The response that was learned
         lResponse     :: Response a,
         -- | The label of the predictor node that best matches the input
-        lBmu          :: S.Label,
+        lBmu          :: GSOM.Label,
         -- | A measure of how novel the input pattern was to the wain.
         lNovelty      :: UI.UIDouble,
         -- | A measure of how novel the input pattern was to the wain,
         --   adjusted based on the age of the wain.
         lAdjNovelty   :: Int,
         -- | Even more details about the classification
-        lDetails      :: M.Map S.Label (Response a, UI.UIDouble)
+        lDetails      :: M.Map GSOM.Label (Response a, UI.UIDouble)
       } deriving (Generic, Read, Show, NFData)
 
 prettyLearningReport
@@ -151,7 +154,7 @@ prettyLearningReport r =
       ++ " difference: " ++ pretty (lNovelty r)
       ++ " novelty: " ++ pretty (lAdjNovelty r),
     "learning details (label, model, diff):"
-  ] ++ S.prettyClassificationMoreDetail (lDetails r)
+  ] ++ GSOM.prettyClassificationMoreDetail (lDetails r)
   where msg = if lNew r
                 then "Imprinted new response model: "
                 else "Reinforced existing response model: "
@@ -169,54 +172,58 @@ prettyLearningReport r =
 --   so do not expect the new model to have new outcomes = previous
 --   outcomes + @deltas@.
 imprintOrReinforce
-  :: (Eq a)
-    => Predictor a -> [S.Label] -> a -> [PM1.PM1Double] -> [PM1.PM1Double]
-      -> (LearningReport a, Predictor a)
+  :: (SOM.Adjuster t, Eq a, SOM.PatternType t ~ Response a,
+     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+  => Predictor t a -> [GSOM.Label] -> a -> [PM1.PM1Double] -> [PM1.PM1Double]
+  -> (LearningReport a, Predictor t a)
 imprintOrReinforce d ls a os deltas =
   if lNew reportI
     then (reportI, dI)
     else (reportR, dR)
   where (reportI, dI) = learn d rI -- imprinting new model
         (reportR, dR) = learn d rR -- reinforcing existing model
-        r = S.modelMap d M.! bmuI
+        r = SOM.modelMap d M.! bmuI
         rI = Response ls a os
         rR = deltas `addToOutcomes` r
         bmuI = lBmu reportI
 
 -- | @'learn' p r@ teaches the response @r@ to the predictor @p@.
 learn
-  :: (Eq a)
-  => Predictor a -> Response a
-  -> (LearningReport a, Predictor a)
+  :: (SOM.Adjuster t, Eq a, SOM.PatternType t ~ Response a,
+     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+  => Predictor t a -> Response a
+  -> (LearningReport a, Predictor t a)
 learn d r = (report', d')
-  where (report, d') = S.trainAndClassify d r
-        bmu = S.cBmu report
-        existing = d `S.hasLabel` bmu
+  where (report, d') = GSOM.trainAndClassify d r
+        bmu = GSOM.cBmu report
+        existing = d `GSOM.hasLabel` bmu
         report' = LearningReport
                     {
-                      lLearningRate = S.currentLearningRate d,
+                      lLearningRate = GSOM.currentLearningRate d,
                       lNew = not existing,
                       lResponse = r,
-                      lBmu = S.cBmu report,
-                      lNovelty = S.cNovelty report,
-                      lAdjNovelty = S.cAdjNovelty report,
-                      lDetails = S.cDetails report
+                      lBmu = GSOM.cBmu report,
+                      lNovelty = GSOM.cNovelty report,
+                      lAdjNovelty = GSOM.cAdjNovelty report,
+                      lDetails = GSOM.cDetails report
                     }
 
 -- | Returns the set of scenarios for which this predictor has response
 --   models.
-scenarios :: Predictor a -> [[S.Label]]
-scenarios = map (labels . snd) . M.toList . S.modelMap
+scenarios :: Predictor t a -> [[GSOM.Label]]
+scenarios = map (labels . snd) . M.toList . SOM.modelMap
 
 -- | Returns @True@ if the predictor has a response for the scenario;
 --   returns @False@ otherwise.
-hasScenario :: Predictor a -> [S.Label] -> Bool
+hasScenario :: Predictor t a -> [GSOM.Label] -> Bool
 hasScenario p ls = ls `elem` scenarios p
 
-actions :: Eq a => Predictor a -> [a]
-actions = nub . map (action . snd) . M.toList . S.modelMap
+actions :: Eq a => Predictor t a -> [a]
+actions = nub . map (action . snd) . M.toList . SOM.modelMap
 
 -- | Remove all response models from the predictor that refer to
 --   classifier models that are not in the provided list.
-filterLabels :: Eq a => [S.Label] -> Predictor a -> Predictor a
-filterLabels ls = S.filter (\r -> null (labels r \\ ls))
+filterLabels
+  :: (SOM.Adjuster t, Eq a)
+  => [GSOM.Label] -> Predictor t a -> Predictor t a
+filterLabels ls = SOM.filter (\r -> null (labels r \\ ls))

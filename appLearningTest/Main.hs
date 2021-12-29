@@ -24,13 +24,13 @@ import           ALife.Creatur.Wain.BrainInternal        (classifier,
                                                           decisionQuality,
                                                           makeBrain, predictor)
 import           ALife.Creatur.Wain.Classifier           (bmus)
-import           ALife.Creatur.Wain.GeneticSOM           (makeSGM,
-                                                          schemaQuality)
+import           ALife.Creatur.Wain.GeneticSOM           (schemaQuality)
 import           ALife.Creatur.Wain.LearningParams       (mkLearningParams)
-import           ALife.Creatur.Wain.PatternAdjuster      (PatternAdjuster (..))
-import           ALife.Creatur.Wain.PatternQC            (TestPattern (..))
+import           ALife.Creatur.Wain.PatternQC            (TestPattern (..),
+                                                          TestPatternAdjuster (..))
 import           ALife.Creatur.Wain.Response             (action)
-import           ALife.Creatur.Wain.ResponseQC           (TestAction (..))
+import           ALife.Creatur.Wain.ResponseQC           (TestAction (..),
+                                                          TestResponseAdjuster (..))
 import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser,
                                                           makeMuser)
 import           ALife.Creatur.Wain.Statistics           (stats)
@@ -38,6 +38,7 @@ import           ALife.Creatur.WainInternal
 import           Control.Monad                           (foldM_)
 import           Control.Monad.Random                    (evalRand, getRandoms,
                                                           mkStdGen)
+import qualified Data.Datamining.Clustering.SGM4Internal as SOM
 
 reward :: Double
 reward = 0.1
@@ -53,7 +54,8 @@ correctAnswer (TestPattern p)
 energyFor :: TestPattern -> TestAction -> Double
 energyFor p a = if a == correctAnswer p then reward else -reward
 
-type TestWain = Wain TestPattern TestAction (SimpleMuser TestAction)
+type TestWain = Wain TestPatternAdjuster TestResponseAdjuster
+                     TestPattern TestAction (SimpleMuser TestAction)
 
 testWain :: TestWain
 testWain = w'
@@ -64,13 +66,13 @@ testWain = w'
         wAgeOfMaturity = 100
         wPassionDelta = 0
         wClassifierSize = 10
-        wClassifierAdjuster = PatternAdjuster ec
-        wClassifier = makeSGM wClassifierAdjuster wClassifierSize
+        wClassifierAdjuster = TestPatternAdjuster ec
+        wClassifier = SOM.makeSGM wClassifierAdjuster wClassifierSize
         (Right wMuser) = makeMuser [0, 0, 0] 3
         wIos = [narrow reward, 0, 0]
         wRds = [narrow reward, 0, 0]
-        wPredictorAdjuster = PatternAdjuster ep
-        wPredictor = makeSGM wPredictorAdjuster (wClassifierSize*5)
+        wPredictorAdjuster = TestResponseAdjuster ep
+        wPredictor = SOM.makeSGM wPredictorAdjuster (wClassifierSize*5)
         wHappinessWeights = makeWeights [1, 0, 0]
         Right ec = mkLearningParams 0.1 0.0001 1000
         Right ep = mkLearningParams 0.1 0.0001 1000

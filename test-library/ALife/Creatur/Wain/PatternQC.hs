@@ -12,6 +12,7 @@
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveAnyClass    #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -19,6 +20,7 @@ module ALife.Creatur.Wain.PatternQC
   (
     test,
     TestPattern(..),
+    TestPatternAdjuster(..),
     randomTestPattern,
     prop_makeSimilar_works,
     prop_diff_can_be_0,
@@ -28,22 +30,31 @@ module ALife.Creatur.Wain.PatternQC
 
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import qualified ALife.Creatur.Gene.Test                 as GT
+import qualified ALife.Creatur.Genetics.BRGCWord8        as G
 import qualified ALife.Creatur.Genetics.BRGCWord8        as W8
 import           ALife.Creatur.Genetics.Diploid          (Diploid)
-import           ALife.Creatur.Wain.Pattern              (Pattern, diff,
-                                                          makeSimilar)
 import           ALife.Creatur.Wain.Pretty               (Pretty)
 -- import           ALife.Creatur.Wain.Statistics           (Statistical, stats)
+import           ALife.Creatur.Wain.LearningParams       (LearningParams,
+                                                          toLearningFunction)
+import           ALife.Creatur.Wain.LearningParamsQC     ()
+import           ALife.Creatur.Wain.Report               (Report, report)
+import           ALife.Creatur.Wain.Statistics           (Statistical, stats)
 import           Control.DeepSeq                         (NFData)
 import           Control.Monad.Random                    (Rand, RandomGen,
                                                           getRandom)
+import           Data.Datamining.Clustering.SGM4Internal (Adjuster, MetricType,
+                                                          PatternType, TimeType,
+                                                          difference,
+                                                          learningRate,
+                                                          makeSimilar)
 import qualified Data.Datamining.Pattern.Numeric         as N
 import           Data.Serialize                          (Serialize)
-import           Data.Word                               (Word8)
+import           Data.Word                               (Word32, Word8)
 import           GHC.Generics                            (Generic)
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck                         (Arbitrary, arbitrary)
+import           Test.QuickCheck.Counterexamples         (Arbitrary, arbitrary)
 
 -- | A simple pattern that is useful for testing.
 newtype TestPattern = TestPattern Word8
@@ -56,40 +67,66 @@ instance Arbitrary TestPattern where
 -- instance Statistical TestPattern where
 --   stats (TestPattern x) = [iStat "" x]
 
-instance Pattern TestPattern where
-  diff (TestPattern x) (TestPattern y)
+
+data TestPatternAdjuster = TestPatternAdjuster LearningParams
+  deriving (Eq, Show, Read, Generic, Serialize, G.Genetic, Diploid, NFData)
+
+instance Adjuster TestPatternAdjuster where
+  type TimeType TestPatternAdjuster = Word32
+  type MetricType TestPatternAdjuster = UI.UIDouble
+  type PatternType TestPatternAdjuster = TestPattern
+  learningRate (TestPatternAdjuster l) = toLearningFunction l
+  difference _ (TestPattern x) (TestPattern y)
     = UI.narrow $ abs (x' - y') / range
     where x' = fromIntegral x :: Double
           y' = fromIntegral y :: Double
           range = fromIntegral (maxBound :: Word8) :: Double
-  makeSimilar (TestPattern target) r (TestPattern x)
+  makeSimilar _ (TestPattern target) r (TestPattern x)
     = TestPattern . round $ N.makeSimilar target' r' x'
     where target' = fromIntegral target :: Double
           r' = UI.wide r
           x' = fromIntegral x :: Double
 
+instance Statistical TestPatternAdjuster where
+  stats (TestPatternAdjuster l) = stats l
+
+instance Report TestPatternAdjuster where
+  report (TestPatternAdjuster l) = report l
+
+instance Arbitrary TestPatternAdjuster where
+  arbitrary = TestPatternAdjuster <$> arbitrary
+
 -- | Random pattern generator.
 randomTestPattern :: RandomGen r => Rand r TestPattern
 randomTestPattern = TestPattern <$> getRandom
 
-prop_diff_can_be_0 :: Pattern a => a -> Bool
-prop_diff_can_be_0 x = diff x x == 0
+prop_diff_can_be_0
+  :: (Adjuster a, Eq (MetricType a), Num (MetricType a))
+  => a -> PatternType a -> Bool
+prop_diff_can_be_0 a x = difference a x x == 0
 
-prop_diff_can_be_1 :: (Pattern a, Bounded a) => a -> Bool
-prop_diff_can_be_1 dummy
-  = diff (minBound `asTypeOf` dummy) (maxBound `asTypeOf` dummy) == 1
+prop_diff_can_be_1
+  :: (Adjuster a, Bounded (PatternType a),
+     Eq (MetricType a), Num (MetricType a))
+  => a -> PatternType a -> Bool
+prop_diff_can_be_1 a dummy
+  = difference a (minBound `asTypeOf` dummy) (maxBound `asTypeOf` dummy) == 1
 
-prop_diff_is_symmetric :: Pattern a => a -> a -> Bool
-prop_diff_is_symmetric x y = diff x y == diff y x
+prop_diff_is_symmetric
+  :: (Adjuster a, Eq (MetricType a))
+  => a -> PatternType a -> PatternType a -> Bool
+prop_diff_is_symmetric a x y = difference a x y == difference a y x
 
 -- | Verify that `makeSimilar a b` returns a value that is no further
 --   away from `b` than `a` was.
 prop_makeSimilar_works
-  :: Pattern a => a -> UI.UIDouble -> a -> Bool
-prop_makeSimilar_works x r y = diffAfter <= diffBefore
-  where diffBefore = diff x y
-        y' = makeSimilar x r y
-        diffAfter = diff x y'
+  :: (Adjuster a, Eq (MetricType a), Ord (MetricType a))
+  => a -> PatternType a -> MetricType a -> PatternType a -> Bool
+prop_makeSimilar_works a x r y = diffAfter <= diffBefore
+  where diffBefore = difference a x y
+        y' = makeSimilar a x r y
+        diffAfter = difference a x y'
+
 
 test :: Test
 test = testGroup "ALife.Creatur.Gene.PatternQC"
@@ -111,11 +148,29 @@ test = testGroup "ALife.Creatur.Gene.PatternQC"
       (GT.prop_diploid_readable :: TestPattern -> TestPattern -> Bool),
 
     testProperty "prop_diff_can_be_0 - TestPattern"
-      (prop_diff_can_be_0 :: TestPattern -> Bool),
+      (prop_diff_can_be_0 :: TestPatternAdjuster -> TestPattern -> Bool),
     testProperty "prop_diff_can_be_1 - TestPattern"
-      (prop_diff_can_be_1 :: TestPattern -> Bool),
+      (prop_diff_can_be_1 :: TestPatternAdjuster -> TestPattern -> Bool),
     testProperty "prop_diff_is_symmetric - TestPattern"
-      (prop_diff_is_symmetric :: TestPattern -> TestPattern -> Bool),
+      (prop_diff_is_symmetric :: TestPatternAdjuster -> TestPattern -> TestPattern -> Bool),
     testProperty "prop_makeSimilar_works - TestPattern"
-      (prop_makeSimilar_works :: TestPattern -> UI.UIDouble -> TestPattern -> Bool)
+      (prop_makeSimilar_works :: TestPatternAdjuster -> TestPattern -> UI.UIDouble -> TestPattern -> Bool),
+
+    testProperty "prop_serialize_round_trippable - TestPatternAdjuster"
+      (GT.prop_serialize_round_trippable :: TestPatternAdjuster -> Bool),
+    testProperty "prop_genetic_round_trippable - TestPatternAdjuster"
+      (GT.prop_genetic_round_trippable (==) :: TestPatternAdjuster -> Bool),
+    -- testProperty "prop_genetic_round_trippable2 - TestPatternAdjuster"
+    --   (prop_genetic_round_trippable2
+    --    :: Int -> [Word8] -> TestPatternAdjuster -> Bool),
+    testProperty "prop_diploid_identity - TestPatternAdjuster"
+      (GT.prop_diploid_identity (==) :: TestPatternAdjuster -> Bool),
+    testProperty "prop_show_read_round_trippable - TestPatternAdjuster"
+      (GT.prop_show_read_round_trippable (==) :: TestPatternAdjuster -> Bool),
+    testProperty "prop_diploid_expressable - TestPatternAdjuster"
+      (GT.prop_diploid_expressable
+       :: TestPatternAdjuster -> TestPatternAdjuster -> Bool),
+    testProperty "prop_diploid_readable - TestPatternAdjuster"
+      (GT.prop_diploid_readable
+       :: TestPatternAdjuster -> TestPatternAdjuster -> Bool)
   ]

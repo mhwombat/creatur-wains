@@ -45,7 +45,6 @@ import qualified ALife.Creatur.Wain.Brain                   as B
 import qualified ALife.Creatur.Wain.Classifier              as Cl
 import qualified ALife.Creatur.Wain.GeneticSOM              as GSOM
 import           ALife.Creatur.Wain.Muser                   (Action, Muser)
-import           ALife.Creatur.Wain.Pattern                 (Pattern)
 import qualified ALife.Creatur.Wain.Predictor               as P
 import           ALife.Creatur.Wain.Pretty                  (Pretty, pretty)
 import           ALife.Creatur.Wain.Report                  (Report, report)
@@ -54,12 +53,14 @@ import           ALife.Creatur.Wain.Statistics              (Statistical, dStat,
                                                              iStat, stats)
 import           Control.DeepSeq                            (NFData)
 import           Control.Monad.Random                       (Rand, RandomGen)
+import qualified Data.Datamining.Clustering.SGM4Internal    as SOM
 import           Data.List                                  (intercalate,
                                                              partition, sortOn)
 import qualified Data.Map.Strict                            as M
 import           Data.Serialize                             (Serialize)
 import           Data.Version                               (showVersion)
-import           Data.Word                                  (Word16, Word8)
+import           Data.Word                                  (Word16, Word32,
+                                                             Word8)
 import           GHC.Generics                               (Generic)
 import           Paths_creatur_wains                        (version)
 import           Text.Printf                                (printf)
@@ -79,7 +80,7 @@ data Event p = IncAge
              deriving (Eq, Show, Read, Generic, NFData, Serialize)
 
 -- | A data mining agent that can learn, reproduce, and evolve.
-data Wain p a m = Wain
+data Wain ct pt p a m = Wain
   {
     -- | Each wain should have a unique name.
     name                   :: String,
@@ -88,7 +89,7 @@ data Wain p a m = Wain
     appearance             :: p,
     -- | The wain's brain, which recognises patterns and makes
     --   decisions.
-    brain                  :: B.Brain p a m,
+    brain                  :: B.Brain ct pt p a m,
     -- | The amount of energy the wain will give to offspring at birth.
     --   This is a number between 0 and 1, inclusive.
     devotion               :: UI.UIDouble,
@@ -106,7 +107,7 @@ data Wain p a m = Wain
     -- | The wain's current age.
     age                    :: Word16,
     -- | The children this wain is currently rearing.
-    litter                 :: [Wain p a m],
+    litter                 :: [Wain ct pt p a m],
     -- | The number of children this wain has borne.
     childrenBorneLifetime  :: Word16,
     -- | The number of children this wain has reared to maturity.
@@ -117,12 +118,13 @@ data Wain p a m = Wain
     biography              :: [Event p]
   } deriving (Eq, Generic, NFData)
 
-deriving instance (Show p, Show a, Show m) => Show (Wain p a m)
+deriving instance (Show ct, Show pt, Show p, Show a, Show m)
+  => Show (Wain ct pt p a m)
 
 -- | Internal method
 buildWain
-  :: String -> p -> B.Brain p a m -> UI.UIDouble -> Word16
-  -> UI.UIDouble -> (Sequence, Sequence) -> Wain p a m
+  :: String -> p -> B.Brain ct pt p a m -> UI.UIDouble -> Word16
+  -> UI.UIDouble -> (Sequence, Sequence) -> Wain ct pt p a m
 buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
   wPassionDelta g =
     Wain
@@ -147,9 +149,9 @@ buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
 --   corresponding (generated) genome. This would normally be used only
 --   for generating the initial population.
 buildWainAndGenerateGenome
-  :: (Genetic p, Genetic a, Genetic m, Muser m)
-  => String -> p -> B.Brain p a m -> UI.UIDouble -> Word16
-  -> UI.UIDouble -> Wain p a m
+  :: (Genetic ct, Genetic pt, Genetic p, Genetic a, Genetic m, Muser m)
+  => String -> p -> B.Brain ct pt p a m -> UI.UIDouble -> Word16
+  -> UI.UIDouble -> Wain ct pt p a m
 buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
   wAgeOfMaturity wPassionDelta = strawMan { genome=(g,g) }
   where strawMan = buildWain wName wAppearance wBrain wDevotion
@@ -159,9 +161,9 @@ buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
 -- | Constructs a wain from its genome. This is used when a child is
 --   produced as the result of mating.
 buildWainFromGenome
-  :: (Diploid p, Genetic p, Diploid a, Genetic a, Ord a,
-     Diploid m, Genetic m, Muser m)
-  => Bool -> String -> DiploidReader (Either [String] (Wain p a m))
+  :: (Genetic ct, Diploid ct, Genetic pt, Diploid pt, Diploid p, Genetic p,
+     Diploid a, Genetic a, Ord a, Diploid m, Genetic m, Muser m)
+  => Bool -> String -> DiploidReader (Either [String] (Wain ct pt p a m))
 buildWainFromGenome truncateGenome wName = do
   wAppearance <- getAndExpress
   wBrain <- getAndExpress
@@ -172,14 +174,15 @@ buildWainFromGenome truncateGenome wName = do
   return $ buildWain wName <$> wAppearance <*> wBrain <*> wDevotion
              <*> wAgeOfMaturity <*> wPassionDelta <*> pure g
 
-instance Record (Wain p a m) where
+instance Record (Wain ct pt p a m) where
   key = name
 
-instance SizedRecord (Wain p a m) where
+instance SizedRecord (Wain ct pt p a m) where
   size = const 1
 
-instance (Pattern p, Eq a, Statistical m)
-  => Statistical (Wain p a m) where
+instance (SOM.Adjuster ct, Statistical ct,
+          SOM.Adjuster pt, Statistical pt, Eq a, Statistical m)
+  => Statistical (Wain ct pt p a m) where
   stats w =
     iStat "age" (age w)
       : stats (brain w)
@@ -199,13 +202,13 @@ instance (Pattern p, Eq a, Statistical m)
     where e = energy w
           ec = sum . map (energy) $ litter w
 
-instance (Serialize p, Ord a, Serialize a, Serialize m)
-  => Serialize (Wain p a m)
+instance (Serialize ct, Serialize pt, Serialize p, Ord a, Serialize a, Serialize m)
+  => Serialize (Wain ct pt p a m)
 
 -- This implementation is useful for generating the genes in the
 -- initial population, and for testing
-instance (Genetic p, Genetic a, Genetic m, Muser m)
-  => Genetic (Wain p a m) where
+instance (Genetic ct, Genetic pt, Genetic p, Genetic a, Genetic m, Muser m)
+  => Genetic (Wain ct pt p a m) where
   put w = put (appearance w)
             >> put (brain w)
             >> put (devotion w)
@@ -222,8 +225,8 @@ instance (Genetic p, Genetic a, Genetic m, Muser m)
              <*> wAgeOfMaturity <*> wPassionDelta <*> pure (g, g)
 
 -- This implementation is useful for testing
-instance (Diploid p, Diploid a, Ord a, Diploid m)
-  => Diploid (Wain p a m) where
+instance (Diploid ct, Diploid pt, Diploid p, Diploid a, Ord a, Diploid m)
+  => Diploid (Wain ct pt p a m) where
   express x y = buildWain "" wAppearance wBrain wDevotion
                   wAgeOfMaturity wPassionDelta ([],[])
     where wAppearance     = express (appearance x)    (appearance y)
@@ -233,14 +236,15 @@ instance (Diploid p, Diploid a, Ord a, Diploid m)
                                                       (ageOfMaturity y)
           wPassionDelta   = express (passionDelta x)  (passionDelta y)
 
-instance Agent (Wain p a m) where
+instance Agent (Wain ct pt p a m) where
   agentId = name
   isAlive w = energy w > 0
 
-instance (Diploid p, Genetic p, Diploid a, Genetic a, Ord a,
+instance (Genetic ct, Diploid ct, Genetic pt, Diploid pt,
+          Diploid p, Genetic p, Diploid a, Genetic a, Ord a,
           Diploid m, Genetic m, Muser m)
-  => RS.Reproductive (Wain p a m) where
-  type Strand (Wain p a m) = Sequence
+  => RS.Reproductive (Wain ct pt p a m) where
+  type Strand (Wain ct pt p a m) = Sequence
   genome = genome
   produceGamete a =
     repeatWithProbability 0.1 randomCrossover (genome a) >>=
@@ -250,42 +254,42 @@ instance (Diploid p, Genetic p, Diploid a, Genetic a, Ord a,
   build n = runDiploidReader (buildWainFromGenome False n)
 
 
-recordEvent :: Event p -> Wain p a m -> Wain p a m
+recordEvent :: Event p -> Wain ct pt p a m -> Wain ct pt p a m
 recordEvent e w = w { biography=e:biography w }
 
-runEvent :: Event p -> Wain p a m -> Wain p a m
+runEvent :: Event p -> Wain ct pt p a m -> Wain ct pt p a m
 runEvent e =  justRunEvent e . recordEvent e
 
-justRunEvent :: Event p -> Wain p a m -> Wain p a m
+justRunEvent :: Event p -> Wain ct pt p a m -> Wain ct pt p a m
 justRunEvent _ _ = undefined
 
 
 -- | Returns the total energy of all children in the litter.
-childEnergy :: Wain p a m -> Double
+childEnergy :: Wain ct pt p a m -> Double
 childEnergy = sum . map (UI.wide . energy) . litter
 
 -- | Returns @True@ if a wain is currently raising children; returns
 --   @False@ otherwise.
-hasLitter :: Wain p a m -> Bool
+hasLitter :: Wain ct pt p a m -> Bool
 hasLitter = not . null . litter
 
 -- | Returns the number of children that a wain is currently raising.
-litterSize :: Wain p a m -> Int
+litterSize :: Wain ct pt p a m -> Int
 litterSize = length . litter
 
 -- | Returns @True@ if the wain is mature; returns @False@ otherwise.
-mature :: Wain p a m -> Bool
+mature :: Wain ct pt p a m -> Bool
 mature a = age a >= ageOfMaturity a
 
 -- | Returns the wain's current condition. This is useful for making
 --   decisions.
-condition :: Wain p a m -> B.Condition
+condition :: Wain ct pt p a m -> B.Condition
 condition w = [ energy w, 1 - passion w, if l > 0 then 1 else 0 ]
   where l = length . litter $ w
 
 -- | Returns the wain's current happiness level.
 --   This is a number between 0 and 1, inclusive.
-happiness :: Wain p a m -> UI.UIDouble
+happiness :: Wain ct pt p a m -> UI.UIDouble
 happiness w = B.happiness (brain w) (condition w)
 
 --numModels . B.classifier . brain $ w
@@ -325,8 +329,11 @@ adjNovelties = map GSOM.cAdjNovelty . Cl.cDetails . wdrClassifierReport
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: (Pattern p, Ord a, Muser m, Pretty m, a ~ Action m)
-  => [p] -> Wain p a m -> (DecisionReport p a, R.Response a, Wain p a m)
+  :: ( SOM.Adjuster ct, SOM.PatternType ct ~ p, SOM.MetricType ct ~ UI.UIDouble,
+      SOM.TimeType ct ~ Word32, SOM.PatternType pt ~ R.Response a,
+      SOM.Adjuster pt, SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32,
+      Ord a, Muser m, Pretty m, a ~ Action m)
+  => [p] -> Wain ct pt p a m -> (DecisionReport p a, R.Response a, Wain ct pt p a m)
 chooseAction ps w = (dReport', r, w' { litter=litter' })
   where (dReport, b')
           = B.chooseAction (brain w) ps (condition w)
@@ -348,7 +355,7 @@ chooseAction ps w = (dReport', r, w' { litter=litter' })
                     }
 
 adjustEnergy
-  :: Double -> Wain p a m -> (Wain p a m, Double)
+  :: Double -> Wain ct pt p a m -> (Wain ct pt p a m, Double)
 adjustEnergy delta w = (wAfter, delta')
   where eBefore = energy w
         eAfter = UI.crop $ UI.wide (energy w) + delta
@@ -358,27 +365,27 @@ adjustEnergy delta w = (wAfter, delta')
 -- | Adjusts the wain's passion by the genetically-determined amount.
 --   NOTE: The passion is capped to the range [0,1]. The litter is not
 --   affected.
-autoAdjustPassion :: Wain p a m -> Wain p a m
+autoAdjustPassion :: Wain ct pt p a m -> Wain ct pt p a m
 autoAdjustPassion w = w { passion=p }
   where p = UI.narrow . enforceRange unitInterval $
               UI.wide (passion w) + UI.wide (passionDelta w)
 
 -- | Resets the wain's passion to zero.
 --   This would normally be called immediately after mating.
-coolPassion :: Wain p a m -> Wain p a m
+coolPassion :: Wain ct pt p a m -> Wain ct pt p a m
 coolPassion w = w { passion=0 }
 
 -- | Increments the age of the wain, and its litter (if any).
-incAge :: Wain p a m -> Wain p a m
+incAge :: Wain ct pt p a m -> Wain ct pt p a m
 incAge = incAge1 . incLitterAge
 
 -- | Internal method
-incLitterAge :: Wain p a m -> Wain p a m
+incLitterAge :: Wain ct pt p a m -> Wain ct pt p a m
 incLitterAge w = w { litter=litter' }
   where litter' = map incAge1 $ litter w
 
 -- | Internal method
-incAge1 :: Wain p a m -> Wain p a m
+incAge1 :: Wain ct pt p a m -> Wain ct pt p a m
 incAge1 w = w { age=age w + 1 }
 
 data ReflectionReport p a
@@ -400,9 +407,10 @@ happinessError = B.brrErr . rReflectionReport
 --   the action was perfect (increased happiness by 1).
 --   TODO: Do something more realistic.
 reflect
-  :: Eq a
-  => R.Response a -> Wain p a m -> Wain p a m
-  -> (ReflectionReport p a, Wain p a m)
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+  => R.Response a -> Wain ct pt p a m -> Wain ct pt p a m
+  -> (ReflectionReport p a, Wain ct pt p a m)
 reflect r wBefore wAfter =
   (rReport', wReflected { litter=litter' })
   where (rReport, wReflected) = reflect1 r wBefore wAfter
@@ -418,9 +426,10 @@ reflect r wBefore wAfter =
 
 -- | Internal method
 reflect1
-  :: Eq a
-  => R.Response a -> Wain p a m -> Wain p a m
-  -> (B.ReflectionReport a, Wain p a m)
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+  => R.Response a -> Wain ct pt p a m -> Wain ct pt p a m
+  -> (B.ReflectionReport a, Wain ct pt p a m)
 reflect1 r wBefore wAfter = (rReport, wAfter { brain=b' })
   where (rReport, b') = B.reflect (brain wAfter) r (condition wBefore)
                         (condition wAfter)
@@ -429,8 +438,10 @@ type StimulusImprintReport p = [GSOM.ImprintDetail p]
 
 -- | Teaches the wain a set of patterns, and a label for each of them.
 imprintStimulus
-  :: Pattern p
-  => [(GSOM.Label, p)] -> Wain p a m -> (StimulusImprintReport p, Wain p a m)
+  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.UIDouble, SOM.TimeType ct ~ Word32)
+  => [(GSOM.Label, p)] -> Wain ct pt p a m
+  -> (StimulusImprintReport p, Wain ct pt p a m)
 imprintStimulus lps w = (iReport, w { brain=b' })
   where (iReport, b') = B.imprintStimulus (brain w) lps
 
@@ -443,8 +454,9 @@ type ResponseImprintReport a = P.LearningReport a
 --   Returns a detailed report of the imprint process
 --   and the updated wain.
 imprintResponse
-  :: Eq a
-  => [GSOM.Label] -> a -> Wain p a m -> (P.LearningReport a, Wain p a m )
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+  => [GSOM.Label] -> a -> Wain ct pt p a m -> (P.LearningReport a, Wain ct pt p a m )
 imprintResponse ls a w = (iReport, w { brain=b' })
   where (iReport, b') = B.imprintResponse (brain w) ls a
 
@@ -456,10 +468,11 @@ imprintResponse ls a w = (iReport, w { brain=b' })
 --   that occurred when attempting to produce a child from the genome,
 --   and the energy contribution from each parent.
 mate
-  :: (Genetic p, Diploid p, Diploid a, Genetic a, Ord a,
+  :: (Diploid ct, Genetic ct, Diploid pt, Genetic pt,
+     Genetic p, Diploid p, Diploid a, Genetic a, Ord a,
      Diploid m, Genetic m, Muser m, RandomGen r)
-  => Wain p a m -> Wain p a m -> String
-  -> Rand r ([Wain p a m], [String], Double, Double)
+  => Wain ct pt p a m -> Wain ct pt p a m -> String
+  -> Rand r ([Wain ct pt p a m], [String], Double, Double)
 mate a b babyName
   | hasLitter a
       = return ([a, b], [name a ++ " already has a litter"], 0, 0)
@@ -469,10 +482,11 @@ mate a b babyName
 
 -- | Internal method
 mate'
-  :: (Genetic p, Diploid p, Diploid a, Genetic a, Ord a,
+  :: (Diploid ct, Genetic ct, Diploid pt, Genetic pt,
+     Genetic p, Diploid p, Diploid a, Genetic a, Ord a,
      Diploid m, Genetic m, Muser m, RandomGen r)
-  => Wain p a m -> Wain p a m -> String
-   -> Rand r ([Wain p a m], [String], Double, Double)
+  => Wain ct pt p a m -> Wain ct pt p a m -> String
+   -> Rand r ([Wain ct pt p a m], [String], Double, Double)
 mate' a b babyName = do
   let a2 = coolPassion a
   let b2 = coolPassion b
@@ -488,8 +502,8 @@ mate' a b babyName = do
 
 -- | Internal method
 donateParentEnergy
-  :: Wain p a m -> Wain p a m -> Wain p a m
-     -> (Wain p a m, Wain p a m, Wain p a m,
+  :: Wain ct pt p a m -> Wain ct pt p a m -> Wain ct pt p a m
+     -> (Wain ct pt p a m, Wain ct pt p a m, Wain ct pt p a m,
           Double, Double)
 donateParentEnergy a b c = (a', b', c', aContribution', bContribution')
   where aContribution = - UI.wide (devotion a * energy a)
@@ -502,7 +516,7 @@ donateParentEnergy a b c = (a', b', c', aContribution', bContribution')
 -- | Removes any mature children from the wain's litter.
 --   Returns a list containing the (possibly modified) wain, together
 --   with any children that have just been weaned.
-weanMatureChildren :: Wain p a m -> [Wain p a m]
+weanMatureChildren :: Wain ct pt p a m -> [Wain ct pt p a m]
 weanMatureChildren a =
   if null (litter a)
     then [a]
@@ -513,7 +527,7 @@ weanMatureChildren a =
                  childrenWeanedLifetime=childrenWeanedLifetime a + newWeanlings }
 
 -- | Removes any dead children from the wain's litter.
-pruneDeadChildren :: Wain p a m -> [Wain p a m]
+pruneDeadChildren :: Wain ct pt p a m -> [Wain ct pt p a m]
 pruneDeadChildren a =
   if null (litter a)
     then [a]
@@ -522,39 +536,39 @@ pruneDeadChildren a =
         a' = a { litter=aliveChildren }
 
 -- | Describes the classifier models.
-prettyClassifierModels :: Pretty p => Wain p a m -> [String]
+prettyClassifierModels :: Pretty p => Wain ct pt p a m -> [String]
 prettyClassifierModels w
   = prettyClassifierModels' w
       ++ concatMap (indent . prettyClassifierModels') (litter w)
 
-prettyClassifierModels' :: Pretty p => Wain p a m -> [String]
+prettyClassifierModels' :: Pretty p => Wain ct pt p a m -> [String]
 prettyClassifierModels' w
   = (agentId w ++ "'s classifier models") : map f ms
-  where ms = M.toList . GSOM.modelMap . B.classifier . brain $ w
+  where ms = M.toList . SOM.modelMap . B.classifier . brain $ w
         f (l, m) = show l ++ " " ++ pretty m
 
 -- | Describes the predictor models.
-prettyPredictorModels :: Pretty a => Wain p a m -> [String]
+prettyPredictorModels :: Pretty a => Wain ct pt p a m -> [String]
 prettyPredictorModels w
   = prettyPredictorModels' w
       ++ concatMap (indent . prettyPredictorModels') (litter w)
 
-prettyPredictorModels' :: Pretty a => Wain p a m -> [String]
+prettyPredictorModels' :: Pretty a => Wain ct pt p a m -> [String]
 prettyPredictorModels' w
   = (agentId w ++ "'s predictor models") : map f ms
-  where ms = M.toList . GSOM.modelMap . B.predictor . brain $ w
+  where ms = M.toList . SOM.modelMap . B.predictor . brain $ w
         f (l, m) = show l ++ ": " ++ pretty m
 
 -- | Generates a report that shows relationships between the classifier
 --   and predictor models.
 --   Useful when the classifier models and the predictor models are
 --   both brief.
-prettyBrainSummary :: (Pretty p, Pretty a) => Wain p a m -> [String]
+prettyBrainSummary :: (Pretty p, Pretty a) => Wain ct pt p a m -> [String]
 prettyBrainSummary w
   = (agentId w ++ "'s brain summary") : map f rs
-  where ps = M.toList . GSOM.modelMap . B.classifier . brain $ w
+  where ps = M.toList . SOM.modelMap . B.classifier . brain $ w
         rs = sortOn (R.labels . snd) . M.toList
-               . GSOM.modelMap . B.predictor . brain $ w
+               . SOM.modelMap . B.predictor . brain $ w
         f (l, r) = show l ++ ": "
                      ++ intercalate "," (map g (R.labels r)) ++ " "
                      ++ pretty r
@@ -562,7 +576,7 @@ prettyBrainSummary w
 
 prettyClassificationReport
   :: Pretty p
-  => Wain p a m -> DecisionReport p a -> [String]
+  => Wain ct pt p a m -> DecisionReport p a -> [String]
 prettyClassificationReport w r
   = (agentId w ++ " classifies the input(s)")
     : Cl.prettyClassifierReport (wdrClassifierReport r)
@@ -572,28 +586,28 @@ prettyClassificationReport w r
                                prettyStimulusImprintReport child iReport
 
 prettyScenarioReport
-  :: Wain p a m -> DecisionReport p a -> [String]
+  :: Wain ct pt p a m -> DecisionReport p a -> [String]
 prettyScenarioReport w r
   = (agentId w ++ " develops hypotheses about the current scenario")
     : B.prettyScenarioReport (wdrScenarioReport r)
 
 prettyPredictionReport
   :: Pretty a
-  => Wain p a m -> DecisionReport p a -> [String]
+  => Wain ct pt p a m -> DecisionReport p a -> [String]
 prettyPredictionReport w r
   = (agentId w ++ " considers possible responses")
     : map pretty (wdrPredictorReport r)
 
 prettyActionReport
   :: Pretty a
-  => Wain p a m -> DecisionReport p a -> [String]
+  => Wain ct pt p a m -> DecisionReport p a -> [String]
 prettyActionReport w r
   = (agentId w ++ " predicts outcomes of possible responses")
     : B.prettyActionReport (wdrActionReport r)
 
 prettyReflectionReport
   :: Pretty a
-  => Wain p a m -> ReflectionReport p a -> [String]
+  => Wain ct pt p a m -> ReflectionReport p a -> [String]
 prettyReflectionReport w r
   = (agentId w ++ " reflects on the outcome")
     : B.prettyReflectionReport (rReflectionReport r)
@@ -604,13 +618,13 @@ prettyReflectionReport w r
 
 prettyStimulusImprintReport
   :: Pretty p
-  => Wain p a m -> StimulusImprintReport p -> [String]
+  => Wain ct pt p a m -> StimulusImprintReport p -> [String]
 prettyStimulusImprintReport w r
   = (agentId w ++ " imprints a stimulus")
     : concatMap GSOM.prettyImprintDetail r
 
 prettyResponseImprintReport
-  :: Pretty a => Wain p a m -> ResponseImprintReport a -> [String]
+  :: Pretty a => Wain ct pt p a m -> ResponseImprintReport a -> [String]
 prettyResponseImprintReport w r
   = (agentId w ++ " imprints a response")
     : P.prettyLearningReport r
@@ -618,12 +632,17 @@ prettyResponseImprintReport w r
 indent :: [String] -> [String]
 indent = map ("...." ++ )
 
-instance (Pattern p, Pretty p, Eq a, Pretty a, Pretty m) => Report (Wain p a m) where
+instance (SOM.Adjuster ct, Report ct, SOM.Adjuster pt, Report pt,
+           Pretty p, Eq a, Pretty a, Pretty m)
+  => Report (Wain ct pt p a m) where
   report w = report' w
              ++ map ("child " ++) childReport
     where childReport = concatMap report' (litter w)
 
-report' :: (Pattern p, Pretty p, Eq a, Pretty a, Pretty m) => Wain p a m -> [String]
+report'
+  :: (SOM.Adjuster ct, Report ct, SOM.Adjuster pt, Report pt,
+           Pretty p, Eq a, Pretty a, Pretty m)
+  => Wain ct pt p a m -> [String]
 report' w = map (\s -> n ++ ' ':s) xs
   where n = name w
         xs = [ "appearance: " ++ pretty (appearance w),

@@ -18,86 +18,91 @@
 module ALife.Creatur.Wain.ClassifierInternal where
 
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import qualified ALife.Creatur.Wain.GeneticSOM           as S
-import           ALife.Creatur.Wain.Pattern              (Pattern)
+import qualified ALife.Creatur.Wain.GeneticSOM           as GSOM
 import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
 import           Control.DeepSeq                         (NFData)
+import qualified Data.Datamining.Clustering.SGM4Internal as SOM
 import           Data.List                               (foldl')
 import qualified Data.Map.Strict                         as M
+import           Data.Word                               (Word32)
 import           GHC.Generics                            (Generic)
 
 -- | Maintains a set of models to represent the input patterns
 --   encountered, and classifies the input patterns according to the
 --   models.
-type Classifier p = S.GeneticSOM p
+type Classifier t p = GSOM.GeneticSOM t p
 
 -- | Detailed information about how a classification was made.
 data ClassifierReport p =
   ClassifierReport
     {
       cLearningRate :: UI.UIDouble,
-      cDetails      :: [S.ClassificationDetail p]
+      cDetails      :: [GSOM.ClassificationDetail p]
     } deriving (Generic, Show, NFData)
 
 -- | Generates a human readable summary of a classification.
 prettyClassifierReport :: Pretty p => ClassifierReport p -> [String]
 prettyClassifierReport r =
     ("classifier learning rate: " ++ pretty (cLearningRate r))
-    : concatMap S.prettyClassificationDetail (cDetails r)
+    : concatMap GSOM.prettyClassificationDetail (cDetails r)
 
 -- | Updates the classifier models based on the stimulus (set of
 --   input patterns).
 --   Returns the classification report and the updated classifier.
 classifySetAndTrain
-  :: Pattern p
-  => Classifier p -> [p] -> (ClassifierReport p, Classifier p)
+  :: (SOM.Adjuster t, SOM.PatternType t ~ p,
+     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+  => Classifier t p -> [p] -> (ClassifierReport p, Classifier t p)
 classifySetAndTrain c ps = (report, c')
   where (details, c') = foldl' classifyNextAndTrain ([], c) ps
         report = ClassifierReport
                    {
-                     cLearningRate = S.currentLearningRate c,
+                     cLearningRate = GSOM.currentLearningRate c,
                      cDetails = reverse details
                    }
 
 -- | Internal method
 classifyNextAndTrain
-  :: Pattern p
-  => ([S.ClassificationDetail p], Classifier p) -> p
-    -> ([S.ClassificationDetail p], Classifier p)
+  :: (SOM.Adjuster t, SOM.PatternType t ~ p,
+     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+  => ([GSOM.ClassificationDetail p], Classifier t p) -> p
+    -> ([GSOM.ClassificationDetail p], Classifier t p)
 classifyNextAndTrain (details, c) p = (detail:details, c')
-  where (detail, c') = S.trainAndClassify c p
+  where (detail, c') = GSOM.trainAndClassify c p
 
 -- | Returns the label of the node whose model best matched each input
 --   pattern.
-bmus :: ClassifierReport p -> [S.Label]
-bmus = map S.cBmu . cDetails
+bmus :: ClassifierReport p -> [GSOM.Label]
+bmus = map GSOM.cBmu . cDetails
 
 -- | For each input pattern, returns the labels for all nodes in
 --   the classifier, paired with the difference between the
 --   input pattern and the corresponding model.
-diffs :: ClassifierReport p -> [[(S.Label, UI.UIDouble)]]
+diffs :: ClassifierReport p -> [[(GSOM.Label, UI.UIDouble)]]
 diffs = map diffs' . cDetails
 
-diffs' :: S.ClassificationDetail p -> [(S.Label, UI.UIDouble)]
-diffs' = M.toList . M.map snd . S.cDetails
+diffs' :: GSOM.ClassificationDetail p -> [(GSOM.Label, UI.UIDouble)]
+diffs' = M.toList . M.map snd . GSOM.cDetails
 
 -- | Returns the current node labels
-labels :: Classifier p -> [S.Label]
-labels = M.keys . S.modelMap
+labels :: Classifier t p -> [GSOM.Label]
+labels = M.keys . SOM.modelMap
 
 -- | Teaches the classifier a set of input patterns, along with the
 --   labels for each pattern.
 imprintSet
-  :: Pattern p
-  => Classifier p -> [(S.Label, p)] -> ([S.ImprintDetail p], Classifier p)
+  :: (SOM.Adjuster t, SOM.PatternType t ~ p,
+     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+  => Classifier t p -> [(GSOM.Label, p)] -> ([GSOM.ImprintDetail p], Classifier t p)
 imprintSet c lps = (reverse details, c')
   where (details, c') = foldl' imprintNext ([], c) lps
 
 -- | Internal method
 imprintNext
-  :: Pattern p
-  => ([S.ImprintDetail p], Classifier p)
-    -> (S.Label, p)
-    -> ([S.ImprintDetail p], Classifier p)
+  :: (SOM.Adjuster t, SOM.PatternType t ~ p,
+     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+  => ([GSOM.ImprintDetail p], Classifier t p)
+    -> (GSOM.Label, p)
+    -> ([GSOM.ImprintDetail p], Classifier t p)
 imprintNext (details, c) (l, p) = (detail:details, c')
-  where (detail, c') = S.imprint c l p
+  where (detail, c') = GSOM.imprint c l p
