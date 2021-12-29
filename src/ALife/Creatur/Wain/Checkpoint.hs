@@ -17,29 +17,23 @@ module ALife.Creatur.Wain.Checkpoint
     enforceAll
   ) where
 
-import           ALife.Creatur.Task
-    (requestShutdown)
-import           ALife.Creatur.Universe
-    (Universe, currentTime)
-import           ALife.Creatur.Wain.Statistics
-    (Statistic, iStat, lookup)
-import           Control.Monad
-    (unless, when)
-import           Control.Monad.State.Lazy
-    (StateT)
-import           Prelude                       hiding
-    (lookup)
+import           ALife.Creatur.Task            (requestShutdown)
+import           ALife.Creatur.Universe        (Universe, currentTime)
+import           ALife.Creatur.Wain.Statistics (Statistic, iStat, lookup)
+import           Control.Monad                 (unless, when)
+import           Control.Monad.State.Lazy      (StateT)
+import           Prelude                       hiding (lookup)
 
 -- | @`Check t s l`@ creates a constraint @l@ on the statistic @s@
 --   to be satisfied beginning at time @t@.
-data Checkpoint = Check Int String Limit deriving (Show, Read)
+data Checkpoint = Check Int String Limit deriving (Show, Read, Eq)
 
 -- | A constraint to be evaluated. A constraint is either satisfied
 --   or fails. Constraints can either be @`In`@ a range,
 --   @`GE'@ (greater than or equal to) a value, or
 --   @`LE'@ (less than or equal to) a value.
 data Limit = In (Double, Double) | GE Double | LE Double
-  deriving (Show, Read)
+  deriving (Show, Read, Eq)
 
 satisfies :: Double -> Limit -> Bool
 satisfies v (In (a,b)) = a <= v && v <= b

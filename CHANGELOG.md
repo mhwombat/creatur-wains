@@ -1,5 +1,8 @@
 # Changelog for creatur-wains
 
+10.0.0 Migrate to som 11.0.
+       Remove lenses.
+
 9.8.1 De-linting.
 
 9.8.0 Moved some modules to creatur-genes package.

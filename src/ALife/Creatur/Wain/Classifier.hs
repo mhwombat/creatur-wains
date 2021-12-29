@@ -15,11 +15,8 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.Classifier
   (
-    S.Label,
-    S.Difference,
     Classifier,
     ClassifierReport(..),
-    buildClassifier,
     classifySetAndTrain,
     imprintSet,
     labels,
@@ -29,4 +26,3 @@ module ALife.Creatur.Wain.Classifier
   ) where
 
 import           ALife.Creatur.Wain.ClassifierInternal
-import qualified ALife.Creatur.Wain.GeneticSOM         as S

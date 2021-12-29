@@ -15,13 +15,8 @@
 module ALife.Creatur.Wain.Response
   (
     Response(..),
-    labels,
-    action,
-    outcomes,
     copyOutcomesTo,
-    -- responseDiff,
     labelSimilarity,
-    -- makeResponseSimilar,
     addToOutcomes,
     sizedArbResponse,
     arbResponse

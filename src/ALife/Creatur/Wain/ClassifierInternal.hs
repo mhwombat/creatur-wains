@@ -17,33 +17,25 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.ClassifierInternal where
 
-import qualified ALife.Creatur.Wain.GeneticSOM   as S
-import           ALife.Creatur.Wain.Pretty       (Pretty, pretty)
-import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble)
-import           Control.DeepSeq                 (NFData)
-import           Data.List                       (foldl')
-import qualified Data.Map.Strict                 as M
-import           Data.Word                       (Word64)
-import           GHC.Generics                    (Generic)
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
+import qualified ALife.Creatur.Wain.GeneticSOM           as S
+import           ALife.Creatur.Wain.Pattern              (Pattern)
+import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
+import           Control.DeepSeq                         (NFData)
+import           Data.List                               (foldl')
+import qualified Data.Map.Strict                         as M
+import           GHC.Generics                            (Generic)
 
 -- | Maintains a set of models to represent the input patterns
 --   encountered, and classifies the input patterns according to the
 --   models.
-type Classifier = S.GeneticSOM
-
--- | @'buildClassifier' p n t@ returns a genetic SOM, using an
---   learning function with the parameters @p@ as a learning
---   function, maximum number of models @n@, and "tweaker" @t@.
-buildClassifier
-  :: (S.Tweaker t, p ~ S.Pattern t)
-    => S.LearningParams -> Word64 -> t -> Classifier p t
-buildClassifier = S.buildGeneticSOM
+type Classifier p = S.GeneticSOM p
 
 -- | Detailed information about how a classification was made.
 data ClassifierReport p =
   ClassifierReport
     {
-      cLearningRate :: UIDouble,
+      cLearningRate :: UI.UIDouble,
       cDetails      :: [S.ClassificationDetail p]
     } deriving (Generic, Show, NFData)
 
@@ -57,9 +49,8 @@ prettyClassifierReport r =
 --   input patterns).
 --   Returns the classification report and the updated classifier.
 classifySetAndTrain
-  :: Classifier p t
-    -> [p]
-    -> (ClassifierReport p, Classifier p t)
+  :: Pattern p
+  => Classifier p -> [p] -> (ClassifierReport p, Classifier p)
 classifySetAndTrain c ps = (report, c')
   where (details, c') = foldl' classifyNextAndTrain ([], c) ps
         report = ClassifierReport
@@ -70,9 +61,9 @@ classifySetAndTrain c ps = (report, c')
 
 -- | Internal method
 classifyNextAndTrain
-  :: ([S.ClassificationDetail p], Classifier p t)
-    -> p
-    -> ([S.ClassificationDetail p], Classifier p t)
+  :: Pattern p
+  => ([S.ClassificationDetail p], Classifier p) -> p
+    -> ([S.ClassificationDetail p], Classifier p)
 classifyNextAndTrain (details, c) p = (detail:details, c')
   where (detail, c') = S.trainAndClassify c p
 
@@ -84,29 +75,29 @@ bmus = map S.cBmu . cDetails
 -- | For each input pattern, returns the labels for all nodes in
 --   the classifier, paired with the difference between the
 --   input pattern and the corresponding model.
-diffs :: ClassifierReport p -> [[(S.Label, S.Difference)]]
+diffs :: ClassifierReport p -> [[(S.Label, UI.UIDouble)]]
 diffs = map diffs' . cDetails
 
-diffs' :: S.ClassificationDetail p -> [(S.Label, S.Difference)]
+diffs' :: S.ClassificationDetail p -> [(S.Label, UI.UIDouble)]
 diffs' = M.toList . M.map snd . S.cDetails
 
 -- | Returns the current node labels
-labels :: Classifier p t -> [S.Label]
+labels :: Classifier p -> [S.Label]
 labels = M.keys . S.modelMap
 
 -- | Teaches the classifier a set of input patterns, along with the
 --   labels for each pattern.
 imprintSet
-  :: Classifier p t
-    -> [(S.Label, p)]
-    -> ([S.ImprintDetail p], Classifier p t)
+  :: Pattern p
+  => Classifier p -> [(S.Label, p)] -> ([S.ImprintDetail p], Classifier p)
 imprintSet c lps = (reverse details, c')
   where (details, c') = foldl' imprintNext ([], c) lps
 
 -- | Internal method
 imprintNext
-  :: ([S.ImprintDetail p], Classifier p t)
+  :: Pattern p
+  => ([S.ImprintDetail p], Classifier p)
     -> (S.Label, p)
-    -> ([S.ImprintDetail p], Classifier p t)
+    -> ([S.ImprintDetail p], Classifier p)
 imprintNext (details, c) (l, p) = (detail:details, c')
   where (detail, c') = S.imprint c l p

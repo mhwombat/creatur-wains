@@ -19,14 +19,10 @@ module ALife.Creatur.Wain.Muser
     Muser(..)
   ) where
 
-import           ALife.Creatur.Wain.GeneticSOM
-    (Label)
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne
-    (PM1Double)
-import           ALife.Creatur.Wain.Probability
-    (Probability)
-import           ALife.Creatur.Wain.Response
-    (Response (..))
+import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
+import           ALife.Creatur.Wain.GeneticSOM           (Label)
+import           ALife.Creatur.Wain.Response             (Response (..))
 
 class Muser m where
   type Action m
@@ -39,11 +35,11 @@ class Muser m where
   generateResponses
     :: m
       -> [Action m]
-      -> [([Label], Probability)]
-      -> [(Response (Action m), Probability)]
+      -> [([Label], UI.UIDouble)]
+      -> [(Response (Action m), UI.UIDouble)]
   -- | If a wain has no model for a response it's considering, it
   --   will use these values as a prediction.
   --   Positive values make the wain optimistic and more likely to
   --   take risks. A negative value makes the wain pessimistic and
   --   risk-averse.
-  defaultOutcomes :: m -> [PM1Double]
+  defaultOutcomes :: m -> [PM1.PM1Double]

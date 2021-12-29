@@ -12,12 +12,9 @@
 ------------------------------------------------------------------------
 module ALife.Creatur.Wain.Predictor
   (
-    Label,
     Predictor,
-    ClassificationDetail(..),
     PredictionDetail(..),
     LearningReport(..),
-    buildPredictor,
     predict,
     learn,
     actions,
@@ -28,6 +25,4 @@ module ALife.Creatur.Wain.Predictor
     filterLabels
   ) where
 
-import           ALife.Creatur.Wain.GeneticSOM
-    (ClassificationDetail (..), Label)
 import           ALife.Creatur.Wain.PredictorInternal

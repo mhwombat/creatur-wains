@@ -17,8 +17,8 @@ module ALife.Creatur.Wain.ProbabilityQC
     test
   ) where
 
-import           ALife.Creatur.Gene.Numeric.UnitInterval (wide)
-import           ALife.Creatur.Wain.GeneticSOMInternal   (Difference, Label)
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
+import           ALife.Creatur.Wain.GeneticSOM           (Label)
 import           ALife.Creatur.Wain.ProbabilityInternal
 import           Data.List                               (nub)
 import           Data.Word                               (Word64)
@@ -57,7 +57,7 @@ prop_normalise_works :: [Double] -> Property
 prop_normalise_works ps = not (null ps) ==>
   N.within 10000 (sum . normalise $ ps) 1
 
-newtype TestSignatures = TestSignatures [[(Label, Difference)]]
+newtype TestSignatures = TestSignatures [[(Label, UI.UIDouble)]]
   deriving (Eq, Show)
 
 sizedArbTestSignatures :: Int -> Gen TestSignatures
@@ -71,7 +71,7 @@ instance Arbitrary TestSignatures where
 
 prop_hypothesis_probabilities_eq_1 :: Word64 -> TestSignatures -> Property
 prop_hypothesis_probabilities_eq_1 s (TestSignatures lds) = s >= 1 ==>
-  N.within 100 (sum . map (wide . snd) $ hps) 1
+  N.within 100 (sum . map (UI.wide . snd) $ hps) 1
   where hps = hypothesise s lds
 
 test :: Test

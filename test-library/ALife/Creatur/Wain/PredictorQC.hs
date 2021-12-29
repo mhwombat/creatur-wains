@@ -21,37 +21,29 @@ module ALife.Creatur.Wain.PredictorQC
     ImprintTestData(..)
   ) where
 
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne  (PM1Double, wide)
-import qualified ALife.Creatur.Gene.Test                  as GT
-import           ALife.Creatur.Wain.GeneticSOMInternal    (Label, maxSize,
-                                                           numModels,
-                                                           patternMap,
-                                                           trainAndClassify)
-import           ALife.Creatur.Wain.GeneticSOMQC          (equivGSOM,
-                                                           sizedArbEmptyGeneticSOM,
-                                                           sizedArbGeneticSOM)
+import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
+import qualified ALife.Creatur.Gene.Test                 as GT
+import           ALife.Creatur.Wain.GeneticSOM           (Label, maxSize,
+                                                          numModels,
+                                                          trainAndClassify)
+import           ALife.Creatur.Wain.GeneticSOMQC         (sizedArbEmptyGeneticSOM,
+                                                          sizedArbGeneticSOM)
 import           ALife.Creatur.Wain.PredictorInternal
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
-import           ALife.Creatur.Wain.Probability           (Probability)
-import           ALife.Creatur.Wain.Response              (Response (..))
-import           ALife.Creatur.Wain.ResponseQC            (TestAction,
-                                                           TestResponse,
-                                                           arbTestResponse)
-import           ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker (..),
-                                                           responseDiff)
-import           Control.DeepSeq                          (deepseq)
-import           Control.Lens
-import           Test.Framework                           (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2     (testProperty)
-import           Test.QuickCheck                          hiding (labels,
-                                                           maxSize)
+import           ALife.Creatur.Wain.Pattern              (diff)
+import           ALife.Creatur.Wain.Response             (Response (..))
+import           ALife.Creatur.Wain.ResponseAdjusterQC   ()
+import           ALife.Creatur.Wain.ResponseQC           (TestAction,
+                                                          TestResponse,
+                                                          arbTestResponse)
+import           Control.DeepSeq                         (deepseq)
+import           Test.Framework                          (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2    (testProperty)
+import           Test.QuickCheck                         hiding (labels,
+                                                          maxSize)
 
-type TestPredictorTweaker = ResponseTweaker TestAction
-
-instance Arbitrary TestPredictorTweaker where
-  arbitrary = return ResponseTweaker
-
-type TestPredictor = Predictor TestAction (ResponseTweaker TestAction)
+type TestPredictor = Predictor TestAction
 
 sizedArbTestPredictor :: Int -> Gen TestPredictor
 sizedArbTestPredictor n = do
@@ -75,7 +67,7 @@ data TrainingTestData
       {
         xPredictor :: TestPredictor,
         xResponse  :: TestResponse,
-        xOutcomes  :: [PM1Double]
+        xOutcomes  :: [PM1.PM1Double]
       } deriving (Eq, Show)
 
 sizedArbTrainingTestData :: Int -> Gen TrainingTestData
@@ -83,23 +75,21 @@ sizedArbTrainingTestData n = do
   ~[nO, nConditions, capacity] <- GT.divvy n 3
   let nObjects = min 3 nO
   p <- arbTestPredictor nObjects nConditions capacity
-  let pm = view patternMap p
-  let p' = set patternMap pm p
   r <- arbTestResponse nObjects nConditions
   os <- vectorOf nConditions arbitrary
-  return $ TrainingTestData p' r os
+  return $ TrainingTestData p r os
 
 instance Arbitrary TrainingTestData where
   arbitrary = sized sizedArbTrainingTestData
 
 prop_predict_never_causes_error
-  :: TrainingTestData -> Probability -> Bool
+  :: TrainingTestData -> UI.UIDouble -> Bool
 prop_predict_never_causes_error (TrainingTestData p r _) prob
   = deepseq x True
   where x = predict p r prob
 
 -- prop_prettyPredictionDetail_never_causes_error
---   :: TrainingTestData -> Probability -> Bool
+--   :: TrainingTestData -> UI.UIDouble -> Bool
 -- prop_prettyPredictionDetail_never_causes_error
 --   (TrainingTestData p r _) prob
 --   = deepseq x' True
@@ -112,15 +102,15 @@ prop_training_makes_predictions_more_accurate
 prop_training_makes_predictions_more_accurate (TrainingTestData d r os)
   = errAfter < 0.1 || errAfter <= errBefore
   where r2 = pResponse $ predict d r 1
-        errBefore = rawDiff os (_outcomes r2)
-        rActual = r { _outcomes = os }
+        errBefore = rawDiff os (outcomes r2)
+        rActual = r { outcomes = os }
         d2 = snd $ trainAndClassify d rActual
         r3 = pResponse $ predict d2 r 1
-        errAfter = rawDiff os (_outcomes r3)
+        errAfter = rawDiff os (outcomes r3)
 
-rawDiff :: [PM1Double] ->  [PM1Double] -> Double
+rawDiff :: [PM1.PM1Double] ->  [PM1.PM1Double] -> Double
 rawDiff xs ys =
-  sum $ zipWith (\x y -> abs $ wide x - wide y) xs ys
+  sum $ zipWith (\x y -> abs $ PM1.wide x - PM1.wide y) xs ys
 
 data ImprintTestData
   = ImprintTestData
@@ -128,8 +118,8 @@ data ImprintTestData
         iPredictor :: TestPredictor,
         iLabels    :: [Label],
         iAction    :: TestAction,
-        iOutcomes  :: [PM1Double],
-        iDeltas    :: [PM1Double]
+        iOutcomes  :: [PM1.PM1Double],
+        iDeltas    :: [PM1.PM1Double]
       } deriving (Eq, Show)
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
@@ -168,8 +158,8 @@ prop_imprintOrReinforce_works (ImprintTestData p ls a os ds) =
         rBefore = pResponse $ predict p r0 1
         (_, p2) = imprintOrReinforce p ls a os ds
         rAfter = pResponse $ predict p2 r0 1
-        diffBefore = responseDiff rBefore r0
-        diffAfter = responseDiff rAfter r0
+        diffBefore = diff rBefore r0
+        diffAfter = diff rAfter r0
 
 prop_learn_never_causes_error
   :: ImprintTestData -> Bool
@@ -189,26 +179,10 @@ prop_learn_never_causes_error (ImprintTestData p ls a os _)
 test :: Test
 test = testGroup "ALife.Creatur.Wain.PredictorQC"
   [
-    testProperty "prop_serialize_round_trippable - Tweaker"
-      (GT.prop_serialize_round_trippable :: TestPredictorTweaker -> Bool),
-    testProperty "prop_genetic_round_trippable - Tweaker"
-      (GT.prop_genetic_round_trippable (==) :: TestPredictorTweaker -> Bool),
-    -- testProperty "prop_genetic_round_trippable2 - Tweaker"
-    --   (GT.prop_genetic_round_trippable2
-    --    :: Int -> [Word8] -> TestPredictorTweaker -> Bool),
-    testProperty "prop_diploid_identity - Tweaker"
-      (GT.prop_diploid_identity (==) :: TestPredictorTweaker -> Bool),
-    testProperty "prop_show_read_round_trippable - Tweaker"
-      (GT.prop_show_read_round_trippable (==) :: TestPredictorTweaker -> Bool),
-    testProperty "prop_diploid_expressable - Tweaker"
-      (GT.prop_diploid_expressable :: TestPredictorTweaker -> TestPredictorTweaker -> Bool),
-    testProperty "prop_diploid_readable - Tweaker"
-      (GT.prop_diploid_readable :: TestPredictorTweaker -> TestPredictorTweaker -> Bool),
-
     testProperty "prop_serialize_round_trippable - Predictor"
       (GT.prop_serialize_round_trippable :: TestPredictor -> Bool),
     testProperty "prop_genetic_round_trippable - Predictor"
-      (GT.prop_genetic_round_trippable equivGSOM :: TestPredictor -> Bool),
+      (GT.prop_genetic_round_trippable (==) :: TestPredictor -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - Predictor"
     --   (prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestPredictor -> Bool),

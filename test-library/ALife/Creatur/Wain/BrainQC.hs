@@ -25,30 +25,47 @@ module ALife.Creatur.Wain.BrainQC
     sizedArbImprintTestData
   ) where
 
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne  (PM1Double)
-import           ALife.Creatur.Gene.Numeric.Weights       (makeWeights)
-import qualified ALife.Creatur.Gene.Test                  as GT
+import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
+import           ALife.Creatur.Gene.Numeric.Weights      (Weights, makeWeights,
+                                                          numWeights,
+                                                          toUIDoubles)
+import qualified ALife.Creatur.Gene.Test                 as GT
 import           ALife.Creatur.Wain.BrainInternal
-import qualified ALife.Creatur.Wain.Classifier            as Cl
-import qualified ALife.Creatur.Wain.ClassifierQC          as CQC
-import           ALife.Creatur.Wain.GeneticSOMQC          (equivGSOM,
-                                                           sizedArbGeneticSOM)
-import qualified ALife.Creatur.Wain.Predictor             as P
-import qualified ALife.Creatur.Wain.PredictorQC           as PQC
-import           ALife.Creatur.Wain.Response              (Response (..))
-import           ALife.Creatur.Wain.ResponseQC            (TestAction,
-                                                           TestResponse)
-import           ALife.Creatur.Wain.SimpleMuser           (SimpleMuser,
-                                                           makeMuser)
-import           ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker (..),
-                                                           responseDiff)
-import           Control.DeepSeq                          (deepseq)
-import           Test.Framework                           (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2     (testProperty)
-import           Test.QuickCheck
+import qualified ALife.Creatur.Wain.Classifier           as Cl
+import           ALife.Creatur.Wain.GeneticSOM           (Label)
+import           ALife.Creatur.Wain.GeneticSOMQC         (sizedArbGeneticSOM)
+import           ALife.Creatur.Wain.Pattern              (diff)
+import           ALife.Creatur.Wain.PatternQC            (TestPattern)
+import qualified ALife.Creatur.Wain.Predictor            as P
+import qualified ALife.Creatur.Wain.PredictorQC          as PQC
+import           ALife.Creatur.Wain.Response             (Response (..))
+import           ALife.Creatur.Wain.ResponseQC           (TestAction,
+                                                          TestResponse)
+import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser,
+                                                          makeMuser)
+import           Control.DeepSeq                         (deepseq)
+import qualified Numeric.ApproxEq                        as EQ
+import           Test.Framework                          (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2    (testProperty)
+import           Test.QuickCheck.Counterexamples
 
-type TestBrain
-  = Brain GT.TestPattern CQC.TestClassifierTweaker (ResponseTweaker TestAction) (SimpleMuser TestAction) TestAction
+-- The express function in Diploid normalises the weights, so the identity may
+-- not hold exactly.
+equivWeights :: Weights -> Weights -> Bool
+equivWeights x y
+  = numWeights x == numWeights y
+      && and (zipWith (EQ.within 100000) wx wy)
+  where wx = map UI.wide $ toUIDoubles x
+        wy = map UI.wide $ toUIDoubles y
+
+equivBrain :: (Eq p, Eq a, Eq m) => Brain p a m -> Brain p a m -> Bool
+equivBrain x y = x == y' && (equivWeights wx wy)
+  where wx = happinessWeights x
+        wy = happinessWeights y
+        y' = y { happinessWeights=wx }
+
+type TestBrain = Brain TestPattern TestAction (SimpleMuser TestAction)
 
 sizedArbTestBrain :: Int -> Gen TestBrain
 sizedArbTestBrain n = do
@@ -92,10 +109,6 @@ arbSensibleTestBrain cSize nObjects nConditions pSize = do
 instance Arbitrary TestBrain where
   arbitrary = sized sizedArbTestBrain
 
-equivBrain :: TestBrain -> TestBrain -> Bool
-equivBrain b1 b2 = _classifier b1 `equivGSOM` _classifier b2
-  && _predictor b1 `equivGSOM` _predictor b2
-
 -- sizedArbEmptyTestBrain :: Int -> Gen TestBrain
 -- sizedArbEmptyTestBrain n = do
 --   cSize <- choose (0, n)
@@ -120,7 +133,7 @@ equivBrain b1 b2 = _classifier b1 `equivGSOM` _classifier b2
 --   return b
 
 data ChoosingTestData
-  = ChoosingTestData TestBrain [GT.TestPattern] Condition
+  = ChoosingTestData TestBrain [TestPattern] Condition
 
 instance Show ChoosingTestData where
   show (ChoosingTestData b ps c)
@@ -206,7 +219,7 @@ prop_reflect_never_causes_error (ReflectionTestData b r cBefore cAfter)
   = deepseq x True
   where x = reflect b r cBefore cAfter
 
--- data AFewPatterns = AFewPatterns [GT.TestPattern]
+-- data AFewPatterns = AFewPatterns [TestPattern]
 --   deriving (Eq, Show)
 
 -- sizedArbAFewPatterns :: Int -> Gen AFewPatterns
@@ -218,7 +231,7 @@ prop_reflect_never_causes_error (ReflectionTestData b r cBefore cAfter)
 --   arbitrary = sized sizedArbAFewPatterns
 
 data ImprintTestData
-  = ImprintTestData TestBrain [GT.TestPattern] TestAction [PM1Double] [Cl.Label]
+  = ImprintTestData TestBrain [TestPattern] TestAction [PM1.PM1Double] [Label]
     deriving Eq
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
@@ -269,8 +282,8 @@ prop_imprint_makes_predictions_more_accurate
         (_, bImprinted) = imprintResponse bClassified ls a
         (report3:_) = predictAll bImprinted . zip [r] $ repeat 1
         rAfter = P.pResponse report3
-        diffBefore = responseDiff rBefore r
-        diffAfter = responseDiff rAfter r
+        diffBefore = diff rBefore r
+        diffAfter = diff rAfter r
 
 -- prop_prettyScenarioReport_never_causes_error
 --   :: ChoosingTestData -> Bool
@@ -310,12 +323,12 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
     testProperty "prop_serialize_round_trippable - Brain"
       (GT.prop_serialize_round_trippable :: TestBrain -> Bool),
     testProperty "prop_genetic_round_trippable - Brain"
-      (GT.prop_genetic_round_trippable equivBrain :: TestBrain -> Bool),
+      (GT.prop_genetic_round_trippable (==) :: TestBrain -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - Brain"
     --   (GT.prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestBrain -> Bool),
     testProperty "prop_diploid_identity - Brain"
-      (GT.prop_diploid_identity equivBrain :: TestBrain -> Bool),
+      (GT.prop_diploid_identity (equivBrain) :: TestBrain -> Bool),
     -- testProperty "prop_show_read_round_trippable - Brain"
     --   (GT.prop_show_read_round_trippable (==) :: TestBrain -> Bool),
     testProperty "prop_diploid_expressable - Brain"

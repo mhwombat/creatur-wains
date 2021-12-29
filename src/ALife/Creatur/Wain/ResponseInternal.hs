@@ -16,20 +16,21 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
 module ALife.Creatur.Wain.ResponseInternal where
 
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne (PM1Double, crop, wide)
+import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
 import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, narrow)
 import           ALife.Creatur.Genetics.BRGCWord8        (Genetic)
 import           ALife.Creatur.Genetics.Diploid          (Diploid)
-import           ALife.Creatur.Wain.Classifier           (Label)
+import           ALife.Creatur.Wain.GeneticSOM           (Label)
+import           ALife.Creatur.Wain.Pattern              (Pattern, diff,
+                                                          makeSimilar)
 import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
 import           ALife.Creatur.Wain.Statistics           (Statistical (..),
                                                           dStat)
 import           Control.DeepSeq                         (NFData)
-import           Control.Lens
+import qualified Data.Datamining.Pattern.List            as L
 import           Data.List                               (intercalate)
 import           Data.Serialize                          (Serialize)
 import           GHC.Generics                            (Generic)
@@ -41,21 +42,35 @@ import           Text.Printf                             (printf)
 data Response a = Response
   {
     -- | The classifier labels for the objects we're responding to
-    _labels   :: [Label],
+    labels   :: [Label],
     -- | Action
-    _action   :: a,
+    action   :: a,
     -- | Happiness level change (predicted or actual)
-    _outcomes :: [PM1Double]
+    outcomes :: [PM1.PM1Double]
   } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Diploid,
                NFData )
-makeLenses ''Response
 
 instance (Genetic a) => Genetic (Response a)
 
 instance (Pretty a) => Pretty (Response a) where
   pretty (Response ls a os) =
     intercalate "|" (map show ls) ++ '|':pretty a ++ '|':format os
-    where format xs =  intercalate "|" . map (printf "%.3f" .  wide) $ xs
+    where format xs =  intercalate "|" . map (printf "%.3f" .  PM1.wide) $ xs
+
+instance (Eq a) => Pattern (Response a) where
+  diff x y =
+    if action x == action y
+      then 1 - labelSimilarity (labels x) (labels y)
+      else 1
+
+  makeSimilar target r x =
+      if action target == action x
+         then Response s a o
+         else x
+      where s = labels x -- never change this
+            a = action x -- never change this
+            o = L.makeSimilar PM1.makeSimilar (outcomes target) r (outcomes x)
+
 
 -- | Internal method
 labelSimilarity :: [Label] -> [Label] -> UIDouble
@@ -76,24 +91,24 @@ labelSimilarity' [] []         = []
 
 -- | Updates the outcomes in the second response to match the first.
 copyOutcomesTo :: Response a -> Response a -> Response a
-copyOutcomesTo source = set outcomes (_outcomes source)
+copyOutcomesTo source r = r { outcomes=outcomes source }
 
 -- | Increment the outcomes in a response by the specified amount.
 --   Note: Outcomes are capped at 1.
-addToOutcomes :: [PM1Double] -> Response a -> Response a
-addToOutcomes deltas r = set outcomes ys r
-  where xs = map wide . _outcomes $ r
-        deltas' = map wide deltas
-        ys = map crop $ zipWith (+) xs deltas'
+addToOutcomes :: [PM1.PM1Double] -> Response a -> Response a
+addToOutcomes deltas r = r { outcomes=ys }
+  where xs = map PM1.wide . outcomes $ r
+        deltas' = map PM1.wide deltas
+        ys = map PM1.crop $ zipWith (+) xs deltas'
 
 instance (Statistical a)
     => Statistical (Response a) where
-  stats r = (stats . _action $ r)
+  stats r = (stats . action $ r)
               ++ [dStat "Δe" (head os),
                   dStat "Δp" (os !! 1),
                   dStat "Δb" (os !! 2),
                   dStat "Δl" (os !! 3)]
-    where os = _outcomes r
+    where os = outcomes r
 
 -- This method is used by other test classes to ensure that all of the
 -- scenarios have the same number of objects and condition parameters.
@@ -111,4 +126,3 @@ arbResponse nObjects nConditions genAction = do
   a <- genAction
   o <- vectorOf nConditions arbitrary
   return $ Response s a o
-

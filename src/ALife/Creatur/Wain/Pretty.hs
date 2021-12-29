@@ -19,7 +19,6 @@ module ALife.Creatur.Wain.Pretty
 import           ALife.Creatur.Gene.Numeric.PlusMinusOne (PM1Double)
 import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, wide)
 import           ALife.Creatur.Gene.Numeric.Weights      (Weights)
-import           ALife.Creatur.Gene.Test                 (TestPattern)
 import qualified Data.Map.Strict                         as MS
 import           Data.Word                               (Word16, Word32,
                                                           Word64, Word8)
@@ -72,5 +71,3 @@ instance Pretty PM1Double where
   pretty = pretty . wide
 
 instance Pretty Weights
-
-instance Pretty TestPattern

@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               creatur-wains
-version:            9.8.1
+version:            10.0.0
 synopsis:           Artificial agent specialised for for pattern discovery.
 description:
   Please see the README on GitHub at <https://github.com/mhwombat/creatur-wains#readme>
@@ -25,7 +25,6 @@ common common-stuff
   build-depends:
     , base                       >=4.7   && <5
     , creatur-genes              >= 1.0.2 && < 1.1
-    , lens                       >= 4.19.2 && < 6
     , MonadRandom                >= 0.5.3 && < 0.6
     , random                     >= 1.2.0 && < 1.3
 
@@ -61,21 +60,23 @@ library
     ALife.Creatur.Wain.ClassifierInternal
     ALife.Creatur.Wain.ExamineAgent
     ALife.Creatur.Wain.GeneticSOM
-    ALife.Creatur.Wain.GeneticSOMInternal
+    ALife.Creatur.Wain.LearningParams
+    ALife.Creatur.Wain.LearningParamsInternal
     ALife.Creatur.Wain.Muser
+    ALife.Creatur.Wain.Pattern
+    ALife.Creatur.Wain.PatternAdjuster
     ALife.Creatur.Wain.PersistentStatistics
     ALife.Creatur.Wain.Predictor
     ALife.Creatur.Wain.PredictorInternal
     ALife.Creatur.Wain.Pretty
     ALife.Creatur.Wain.Probability
     ALife.Creatur.Wain.ProbabilityInternal
-    ALife.Creatur.Wain.Raw
     ALife.Creatur.Wain.Report
     ALife.Creatur.Wain.Response
+    ALife.Creatur.Wain.ResponseAdjuster
     ALife.Creatur.Wain.ResponseInternal
     ALife.Creatur.Wain.SimpleMuser
     ALife.Creatur.Wain.SimpleMuserInternal
-    ALife.Creatur.Wain.SimpleResponseTweaker
     ALife.Creatur.Wain.Statistics
     ALife.Creatur.WainInternal
   other-modules:    Paths_creatur_wains
@@ -96,16 +97,20 @@ library test-library
     ALife.Creatur.Wain.BrainQC
     ALife.Creatur.Wain.ClassifierQC
     ALife.Creatur.Wain.GeneticSOMQC
+    ALife.Creatur.Wain.LearningParamsQC
+    ALife.Creatur.Wain.PatternQC
+    ALife.Creatur.Wain.PatternAdjusterQC
     ALife.Creatur.Wain.PredictorQC
     ALife.Creatur.Wain.ProbabilityQC
     ALife.Creatur.Wain.ResponseQC
+    ALife.Creatur.Wain.ResponseAdjusterQC
     ALife.Creatur.Wain.SimpleMuserQC
-    ALife.Creatur.Wain.SimpleResponseTweakerQC
     ALife.Creatur.WainQC
   build-depends:
     , creatur-wains
-    , numeric-tools              >= 0.2.0 && < 0.3
-    , test-framework             >= 0.8.2 && < 0.9
+    , numeric-tools                   >= 0.2.0 && < 0.3
+    , test-framework                  >= 0.8.2 && < 0.9
+    , quickcheck-with-counterexamples >= 1.2 && < 1.3
 
 test-suite creatur-wains-test
   import:           exe-stuff

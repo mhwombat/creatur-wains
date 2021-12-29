@@ -16,7 +16,6 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.Probability
   (
-    Probability,
     hypothesise,
     prettyProbability
   ) where

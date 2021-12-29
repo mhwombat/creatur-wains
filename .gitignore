@@ -1,6 +1,7 @@
 # misc
 *.lock
 *~
+fixit.sh
 
 # nix
 result

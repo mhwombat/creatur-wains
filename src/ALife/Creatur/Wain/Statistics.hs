@@ -37,9 +37,7 @@ module ALife.Creatur.Wain.Statistics
 
 import           ALife.Creatur.Gene.Numeric.UnitInterval (wide)
 import           ALife.Creatur.Gene.Numeric.Weights      (Weights, toUIDoubles)
-import           ALife.Creatur.Gene.Test                 (TestPattern (..))
 import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
-import           ALife.Creatur.Wain.Raw                  (Raw, raw)
 import           Data.List                               (groupBy, sortOn)
 import           Data.Serialize                          (Serialize)
 import           GHC.Generics
@@ -62,10 +60,6 @@ instance Show Statistic where
 instance Pretty Statistic where
   pretty (DStatistic s x) = s ++ "=" ++ pretty x
   pretty (IStatistic s x) = s ++ "=" ++ pretty (round x :: Int)
-
-instance Raw Statistic where
-  raw (DStatistic s x) = s ++ "=" ++ raw x
-  raw (IStatistic s x) = s ++ "=" ++ raw x
 
 -- | Creates a value that will be displayed as a double.
 dStat :: Real a => String -> a -> Statistic
@@ -114,9 +108,6 @@ instance (Show k, Statistical v)
     => Statistical [(k, v)] where
   stats = concatMap f
     where f (k, v) = map (prefix ("[" ++ show k ++ "]")) $ stats v
-
-instance Statistical TestPattern where
-  stats (TestPattern x) = [iStat "" x]
 
 instance Statistical Weights where
   stats = dStats "" . map wide . toUIDoubles

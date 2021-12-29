@@ -1,32 +1,32 @@
 module Main where
 
-import Data.Time.Clock
+import           Data.Time.Clock
 
 import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import ALife.Creatur.Util (fromEither)
-import ALife.Creatur.Wain hiding (size)
-import ALife.Creatur.Wain.Brain
-import ALife.Creatur.Wain.ClassifierQC (TestTweaker(..))
-import ALife.Creatur.Wain.Muser
-import ALife.Creatur.Wain.Predictor
-import ALife.Creatur.Wain.PredictorQC ()
-import ALife.Creatur.Wain.GeneticSOM hiding (size)
-import ALife.Creatur.Wain.Response
-import ALife.Creatur.Wain.ResponseQC
-import ALife.Creatur.Wain.Scenario
-import ALife.Creatur.Wain.TestUtils
-import ALife.Creatur.Wain.Util (unitInterval)
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
-import ALife.Creatur.Wain.Weights (makeWeights)
-import Control.Lens
-import Control.Monad (replicateM)
-import Control.Monad.Random (Rand, Random, RandomGen, evalRandIO,
-  getRandom, getRandomR)
-import qualified Data.Map.Strict as M
-import Data.Version (showVersion)
-import Data.Word (Word8, Word16)
-import Paths_creatur_wains (version)
-import System.IO.Temp (withSystemTempDirectory)
+import           ALife.Creatur.Util               (fromEither)
+import           ALife.Creatur.Wain               hiding (size)
+import           ALife.Creatur.Wain.Brain
+import           ALife.Creatur.Wain.ClassifierQC  (TestTweaker (..))
+import           ALife.Creatur.Wain.GeneticSOM    hiding (size)
+import           ALife.Creatur.Wain.Muser
+import           ALife.Creatur.Wain.Predictor
+import           ALife.Creatur.Wain.PredictorQC   ()
+import           ALife.Creatur.Wain.Response
+import           ALife.Creatur.Wain.ResponseQC
+import           ALife.Creatur.Wain.Scenario
+import           ALife.Creatur.Wain.TestUtils
+import           ALife.Creatur.Wain.UnitInterval  (UIDouble)
+import           ALife.Creatur.Wain.Util          (unitInterval)
+import           ALife.Creatur.Wain.Weights       (makeWeights)
+import           Control.Monad                    (replicateM)
+import           Control.Monad.Random             (Rand, Random, RandomGen,
+                                                   evalRandIO, getRandom,
+                                                   getRandomR)
+import qualified Data.Map.Strict                  as M
+import           Data.Version                     (showVersion)
+import           Data.Word                        (Word16, Word8)
+import           Paths_creatur_wains              (version)
+import           System.IO.Temp                   (withSystemTempDirectory)
 
 makePredictor :: Word16 -> UIDouble -> Predictor TestAction
 makePredictor n dt = buildGeneticSOM e n dt t
@@ -38,7 +38,7 @@ predictorBenchmark :: Predictor TestAction -> IO ()
 predictorBenchmark d = do
   putStrLn $ "model count=" ++ show (numModels d)
   putStrLn $ "object length="
-    ++ show (length . view labels . _scenario . head . M.elems
+    ++ show (length . labels . _scenario . head . M.elems
          . modelMap $ d)
   let x = W8.write d
   let d' = fromEither (error "read returned Nothing") . W8.read $ x

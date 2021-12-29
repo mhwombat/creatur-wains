@@ -15,23 +15,21 @@
 {-# LANGUAGE DeriveAnyClass       #-}
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
 module ALife.Creatur.Wain.SimpleMuserInternal where
 
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne (PM1Double, wide)
+import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import qualified ALife.Creatur.Genetics.BRGCWord8        as G
 import           ALife.Creatur.Genetics.Diploid          (Diploid)
 import           ALife.Creatur.Wain.GeneticSOM           (Label)
 import qualified ALife.Creatur.Wain.Muser                as M
 import           ALife.Creatur.Wain.Pretty               (Pretty)
-import           ALife.Creatur.Wain.Probability          (Probability)
 import           ALife.Creatur.Wain.Response             (Response (..))
 import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
                                                           iStat, stats)
 import           Control.DeepSeq                         (NFData)
-import           Control.Lens
 import           Data.List                               (sortOn)
 import           Data.Ord                                (Down (..))
 import           Data.Serialize                          (Serialize)
@@ -48,20 +46,19 @@ data SimpleMuser a = SimpleMuser
     --   Positive values make the wain optimistic and more likely to
     --   take risks. A negative value makes the wain pessimistic and
     --   risk-averse.
-    _defaultOutcomes :: [PM1Double],
+    defaultOutcomes :: [PM1.PM1Double],
     -- | Number of possible scenarios a wain will evaluate before
     --   choosing an action.
-    _depth           :: Word8
+    depth           :: Word8
   } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Diploid, NFData )
-makeLenses ''SimpleMuser
 
 instance Pretty (SimpleMuser a)
 
 instance Statistical (SimpleMuser a) where
   stats (SimpleMuser (eo:po:lso:_) d) = [iStat "depth" d,
-         dStat "default energy outcome" . wide $ eo,
-         dStat "default passion outcome" . wide $ po,
-         dStat "default litterSize outcome" . wide $ lso]
+         dStat "default energy outcome" . PM1.wide $ eo,
+         dStat "default passion outcome" . PM1.wide $ po,
+         dStat "default litterSize outcome" . PM1.wide $ lso]
   stats _ = error "default outcome list is too short"
 
 
@@ -78,10 +75,10 @@ instance G.Genetic (SimpleMuser a) where
 instance (Bounded a, Enum a, Eq a) => M.Muser (SimpleMuser a) where
   type Action (SimpleMuser a) = a
   generateResponses = generateResponses
-  defaultOutcomes = view defaultOutcomes
+  defaultOutcomes = defaultOutcomes
 
 -- | Constructor
-makeMuser :: [PM1Double] -> Word8 -> Either [String] (SimpleMuser a)
+makeMuser :: [PM1.PM1Double] -> Word8 -> Either [String] (SimpleMuser a)
 makeMuser os d
  | d == 0         = Left ["zero depth"]
  | length os < 3 = Left ["default outcome list is too short"]
@@ -89,7 +86,7 @@ makeMuser os d
 
 generateResponses
   :: (Bounded a, Enum a, Eq a)
-    => SimpleMuser a -> [a] -> [([Label], Probability)] -> [(Response a, Probability)]
+    => SimpleMuser a -> [a] -> [([Label], UI.UIDouble)] -> [(Response a, UI.UIDouble)]
 generateResponses m _ sps = concatMap (generateResponses' m sps') as'
   where sps' = bestHypotheses m sps
         as' = [minBound .. maxBound]
@@ -97,22 +94,22 @@ generateResponses m _ sps = concatMap (generateResponses' m sps') as'
 -- | Internal method
 generateResponses'
   :: (Bounded a, Enum a)
-    => SimpleMuser a -> [([Label], Probability)] -> a
-      -> [(Response a, Probability)]
+    => SimpleMuser a -> [([Label], UI.UIDouble)] -> a
+      -> [(Response a, UI.UIDouble)]
 generateResponses' m sps a = map (generateResponse m a) sps
 
 -- | Internal method
 generateResponse
   :: (Bounded a, Enum a)
-    => SimpleMuser a -> a -> ([Label], Probability)
-      -> (Response a, Probability)
+    => SimpleMuser a -> a -> ([Label], UI.UIDouble)
+      -> (Response a, UI.UIDouble)
 generateResponse m a (ls, p) = (Response ls a os, p)
-  where os = _defaultOutcomes m
+  where os = defaultOutcomes m
 
 -- | Given the wain's current condition, and a list of scenarios
 --   paired with the probability each scenario is true, selects the
 --   most likely scenarios.
 bestHypotheses
-  :: SimpleMuser a -> [([Label], Probability)] -> [([Label], Probability)]
+  :: SimpleMuser a -> [([Label], UI.UIDouble)] -> [([Label], UI.UIDouble)]
 bestHypotheses m
-  = take (fromIntegral . _depth $ m) . sortOn (Down . snd)
+  = take (fromIntegral . depth $ m) . sortOn (Down . snd)

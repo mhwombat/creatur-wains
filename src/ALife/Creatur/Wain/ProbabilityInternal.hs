@@ -17,19 +17,15 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.ProbabilityInternal where
 
-import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, narrow,
-                                                          wide)
-import           ALife.Creatur.Wain.GeneticSOM           (Difference, Label)
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
+import           ALife.Creatur.Wain.GeneticSOM           (Label)
 import           Data.Word                               (Word64)
 import           Text.Printf                             (printf)
-
--- | Estimated probability that a set of labels is accurate.
-type Probability = UIDouble
 
 -- | Returns a set of hypotheses about the scenario the wain is facing,
 --   paired with the estimated probability that each hypothesis is true.
 hypothesise
-  :: Word64 -> [[(Label, Difference)]] -> [([Label], Probability)]
+  :: Word64 -> [[(Label, UI.UIDouble)]] -> [([Label], UI.UIDouble)]
 hypothesise x = map jointProbability . permute . diffsToProbs x
 
 -- | Internal method.
@@ -41,7 +37,7 @@ permute []       = []
 -- | Given a list of labels for each object the wain is seeing, paired
 --   with the probability that each label is accurate, returns
 --   the probability that all labels are accurate.
-jointProbability :: [(Label, Probability)] -> ([Label], Probability)
+jointProbability :: [(Label, UI.UIDouble)] -> ([Label], UI.UIDouble)
 jointProbability xs = (ls, prob)
   where ls = map fst xs
         prob = product . map snd $ xs
@@ -55,12 +51,12 @@ normalise xs
 
 -- | Given the signature for one input pattern, calculate the
 --   probability that the pattern should match each classifier model.
-diffsToProbs :: Word64 -> [[(Label, Difference)]] -> [[(Label, Probability)]]
+diffsToProbs :: Word64 -> [[(Label, UI.UIDouble)]] -> [[(Label, UI.UIDouble)]]
 diffsToProbs x = map (diffsToProbs2 x)
 
 -- | Given the signature for one input pattern, calculate the
 --   probability that the pattern should match each classifier model.
-diffsToProbs2 :: Word64 -> [(Label, Difference)] -> [(Label, Probability)]
+diffsToProbs2 :: Word64 -> [(Label, UI.UIDouble)] -> [(Label, UI.UIDouble)]
 diffsToProbs2 x lds = zip ls ps
   where ls = map fst lds
         ds = map snd lds
@@ -68,19 +64,19 @@ diffsToProbs2 x lds = zip ls ps
 
 -- | Given a set of differences between an input pattern and a model,
 --   calculate the probability that the pattern should match each model.
-diffsToProbs1 :: Word64 -> [Difference] -> [Probability]
-diffsToProbs1 x ds = map narrow . normalise . map wide $ ps
+diffsToProbs1 :: Word64 -> [UI.UIDouble] -> [UI.UIDouble]
+diffsToProbs1 x ds = map UI.narrow . normalise . map UI.wide $ ps
   where ps = map (diffToProb x) ds'
-        ds' = map narrow . normalise $ map wide ds
+        ds' = map UI.narrow . normalise $ map UI.wide ds
 
 -- | @'diffToProb' x d@ converts a difference metric @d@
 --   into an estimated probability that the classification is "sound".
 --   The parameter @x@ controls how quickly the probability falls as
 --   the difference increases.
-diffToProb :: Word64 -> UIDouble -> UIDouble
-diffToProb x d = narrow $ 1 - exp(1 - 1/(1 - (1 - d')^x'))
+diffToProb :: Word64 -> UI.UIDouble -> UI.UIDouble
+diffToProb x d = UI.narrow $ 1 - exp(1 - 1/(1 - (1 - d')^x'))
   where x' = fromIntegral x :: Integer
-        d' = wide d
+        d' = UI.wide d
 
-prettyProbability :: Probability -> String
-prettyProbability p = printf "%.3f" (wide p * 100) ++ "%"
+prettyProbability :: UI.UIDouble -> String
+prettyProbability p = printf "%.3f" (UI.wide p * 100) ++ "%"

@@ -17,43 +17,40 @@ module ALife.Creatur.WainQC
     test
   ) where
 
-import           ALife.Creatur.Gene.Numeric.UnitInterval  (narrow)
-import qualified ALife.Creatur.Gene.Test                  as GT
-import           ALife.Creatur.Genetics.BRGCWord8         (runDiploidReader,
-                                                           write)
-import qualified ALife.Creatur.Wain.Brain                 as B
-import qualified ALife.Creatur.Wain.BrainQC               as BQC
-import qualified ALife.Creatur.Wain.Classifier            as Cl
-import           ALife.Creatur.Wain.ClassifierQC          (TestClassifierTweaker)
-import           ALife.Creatur.Wain.ResponseInternal      (labels)
-import           ALife.Creatur.Wain.ResponseQC            (TestAction,
-                                                           TestResponse)
-import           ALife.Creatur.Wain.SimpleMuser           (SimpleMuser)
-import           ALife.Creatur.Wain.SimpleResponseTweaker (ResponseTweaker (..))
+import           ALife.Creatur.Gene.Numeric.UnitInterval (narrow)
+import qualified ALife.Creatur.Gene.Test                 as GT
+import           ALife.Creatur.Genetics.BRGCWord8        (runDiploidReader,
+                                                          write)
+import qualified ALife.Creatur.Wain.Brain                as B
+import qualified ALife.Creatur.Wain.BrainQC              as BQC
+import qualified ALife.Creatur.Wain.Classifier           as Cl
+import           ALife.Creatur.Wain.GeneticSOM           (Label)
+import           ALife.Creatur.Wain.PatternQC            (TestPattern)
+import           ALife.Creatur.Wain.ResponseInternal     (labels)
+import           ALife.Creatur.Wain.ResponseQC           (TestAction,
+                                                          TestResponse)
+import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser)
 import           ALife.Creatur.WainInternal
-import           Control.DeepSeq                          (deepseq)
-import           Control.Lens
-import           Test.Framework                           (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2     (testProperty)
-import           Test.QuickCheck                          (Arbitrary, Gen,
-                                                           Property, arbitrary,
-                                                           choose, sized,
-                                                           vectorOf)
+import           Control.DeepSeq                         (deepseq)
+import           Test.Framework                          (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2    (testProperty)
+import           Test.QuickCheck                         (Arbitrary, Gen,
+                                                          Property, arbitrary,
+                                                          choose, sized,
+                                                          vectorOf)
 
-type TestWain = Wain GT.TestPattern TestClassifierTweaker
-                  (ResponseTweaker TestAction) (SimpleMuser TestAction)
-                  TestAction
+type TestWain = Wain TestPattern TestAction (SimpleMuser TestAction)
 
 equiv
   :: TestWain
     -> TestWain
       -> Bool
 equiv a1 a2 =
-  _appearance a1 == _appearance a2
-  && _brain a1 `BQC.equivBrain` _brain a2
-  && _devotion a1 == _devotion a2
-  && _ageOfMaturity a1 == _ageOfMaturity a2
-  && _passionDelta a1 == _passionDelta a2
+  appearance a1 == appearance a2
+  && brain a1 `BQC.equivBrain` brain a2
+  && devotion a1 == devotion a2
+  && ageOfMaturity a1 == ageOfMaturity a2
+  && passionDelta a1 == passionDelta a2
 --  && genome a1 == genome a2
 
 strawMan :: Gen TestWain
@@ -93,7 +90,7 @@ sizedArbWain n = do
     then do
       k <- choose (1, min 3 n)
       cs <- vectorOf k arbWain
-      return $ set litter cs w
+      return $ w { litter=cs }
     else return w
 
 instance Arbitrary TestWain where
@@ -102,21 +99,18 @@ instance Arbitrary TestWain where
 prop_adjustEnergy_balances_energy
   :: Double -> TestWain -> Bool
 prop_adjustEnergy_balances_energy e w
-  = _energy w' == _energy w + narrow used
+  = energy w' == energy w + narrow used
   where (w', used) = adjustEnergy e w
 
 data ChoosingTestData
-  = ChoosingTestData TestWain [GT.TestPattern]
-
-instance Show ChoosingTestData where
-  show (ChoosingTestData w ps)
-    = "ChoosingTestData (" ++ show w ++ ") " ++ show ps
+  = ChoosingTestData TestWain [TestPattern]
+  deriving (Eq, Show)
 
 sizedArbChoosingTestData :: Int -> Gen ChoosingTestData
 sizedArbChoosingTestData n = do
   (BQC.ChoosingTestData b ps _) <- BQC.sizedArbChoosingTestData n
   w <- arbitrary
-  let w' = w {_brain = b}
+  let w' = w {brain = b}
   return $ ChoosingTestData w' ps
 
 instance Arbitrary ChoosingTestData where
@@ -129,24 +123,20 @@ prop_chooseAction_never_causes_error (ChoosingTestData w ps)
   where x = chooseAction ps w
 
 data ReflectionTestData
-  = ReflectionTestData [GT.TestPattern] TestResponse TestWain TestWain
-
-instance Show ReflectionTestData where
-  show (ReflectionTestData ps a wBefore wAfter)
-    = "ReflectionTestData (" ++ show ps ++ ") (" ++ show a ++ ") "
-      ++ ") (" ++ show wBefore ++ ") ("  ++ show wAfter ++ ")"
+  = ReflectionTestData [TestPattern] TestResponse TestWain TestWain
+  deriving (Eq, Show)
 
 sizedArbReflectionTestData :: Int -> Gen ReflectionTestData
 sizedArbReflectionTestData n = do
   (BQC.ReflectionTestData b r cBefore cAfter)
     <- BQC.sizedArbReflectionTestData n
-  let nObjects = length $ view labels r
+  let nObjects = length $ labels r
   ps <- vectorOf nObjects arbitrary
   w <- arbitrary :: Gen TestWain
-  let wBefore = w { _brain = b, _energy = head cBefore,
-                    _passion = 1 - cBefore !! 1 }
-  let wAfter = wBefore { _energy = head cAfter,
-                         _passion = 1 - cAfter !! 1 }
+  let wBefore = w { brain = b, energy = head cBefore,
+                    passion = 1 - cBefore !! 1 }
+  let wAfter = wBefore { energy = head cAfter,
+                         passion = 1 - cAfter !! 1 }
   return $ ReflectionTestData ps r wBefore wAfter
 
 instance Arbitrary ReflectionTestData where
@@ -159,7 +149,7 @@ prop_reflect_never_causes_error (ReflectionTestData _ r wBefore wAfter)
   where x = reflect r wBefore wAfter
 
 data ImprintTestData
-  = ImprintTestData TestWain [GT.TestPattern] [Cl.Label] TestAction B.Condition
+  = ImprintTestData TestWain [TestPattern] [Label] TestAction B.Condition
     deriving (Eq, Show)
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData
@@ -167,7 +157,7 @@ sizedArbImprintTestData n = do
   let nConditions = 3
   (BQC.ImprintTestData b ps a _ ls) <- BQC.sizedArbImprintTestData n
   w <- arbitrary
-  let w' = w {_brain = b}
+  let w' = w {brain = b}
   c <- vectorOf nConditions arbitrary
   return $ ImprintTestData w' ps ls a c
 

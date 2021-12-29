@@ -15,20 +15,6 @@ module ALife.Creatur.Wain
     -- * Wains
     Wain(..),
     buildWainAndGenerateGenome,
-    -- * Wain lenses
-    name,
-    appearance,
-    brain,
-    devotion,
-    ageOfMaturity,
-    passionDelta,
-    energy,
-    passion,
-    age,
-    litter,
-    childrenBorneLifetime,
-    childrenWeanedLifetime,
-    genome,
     -- * Other wain characteristics
     happiness,
     hasLitter,
