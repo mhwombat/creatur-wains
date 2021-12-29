@@ -23,6 +23,7 @@ module ALife.Creatur.Wain.ResponseQC
     arbTestResponse
   ) where
 
+import qualified ALife.Creatur.Gene.AdjusterTest         as AT
 import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import qualified ALife.Creatur.Gene.Test                 as GT
@@ -37,7 +38,7 @@ import           ALife.Creatur.Wain.Report               (Report, report)
 import           ALife.Creatur.Wain.ResponseInternal
 import           ALife.Creatur.Wain.Statistics           (Statistical (..))
 import           Control.DeepSeq                         (NFData)
-import           Data.Datamining.Clustering.SGM4 (Adjuster, MetricType,
+import           Data.Datamining.Clustering.SGM4         (Adjuster, MetricType,
                                                           PatternType, TimeType,
                                                           difference,
                                                           learningRate,
@@ -170,5 +171,19 @@ test = testGroup "ALife.Creatur.Wain.ResponseQC"
        :: TestResponseAdjuster -> TestResponseAdjuster -> Bool),
     testProperty "prop_diploid_readable - TestResponseAdjuster"
       (GT.prop_diploid_readable
-       :: TestResponseAdjuster -> TestResponseAdjuster -> Bool)
+       :: TestResponseAdjuster -> TestResponseAdjuster -> Bool),
+
+
+    testProperty "prop_diff_can_be_0 - TestResponseAdjuster"
+      (AT.prop_diff_can_be_0 :: TestResponseAdjuster -> TestResponse -> Bool),
+    -- testProperty "prop_diff_can_be_1 - TestResponseAdjuster"
+    --   (AT.prop_diff_can_be_1 :: TestResponseAdjuster -> TestResponse -> Bool),
+    testProperty "prop_diff_is_symmetric - TestResponseAdjuster"
+      (AT.prop_diff_is_symmetric :: TestResponseAdjuster -> TestResponse -> TestResponse -> Bool),
+    testProperty "prop_makeSimilar_improves_similarity - TestResponseAdjuster"
+      (AT.prop_makeSimilar_improves_similarity :: TestResponseAdjuster -> TestResponse -> UI.UIDouble -> TestResponse -> Bool)
+    -- testProperty "prop_zero_adjustment_makes_no_change - TestResponseAdjuster"
+    --   (AT.prop_zero_adjustment_makes_no_change (==) :: TestResponseAdjuster -> TestResponse -> TestResponse -> Bool),
+    -- testProperty "prop_full_adjustment_gives_perfect_match - TestResponseAdjuster"
+    --   (AT.prop_full_adjustment_gives_perfect_match (==) :: TestResponseAdjuster -> TestResponse -> TestResponse -> Bool)
   ]

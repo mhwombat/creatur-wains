@@ -21,13 +21,10 @@ module ALife.Creatur.Wain.PatternQC
     test,
     TestPattern(..),
     TestPatternAdjuster(..),
-    randomTestPattern,
-    prop_makeSimilar_works,
-    prop_diff_can_be_0,
-    prop_diff_can_be_1,
-    prop_diff_is_symmetric
+    randomTestPattern
   ) where
 
+import qualified ALife.Creatur.Gene.AdjusterTest         as AT
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import qualified ALife.Creatur.Gene.Test                 as GT
 import qualified ALife.Creatur.Genetics.BRGCWord8        as G
@@ -43,7 +40,7 @@ import           ALife.Creatur.Wain.Statistics           (Statistical, stats)
 import           Control.DeepSeq                         (NFData)
 import           Control.Monad.Random                    (Rand, RandomGen,
                                                           getRandom)
-import           Data.Datamining.Clustering.SGM4 (Adjuster, MetricType,
+import           Data.Datamining.Clustering.SGM4         (Adjuster, MetricType,
                                                           PatternType, TimeType,
                                                           difference,
                                                           learningRate,
@@ -100,32 +97,32 @@ instance Arbitrary TestPatternAdjuster where
 randomTestPattern :: RandomGen r => Rand r TestPattern
 randomTestPattern = TestPattern <$> getRandom
 
-prop_diff_can_be_0
-  :: (Adjuster a, Eq (MetricType a), Num (MetricType a))
-  => a -> PatternType a -> Bool
-prop_diff_can_be_0 a x = difference a x x == 0
+-- prop_diff_can_be_0
+--   :: (Adjuster a, Eq (MetricType a), Num (MetricType a))
+--   => a -> PatternType a -> Bool
+-- prop_diff_can_be_0 a x = difference a x x == 0
 
-prop_diff_can_be_1
-  :: (Adjuster a, Bounded (PatternType a),
-     Eq (MetricType a), Num (MetricType a))
-  => a -> PatternType a -> Bool
-prop_diff_can_be_1 a dummy
-  = difference a (minBound `asTypeOf` dummy) (maxBound `asTypeOf` dummy) == 1
+-- prop_diff_can_be_1
+--   :: (Adjuster a, Bounded (PatternType a),
+--      Eq (MetricType a), Num (MetricType a))
+--   => a -> PatternType a -> Bool
+-- prop_diff_can_be_1 a dummy
+--   = difference a (minBound `asTypeOf` dummy) (maxBound `asTypeOf` dummy) == 1
 
-prop_diff_is_symmetric
-  :: (Adjuster a, Eq (MetricType a))
-  => a -> PatternType a -> PatternType a -> Bool
-prop_diff_is_symmetric a x y = difference a x y == difference a y x
+-- prop_diff_is_symmetric
+--   :: (Adjuster a, Eq (MetricType a))
+--   => a -> PatternType a -> PatternType a -> Bool
+-- prop_diff_is_symmetric a x y = difference a x y == difference a y x
 
--- | Verify that `makeSimilar a b` returns a value that is no further
---   away from `b` than `a` was.
-prop_makeSimilar_works
-  :: (Adjuster a, Eq (MetricType a), Ord (MetricType a))
-  => a -> PatternType a -> MetricType a -> PatternType a -> Bool
-prop_makeSimilar_works a x r y = diffAfter <= diffBefore
-  where diffBefore = difference a x y
-        y' = makeSimilar a x r y
-        diffAfter = difference a x y'
+-- -- | Verify that `makeSimilar a b` returns a value that is no further
+-- --   away from `b` than `a` was.
+-- prop_makeSimilar_works
+--   :: (Adjuster a, Eq (MetricType a), Ord (MetricType a))
+--   => a -> PatternType a -> MetricType a -> PatternType a -> Bool
+-- prop_makeSimilar_works a x r y = diffAfter <= diffBefore
+--   where diffBefore = difference a x y
+--         y' = makeSimilar a x r y
+--         diffAfter = difference a x y'
 
 
 test :: Test
@@ -147,15 +144,6 @@ test = testGroup "ALife.Creatur.Gene.PatternQC"
     testProperty "prop_diploid_readable - TestPattern"
       (GT.prop_diploid_readable :: TestPattern -> TestPattern -> Bool),
 
-    testProperty "prop_diff_can_be_0 - TestPattern"
-      (prop_diff_can_be_0 :: TestPatternAdjuster -> TestPattern -> Bool),
-    testProperty "prop_diff_can_be_1 - TestPattern"
-      (prop_diff_can_be_1 :: TestPatternAdjuster -> TestPattern -> Bool),
-    testProperty "prop_diff_is_symmetric - TestPattern"
-      (prop_diff_is_symmetric :: TestPatternAdjuster -> TestPattern -> TestPattern -> Bool),
-    testProperty "prop_makeSimilar_works - TestPattern"
-      (prop_makeSimilar_works :: TestPatternAdjuster -> TestPattern -> UI.UIDouble -> TestPattern -> Bool),
-
     testProperty "prop_serialize_round_trippable - TestPatternAdjuster"
       (GT.prop_serialize_round_trippable :: TestPatternAdjuster -> Bool),
     testProperty "prop_genetic_round_trippable - TestPatternAdjuster"
@@ -172,5 +160,18 @@ test = testGroup "ALife.Creatur.Gene.PatternQC"
        :: TestPatternAdjuster -> TestPatternAdjuster -> Bool),
     testProperty "prop_diploid_readable - TestPatternAdjuster"
       (GT.prop_diploid_readable
-       :: TestPatternAdjuster -> TestPatternAdjuster -> Bool)
+       :: TestPatternAdjuster -> TestPatternAdjuster -> Bool),
+
+    testProperty "prop_diff_can_be_0 - TestPatternAdjuster"
+      (AT.prop_diff_can_be_0 :: TestPatternAdjuster -> TestPattern -> Bool),
+    testProperty "prop_diff_can_be_1 - TestPatternAdjuster"
+      (AT.prop_diff_can_be_1 :: TestPatternAdjuster -> TestPattern -> Bool),
+    testProperty "prop_diff_is_symmetric - TestPatternAdjuster"
+      (AT.prop_diff_is_symmetric :: TestPatternAdjuster -> TestPattern -> TestPattern -> Bool),
+    testProperty "prop_makeSimilar_improves_similarity - TestPatternAdjuster"
+      (AT.prop_makeSimilar_improves_similarity :: TestPatternAdjuster -> TestPattern -> UI.UIDouble -> TestPattern -> Bool),
+    testProperty "prop_zero_adjustment_makes_no_change - TestPatternAdjuster"
+      (AT.prop_zero_adjustment_makes_no_change (==) :: TestPatternAdjuster -> TestPattern -> TestPattern -> Bool),
+    testProperty "prop_full_adjustment_gives_perfect_match - TestPatternAdjuster"
+      (AT.prop_full_adjustment_gives_perfect_match (==) :: TestPatternAdjuster -> TestPattern -> TestPattern -> Bool)
   ]
