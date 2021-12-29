@@ -46,7 +46,7 @@ import           ALife.Creatur.Wain.ResponseQC           (TestAction,
 import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser,
                                                           makeMuser)
 import           Control.DeepSeq                         (deepseq)
-import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Datamining.Clustering.SGM4 as SOM
 import qualified Numeric.ApproxEq                        as EQ
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)

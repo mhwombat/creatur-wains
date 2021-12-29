@@ -53,7 +53,7 @@ import           ALife.Creatur.Wain.Statistics           (Statistical, iStat,
                                                           kvToIStats, prefix,
                                                           stats)
 import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Datamining.Clustering.SGM4         as SOM
 import qualified Data.Map.Strict                         as M
 import qualified Data.Serialize                          as S
 import           Data.Word                               (Word32)
@@ -85,8 +85,8 @@ instance (Diploid p, Diploid t) => Diploid (GeneticSOM t p)
 
 instance (SOM.Adjuster t, Statistical t) => Statistical (GeneticSOM t p) where
   stats s =
-    (iStat "num models" . SOM.numModels $ s)
-      : (iStat "max. size" . SOM.maxSize $ s)
+    (iStat "num models" . SOM.size $ s)
+      : (iStat "max. size" . SOM.capacity $ s)
       : (iStat "SQ" . schemaQuality $ s)
       : (map (prefix "counter") . kvToIStats . M.toAscList . SOM.counterMap $ s)
       ++ (stats . SOM.adjuster $ s)
@@ -221,8 +221,8 @@ adjNovelty :: UI.UIDouble -> Word32 -> Int
 adjNovelty d a = round $ UI.wide d * fromIntegral a
 
 instance (SOM.Adjuster t, Report t, Pretty p) => Report (GeneticSOM t p) where
-  report s = [ "max models: " ++ pretty (SOM.maxSize s),
-               "num models: " ++ pretty (SOM.numModels s),
+  report s = [ "max models: " ++ pretty (SOM.capacity s),
+               "num models: " ++ pretty (SOM.size s),
                "SQ: " ++ pretty (schemaQuality s),
                "counts: " ++ pretty (SOM.counterMap s) ]
              ++ report (SOM.adjuster s)

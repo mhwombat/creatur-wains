@@ -26,7 +26,7 @@ import           ALife.Creatur.Wain.Response             (Response (..),
                                                           addToOutcomes, labels,
                                                           outcomes)
 import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Datamining.Clustering.SGM4 as SOM
 import qualified Data.Datamining.Pattern.List            as L
 import           Data.List                               (nub, (\\))
 import qualified Data.Map.Strict                         as M

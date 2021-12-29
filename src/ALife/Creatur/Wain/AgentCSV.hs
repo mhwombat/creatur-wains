@@ -22,7 +22,7 @@ import           ALife.Creatur.Wain
 import qualified ALife.Creatur.Wain.Statistics           as S
 import           Control.Monad                           (filterM, liftM)
 import qualified Data.ByteString                         as BS
-import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Datamining.Clustering.SGM4 as SOM
 import qualified Data.Serialize                          as DS
 import           System.Directory                        (listDirectory)
 import           System.FilePath.Posix                   (combine)

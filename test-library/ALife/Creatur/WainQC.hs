@@ -34,7 +34,7 @@ import           ALife.Creatur.Wain.ResponseQC           (TestAction,
 import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser)
 import           ALife.Creatur.WainInternal
 import           Control.DeepSeq                         (deepseq)
-import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Datamining.Clustering.SGM4 as SOM
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
 import           Test.QuickCheck.Counterexamples         (Arbitrary, Gen,

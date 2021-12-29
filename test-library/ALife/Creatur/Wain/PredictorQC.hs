@@ -36,7 +36,7 @@ import           ALife.Creatur.Wain.ResponseQC           (TestAction,
                                                           TestResponseAdjuster,
                                                           arbTestResponse)
 import           Control.DeepSeq                         (deepseq)
-import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Datamining.Clustering.SGM4         as SOM
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
 import           Test.QuickCheck.Counterexamples         hiding (labels)
@@ -151,7 +151,7 @@ prop_imprintOrReinforce_never_causes_error (ImprintTestData p ls a os ds)
 
 prop_imprintOrReinforce_works :: ImprintTestData -> Property
 prop_imprintOrReinforce_works (ImprintTestData p ls a os ds) =
-  SOM.numModels p < SOM.maxSize p ==> diffAfter <= diffBefore
+  not (SOM.atCapacity p) ==> diffAfter <= diffBefore
   where r0 = Response ls a os
         rBefore = pResponse $ predict p r0 1
         (_, p2) = imprintOrReinforce p ls a os ds

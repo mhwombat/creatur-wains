@@ -30,7 +30,7 @@ import           ALife.Creatur.Wain.GeneticSOM
 import           ALife.Creatur.Wain.PatternQC            (TestPattern,
                                                           TestPatternAdjuster)
 import           Control.DeepSeq                         (deepseq)
-import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Datamining.Clustering.SGM4         as SOM
 import           Data.Map.Strict                         (keys, (!))
 import           Data.Word                               (Word32)
 import           Test.Framework                          (Test, testGroup)
@@ -104,7 +104,7 @@ prop_novelty_btw_0_and_1 p s = 0 <= novelty && novelty <= 1
 prop_familiar_patterns_have_min_novelty :: Int -> TestGSOM -> Property
 prop_familiar_patterns_have_min_novelty k s
   = (not . SOM.isEmpty) s ==> novelty == 0
-    where k' = k `mod` fromIntegral (SOM.numModels s)
+    where k' = k `mod` fromIntegral (SOM.size s)
           l = (keys . SOM.modelMap $ s) !! k'
           p = SOM.modelMap s ! l
           novelty = cNovelty $ classify s p

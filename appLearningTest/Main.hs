@@ -38,7 +38,7 @@ import           ALife.Creatur.WainInternal
 import           Control.Monad                           (foldM_)
 import           Control.Monad.Random                    (evalRand, getRandoms,
                                                           mkStdGen)
-import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Datamining.Clustering.SGM4 as SOM
 
 reward :: Double
 reward = 0.1

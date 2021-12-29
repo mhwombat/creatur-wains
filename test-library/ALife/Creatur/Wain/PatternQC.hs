@@ -43,7 +43,7 @@ import           ALife.Creatur.Wain.Statistics           (Statistical, stats)
 import           Control.DeepSeq                         (NFData)
 import           Control.Monad.Random                    (Rand, RandomGen,
                                                           getRandom)
-import           Data.Datamining.Clustering.SGM4Internal (Adjuster, MetricType,
+import           Data.Datamining.Clustering.SGM4 (Adjuster, MetricType,
                                                           PatternType, TimeType,
                                                           difference,
                                                           learningRate,

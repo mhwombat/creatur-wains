@@ -53,7 +53,7 @@ import           ALife.Creatur.Wain.Statistics              (Statistical, dStat,
                                                              iStat, stats)
 import           Control.DeepSeq                            (NFData)
 import           Control.Monad.Random                       (Rand, RandomGen)
-import qualified Data.Datamining.Clustering.SGM4Internal    as SOM
+import qualified Data.Datamining.Clustering.SGM4    as SOM
 import           Data.List                                  (intercalate,
                                                              partition, sortOn)
 import qualified Data.Map.Strict                            as M

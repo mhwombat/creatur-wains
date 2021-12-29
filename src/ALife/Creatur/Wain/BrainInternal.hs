@@ -38,7 +38,7 @@ import           ALife.Creatur.Wain.Response             (Response (..))
 import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
                                                           iStat, prefix, stats)
 import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Datamining.Clustering.SGM4 as SOM
 import           Data.Function                           (on)
 import           Data.List                               (foldl', groupBy,
                                                           sortBy)

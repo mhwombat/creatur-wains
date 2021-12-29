@@ -21,7 +21,7 @@ import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import qualified ALife.Creatur.Wain.GeneticSOM           as GSOM
 import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
 import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Clustering.SGM4Internal as SOM
+import qualified Data.Datamining.Clustering.SGM4 as SOM
 import           Data.List                               (foldl')
 import qualified Data.Map.Strict                         as M
 import           Data.Word                               (Word32)
