@@ -21,7 +21,7 @@ import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import           ALife.Creatur.Wain.GeneticSOM           (Label)
 import           ALife.Creatur.Wain.ProbabilityInternal
 import           Data.List                               (nub)
-import           Data.Word                               (Word64)
+import           Data.Word                               (Word32)
 import qualified Numeric.ApproxEq                        as N
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
@@ -69,7 +69,7 @@ sizedArbTestSignatures n = do
 instance Arbitrary TestSignatures where
   arbitrary = sized sizedArbTestSignatures
 
-prop_hypothesis_probabilities_eq_1 :: Word64 -> TestSignatures -> Property
+prop_hypothesis_probabilities_eq_1 :: Word32 -> TestSignatures -> Property
 prop_hypothesis_probabilities_eq_1 s (TestSignatures lds) = s >= 1 ==>
   N.within 100 (sum . map (UI.wide . snd) $ hps) 1
   where hps = hypothesise s lds

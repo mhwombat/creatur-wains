@@ -38,14 +38,14 @@ import           ALife.Creatur.Wain.Response             (Response (..))
 import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
                                                           iStat, prefix, stats)
 import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Clustering.SGM4 as SOM
+import qualified Data.Datamining.Clustering.SGM4         as SOM
 import           Data.Function                           (on)
 import           Data.List                               (foldl', groupBy,
                                                           sortBy)
 import qualified Data.Map.Strict                         as M
 import           Data.Ord                                (comparing)
 import           Data.Serialize                          (Serialize)
-import           Data.Word                               (Word32, Word64, Word8)
+import           Data.Word                               (Word32, Word8)
 import           GHC.Generics                            (Generic)
 import           Text.Printf                             (printf)
 
@@ -69,7 +69,7 @@ data Brain ct pt p a m = Brain
     -- | Controls how willing the wain is to consider alternative
     --   classifications when making decisions.
     --   Must be >= 1.
-    strictness          :: Word64,
+    strictness          :: Word32,
     -- | When a wain observes a response that it has never seen before,
     --   it will assume the action has the following outcomes.
     --   Normally these values should all be positive.
@@ -90,7 +90,7 @@ data Brain ct pt p a m = Brain
 makeBrain
   :: M.Muser m
      => Cl.Classifier ct p -> m -> P.Predictor pt a -> Weights -> Word8
-       -> Word64 -> [PM1.PM1Double] -> [PM1.PM1Double]
+       -> Word32 -> [PM1.PM1Double] -> [PM1.PM1Double]
        -> Either [String] (Brain ct pt p a m)
 makeBrain c m p hw t x ios rds
   | x < 1

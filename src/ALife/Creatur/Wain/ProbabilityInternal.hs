@@ -19,13 +19,13 @@ module ALife.Creatur.Wain.ProbabilityInternal where
 
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import           ALife.Creatur.Wain.GeneticSOM           (Label)
-import           Data.Word                               (Word64)
+import           Data.Word                               (Word32)
 import           Text.Printf                             (printf)
 
 -- | Returns a set of hypotheses about the scenario the wain is facing,
 --   paired with the estimated probability that each hypothesis is true.
 hypothesise
-  :: Word64 -> [[(Label, UI.UIDouble)]] -> [([Label], UI.UIDouble)]
+  :: Word32 -> [[(Label, UI.UIDouble)]] -> [([Label], UI.UIDouble)]
 hypothesise x = map jointProbability . permute . diffsToProbs x
 
 -- | Internal method.
@@ -51,12 +51,12 @@ normalise xs
 
 -- | Given the signature for one input pattern, calculate the
 --   probability that the pattern should match each classifier model.
-diffsToProbs :: Word64 -> [[(Label, UI.UIDouble)]] -> [[(Label, UI.UIDouble)]]
+diffsToProbs :: Word32 -> [[(Label, UI.UIDouble)]] -> [[(Label, UI.UIDouble)]]
 diffsToProbs x = map (diffsToProbs2 x)
 
 -- | Given the signature for one input pattern, calculate the
 --   probability that the pattern should match each classifier model.
-diffsToProbs2 :: Word64 -> [(Label, UI.UIDouble)] -> [(Label, UI.UIDouble)]
+diffsToProbs2 :: Word32 -> [(Label, UI.UIDouble)] -> [(Label, UI.UIDouble)]
 diffsToProbs2 x lds = zip ls ps
   where ls = map fst lds
         ds = map snd lds
@@ -64,7 +64,7 @@ diffsToProbs2 x lds = zip ls ps
 
 -- | Given a set of differences between an input pattern and a model,
 --   calculate the probability that the pattern should match each model.
-diffsToProbs1 :: Word64 -> [UI.UIDouble] -> [UI.UIDouble]
+diffsToProbs1 :: Word32 -> [UI.UIDouble] -> [UI.UIDouble]
 diffsToProbs1 x ds = map UI.narrow . normalise . map UI.wide $ ps
   where ps = map (diffToProb x) ds'
         ds' = map UI.narrow . normalise $ map UI.wide ds
@@ -73,7 +73,7 @@ diffsToProbs1 x ds = map UI.narrow . normalise . map UI.wide $ ps
 --   into an estimated probability that the classification is "sound".
 --   The parameter @x@ controls how quickly the probability falls as
 --   the difference increases.
-diffToProb :: Word64 -> UI.UIDouble -> UI.UIDouble
+diffToProb :: Word32 -> UI.UIDouble -> UI.UIDouble
 diffToProb x d = UI.narrow $ 1 - exp(1 - 1/(1 - (1 - d')^x'))
   where x' = fromIntegral x :: Integer
         d' = UI.wide d

@@ -35,11 +35,6 @@ import           Test.QuickCheck.Counterexamples           (Arbitrary, Property,
                                                             arbitrary, (==>))
 import           Test.QuickCheck.Gen                       (Gen (MkGen))
 
-instance Arbitrary LearningParams where
-  arbitrary = do
-    p <- arbitrary
-    MkGen (\r _ -> let (x,_) = runRand (randomLearningParams p) r in x)
-
 validLearningParams :: LearningParams -> Bool
 validLearningParams (LearningParams r0 rf tf)
   = 0 < r0 && r0 <= 1 && 0 < rf && rf <= r0 && 0 < tf
@@ -68,17 +63,6 @@ prop_learningFunction_always_valid
   :: LearningParams -> Word32 -> Bool
 prop_learningFunction_always_valid f t = r >= 0 && r <= 1
   where r = toLearningFunction f t
-
-instance Arbitrary LearningParamRanges where
-  arbitrary = do
-    r0start <- arbitrary
-    r0stop <- arbitrary
-    rfstart <- arbitrary
-    rfstop <- arbitrary
-    tfstart <- arbitrary
-    tfstop <- arbitrary
-    return $ LearningParamRanges (r0start,r0stop) (rfstart,rfstop)
-               (tfstart,tfstop)
 
 prop_random_learningFunction_valid
   :: Int -> LearningParamRanges -> Bool

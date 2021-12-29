@@ -27,10 +27,12 @@ import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
                                                           iStat, stats)
 import           Control.DeepSeq                         (NFData)
 import           Control.Monad.Random                    (Rand, RandomGen,
-                                                          getRandomR)
+                                                          getRandomR, runRand)
 import           Data.Serialize                          (Serialize)
 import           Data.Word                               (Word32)
 import           GHC.Generics                            (Generic)
+import           Test.QuickCheck                         (Arbitrary, arbitrary)
+import           Test.QuickCheck.Gen                     (Gen (MkGen))
 
 --
 --
@@ -160,3 +162,19 @@ randomLearningParams p = do
   tf <- getRandomR . intersection tfRangeLimits . tfRange $ p
   let Right x = mkLearningParams r0 rf tf
   return x
+
+instance Arbitrary LearningParams where
+  arbitrary = do
+    p <- arbitrary
+    MkGen (\r _ -> let (x,_) = runRand (randomLearningParams p) r in x)
+
+instance Arbitrary LearningParamRanges where
+  arbitrary = do
+    r0start <- arbitrary
+    r0stop <- arbitrary
+    rfstart <- arbitrary
+    rfstop <- arbitrary
+    tfstart <- arbitrary
+    tfstop <- arbitrary
+    return $ LearningParamRanges (r0start,r0stop) (rfstart,rfstop)
+               (tfstart,tfstop)
