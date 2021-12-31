@@ -15,7 +15,7 @@ import           ALife.Creatur.Wain.Response
 import           ALife.Creatur.Wain.ResponseQC
 import           ALife.Creatur.Wain.Scenario
 import           ALife.Creatur.Wain.TestUtils
-import           ALife.Creatur.Wain.UnitInterval  (UIDouble)
+import           ALife.Creatur.Wain.UnitInterval  (UI.Double)
 import           ALife.Creatur.Wain.Util          (unitInterval)
 import           ALife.Creatur.Wain.Weights       (makeWeights)
 import           Control.Monad                    (replicateM)
@@ -28,7 +28,7 @@ import           Data.Word                        (Word16, Word8)
 import           Paths_creatur_wains              (version)
 import           System.IO.Temp                   (withSystemTempDirectory)
 
-makePredictor :: Word16 -> UIDouble -> Predictor TestAction
+makePredictor :: Word16 -> UI.Double -> Predictor TestAction
 makePredictor n dt = buildGeneticSOM e n dt t
   where e = LearningParams 1 1
         t = ResponseTweaker (makeWeights [1,1,1])
@@ -46,7 +46,7 @@ predictorBenchmark d = do
 
 randomWain
   :: (RandomGen g)
-    => String -> Word16 -> UIDouble -> Word16 -> UIDouble -> Word16
+    => String -> Word16 -> UI.Double -> Word16 -> UI.Double -> Word16
       -> Rand g (Wain TestPattern TestTweaker TestAction)
 randomWain wName classifierSize classifierThreshold
     predictorSize predictorThreshold maxAgeOfMaturity = do

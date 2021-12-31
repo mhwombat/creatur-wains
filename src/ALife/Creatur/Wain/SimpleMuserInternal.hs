@@ -46,7 +46,7 @@ data SimpleMuser a = SimpleMuser
     --   Positive values make the wain optimistic and more likely to
     --   take risks. A negative value makes the wain pessimistic and
     --   risk-averse.
-    defaultOutcomes :: [PM1.PM1Double],
+    defaultOutcomes :: [PM1.Double],
     -- | Number of possible scenarios a wain will evaluate before
     --   choosing an action.
     depth           :: Word8
@@ -78,7 +78,7 @@ instance (Bounded a, Enum a, Eq a) => M.Muser (SimpleMuser a) where
   defaultOutcomes = defaultOutcomes
 
 -- | Constructor
-makeMuser :: [PM1.PM1Double] -> Word8 -> Either [String] (SimpleMuser a)
+makeMuser :: [PM1.Double] -> Word8 -> Either [String] (SimpleMuser a)
 makeMuser os d
  | d == 0         = Left ["zero depth"]
  | length os < 3 = Left ["default outcome list is too short"]
@@ -86,7 +86,7 @@ makeMuser os d
 
 generateResponses
   :: (Bounded a, Enum a, Eq a)
-    => SimpleMuser a -> [a] -> [([Label], UI.UIDouble)] -> [(Response a, UI.UIDouble)]
+    => SimpleMuser a -> [a] -> [([Label], UI.Double)] -> [(Response a, UI.Double)]
 generateResponses m _ sps = concatMap (generateResponses' m sps') as'
   where sps' = bestHypotheses m sps
         as' = [minBound .. maxBound]
@@ -94,15 +94,15 @@ generateResponses m _ sps = concatMap (generateResponses' m sps') as'
 -- | Internal method
 generateResponses'
   :: (Bounded a, Enum a)
-    => SimpleMuser a -> [([Label], UI.UIDouble)] -> a
-      -> [(Response a, UI.UIDouble)]
+    => SimpleMuser a -> [([Label], UI.Double)] -> a
+      -> [(Response a, UI.Double)]
 generateResponses' m sps a = map (generateResponse m a) sps
 
 -- | Internal method
 generateResponse
   :: (Bounded a, Enum a)
-    => SimpleMuser a -> a -> ([Label], UI.UIDouble)
-      -> (Response a, UI.UIDouble)
+    => SimpleMuser a -> a -> ([Label], UI.Double)
+      -> (Response a, UI.Double)
 generateResponse m a (ls, p) = (Response ls a os, p)
   where os = defaultOutcomes m
 
@@ -110,6 +110,6 @@ generateResponse m a (ls, p) = (Response ls a os, p)
 --   paired with the probability each scenario is true, selects the
 --   most likely scenarios.
 bestHypotheses
-  :: SimpleMuser a -> [([Label], UI.UIDouble)] -> [([Label], UI.UIDouble)]
+  :: SimpleMuser a -> [([Label], UI.Double)] -> [([Label], UI.Double)]
 bestHypotheses m
   = take (fromIntegral . depth $ m) . sortOn (Down . snd)

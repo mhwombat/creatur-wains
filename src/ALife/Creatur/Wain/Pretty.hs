@@ -16,8 +16,8 @@ module ALife.Creatur.Wain.Pretty
     Pretty(..)
   ) where
 
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne (PM1Double)
-import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, wide)
+import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import           ALife.Creatur.Gene.Numeric.Weights      (Weights)
 import qualified Data.Map.Strict                         as MS
 import           Data.Word                               (Word16, Word32,
@@ -64,10 +64,10 @@ instance (Pretty a) => Pretty (Maybe a) where
   pretty (Just x) = pretty x
   pretty _        = "ø"
 
-instance Pretty UIDouble where
-  pretty = pretty . wide
+instance Pretty UI.Double where
+  pretty = pretty . UI.wide
 
-instance Pretty PM1Double where
-  pretty = pretty . wide
+instance Pretty PM1.Double where
+  pretty = pretty . PM1.wide
 
 instance Pretty Weights

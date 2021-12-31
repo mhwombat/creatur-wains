@@ -20,7 +20,7 @@
 module ALife.Creatur.Wain.ResponseInternal where
 
 import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
-import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, narrow)
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import           ALife.Creatur.Genetics.BRGCWord8        (Genetic)
 import           ALife.Creatur.Genetics.Diploid          (Diploid)
 import           ALife.Creatur.Wain.GeneticSOM           (Label)
@@ -43,7 +43,7 @@ data Response a = Response
     -- | Action
     action   :: a,
     -- | Happiness level change (predicted or actual)
-    outcomes :: [PM1.PM1Double]
+    outcomes :: [PM1.Double]
   } deriving ( Eq, Show, Read, Generic, Ord, Serialize, Diploid,
                NFData )
 
@@ -55,11 +55,11 @@ instance (Pretty a) => Pretty (Response a) where
     where format xs =  intercalate "|" . map (printf "%.3f" .  PM1.wide) $ xs
 
 -- | Internal method
-labelSimilarity :: [Label] -> [Label] -> UIDouble
+labelSimilarity :: [Label] -> [Label] -> UI.Double
 labelSimilarity xs ys =
   if count == 0
     then 1
-    else narrow $ fromIntegral matchCount / fromIntegral count
+    else UI.narrow $ fromIntegral matchCount / fromIntegral count
   where comparisons =  labelSimilarity' xs ys
         count = length comparisons
         matchCount = length $ filter id comparisons
@@ -77,7 +77,7 @@ copyOutcomesTo source r = r { outcomes=outcomes source }
 
 -- | Increment the outcomes in a response by the specified amount.
 --   Note: Outcomes are capped at 1.
-addToOutcomes :: [PM1.PM1Double] -> Response a -> Response a
+addToOutcomes :: [PM1.Double] -> Response a -> Response a
 addToOutcomes deltas r = r { outcomes=ys }
   where xs = map PM1.wide . outcomes $ r
         deltas' = map PM1.wide deltas

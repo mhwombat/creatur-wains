@@ -57,7 +57,7 @@ prop_normalise_works :: [Double] -> Property
 prop_normalise_works ps = not (null ps) ==>
   N.within 10000 (sum . normalise $ ps) 1
 
-newtype TestSignatures = TestSignatures [[(Label, UI.UIDouble)]]
+newtype TestSignatures = TestSignatures [[(Label, UI.Double)]]
   deriving (Eq, Show)
 
 sizedArbTestSignatures :: Int -> Gen TestSignatures

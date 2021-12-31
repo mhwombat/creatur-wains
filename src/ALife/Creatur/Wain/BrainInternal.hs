@@ -50,7 +50,7 @@ import           GHC.Generics                            (Generic)
 import           Text.Printf                             (printf)
 
 -- | A wain's condition
-type Condition = [UI.UIDouble]
+type Condition = [UI.Double]
 
 -- | A brain which recommends reponses to stimuli, and learns from the
 --   outcomes.
@@ -73,12 +73,12 @@ data Brain ct pt p a m = Brain
     -- | When a wain observes a response that it has never seen before,
     --   it will assume the action has the following outcomes.
     --   Normally these values should all be positive.
-    imprintOutcomes     :: [PM1.PM1Double],
+    imprintOutcomes     :: [PM1.Double],
     -- | When a wain observes a response that it already knows, it will
     --   reinforce it by re-learning the model augmented with these
     --   delta outcomes.
     --   Normally these values should all be positive.
-    reinforcementDeltas :: [PM1.PM1Double],
+    reinforcementDeltas :: [PM1.Double],
     -- | Number of times each action has been used
     actionCounts        :: M.Map a Int
   } deriving (Generic, Eq, NFData)
@@ -90,7 +90,7 @@ data Brain ct pt p a m = Brain
 makeBrain
   :: M.Muser m
      => Cl.Classifier ct p -> m -> P.Predictor pt a -> Weights -> Word8
-       -> Word32 -> [PM1.PM1Double] -> [PM1.PM1Double]
+       -> Word32 -> [PM1.Double] -> [PM1.Double]
        -> Either [String] (Brain ct pt p a m)
 makeBrain c m p hw t x ios rds
   | x < 1
@@ -178,7 +178,7 @@ data DecisionReport p a =
 --   facing, paired with the estimated probability that each
 --   hypothesis is true.
 --   (A hypothesis is a set of classifier labels.)
-type ScenarioReport = [([GSOM.Label], UI.UIDouble)]
+type ScenarioReport = [([GSOM.Label], UI.Double)]
 
 -- | Generates a human readable summary of a stimulus.
 prettyScenarioReport :: ScenarioReport -> [String]
@@ -197,7 +197,7 @@ prettyScenarioReport = map f
 type PredictorReport a = [P.PredictionDetail a]
 
 -- | For each action, the expected outcomes and resulting happiness
-type ActionReport a = [(a, [PM1.PM1Double], UI.UIDouble)]
+type ActionReport a = [(a, [PM1.Double], UI.Double)]
 
 -- | Generates a human readable summary of a decision.
 prettyActionReport :: Pretty a => ActionReport a -> [String]
@@ -224,9 +224,9 @@ prettyActionReport = map f
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
   :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
-     SOM.MetricType ct ~ UI.UIDouble, SOM.TimeType ct ~ Word32,
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
      SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
-     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
      Eq a, Ord a, M.Muser m, Pretty m, a ~ M.Action m)
   => Brain ct pt p a m -> [p] -> Condition
   -> (DecisionReport p a, Brain ct pt p a m)
@@ -271,7 +271,7 @@ generateScenarios b cReport = sps
 -- | Internal method
 generateResponses
   :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
-     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
      M.Muser m, Eq a, a ~ M.Action m)
   => Brain ct pt p a m -> ScenarioReport -> PredictorReport a
 generateResponses b sReport = errorIfNull "pReport" $ predictAll b rps
@@ -301,7 +301,7 @@ errorIfNull desc xs = if null xs
                         else xs
 
 -- | Internal method
-onlyModelsIn :: Brain ct pt p a m -> [(GSOM.Label, UI.UIDouble)] -> Bool
+onlyModelsIn :: Brain ct pt p a m -> [(GSOM.Label, UI.Double)] -> Bool
 onlyModelsIn b = all (GSOM.hasLabel (classifier b) . fst)
 
 -- | Internal method
@@ -318,17 +318,17 @@ chooseAny b xs = xs !! (seed `mod` n)
 
 -- | Internal method
 fillInAdjustedHappiness
-  :: Brain ct pt p a m -> Condition -> (a, [PM1.PM1Double])
-      -> (a, [PM1.PM1Double], UI.UIDouble)
+  :: Brain ct pt p a m -> Condition -> (a, [PM1.Double])
+      -> (a, [PM1.Double], UI.Double)
 fillInAdjustedHappiness b c (a, os) = (a, os, adjustedHappiness b c os)
 
 -- | Internal method
 adjustedHappiness
-  :: Brain ct pt p a m -> Condition -> [PM1.PM1Double] -> UI.UIDouble
+  :: Brain ct pt p a m -> Condition -> [PM1.Double] -> UI.Double
 adjustedHappiness b c = happiness b . adjustCondition c
 
 -- | Internal method
-adjustCondition :: Condition -> [PM1.PM1Double] -> Condition
+adjustCondition :: Condition -> [PM1.Double] -> Condition
 adjustCondition c os =
   map PM1.crop $
     zipWith (+) (map UI.wide c) (map UI.wide os)
@@ -346,20 +346,20 @@ adjustActionCounts b a = b { actionCounts=cs' }
 --   Returns the classification report and the updated brain.
 classifyInputs
   :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
-     SOM.MetricType ct ~ UI.UIDouble, SOM.TimeType ct ~ Word32)
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32)
   => Brain ct pt p a m -> [p] -> (Cl.ClassifierReport p, Brain ct pt p a m)
 classifyInputs b ps = (cReport, b')
   where (cReport, c') = Cl.classifySetAndTrain (classifier b) ps
         b' = b { classifier=c' }
 
 -- | Internal method
-sumByAction :: Eq a => [Response a] -> [(a, [PM1.PM1Double])]
+sumByAction :: Eq a => [Response a] -> [(a, [PM1.Double])]
 sumByAction rs = map sumByAction' rss
   where rss = groupBy sameAction rs
         sameAction x y = action x == action y
 
 -- | Internal method
-sumByAction' :: [Response a] -> (a, [PM1.PM1Double])
+sumByAction' :: [Response a] -> (a, [PM1.Double])
 sumByAction' [] = error "no responses to sum"
 sumByAction' rs = (a, os)
   where a = action $ head rs
@@ -393,15 +393,15 @@ sumTermByTerm (xs:ys:zss) = sumTermByTerm (ws:zss)
 --   the model.
 predictAll
   :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
-     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
-  => Brain ct pt p a m -> [(Response a, UI.UIDouble)] -> PredictorReport a
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
+  => Brain ct pt p a m -> [(Response a, UI.Double)] -> PredictorReport a
 predictAll b = foldl' (predictOne b) []
 
 -- | Internal method
 predictOne
   :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
-     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
-  => Brain ct pt p a m -> PredictorReport a -> (Response a, UI.UIDouble)
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
+  => Brain ct pt p a m -> PredictorReport a -> (Response a, UI.Double)
       -> PredictorReport a
 predictOne b xs (r, p) = P.predict (predictor b) r p:xs
 
@@ -427,7 +427,7 @@ prettyReflectionReport r =
 --   prediction of the change to happiness.
 reflect
   :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
-     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
   => Brain ct pt p a m -> Response a -> Condition -> Condition
       -> (ReflectionReport a, Brain ct pt p a m)
 reflect b r cBefore cAfter = (report', b { predictor=d' })
@@ -450,7 +450,7 @@ reflect b r cBefore cAfter = (report', b { predictor=d' })
 -- | Teaches the brain a set of patterns, and a label for each of them.
 imprintStimulus
   :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
-     SOM.MetricType ct ~ UI.UIDouble, SOM.TimeType ct ~ Word32)
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32)
   => Brain ct pt p a m -> [(GSOM.Label, p)]
   -> ([GSOM.ImprintDetail p], Brain ct pt p a m)
 imprintStimulus b lps = (iReport, b { classifier=d })
@@ -466,7 +466,7 @@ imprintStimulus b lps = (iReport, b { classifier=d })
 --   * the updated brain.
 imprintResponse
   :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
-     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
   => Brain ct pt p a m -> [GSOM.Label] -> a
   -> (P.LearningReport a, Brain ct pt p a m)
 imprintResponse b ls a = (irReport, b { predictor=d2 })
@@ -476,7 +476,7 @@ imprintResponse b ls a = (irReport, b { predictor=d2 })
         deltas = reinforcementDeltas b
 
 -- | Evaluates a condition and reports the resulting happiness.
-happiness :: Brain ct pt p a m -> Condition -> UI.UIDouble
+happiness :: Brain ct pt p a m -> Condition -> UI.Double
 happiness b = weightedSum (happinessWeights b)
 
 -- | A metric for how flexible a brain is at making decisions.

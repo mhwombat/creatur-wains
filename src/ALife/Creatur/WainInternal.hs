@@ -92,18 +92,18 @@ data Wain ct pt p a m = Wain
     brain                  :: B.Brain ct pt p a m,
     -- | The amount of energy the wain will give to offspring at birth.
     --   This is a number between 0 and 1, inclusive.
-    devotion               :: UI.UIDouble,
+    devotion               :: UI.Double,
     -- | The age at which this wain will/has left its parent.
     ageOfMaturity          :: Word16,
     -- | The amount that a wain's passion increases at each CPU turn.
     --   this influences the frequency of mating.
-    passionDelta           :: UI.UIDouble,
+    passionDelta           :: UI.Double,
     -- | The wain's current energy level.
     --   This is a number between 0 and 1, inclusive.
-    energy                 :: UI.UIDouble,
+    energy                 :: UI.Double,
     -- | The wain's current passion level
     --   This is a number between 0 and 1, inclusive.
-    passion                :: UI.UIDouble,
+    passion                :: UI.Double,
     -- | The wain's current age.
     age                    :: Word16,
     -- | The children this wain is currently rearing.
@@ -123,8 +123,8 @@ deriving instance (Show ct, Show pt, Show p, Show a, Show m)
 
 -- | Internal method
 buildWain
-  :: String -> p -> B.Brain ct pt p a m -> UI.UIDouble -> Word16
-  -> UI.UIDouble -> (Sequence, Sequence) -> Wain ct pt p a m
+  :: String -> p -> B.Brain ct pt p a m -> UI.Double -> Word16
+  -> UI.Double -> (Sequence, Sequence) -> Wain ct pt p a m
 buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
   wPassionDelta g =
     Wain
@@ -150,8 +150,8 @@ buildWain wName wAppearance wBrain wDevotion wAgeOfMaturity
 --   for generating the initial population.
 buildWainAndGenerateGenome
   :: (Genetic ct, Genetic pt, Genetic p, Genetic a, Genetic m, Muser m)
-  => String -> p -> B.Brain ct pt p a m -> UI.UIDouble -> Word16
-  -> UI.UIDouble -> Wain ct pt p a m
+  => String -> p -> B.Brain ct pt p a m -> UI.Double -> Word16
+  -> UI.Double -> Wain ct pt p a m
 buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
   wAgeOfMaturity wPassionDelta = strawMan { genome=(g,g) }
   where strawMan = buildWain wName wAppearance wBrain wDevotion
@@ -289,7 +289,7 @@ condition w = [ energy w, 1 - passion w, if l > 0 then 1 else 0 ]
 
 -- | Returns the wain's current happiness level.
 --   This is a number between 0 and 1, inclusive.
-happiness :: Wain ct pt p a m -> UI.UIDouble
+happiness :: Wain ct pt p a m -> UI.Double
 happiness w = B.happiness (brain w) (condition w)
 
 --numModels . B.classifier . brain $ w
@@ -308,7 +308,7 @@ data DecisionReport p a =
 
 -- | Returns the measure of how novel each input pattern was to the
 --   wain.
-novelties :: DecisionReport p a -> [UI.UIDouble]
+novelties :: DecisionReport p a -> [UI.Double]
 novelties = map GSOM.cNovelty . Cl.cDetails . wdrClassifierReport
 
 -- | Returns the measure of how novel each input pattern was to the
@@ -329,9 +329,9 @@ adjNovelties = map GSOM.cAdjNovelty . Cl.cDetails . wdrClassifierReport
 --   bad outcome. "I think that food is edible, but I'm not going to
 --   eat it just in case I've misidentified it and it's poisonous."
 chooseAction
-  :: ( SOM.Adjuster ct, SOM.PatternType ct ~ p, SOM.MetricType ct ~ UI.UIDouble,
+  :: ( SOM.Adjuster ct, SOM.PatternType ct ~ p, SOM.MetricType ct ~ UI.Double,
       SOM.TimeType ct ~ Word32, SOM.PatternType pt ~ R.Response a,
-      SOM.Adjuster pt, SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32,
+      SOM.Adjuster pt, SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
       Ord a, Muser m, Pretty m, a ~ Action m)
   => [p] -> Wain ct pt p a m -> (DecisionReport p a, R.Response a, Wain ct pt p a m)
 chooseAction ps w = (dReport', r, w' { litter=litter' })
@@ -408,7 +408,7 @@ happinessError = B.brrErr . rReflectionReport
 --   TODO: Do something more realistic.
 reflect
   :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
-     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
   => R.Response a -> Wain ct pt p a m -> Wain ct pt p a m
   -> (ReflectionReport p a, Wain ct pt p a m)
 reflect r wBefore wAfter =
@@ -427,7 +427,7 @@ reflect r wBefore wAfter =
 -- | Internal method
 reflect1
   :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
-     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
   => R.Response a -> Wain ct pt p a m -> Wain ct pt p a m
   -> (B.ReflectionReport a, Wain ct pt p a m)
 reflect1 r wBefore wAfter = (rReport, wAfter { brain=b' })
@@ -439,7 +439,7 @@ type StimulusImprintReport p = [GSOM.ImprintDetail p]
 -- | Teaches the wain a set of patterns, and a label for each of them.
 imprintStimulus
   :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
-     SOM.MetricType ct ~ UI.UIDouble, SOM.TimeType ct ~ Word32)
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32)
   => [(GSOM.Label, p)] -> Wain ct pt p a m
   -> (StimulusImprintReport p, Wain ct pt p a m)
 imprintStimulus lps w = (iReport, w { brain=b' })
@@ -455,7 +455,7 @@ type ResponseImprintReport a = P.LearningReport a
 --   and the updated wain.
 imprintResponse
   :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
-     SOM.MetricType pt ~ UI.UIDouble, SOM.TimeType pt ~ Word32, Eq a)
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
   => [GSOM.Label] -> a -> Wain ct pt p a m -> (P.LearningReport a, Wain ct pt p a m )
 imprintResponse ls a w = (iReport, w { brain=b' })
   where (iReport, b') = B.imprintResponse (brain w) ls a

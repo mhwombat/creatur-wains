@@ -17,7 +17,7 @@ module ALife.Creatur.WainQC
     test
   ) where
 
-import           ALife.Creatur.Gene.Numeric.UnitInterval (narrow)
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import qualified ALife.Creatur.Gene.Test                 as GT
 import           ALife.Creatur.Genetics.BRGCWord8        (runDiploidReader,
                                                           write)
@@ -34,7 +34,7 @@ import           ALife.Creatur.Wain.ResponseQC           (TestAction,
 import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser)
 import           ALife.Creatur.WainInternal
 import           Control.DeepSeq                         (deepseq)
-import qualified Data.Datamining.Clustering.SGM4 as SOM
+import qualified Data.Datamining.Clustering.SGM4         as SOM
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
 import           Test.QuickCheck.Counterexamples         (Arbitrary, Gen,
@@ -103,7 +103,7 @@ instance Arbitrary TestWain where
 prop_adjustEnergy_balances_energy
   :: Double -> TestWain -> Bool
 prop_adjustEnergy_balances_energy e w
-  = energy w' == energy w + narrow used
+  = energy w' == energy w + UI.narrow used
   where (w', used) = adjustEnergy e w
 
 data ChoosingTestData

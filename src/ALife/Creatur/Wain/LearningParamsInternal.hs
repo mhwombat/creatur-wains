@@ -16,8 +16,7 @@
 {-# LANGUAGE DeriveGeneric  #-}
 module ALife.Creatur.Wain.LearningParamsInternal where
 
-import           ALife.Creatur.Gene.Numeric.UnitInterval (UIDouble, narrow,
-                                                          wide)
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import           ALife.Creatur.Gene.Numeric.Util         (inRange, intersection)
 import qualified ALife.Creatur.Genetics.BRGCWord8        as G
 import           ALife.Creatur.Genetics.Diploid          (Diploid)
@@ -49,7 +48,7 @@ import           Test.QuickCheck.Gen                     (Gen (MkGen))
 --   Normally the parameters are chosen such that:
 --     0 < r0 <= 1
 --     0 < rf <= r0
-data LearningParams = LearningParams UIDouble UIDouble Word32
+data LearningParams = LearningParams UI.Double UI.Double Word32
   deriving (Eq, Show, Read, Generic, Serialize, Diploid, NFData)
 
 instance G.Genetic LearningParams where
@@ -66,7 +65,7 @@ instance G.Genetic LearningParams where
 
 instance Statistical LearningParams where
   stats (LearningParams r0 rf tf)
-    = [ dStat "r0" (wide r0), dStat "rf" (wide rf), iStat "tf" tf]
+    = [ dStat "r0" (UI.wide r0), dStat "rf" (UI.wide rf), iStat "tf" tf]
 
 instance Report LearningParams where
   report (LearningParams r0 rf tf)
@@ -81,7 +80,7 @@ instance Report LearningParams where
 --     0 < r0 <= 1
 --     0 < rf <= r0
 mkLearningParams
-  :: UIDouble -> UIDouble -> Word32 -> Either [String] LearningParams
+  :: UI.Double -> UI.Double -> Word32 -> Either [String] LearningParams
 mkLearningParams r0 rf tf
   | r0 == 0    = Left ["r0 must be > 0"]
   | rf > r0   = Left ["rf must be <= r0"]
@@ -89,9 +88,9 @@ mkLearningParams r0 rf tf
 
 -- | @'toLearningFunction' p t@ returns the learning rate at time @t@,
 --   given an exponential learning function with parameters @p@.
-toLearningFunction :: LearningParams -> Word32 -> UIDouble
+toLearningFunction :: LearningParams -> Word32 -> UI.Double
 toLearningFunction (LearningParams r0 rf tf) t
-  | inRange (0,1) r = narrow r
+  | inRange (0,1) r = UI.narrow r
   | otherwise       = error $ "toLearningFunction: out of bounds"
                                 ++ " r0=" ++ show r0
                                 ++ " rf=" ++ show rf
@@ -99,8 +98,8 @@ toLearningFunction (LearningParams r0 rf tf) t
                                 ++ " t=" ++ show t
                                 ++ " r=" ++ show r
   where r = r0' * exp (-d*t')
-        r0' = wide r0
-        rf' = wide rf
+        r0' = UI.wide r0
+        rf' = UI.wide rf
         t' = fromIntegral t
         tf' = fromIntegral tf
         d = log (r0'/rf') / tf'
@@ -117,21 +116,21 @@ data LearningParamRanges = LearningParamRanges
   {
     -- | The range from which the initial learning rate (at t=0)
     --   should be chosen.
-    r0Range :: (UIDouble, UIDouble),
+    r0Range :: (UI.Double, UI.Double),
     -- | The range from which the final learning rate (at t=@tf@)
     --   should be chosen.
-    rfRange :: (UIDouble, UIDouble),
+    rfRange :: (UI.Double, UI.Double),
     -- | The range from which the final time should be chosen.
     tfRange :: (Word32, Word32)
   } deriving (Show, Read, Eq)
 
 -- | Range of values permitted for @r0@
-r0RangeLimits :: (UIDouble, UIDouble)
-r0RangeLimits = (narrow (1/65535), 1)
+r0RangeLimits :: (UI.Double, UI.Double)
+r0RangeLimits = (UI.narrow (1/65535), 1)
 
 -- | Range of values permitted for @rf@
-rfRangeLimits :: (UIDouble, UIDouble)
-rfRangeLimits = (narrow (1/65535), 1)
+rfRangeLimits :: (UI.Double, UI.Double)
+rfRangeLimits = (UI.narrow (1/65535), 1)
 
 -- | Range of values permitted for @rf@
 tfRangeLimits :: (Word32, Word32)

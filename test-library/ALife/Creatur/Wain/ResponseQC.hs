@@ -104,7 +104,7 @@ data TestResponseAdjuster = TestResponseAdjuster LearningParams
 
 instance Adjuster TestResponseAdjuster where
   type TimeType TestResponseAdjuster = Word32
-  type MetricType TestResponseAdjuster = UI.UIDouble
+  type MetricType TestResponseAdjuster = UI.Double
   type PatternType TestResponseAdjuster = TestResponse
   learningRate (TestResponseAdjuster l) = toLearningFunction l
   difference _ x y =
@@ -117,7 +117,7 @@ instance Adjuster TestResponseAdjuster where
          else x
       where s = labels x -- never change this
             a = action x -- never change this
-            o = L.makeSimilar PM1.makeSimilar (outcomes target) r (outcomes x)
+            o = L.makeSimilar PM1.makeDoubleSimilar (outcomes target) r (outcomes x)
 
 instance Statistical TestResponseAdjuster where
   stats (TestResponseAdjuster l) = stats l
@@ -181,7 +181,7 @@ test = testGroup "ALife.Creatur.Wain.ResponseQC"
     testProperty "prop_diff_is_symmetric - TestResponseAdjuster"
       (AT.prop_diff_is_symmetric :: TestResponseAdjuster -> TestResponse -> TestResponse -> Bool),
     testProperty "prop_makeSimilar_improves_similarity - TestResponseAdjuster"
-      (AT.prop_makeSimilar_improves_similarity :: TestResponseAdjuster -> TestResponse -> UI.UIDouble -> TestResponse -> Bool)
+      (AT.prop_makeSimilar_improves_similarity :: TestResponseAdjuster -> TestResponse -> UI.Double -> TestResponse -> Bool)
     -- testProperty "prop_zero_adjustment_makes_no_change - TestResponseAdjuster"
     --   (AT.prop_zero_adjustment_makes_no_change (==) :: TestResponseAdjuster -> TestResponse -> TestResponse -> Bool),
     -- testProperty "prop_full_adjustment_gives_perfect_match - TestResponseAdjuster"

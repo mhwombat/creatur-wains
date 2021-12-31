@@ -70,7 +70,7 @@ data TestPatternAdjuster = TestPatternAdjuster LearningParams
 
 instance Adjuster TestPatternAdjuster where
   type TimeType TestPatternAdjuster = Word32
-  type MetricType TestPatternAdjuster = UI.UIDouble
+  type MetricType TestPatternAdjuster = UI.Double
   type PatternType TestPatternAdjuster = TestPattern
   learningRate (TestPatternAdjuster l) = toLearningFunction l
   difference _ (TestPattern x) (TestPattern y)
@@ -79,10 +79,7 @@ instance Adjuster TestPatternAdjuster where
           y' = fromIntegral y :: Double
           range = fromIntegral (maxBound :: Word8) :: Double
   makeSimilar _ (TestPattern target) r (TestPattern x)
-    = TestPattern . round $ N.makeSimilar target' r' x'
-    where target' = fromIntegral target :: Double
-          r' = UI.wide r
-          x' = fromIntegral x :: Double
+    = TestPattern $ N.makeIntegralSimilar target r x
 
 instance Statistical TestPatternAdjuster where
   stats (TestPatternAdjuster l) = stats l
@@ -169,7 +166,7 @@ test = testGroup "ALife.Creatur.Gene.PatternQC"
     testProperty "prop_diff_is_symmetric - TestPatternAdjuster"
       (AT.prop_diff_is_symmetric :: TestPatternAdjuster -> TestPattern -> TestPattern -> Bool),
     testProperty "prop_makeSimilar_improves_similarity - TestPatternAdjuster"
-      (AT.prop_makeSimilar_improves_similarity :: TestPatternAdjuster -> TestPattern -> UI.UIDouble -> TestPattern -> Bool),
+      (AT.prop_makeSimilar_improves_similarity :: TestPatternAdjuster -> TestPattern -> UI.Double -> TestPattern -> Bool),
     testProperty "prop_zero_adjustment_makes_no_change - TestPatternAdjuster"
       (AT.prop_zero_adjustment_makes_no_change (==) :: TestPatternAdjuster -> TestPattern -> TestPattern -> Bool),
     testProperty "prop_full_adjustment_gives_perfect_match - TestPatternAdjuster"

@@ -65,7 +65,7 @@ data TrainingTestData
       {
         xPredictor :: TestPredictor,
         xResponse  :: TestResponse,
-        xOutcomes  :: [PM1.PM1Double]
+        xOutcomes  :: [PM1.Double]
       } deriving (Eq, Show)
 
 sizedArbTrainingTestData :: Int -> Gen TrainingTestData
@@ -81,13 +81,13 @@ instance Arbitrary TrainingTestData where
   arbitrary = sized sizedArbTrainingTestData
 
 prop_predict_never_causes_error
-  :: TrainingTestData -> UI.UIDouble -> Bool
+  :: TrainingTestData -> UI.Double -> Bool
 prop_predict_never_causes_error (TrainingTestData p r _) prob
   = deepseq x True
   where x = predict p r prob
 
 -- prop_prettyPredictionDetail_never_causes_error
---   :: TrainingTestData -> UI.UIDouble -> Bool
+--   :: TrainingTestData -> UI.Double -> Bool
 -- prop_prettyPredictionDetail_never_causes_error
 --   (TrainingTestData p r _) prob
 --   = deepseq x' True
@@ -106,7 +106,7 @@ prop_training_makes_predictions_more_accurate (TrainingTestData d r os)
         r3 = pResponse $ predict d2 r 1
         errAfter = rawDiff os (outcomes r3)
 
-rawDiff :: [PM1.PM1Double] ->  [PM1.PM1Double] -> Double
+rawDiff :: [PM1.Double] ->  [PM1.Double] -> Double
 rawDiff xs ys =
   sum $ zipWith (\x y -> abs $ PM1.wide x - PM1.wide y) xs ys
 
@@ -116,8 +116,8 @@ data ImprintTestData
         iPredictor :: TestPredictor,
         iLabels    :: [Label],
         iAction    :: TestAction,
-        iOutcomes  :: [PM1.PM1Double],
-        iDeltas    :: [PM1.PM1Double]
+        iOutcomes  :: [PM1.Double],
+        iDeltas    :: [PM1.Double]
       } deriving (Eq, Show)
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData

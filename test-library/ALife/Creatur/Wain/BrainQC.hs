@@ -234,7 +234,7 @@ prop_reflect_never_causes_error (ReflectionTestData b r cBefore cAfter)
 --   arbitrary = sized sizedArbAFewPatterns
 
 data ImprintTestData
-  = ImprintTestData TestBrain [TestPattern] TestAction [PM1.PM1Double] [Label]
+  = ImprintTestData TestBrain [TestPattern] TestAction [PM1.Double] [Label]
     deriving Eq
 
 sizedArbImprintTestData :: Int -> Gen ImprintTestData

@@ -17,8 +17,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main where
 
-import           ALife.Creatur.Gene.Numeric.PlusMinusOne (narrow)
-import           ALife.Creatur.Gene.Numeric.UnitInterval (wide)
+import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import           ALife.Creatur.Gene.Numeric.Weights      (makeWeights)
 import           ALife.Creatur.Wain.BrainInternal        (classifier,
                                                           decisionQuality,
@@ -38,7 +38,7 @@ import           ALife.Creatur.WainInternal
 import           Control.Monad                           (foldM_)
 import           Control.Monad.Random                    (evalRand, getRandoms,
                                                           mkStdGen)
-import qualified Data.Datamining.Clustering.SGM4 as SOM
+import qualified Data.Datamining.Clustering.SGM4         as SOM
 
 reward :: Double
 reward = 0.1
@@ -69,8 +69,8 @@ testWain = w'
         wClassifierAdjuster = TestPatternAdjuster ec
         wClassifier = SOM.makeSGM wClassifierAdjuster wClassifierSize
         (Right wMuser) = makeMuser [0, 0, 0] 3
-        wIos = [narrow reward, 0, 0]
-        wRds = [narrow reward, 0, 0]
+        wIos = [PM1.narrow reward, 0, 0]
+        wRds = [PM1.narrow reward, 0, 0]
         wPredictorAdjuster = TestResponseAdjuster ep
         wPredictor = SOM.makeSGM wPredictorAdjuster (wClassifierSize*5)
         wHappinessWeights = makeWeights [1, 0, 0]
@@ -110,7 +110,7 @@ tryOne w (n, p) = do
   let (rReflect, wainAfterReflection) = reflect r w wainRewarded
   mapM_ putStrLn $ prettyReflectionReport wainAfterReflection rReflect
   -- keep the wain's energy constant
-  let restorationEnergy = wide (energy w) - wide (energy wainAfterReflection)
+  let restorationEnergy = UI.wide (energy w) - UI.wide (energy wainAfterReflection)
   let (wainFinal, _) = adjustEnergy restorationEnergy wainAfterReflection
   putStrLn "Final classifier models"
   mapM_ putStrLn $ prettyClassifierModels wainFinal

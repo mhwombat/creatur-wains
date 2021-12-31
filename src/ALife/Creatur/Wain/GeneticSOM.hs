@@ -100,8 +100,8 @@ hasLabel s l = M.member l (SOM.modelMap s)
 
 -- | Returns the SOM's current learning rate.
 currentLearningRate
-  :: (SOM.Adjuster t, SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
-  => GeneticSOM t p -> UI.UIDouble
+  :: (SOM.Adjuster t, SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
+  => GeneticSOM t p -> UI.Double
 currentLearningRate s = (SOM.learningRate $ SOM.adjuster s) (SOM.time s)
 
 -- | Measures the quality of the classification system represented by
@@ -126,12 +126,12 @@ data ClassificationDetail p
         -- | A measure of how novel the input pattern was to the wain.
         --   It is the difference between the input pattern and the
         --   closest model prior to any training or addition of models.
-        cNovelty    :: UI.UIDouble,
+        cNovelty    :: UI.Double,
         -- | A measure of how novel the input pattern was to the wain,
         --   adjusted based on the age of the wain.
         cAdjNovelty :: Int,
         -- | Even more details about the classification
-        cDetails    :: M.Map Label (p, UI.UIDouble)
+        cDetails    :: M.Map Label (p, UI.Double)
       } deriving (Read, Show, Generic, NFData)
 
 prettyClassificationDetail
@@ -148,13 +148,13 @@ prettyClassificationDetail r =
 
 prettyClassificationMoreDetail
   :: Pretty p
-  => M.Map Label (p, UI.UIDouble) -> [String]
+  => M.Map Label (p, UI.Double) -> [String]
 prettyClassificationMoreDetail = map f . M.toList
   where f (l, (p, d)) = show l ++ " " ++ pretty p ++ " " ++ pretty d
 
 trainAndClassify
   :: (SOM.Adjuster t, SOM.PatternType t ~ p,
-     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+     SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
   => GeneticSOM t p -> p -> (ClassificationDetail p, GeneticSOM t p)
 trainAndClassify gs p = (detail, gs')
   where (bmu, novelty, rs, gs') = SOM.trainAndClassify gs p
@@ -198,7 +198,7 @@ prettyImprintDetail r =
 -- | Teaches the classifier a pattern and a label for that pattern.
 imprint
   :: (SOM.Adjuster t, SOM.PatternType t ~ p, SOM.TimeType t ~ Word32,
-    SOM.MetricType t ~ UI.UIDouble)
+    SOM.MetricType t ~ UI.Double)
   => GeneticSOM t p -> Label -> p -> (ImprintDetail p, GeneticSOM t p)
 imprint gs l p
   | existing          = (detail, gs')
@@ -217,7 +217,7 @@ imprint gs l p
 
 -- | Calculates the novelty of the input by scaling the BMU difference
 --   according to the age of the classifier (wain).
-adjNovelty :: UI.UIDouble -> Word32 -> Int
+adjNovelty :: UI.Double -> Word32 -> Int
 adjNovelty d a = round $ UI.wide d * fromIntegral a
 
 instance (SOM.Adjuster t, Report t, Pretty p) => Report (GeneticSOM t p) where

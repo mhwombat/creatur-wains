@@ -45,7 +45,7 @@ import           Test.QuickCheck.Counterexamples         hiding (classify)
 --   For this reason, it should only be used for testing.
 classify
   :: (SOM.Adjuster t, SOM.PatternType t ~ p, SOM.TimeType t ~ Word32,
-     SOM.MetricType t ~ UI.UIDouble)
+     SOM.MetricType t ~ UI.Double)
   => GeneticSOM t p -> p -> ClassificationDetail p
 classify gs p = detail
   where (bmu, novelty, rs) = SOM.classify gs p
@@ -73,7 +73,7 @@ sizedArbEmptyGeneticSOM maxSz = do
 -- | Used by other test modules
 sizedArbGeneticSOM
   :: (Arbitrary t, SOM.Adjuster t, SOM.PatternType t ~ p,
-     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+     SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
   => Gen p -> Int -> Gen (GeneticSOM t p)
 sizedArbGeneticSOM arbPattern n = do
   som <- sizedArbEmptyGeneticSOM (n+1)

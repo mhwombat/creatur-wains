@@ -35,7 +35,7 @@ module ALife.Creatur.Wain.Statistics
     popStdDev
   ) where
 
-import           ALife.Creatur.Gene.Numeric.UnitInterval (wide)
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import           ALife.Creatur.Gene.Numeric.Weights      (Weights, toUIDoubles)
 import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
 import           Data.List                               (groupBy, sortOn)
@@ -110,7 +110,7 @@ instance (Show k, Statistical v)
     where f (k, v) = map (prefix ("[" ++ show k ++ "]")) $ stats v
 
 instance Statistical Weights where
-  stats = dStats "" . map wide . toUIDoubles
+  stats = dStats "" . map UI.wide . toUIDoubles
 
 kvToDStats :: (Show k, Real v) => [(k, v)] -> [Statistic]
 kvToDStats = map f

@@ -35,11 +35,11 @@ class Muser m where
   generateResponses
     :: m
       -> [Action m]
-      -> [([Label], UI.UIDouble)]
-      -> [(Response (Action m), UI.UIDouble)]
+      -> [([Label], UI.Double)]
+      -> [(Response (Action m), UI.Double)]
   -- | If a wain has no model for a response it's considering, it
   --   will use these values as a prediction.
   --   Positive values make the wain optimistic and more likely to
   --   take risks. A negative value makes the wain pessimistic and
   --   risk-averse.
-  defaultOutcomes :: m -> [PM1.PM1Double]
+  defaultOutcomes :: m -> [PM1.Double]

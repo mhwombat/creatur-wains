@@ -36,7 +36,7 @@ type Classifier t p = GSOM.GeneticSOM t p
 data ClassifierReport p =
   ClassifierReport
     {
-      cLearningRate :: UI.UIDouble,
+      cLearningRate :: UI.Double,
       cDetails      :: [GSOM.ClassificationDetail p]
     } deriving (Generic, Show, NFData)
 
@@ -51,7 +51,7 @@ prettyClassifierReport r =
 --   Returns the classification report and the updated classifier.
 classifySetAndTrain
   :: (SOM.Adjuster t, SOM.PatternType t ~ p,
-     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+     SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
   => Classifier t p -> [p] -> (ClassifierReport p, Classifier t p)
 classifySetAndTrain c ps = (report, c')
   where (details, c') = foldl' classifyNextAndTrain ([], c) ps
@@ -64,7 +64,7 @@ classifySetAndTrain c ps = (report, c')
 -- | Internal method
 classifyNextAndTrain
   :: (SOM.Adjuster t, SOM.PatternType t ~ p,
-     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+     SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
   => ([GSOM.ClassificationDetail p], Classifier t p) -> p
     -> ([GSOM.ClassificationDetail p], Classifier t p)
 classifyNextAndTrain (details, c) p = (detail:details, c')
@@ -78,10 +78,10 @@ bmus = map GSOM.cBmu . cDetails
 -- | For each input pattern, returns the labels for all nodes in
 --   the classifier, paired with the difference between the
 --   input pattern and the corresponding model.
-diffs :: ClassifierReport p -> [[(GSOM.Label, UI.UIDouble)]]
+diffs :: ClassifierReport p -> [[(GSOM.Label, UI.Double)]]
 diffs = map diffs' . cDetails
 
-diffs' :: GSOM.ClassificationDetail p -> [(GSOM.Label, UI.UIDouble)]
+diffs' :: GSOM.ClassificationDetail p -> [(GSOM.Label, UI.Double)]
 diffs' = M.toList . M.map snd . GSOM.cDetails
 
 -- | Returns the current node labels
@@ -92,7 +92,7 @@ labels = M.keys . SOM.modelMap
 --   labels for each pattern.
 imprintSet
   :: (SOM.Adjuster t, SOM.PatternType t ~ p,
-     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+     SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
   => Classifier t p -> [(GSOM.Label, p)] -> ([GSOM.ImprintDetail p], Classifier t p)
 imprintSet c lps = (reverse details, c')
   where (details, c') = foldl' imprintNext ([], c) lps
@@ -100,7 +100,7 @@ imprintSet c lps = (reverse details, c')
 -- | Internal method
 imprintNext
   :: (SOM.Adjuster t, SOM.PatternType t ~ p,
-     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+     SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
   => ([GSOM.ImprintDetail p], Classifier t p)
     -> (GSOM.Label, p)
     -> ([GSOM.ImprintDetail p], Classifier t p)

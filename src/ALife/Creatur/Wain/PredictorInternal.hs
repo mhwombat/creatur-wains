@@ -26,7 +26,7 @@ import           ALife.Creatur.Wain.Response             (Response (..),
                                                           addToOutcomes, labels,
                                                           outcomes)
 import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Clustering.SGM4 as SOM
+import qualified Data.Datamining.Clustering.SGM4         as SOM
 import qualified Data.Datamining.Pattern.List            as L
 import           Data.List                               (nub, (\\))
 import qualified Data.Map.Strict                         as M
@@ -45,7 +45,7 @@ data PredictionDetail a
         pResponse    :: Response a,
         -- | The probability of the scenario on which the prediction
         --   is based
-        pProb        :: UI.UIDouble,
+        pProb        :: UI.Double,
         -- | The label of the node that best matches the input
         pBmu         :: Maybe GSOM.Label,
         -- | The BMU's model
@@ -53,17 +53,17 @@ data PredictionDetail a
         -- | A measure of how novel the response pattern was to the wain.
         --   It is the difference between the input pattern and the
         --   closest model prior to any training or addition of models.
-        pNovelty     :: UI.UIDouble,
+        pNovelty     :: UI.Double,
         -- | A measure of how novel the response pattern was to the wain,
         --   adjusted based on the age of the wain.
         pAdjNovelty  :: Int,
         -- | The adjusted probability based on how well the model
         --   matches the proposed response
-        pAdjustment  :: UI.UIDouble,
+        pAdjustment  :: UI.Double,
         -- | The unadjusted outcomes from the model
-        pRawOutcomes :: [PM1.PM1Double],
+        pRawOutcomes :: [PM1.Double],
         -- | Even more details about the prediction
-        pDetails     :: M.Map GSOM.Label (Response a, UI.UIDouble)
+        pDetails     :: M.Map GSOM.Label (Response a, UI.Double)
       } deriving (Generic, Read, Show, NFData)
 
 instance (Pretty a) => Pretty (PredictionDetail a) where
@@ -85,8 +85,8 @@ instance (Pretty a) => Pretty (PredictionDetail a) where
 --   information about how the prediction was generated.
 predict
   :: (SOM.Adjuster t, Eq a, SOM.PatternType t ~ Response a,
-     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
-  => Predictor t a -> Response a -> UI.UIDouble -> PredictionDetail a
+     SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
+  => Predictor t a -> Response a -> UI.Double -> PredictionDetail a
 predict p r prob = PredictionDetail
                      {
                        pResponse = r',
@@ -119,7 +119,7 @@ predict p r prob = PredictionDetail
         -- the model.
         zeroes = map (const 0) rawOutcomes
         adjustedOutcomes
-          = L.makeSimilar PM1.makeSimilar rawOutcomes adjustment zeroes
+          = L.makeSimilar PM1.makeDoubleSimilar rawOutcomes adjustment zeroes
         r' = r { outcomes=adjustedOutcomes }
 
 -- | Information about how a predictor learned.
@@ -127,7 +127,7 @@ data LearningReport a
   = LearningReport
       {
         -- | The current learning rate for the predictor
-        lLearningRate :: UI.UIDouble,
+        lLearningRate :: UI.Double,
         -- | Is the pattern new (imprinted) or old (reinforced)
         lNew          :: Bool,
         -- | The response that was learned
@@ -135,12 +135,12 @@ data LearningReport a
         -- | The label of the predictor node that best matches the input
         lBmu          :: GSOM.Label,
         -- | A measure of how novel the input pattern was to the wain.
-        lNovelty      :: UI.UIDouble,
+        lNovelty      :: UI.Double,
         -- | A measure of how novel the input pattern was to the wain,
         --   adjusted based on the age of the wain.
         lAdjNovelty   :: Int,
         -- | Even more details about the classification
-        lDetails      :: M.Map GSOM.Label (Response a, UI.UIDouble)
+        lDetails      :: M.Map GSOM.Label (Response a, UI.Double)
       } deriving (Generic, Read, Show, NFData)
 
 prettyLearningReport
@@ -173,8 +173,8 @@ prettyLearningReport r =
 --   outcomes + @deltas@.
 imprintOrReinforce
   :: (SOM.Adjuster t, Eq a, SOM.PatternType t ~ Response a,
-     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
-  => Predictor t a -> [GSOM.Label] -> a -> [PM1.PM1Double] -> [PM1.PM1Double]
+     SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
+  => Predictor t a -> [GSOM.Label] -> a -> [PM1.Double] -> [PM1.Double]
   -> (LearningReport a, Predictor t a)
 imprintOrReinforce d ls a os deltas =
   if lNew reportI
@@ -190,7 +190,7 @@ imprintOrReinforce d ls a os deltas =
 -- | @'learn' p r@ teaches the response @r@ to the predictor @p@.
 learn
   :: (SOM.Adjuster t, Eq a, SOM.PatternType t ~ Response a,
-     SOM.MetricType t ~ UI.UIDouble, SOM.TimeType t ~ Word32)
+     SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
   => Predictor t a -> Response a
   -> (LearningReport a, Predictor t a)
 learn d r = (report', d')
