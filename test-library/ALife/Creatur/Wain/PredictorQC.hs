@@ -30,11 +30,11 @@ import           ALife.Creatur.Wain.GeneticSOMQC         (sizedArbEmptyGeneticSO
                                                           sizedArbGeneticSOM)
 import           ALife.Creatur.Wain.PredictorInternal
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
-import           ALife.Creatur.Wain.Response             (Response (..))
+import           ALife.Creatur.Wain.ResponseInternal     (Response (..),
+                                                          arbResponse)
 import           ALife.Creatur.Wain.ResponseQC           (TestAction,
                                                           TestResponse,
-                                                          TestResponseAdjuster,
-                                                          arbTestResponse)
+                                                          TestResponseAdjuster)
 import           Control.DeepSeq                         (deepseq)
 import qualified Data.Datamining.Clustering.SGM4         as SOM
 import           Test.Framework                          (Test, testGroup)
@@ -54,7 +54,7 @@ arbEmptyTestPredictor capacity = do
 
 arbTestPredictor :: Int -> Int -> Int -> Gen TestPredictor
 arbTestPredictor nObjects nConditions capacity = do
-  let genResponse = arbTestResponse nObjects nConditions
+  let genResponse = arbResponse nObjects nConditions arbitrary
   sizedArbGeneticSOM genResponse capacity
 
 instance Arbitrary TestPredictor where
@@ -73,7 +73,7 @@ sizedArbTrainingTestData n = do
   ~[nO, nConditions, capacity] <- GT.divvy n 3
   let nObjects = min 3 nO
   p <- arbTestPredictor nObjects nConditions capacity
-  r <- arbTestResponse nObjects nConditions
+  r <- arbResponse nObjects nConditions arbitrary
   os <- vectorOf nConditions arbitrary
   return $ TrainingTestData p r os
 

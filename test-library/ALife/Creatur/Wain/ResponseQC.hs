@@ -19,8 +19,7 @@ module ALife.Creatur.Wain.ResponseQC
     test,
     TestResponse,
     TestAction(..),
-    TestResponseAdjuster(..),
-    arbTestResponse
+    TestResponseAdjuster(..)
   ) where
 
 import qualified ALife.Creatur.Gene.AdjusterTest         as AT
@@ -65,20 +64,8 @@ instance Statistical TestAction where
 
 type TestResponse = Response TestAction
 
--- TODO: Rewrite using sizedArbResponse from ALife.Creatur.Wain.ResponseInternal
 sizedArbTestResponse :: Int -> Gen TestResponse
-sizedArbTestResponse n = do
-  nObjects <- choose (0, n)
-  let nConditions = n - nObjects
-  arbTestResponse nObjects nConditions
-
--- TODO: Rewrite using arbResponse from ALife.Creatur.Wain.ResponseInternal
-arbTestResponse :: Int -> Int -> Gen TestResponse
-arbTestResponse nObjects nConditions = do
-  s <- vectorOf nObjects arbitrary
-  a <- arbitrary
-  o <- vectorOf nConditions arbitrary
-  return $ Response s a o
+sizedArbTestResponse = sizedArbResponse arbitrary
 
 instance Arbitrary TestResponse where
   arbitrary = sized sizedArbTestResponse
