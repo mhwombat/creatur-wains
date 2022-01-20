@@ -46,7 +46,7 @@ import           ALife.Creatur.Wain.ResponseQC           (TestAction,
 import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser,
                                                           makeMuser)
 import           Control.DeepSeq                         (deepseq)
-import qualified Data.Datamining.Clustering.SGM4 as SOM
+import qualified Data.Datamining.Clustering.SGM4         as SOM
 import qualified Numeric.ApproxEq                        as EQ
 import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
@@ -62,7 +62,7 @@ equivWeights x y
         wy = map UI.wide $ toUIDoubles y
 
 equivBrain :: (Eq ct, Eq pt, Eq p, Eq a, Eq m) => Brain ct pt p a m -> Brain ct pt p a m -> Bool
-equivBrain x y = x == y' && (equivWeights wx wy)
+equivBrain x y = x == y' && equivWeights wx wy
   where wx = happinessWeights x
         wy = happinessWeights y
         y' = y { happinessWeights=wx }
@@ -203,24 +203,23 @@ prop_reflect_makes_predictions_more_accurate
     = errAfter <= errBefore
   where (report:_) = predictAll b . zip [r] $ repeat 1
         r2 = P.pResponse report
-        (report2, b2) = reflect b r2 cBefore cAfter
+        (Just report2, b2) = reflect b cAfter
         errBefore = brrErr report2
         (report3:_) = predictAll b . zip [r] $ repeat 1
         r3 = P.pResponse report3
-        (report4, _) = reflect b2 r3 cBefore cAfter
+        (Just report4, _) = reflect b2 cAfter
         errAfter = brrErr report4
 
-prop_reflect_error_in_range
-  :: TestBrain -> TestResponse -> Condition -> Condition -> Bool
-prop_reflect_error_in_range b r cBefore cAfter = -2 <= x && x <= 2
-  where (report, _) = reflect b r cBefore cAfter
+prop_reflect_error_in_range :: ReflectionTestData -> Bool
+prop_reflect_error_in_range (ReflectionTestData b _ _ cAfter)
+  = -2 <= x && x <= 2
+  where (Just report, _) = reflect b cAfter
         x = brrErr report
 
-prop_reflect_never_causes_error
-  :: ReflectionTestData -> Bool
-prop_reflect_never_causes_error (ReflectionTestData b r cBefore cAfter)
+prop_reflect_never_causes_error :: ReflectionTestData -> Bool
+prop_reflect_never_causes_error (ReflectionTestData b _ _ cAfter)
   = deepseq x True
-  where x = reflect b r cBefore cAfter
+  where x = reflect b cAfter
 
 -- data AFewPatterns = AFewPatterns [TestPattern]
 --   deriving (Eq, Show)
@@ -332,7 +331,7 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
     --   (GT.prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestBrain -> Bool),
     testProperty "prop_diploid_identity - Brain"
-      (GT.prop_diploid_identity (equivBrain) :: TestBrain -> Bool),
+      (GT.prop_diploid_identity equivBrain :: TestBrain -> Bool),
     -- testProperty "prop_show_read_round_trippable - Brain"
     --   (GT.prop_show_read_round_trippable (==) :: TestBrain -> Bool),
     testProperty "prop_diploid_expressable - Brain"

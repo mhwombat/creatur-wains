@@ -10,8 +10,6 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass    #-}
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
@@ -51,13 +49,13 @@ prop_express_learningFunction_valid a b
 
 prop_diploid_learningFunction_valid
   :: LearningParams -> LearningParams -> Bool
-prop_diploid_learningFunction_valid a b = validLearningParams $ c
+prop_diploid_learningFunction_valid a b = validLearningParams c
   where g1 = W8.write a
         g2 = W8.write b
         Right c = W8.runDiploidReader W8.getAndExpress (g1, g2)
 
 prop_learningFunction_valid :: LearningParams -> Bool
-prop_learningFunction_valid f = validLearningParams f
+prop_learningFunction_valid = validLearningParams
 
 prop_learningFunction_always_valid
   :: LearningParams -> Word32 -> Bool

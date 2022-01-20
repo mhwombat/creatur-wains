@@ -86,7 +86,7 @@ prop_labelSimilarity_can_be_0 xs
   where x = labelSimilarity xs ys
         ys = map (+255) xs
 
-data TestResponseAdjuster = TestResponseAdjuster LearningParams
+newtype TestResponseAdjuster = TestResponseAdjuster LearningParams
   deriving (Eq, Show, Read, Generic, Serialize, G.Genetic, Diploid, NFData)
 
 instance Adjuster TestResponseAdjuster where

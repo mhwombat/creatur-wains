@@ -24,18 +24,15 @@ import           ALife.Creatur.Wain
 import           ALife.Creatur.Wain.BrainInternal        (classifier,
                                                           decisionQuality,
                                                           makeBrain, predictor)
-import           ALife.Creatur.Wain.Classifier           (bmus)
 import           ALife.Creatur.Wain.GeneticSOM           (schemaQuality)
 import           ALife.Creatur.Wain.LearningParams       (mkLearningParams)
 import           ALife.Creatur.Wain.PatternQC            (TestPattern (..),
                                                           TestPatternAdjuster (..))
-import           ALife.Creatur.Wain.Response             (action)
 import           ALife.Creatur.Wain.ResponseQC           (TestAction (..),
                                                           TestResponseAdjuster (..))
 import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser,
                                                           makeMuser)
 import           ALife.Creatur.Wain.Statistics           (stats)
-import           ALife.Creatur.WainInternal
 import           Control.Monad                           (foldM_)
 import           Control.Monad.Random                    (evalRand, getRandoms,
                                                           mkStdGen)
@@ -58,21 +55,13 @@ energyFor p a = if a == correctAnswer p then reward else -reward
 type TestWain = Wain TestPatternAdjuster TestResponseAdjuster
                      TestPattern TestAction (SimpleMuser TestAction)
 
-imprintAll :: TestWain -> IO TestWain
-imprintAll w = imprint' [(1, TestPattern 25)] Walk w
-                 >>= imprint' [(2, TestPattern 75)] Run
-                 >>= imprint' [(3, TestPattern 125)] Jump
-                 >>= imprint' [(4, TestPattern 175)] Skip
-                 >>= imprint' [(5, TestPattern 225)] Crawl
+imprintAll :: TestWain -> TestWain
+imprintAll w = imprintResponse [TestPattern 25] Walk
+                 . imprintResponse [TestPattern 75] Run
+                 . imprintResponse [TestPattern 125] Jump
+                 . imprintResponse [TestPattern 175] Skip
+                 $ imprintResponse [TestPattern 225] Crawl w
 
-imprint' :: [(Label, TestPattern)] -> TestAction -> TestWain -> IO TestWain
-imprint' lps a w = do
-  let (r2, w2) = imprintStimulus lps w
-  mapM_ putStrLn $ prettyStimulusImprintReport w2 r2
-  let ls = map fst lps
-  let (r3, w3) = imprintResponse ls a w2
-  mapM_ putStrLn $ prettyResponseImprintReport w3 r3
-  return w3
 
 testWain :: TestWain
 testWain = w'
@@ -98,7 +87,7 @@ testWain = w'
         Right ep = mkLearningParams 0.1 0.0001 1000
         w = buildWainAndGenerateGenome wName wAppearance wBrain
               wDevotion wAgeOfMaturity wPassionDelta
-        (w', _) = adjustEnergy 0.5 w
+        w' = adjustEnergy 0.5 "initial" w
 
 tryOne :: TestWain -> (Int, TestPattern) -> IO TestWain
 tryOne w (n, p) = do
@@ -108,28 +97,27 @@ tryOne w (n, p) = do
   mapM_ putStrLn $ prettyClassifierModels w
   putStrLn "Initial decision models"
   mapM_ putStrLn $ prettyBrainSummary w
-  let (report, r, wainAfterDecision) = chooseAction [p] w
-  mapM_ putStrLn $ prettyClassificationReport wainAfterDecision report
-  mapM_ putStrLn $ prettyScenarioReport wainAfterDecision report
-  mapM_ putStrLn $ prettyPredictionReport wainAfterDecision report
-  mapM_ putStrLn $ prettyActionReport wainAfterDecision report
+  let (wainAfterDecision, a) = chooseAction [p] w
+  -- mapM_ putStrLn $ prettyClassificationReport wainAfterDecision report
+  -- mapM_ putStrLn $ prettyScenarioReport wainAfterDecision report
+  -- mapM_ putStrLn $ prettyPredictionReport wainAfterDecision report
+  -- mapM_ putStrLn $ prettyActionReport wainAfterDecision report
   putStrLn $ "DEBUG classifier SQ=" ++ show (schemaQuality . classifier . brain $ wainAfterDecision)
-  let a = action r
   let deltaE = energyFor p a
-  let (wainRewarded, _) = adjustEnergy deltaE wainAfterDecision
+  let wainRewarded = adjustEnergy deltaE "reward" wainAfterDecision
   putStrLn $ "Δe=" ++ show deltaE
   putStrLn $ "condition before=" ++ show (condition w) ++ " after=" ++ show (condition wainRewarded)
   putStrLn $ "happiness before=" ++ show (happiness w) ++ " after=" ++ show (happiness wainRewarded)
-  let bmu = head . bmus . wdrClassifierReport $ report
-  putStr $ "Choosing to " ++ show a ++ " in response to " ++ show p ++ " (BMU " ++ show bmu
+  -- let bmu = head . bmus . wdrClassifierReport $ report
+  putStr $ "Choosing to " ++ show a ++ " in response to " ++ show p
   if deltaE < 0
-    then putStrLn ") was wrong"
-    else putStrLn ") was correct"
-  let (rReflect, wainAfterReflection) = reflect r w wainRewarded
-  mapM_ putStrLn $ prettyReflectionReport wainAfterReflection rReflect
+    then putStrLn " was wrong"
+    else putStrLn " was correct"
+  let wainAfterReflection = reflect wainRewarded
+  -- mapM_ putStrLn $ prettyReflectionReport wainAfterReflection rReflect
   -- keep the wain's energy constant
   let restorationEnergy = UI.wide (energy w) - UI.wide (energy wainAfterReflection)
-  let (wainFinal, _) = adjustEnergy restorationEnergy wainAfterReflection
+  let wainFinal = adjustEnergy restorationEnergy "restoration" wainAfterReflection
   putStrLn "Final classifier models"
   mapM_ putStrLn $ prettyClassifierModels wainFinal
   putStrLn "Final decision models"
@@ -152,7 +140,7 @@ main = do
   putStrLn "values (50, 100, 150, 200)."
   let g = mkStdGen 514229 -- seed
   let ps = map TestPattern . take 1000 $ evalRand getRandoms g
-  w <- imprintAll testWain
+  let w = imprintAll testWain
   let nps = zip [1..] ps
   foldM_ tryOne w nps
   putStrLn "test complete"

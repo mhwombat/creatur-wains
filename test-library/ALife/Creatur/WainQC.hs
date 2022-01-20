@@ -104,7 +104,8 @@ prop_adjustEnergy_balances_energy
   :: Double -> TestWain -> Bool
 prop_adjustEnergy_balances_energy e w
   = energy w' == energy w + UI.narrow used
-  where (w', used) = adjustEnergy e w
+    && e == used + leftover
+  where (w', used,leftover) = adjustEnergy' e "test" w
 
 data ChoosingTestData
   = ChoosingTestData TestWain [TestPattern]
@@ -148,9 +149,9 @@ instance Arbitrary ReflectionTestData where
 
 prop_reflect_never_causes_error
   :: ReflectionTestData -> Bool
-prop_reflect_never_causes_error (ReflectionTestData _ r wBefore wAfter)
+prop_reflect_never_causes_error (ReflectionTestData _ _ _ wAfter)
   = deepseq x True
-  where x = reflect r wBefore wAfter
+  where x = reflect wAfter
 
 data ImprintTestData
   = ImprintTestData TestWain [TestPattern] [Label] TestAction B.Condition
@@ -170,16 +171,16 @@ instance Arbitrary ImprintTestData where
 
 prop_imprintResponse_never_causes_error
   :: ImprintTestData -> Bool
-prop_imprintResponse_never_causes_error (ImprintTestData w _ ls a _)
+prop_imprintResponse_never_causes_error (ImprintTestData w ps _ a _)
   = deepseq x True
-  where x = imprintResponse ls a w
+  where x = imprintResponse ps a w
 
 prop_imprintResponse_twice_never_causes_error
   :: ImprintTestData -> Bool
-prop_imprintResponse_twice_never_causes_error (ImprintTestData w _ ls a _)
-  = deepseq x True
-  where (_, w') = imprintResponse ls a w
-        x = imprintResponse ls a w'
+prop_imprintResponse_twice_never_causes_error (ImprintTestData w ps _ a _)
+  = deepseq w'' True
+  where w' = imprintResponse ps a w
+        w'' = imprintResponse ps a w'
 
 -- prop_prettyClassifierModels_never_causes_error
 --   :: ChoosingTestData -> Bool

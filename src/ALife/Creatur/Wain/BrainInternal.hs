@@ -16,7 +16,6 @@
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving  #-}
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.BrainInternal where
 
@@ -80,7 +79,9 @@ data Brain ct pt p a m = Brain
     --   Normally these values should all be positive.
     reinforcementDeltas :: [PM1.Double],
     -- | Number of times each action has been used
-    actionCounts        :: M.Map a Int
+    actionCounts        :: M.Map a Int,
+    -- | Last choice made
+    lastChoice          :: Maybe (Response a, Condition)
   } deriving (Generic, Eq, NFData)
 
 -- | @'makeBrain' c m p hw t ios rds@ returns a brain with
@@ -104,7 +105,7 @@ makeBrain c m p hw t x ios rds
   | length rds /= 3
       = Left ["incorrect number of reinforcement deltas"]
   | otherwise
-      = Right $ Brain c m p hw t x ios rds M.empty
+      = Right $ Brain c m p hw t x ios rds M.empty Nothing
 
 instance (Serialize ct, Serialize pt, Serialize p, Serialize a, Ord a,
           Serialize m)
@@ -116,7 +117,7 @@ instance (Diploid ct, Diploid pt, Diploid p, Diploid a, Ord a, Diploid m)
 instance (Statistical ct, SOM.Adjuster ct,
           Statistical pt, SOM.Adjuster pt, Eq a, Statistical m)
   => Statistical (Brain ct pt p a m) where
-  stats b@(Brain c m p hw t s ios rds _)
+  stats b@(Brain c m p hw t s ios rds _ _)
     | length ios < 3 = error "ios not long enough"
     | length rds < 3 = error "rds not long enough"
     | otherwise =
@@ -137,14 +138,14 @@ instance (Statistical ct, SOM.Adjuster ct,
 
 instance (Show ct, Show pt, Show p, Show a, Show m)
   => Show (Brain ct pt p a m) where
-  show (Brain c m p hw t s ios rds ks) = "Brain (" ++ show c ++ ") ("
+  show (Brain c m p hw t s ios rds ks lrc) = "Brain (" ++ show c ++ ") ("
     ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") "
     ++ show t ++ " " ++ show s ++ " " ++ show ios ++ show rds
-    ++ " (" ++ show ks ++ ")"
+    ++ " (" ++ show ks ++ ") " ++ show lrc
 
 instance (Genetic ct, Genetic pt, Genetic p, Genetic a, Genetic m, M.Muser m)
   => Genetic (Brain ct pt p a m) where
-    put (Brain c m p hw t s ios rds _)
+    put (Brain c m p hw t s ios rds _ _)
       = put c >> put m >> put p >> put hw >> put t >> put s >> put ios
           >> put rds
     get = do
@@ -173,6 +174,18 @@ data DecisionReport p a =
       bdrActionReport        :: ActionReport a,
       bdrRecommendedResponse :: Response a
     } deriving (Generic, Show, NFData)
+
+prettyDecisionReport
+  :: (Pretty p, Pretty a)
+  => DecisionReport p a -> [String]
+prettyDecisionReport r
+  = "Classifying inputs:"
+        : Cl.prettyClassifierReport (bdrClassifierReport r)
+  ++ "Developing hypotheses about current scenario:"
+        : prettyScenarioReport (bdrScenarioReport r)
+  ++ "Imagining responses:" : map pretty (bdrPredictorReport r)
+  ++ "Predicting outcomes:" : prettyActionReport (bdrActionReport r)
+  ++ ["Recommending response: " ++ pretty (bdrRecommendedResponse r)]
 
 -- | A set of hypotheses about the scenario the wain is
 --   facing, paired with the estimated probability that each
@@ -230,7 +243,7 @@ chooseAction
      Eq a, Ord a, M.Muser m, Pretty m, a ~ M.Action m)
   => Brain ct pt p a m -> [p] -> Condition
   -> (DecisionReport p a, Brain ct pt p a m)
-chooseAction b ps c = (dReport, b4)
+chooseAction b ps c = (dReport, b4 { lastChoice=Just (r, c) })
   where (cReport, b2) = classifyInputs b ps
         -- cReport = The classifier report.
         -- b2  = the updated brain after classification
@@ -245,6 +258,7 @@ chooseAction b ps c = (dReport, b4)
         -- os = the expected outcomes
         b3 = adjustActionCounts b2 a
         b4 = pruneObsoleteResponses b3
+        r = Response cBmus a os
         dReport = DecisionReport
                    {
                      bdrStimulus = ps,
@@ -252,7 +266,7 @@ chooseAction b ps c = (dReport, b4)
                      bdrScenarioReport = sReport,
                      bdrPredictorReport = pReport,
                      bdrActionReport = aReport,
-                     bdrRecommendedResponse = Response cBmus a os
+                     bdrRecommendedResponse = r
                    }
 
 -- | Internal method
@@ -348,9 +362,8 @@ classifyInputs
   :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
      SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32)
   => Brain ct pt p a m -> [p] -> (Cl.ClassifierReport p, Brain ct pt p a m)
-classifyInputs b ps = (cReport, b')
+classifyInputs b ps = (cReport, b { classifier=c' })
   where (cReport, c') = Cl.classifySetAndTrain (classifier b) ps
-        b' = b { classifier=c' }
 
 -- | Internal method
 sumByAction :: Eq a => [Response a] -> [(a, [PM1.Double])]
@@ -428,24 +441,28 @@ prettyReflectionReport r =
 reflect
   :: (SOM.Adjuster pt, SOM.PatternType pt ~ Response a,
      SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
-  => Brain ct pt p a m -> Response a -> Condition -> Condition
-      -> (ReflectionReport a, Brain ct pt p a m)
-reflect b r cBefore cAfter = (report', b { predictor=d' })
-  where osActual = map UI.narrow $ zipWith (-) (map UI.wide cAfter)
-          (map UI.wide cBefore)
-        rReflect = r {outcomes = osActual}
-        (lReport, d') = P.learn (predictor b) rReflect
-        osPredicted = outcomes r
-        cPredicted = adjustCondition cBefore osPredicted
-        deltaH = UI.wide (happiness b cAfter)
-                   - UI.wide (happiness b cBefore)
-        predictedDeltaH = PM1.wide (happiness b cPredicted)
-                   - PM1.wide (happiness b cBefore)
-        report' = ReflectionReport
-                   {
-                     brrLearningReport = lReport,
-                     brrErr = abs (deltaH - predictedDeltaH)
-                   }
+  => Brain ct pt p a m -> Condition
+      -> (Maybe (ReflectionReport a), Brain ct pt p a m)
+reflect b cAfter
+  = case (lastChoice b) of
+      Just (r, cBefore)
+        -> (Just report', b { predictor=d' })
+          where osActual = map UI.narrow $ zipWith (-) (map UI.wide cAfter)
+                  (map UI.wide cBefore)
+                rReflect = r {outcomes = osActual}
+                (lReport, d') = P.learn (predictor b) rReflect
+                osPredicted = outcomes r
+                cPredicted = adjustCondition cBefore osPredicted
+                deltaH = UI.wide (happiness b cAfter)
+                           - UI.wide (happiness b cBefore)
+                predictedDeltaH = PM1.wide (happiness b cPredicted)
+                           - PM1.wide (happiness b cBefore)
+                report' = ReflectionReport
+                           {
+                             brrLearningReport = lReport,
+                             brrErr = abs (deltaH - predictedDeltaH)
+                           }
+      Nothing -> (Nothing, b)
 
 -- | Teaches the brain a set of patterns, and a label for each of them.
 imprintStimulus

@@ -1,3 +1,23 @@
+events
+------
+IncAge
+EnergyAdjustment Double String
+ChooseAction [p]
+reflect on outcome
+imprint action
+auto adjust passion
+cool passion
+flirt
+mate
+produce child
+retire
+die
+wean child
+
+
+
+
+
 nix-shell
 ghci
 :l test-library/ALife/Creatur/Wain/ResponseQC.hs

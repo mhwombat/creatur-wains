@@ -10,8 +10,6 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass    #-}
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -32,9 +30,9 @@ import           Test.Framework.Providers.QuickCheck2  (testProperty)
 
 type TestClassifier = TestGSOM
 
-classifySetAndTrain_label_count
+prop_classifySetAndTrain_label_count
   :: TestClassifier -> [TestPattern] -> Bool
-classifySetAndTrain_label_count c ps = length xs == length ps
+prop_classifySetAndTrain_label_count c ps = length xs == length ps
   where (r, _) = classifySetAndTrain c ps
         xs = bmus r
 
@@ -76,8 +74,8 @@ test = testGroup "ALife.Creatur.Wain.ClassifierQC"
       (GT.prop_diploid_readable
        :: TestClassifier -> TestClassifier -> Bool),
 
-    testProperty "classifySetAndTrain_label_count"
-      classifySetAndTrain_label_count,
+    testProperty "prop_classifySetAndTrain_label_count"
+      prop_classifySetAndTrain_label_count,
     testProperty "prop_classifySetAndTrain_never_causes_error"
       prop_classifySetAndTrain_never_causes_error,
     -- testProperty "prop_prettyClassifierReport_never_causes_error"

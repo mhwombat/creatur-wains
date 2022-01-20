@@ -13,6 +13,8 @@
 {-# LANGUAGE DeriveAnyClass       #-}
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE InstanceSigs         #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -53,7 +55,7 @@ import           ALife.Creatur.Wain.Statistics              (Statistical, dStat,
                                                              iStat, stats)
 import           Control.DeepSeq                            (NFData)
 import           Control.Monad.Random                       (Rand, RandomGen)
-import qualified Data.Datamining.Clustering.SGM4    as SOM
+import qualified Data.Datamining.Clustering.SGM4            as SOM
 import           Data.List                                  (intercalate,
                                                              partition, sortOn)
 import qualified Data.Map.Strict                            as M
@@ -69,15 +71,37 @@ import           Text.Printf                                (printf)
 packageVersion :: String
 packageVersion = "creatur-wains-" ++ showVersion version
 
--- Anything that modifies a wain is an event.
-data Event p = IncAge
-             -- | Adjusts the energy of a wain.
-             --   NOTE: A wain's energy is capped to the range [0,1],
-             --   so the actual change in energy may be less than
-             --   the specified amount.
-             | EnergyAdjustment Double String
-             | ChooseAction [p]
-             deriving (Eq, Show, Read, Generic, NFData, Serialize)
+data Event ct pt p a m
+  = IncAge
+  | AdjustEnergy Double String
+  | AutoAdjustPassion
+  | CoolPassion
+  -- | ImprintStimulus [(GSOM.Label, p)]
+  | ImprintResponse [p] a
+  | Reflect
+  | ChooseAction [p]
+  deriving (Generic, NFData, Read, Show, Eq, Serialize)
+
+replayEvent
+  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
+     SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Pretty p, Pretty a, Eq a, Ord a, Muser m, Pretty m, Action m ~ a)
+  => Event ct pt p a m -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
+replayEvent IncAge                      = replayIncAge
+replayEvent AutoAdjustPassion           = replayAutoAdjustPassion
+replayEvent CoolPassion                 = replayCoolPassion
+replayEvent (AdjustEnergy delta reason) = replayAdjustEnergy delta reason
+-- replayEvent (ImprintStimulus lps)       = replayImprintStimulus lps
+replayEvent (ImprintResponse ps a)      = replayImprintResponse ps a
+replayEvent Reflect                     = replayReflection
+replayEvent (ChooseAction ps)           = replayChooseAction ps
+
+recordEvent :: Event ct pt p a m -> Wain ct pt p a m -> Wain ct pt p a m
+recordEvent e w = w { biography=e:biography w }
+
+
 
 -- | A data mining agent that can learn, reproduce, and evolve.
 data Wain ct pt p a m = Wain
@@ -115,7 +139,7 @@ data Wain ct pt p a m = Wain
     -- | The wain's genes.
     genome                 :: ([Word8],[Word8]),
     -- | The events that occurred during the wain's life.
-    biography              :: [Event p]
+    biography              :: [Event ct pt p a m]
   } deriving (Eq, Generic, NFData)
 
 deriving instance (Show ct, Show pt, Show p, Show a, Show m)
@@ -200,7 +224,7 @@ instance (SOM.Adjuster ct, Statistical ct,
           iStat "genome length" ( (length . fst . genome $ w)
                                   + (length . snd . genome $ w) )]
     where e = energy w
-          ec = sum . map (energy) $ litter w
+          ec = sum . map energy $ litter w
 
 instance (Serialize ct, Serialize pt, Serialize p, Ord a, Serialize a, Serialize m)
   => Serialize (Wain ct pt p a m)
@@ -253,16 +277,11 @@ instance (Genetic ct, Diploid ct, Genetic pt, Diploid pt,
     randomOneOfPair
   build n = runDiploidReader (buildWainFromGenome False n)
 
-
-recordEvent :: Event p -> Wain ct pt p a m -> Wain ct pt p a m
-recordEvent e w = w { biography=e:biography w }
-
-runEvent :: Event p -> Wain ct pt p a m -> Wain ct pt p a m
-runEvent e =  justRunEvent e . recordEvent e
-
-justRunEvent :: Event p -> Wain ct pt p a m -> Wain ct pt p a m
-justRunEvent _ _ = undefined
-
+--
+--
+-- Queries (functions that do not modify wains)
+--
+--
 
 -- | Returns the total energy of all children in the litter.
 childEnergy :: Wain ct pt p a m -> Double
@@ -292,173 +311,97 @@ condition w = [ energy w, 1 - passion w, if l > 0 then 1 else 0 ]
 happiness :: Wain ct pt p a m -> UI.Double
 happiness w = B.happiness (brain w) (condition w)
 
---numModels . B.classifier . brain $ w
-
--- | Detailed information about how a decision was made.
-data DecisionReport p a =
-  DecisionReport
-    {
-      wdrStimulus         :: [p],
-      wdrClassifierReport :: Cl.ClassifierReport p,
-      wdrScenarioReport   :: B.ScenarioReport,
-      wdrPredictorReport  :: B.PredictorReport a,
-      wdrActionReport     :: B.ActionReport a,
-      wdrImprintReports   :: [StimulusImprintReport p]
-    } deriving (Generic, Show, NFData)
-
 -- | Returns the measure of how novel each input pattern was to the
 --   wain.
-novelties :: DecisionReport p a -> [UI.Double]
-novelties = map GSOM.cNovelty . Cl.cDetails . wdrClassifierReport
+novelties :: B.DecisionReport p a -> [UI.Double]
+novelties = map GSOM.cNovelty . Cl.cDetails . B.bdrClassifierReport
 
 -- | Returns the measure of how novel each input pattern was to the
 --   wain, adjusted for the age of the wain.
-adjNovelties :: DecisionReport p a -> [Int]
-adjNovelties = map GSOM.cAdjNovelty . Cl.cDetails . wdrClassifierReport
+adjNovelties :: B.DecisionReport p a -> [Int]
+adjNovelties = map GSOM.cAdjNovelty . Cl.cDetails . B.bdrClassifierReport
 
--- | Chooses a response based on the stimuli (input patterns) and
---   the wain's condition.
---   Returns a detailed report of the decision process
---   and the updated wain.
 --
---   NOTE: The response chosen might be a response modelled on
---   a different scenario than the one we think we're in.
---   This might happen, for example, if the ideal response to the
---   most likely scenario has a somewhat good outcome, but the ideal
---   response to a somewhat likely alternative scenario has a really
---   bad outcome. "I think that food is edible, but I'm not going to
---   eat it just in case I've misidentified it and it's poisonous."
-chooseAction
-  :: ( SOM.Adjuster ct, SOM.PatternType ct ~ p, SOM.MetricType ct ~ UI.Double,
-      SOM.TimeType ct ~ Word32, SOM.PatternType pt ~ R.Response a,
-      SOM.Adjuster pt, SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
-      Ord a, Muser m, Pretty m, a ~ Action m)
-  => [p] -> Wain ct pt p a m -> (DecisionReport p a, R.Response a, Wain ct pt p a m)
-chooseAction ps w = (dReport', r, w' { litter=litter' })
-  where (dReport, b')
-          = B.chooseAction (brain w) ps (condition w)
-        r = B.bdrRecommendedResponse dReport
-        w' = recordEvent (ChooseAction ps) $ w { brain=b' }
-        ls = R.labels r
-        lps = zip ls ps
-        iResults = map (imprintStimulus lps) (litter w')
-        litter' = map snd iResults
-        dReport' = DecisionReport
-                    {
-                      wdrStimulus = B.bdrStimulus dReport,
-                      wdrClassifierReport
-                        = B.bdrClassifierReport dReport,
-                      wdrScenarioReport = B.bdrScenarioReport dReport,
-                      wdrPredictorReport = B.bdrPredictorReport dReport,
-                      wdrActionReport = B.bdrActionReport dReport,
-                      wdrImprintReports = map fst iResults
-                    }
+--
+-- Functions that do modify wains.
+--
+--
+
+--
+-- Energy modification
+--
 
 adjustEnergy
-  :: Double -> Wain ct pt p a m -> (Wain ct pt p a m, Double)
-adjustEnergy delta w = (wAfter, delta')
-  where eBefore = energy w
-        eAfter = UI.crop $ UI.wide (energy w) + delta
-        wAfter = w { energy=eAfter }
-        delta' = UI.wide eAfter - UI.wide eBefore
+  :: Double -> String -> Wain ct pt p a m -> Wain ct pt p a m
+adjustEnergy delta reason w
+  = recordEvent (AdjustEnergy delta reason)
+      $ w { energy=UI.crop $ UI.wide (energy w) + delta }
+
+-- | Internal method
+replayAdjustEnergy
+  :: Double -> String -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
+replayAdjustEnergy delta reason w = (w', msgs)
+  where (w', used, leftover) = adjustEnergy' delta reason w
+        msgs = [ "Adjusting energy, reason is " ++ reason,
+                 pretty (energy w) ++ " " ++ pretty delta
+                 ++ " -> " ++ pretty (energy w')
+                 ++ " (used=" ++ pretty used
+                 ++ ", leftover=" ++ pretty leftover ++ ")" ]
+
+-- | Internal, useful for testing
+adjustEnergy'
+  :: Double -> String -> Wain ct pt p a m -> (Wain ct pt p a m, Double, Double)
+adjustEnergy' delta reason w = (w { energy=e' }, used, leftover)
+  where w' = adjustEnergy delta reason w
+        e = energy w
+        e' = energy w'
+        used = UI.wide e' - UI.wide e
+        leftover = delta - used
+
+--
+-- Passion modification
+--
 
 -- | Adjusts the wain's passion by the genetically-determined amount.
 --   NOTE: The passion is capped to the range [0,1]. The litter is not
 --   affected.
 autoAdjustPassion :: Wain ct pt p a m -> Wain ct pt p a m
-autoAdjustPassion w = w { passion=p }
+autoAdjustPassion w = recordEvent AutoAdjustPassion $ w { passion=p }
   where p = UI.narrow . enforceRange unitInterval $
               UI.wide (passion w) + UI.wide (passionDelta w)
 
+-- | Internal method
+replayAutoAdjustPassion :: Wain ct pt p a m -> (Wain ct pt p a m, [String])
+replayAutoAdjustPassion w
+  = (autoAdjustPassion w, ["Automatically adjusted passion"])
+
+-- Do not export; not a replayable event.
 -- | Resets the wain's passion to zero.
 --   This would normally be called immediately after mating.
 coolPassion :: Wain ct pt p a m -> Wain ct pt p a m
-coolPassion w = w { passion=0 }
+coolPassion w = recordEvent CoolPassion $ w { passion=0 }
+
+-- | Internal method
+replayCoolPassion :: Wain ct pt p a m -> (Wain ct pt p a m, [String])
+replayCoolPassion w = (coolPassion w, ["Cooled passion"])
+
+--
+-- Age modification
+--
 
 -- | Increments the age of the wain, and its litter (if any).
 incAge :: Wain ct pt p a m -> Wain ct pt p a m
-incAge = incAge1 . incLitterAge
+incAge w = recordEvent IncAge $ w { age=age w + 1, litter=litter' }
+  where litter' = map incAge $ litter w
+        -- chldren don't have children, so this will terminate
 
 -- | Internal method
-incLitterAge :: Wain ct pt p a m -> Wain ct pt p a m
-incLitterAge w = w { litter=litter' }
-  where litter' = map incAge1 $ litter w
+replayIncAge :: Wain ct pt p a m -> (Wain ct pt p a m, [String])
+replayIncAge w = (incAge w, [])
 
--- | Internal method
-incAge1 :: Wain ct pt p a m -> Wain ct pt p a m
-incAge1 w = w { age=age w + 1 }
-
-data ReflectionReport p a
-  = ReflectionReport
-      {
-        rReflectionReport :: B.ReflectionReport a,
-        rImprintReports   :: [P.LearningReport a]
-      } deriving (Generic, Show, NFData)
-
-happinessError :: ReflectionReport p a -> Double
-happinessError = B.brrErr . rReflectionReport
-
--- | Causes a wain to considers whether it is happier or not as a
---   result of the last action it took, and modifies its decision models
---   accordingly. The wain's litter, if any, will not have access to
---   the parent's internal condition, and their own condition will not
---   change, so they do not have any way to assess whether the outcome
---   of the action was good. Instead they will simply assume that
---   the action was perfect (increased happiness by 1).
---   TODO: Do something more realistic.
-reflect
-  :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
-     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
-  => R.Response a -> Wain ct pt p a m -> Wain ct pt p a m
-  -> (ReflectionReport p a, Wain ct pt p a m)
-reflect r wBefore wAfter =
-  (rReport', wReflected { litter=litter' })
-  where (rReport, wReflected) = reflect1 r wBefore wAfter
-        a = R.action r
-        ls = R.labels r
-        iResults = map (imprintResponse ls a) (litter wAfter)
-        litter' = map snd iResults
-        rReport' = ReflectionReport
-                   {
-                     rReflectionReport = rReport,
-                     rImprintReports = map fst iResults
-                   }
-
--- | Internal method
-reflect1
-  :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
-     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
-  => R.Response a -> Wain ct pt p a m -> Wain ct pt p a m
-  -> (B.ReflectionReport a, Wain ct pt p a m)
-reflect1 r wBefore wAfter = (rReport, wAfter { brain=b' })
-  where (rReport, b') = B.reflect (brain wAfter) r (condition wBefore)
-                        (condition wAfter)
-
-type StimulusImprintReport p = [GSOM.ImprintDetail p]
-
--- | Teaches the wain a set of patterns, and a label for each of them.
-imprintStimulus
-  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
-     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32)
-  => [(GSOM.Label, p)] -> Wain ct pt p a m
-  -> (StimulusImprintReport p, Wain ct pt p a m)
-imprintStimulus lps w = (iReport, w { brain=b' })
-  where (iReport, b') = B.imprintStimulus (brain w) lps
-
-type ResponseImprintReport a = P.LearningReport a
-
--- | Teaches the wain a desirable action to take in response to a
---   stimulus.
---   This can be used to help children learn by observing their parents.
---   It can also be used to allow wains to learn from others.
---   Returns a detailed report of the imprint process
---   and the updated wain.
-imprintResponse
-  :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
-     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32, Eq a)
-  => [GSOM.Label] -> a -> Wain ct pt p a m -> (P.LearningReport a, Wain ct pt p a m )
-imprintResponse ls a w = (iReport, w { brain=b' })
-  where (iReport, b') = B.imprintResponse (brain w) ls a
+--
+-- Litter modification
+--
 
 -- | Attempts to mate two wains.
 --   If either of the wains already has a litter, mating will not occur.
@@ -468,50 +411,61 @@ imprintResponse ls a w = (iReport, w { brain=b' })
 --   that occurred when attempting to produce a child from the genome,
 --   and the energy contribution from each parent.
 mate
-  :: (Diploid ct, Genetic ct, Diploid pt, Genetic pt,
-     Genetic p, Diploid p, Diploid a, Genetic a, Ord a,
-     Diploid m, Genetic m, Muser m, RandomGen r)
+  :: (Diploid ct, Genetic ct, SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
+     Diploid pt, Genetic pt, SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Diploid p, Genetic p, Pretty p,
+     Diploid a, Genetic a, Pretty a, Eq a, Ord a,
+     Diploid m, Genetic m, Muser m, Pretty m, Action m ~ a, RandomGen r)
   => Wain ct pt p a m -> Wain ct pt p a m -> String
-  -> Rand r ([Wain ct pt p a m], [String], Double, Double)
+    -> Rand r ([Wain ct pt p a m], [String])
 mate a b babyName
   | hasLitter a
-      = return ([a, b], [name a ++ " already has a litter"], 0, 0)
+      = return ([a, b], [name a ++ " already has a litter"])
   | hasLitter b
-      = return ([a, b], [name b ++ " already has a litter"], 0, 0)
+      = return ([a, b], [name b ++ " already has a litter"])
   | otherwise = mate' a b babyName
 
 -- | Internal method
 mate'
-  :: (Diploid ct, Genetic ct, Diploid pt, Genetic pt,
-     Genetic p, Diploid p, Diploid a, Genetic a, Ord a,
-     Diploid m, Genetic m, Muser m, RandomGen r)
+  :: (Diploid ct, Genetic ct, SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
+     Diploid pt, Genetic pt, SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Diploid p, Genetic p, Pretty p,
+     Diploid a, Genetic a, Pretty a, Eq a, Ord a,
+     Diploid m, Genetic m, Muser m, Pretty m, Action m ~ a, RandomGen r)
   => Wain ct pt p a m -> Wain ct pt p a m -> String
-   -> Rand r ([Wain ct pt p a m], [String], Double, Double)
+    -> Rand r ([Wain ct pt p a m], [String])
 mate' a b babyName = do
   let a2 = coolPassion a
   let b2 = coolPassion b
   result <- RS.makeOffspring a b babyName
   case result of
     Right baby -> do
-      let (a3, b3, baby3, aContribution, bContribution)
-             = donateParentEnergy a2 b2 baby
+      let (a3, b3, baby3) = donateParentsEnergy a2 b2 baby
       let a4 = a3 { litter=[baby3],
                     childrenBorneLifetime=childrenBorneLifetime a3 + 1 }
-      return ([a4, b3], [], aContribution, bContribution)
-    Left msgs -> return ([a2, b2], msgs, 0, 0)
+      return ([a4, b3], [])
+    Left msgs -> return ([a2, b2], msgs)
 
 -- | Internal method
-donateParentEnergy
-  :: Wain ct pt p a m -> Wain ct pt p a m -> Wain ct pt p a m
-     -> (Wain ct pt p a m, Wain ct pt p a m, Wain ct pt p a m,
-          Double, Double)
-donateParentEnergy a b c = (a', b', c', aContribution', bContribution')
+donateParentsEnergy
+  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
+     SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Pretty p, Pretty a, Eq a, Ord a, Muser m, Pretty m, Action m ~ a)
+  => Wain ct pt p a m -> Wain ct pt p a m -> Wain ct pt p a m
+     -> (Wain ct pt p a m, Wain ct pt p a m, Wain ct pt p a m)
+donateParentsEnergy a b c = (a', b', c')
   where aContribution = - UI.wide (devotion a * energy a)
         bContribution = - UI.wide (devotion b * energy b)
-        (a', aContribution') = adjustEnergy aContribution a
-        (b', bContribution') = adjustEnergy bContribution b
-        cContribution = -(aContribution' + bContribution')
-        (c', _) = adjustEnergy cContribution c
+        a' = adjustEnergy aContribution "donation to child" a
+        b' = adjustEnergy bContribution "donation to child" b
+        cContribution = -(aContribution + bContribution)
+        c' = adjustEnergy cContribution "donation from parents" c
 
 -- | Removes any mature children from the wain's litter.
 --   Returns a list containing the (possibly modified) wain, together
@@ -534,6 +488,188 @@ pruneDeadChildren a =
     else a':deadChildren
   where (aliveChildren, deadChildren) = partition isAlive (litter a)
         a' = a { litter=aliveChildren }
+
+--
+-- Brain modification
+--
+
+-- | Chooses a response based on the stimuli (input patterns) and
+--   the wain's condition.
+--   Returns a detailed report of the decision process
+--   and the updated wain.
+--
+--   NOTE: The response chosen might be a response modelled on
+--   a different scenario than the one we think we're in.
+--   This might happen, for example, if the ideal response to the
+--   most likely scenario has a somewhat good outcome, but the ideal
+--   response to a somewhat likely alternative scenario has a really
+--   bad outcome. "I think that food is edible, but I'm not going to
+--   eat it just in case I've misidentified it and it's poisonous."
+chooseAction
+  :: ( SOM.Adjuster ct, SOM.PatternType ct ~ p, SOM.MetricType ct ~ UI.Double,
+      SOM.TimeType ct ~ Word32, SOM.PatternType pt ~ R.Response a,
+      SOM.Adjuster pt, SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+      Ord a, Muser m, Pretty m, a ~ Action m)
+  => [p] -> Wain ct pt p a m -> (Wain ct pt p a m, a)
+chooseAction ps w = (w', a)
+  where (w', dReport) = chooseAction' ps $ recordEvent (ChooseAction ps) w
+        r = B.bdrRecommendedResponse dReport
+        a = R.action r
+
+-- | Internal method
+replayChooseAction
+  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
+     SOM.Adjuster pt,  SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Pretty p, Ord a, Pretty a, Muser m, Pretty m, Action m ~ a)
+  => [p] -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
+replayChooseAction ps w = (w', B.prettyDecisionReport dReport)
+  where (w', dReport) = chooseAction' ps w
+
+-- | Internal method
+chooseAction'
+  :: ( SOM.Adjuster ct, SOM.PatternType ct ~ p, SOM.MetricType ct ~ UI.Double,
+      SOM.TimeType ct ~ Word32, SOM.PatternType pt ~ R.Response a,
+      SOM.Adjuster pt, SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+      Ord a, Muser m, Pretty m, a ~ Action m)
+  => [p] -> Wain ct pt p a m -> (Wain ct pt p a m, B.DecisionReport p a)
+chooseAction' ps w
+  = (w { brain=b', litter=litter' }, dReport)
+  where (dReport, b') = B.chooseAction (brain w) ps (condition w)
+        litter' = map (fst . chooseAction ps) (litter w)
+          -- actions of children are only used for reflection
+
+-- | Causes a wain to considers whether it is happier or not as a
+--   result of the last action it took, and modifies its decision models
+--   accordingly. The wain's litter, if any, will not have access to
+--   the parent's internal condition, and their own condition will not
+--   change, so they do not have any way to assess whether the outcome
+--   of the action was good. Instead they will simply assume that
+--   the action was perfect (increased happiness by 1).
+--   TODO: Do something more realistic.
+reflect
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Eq a, Pretty a)
+  => Wain ct pt p a m -> Wain ct pt p a m
+reflect = recordEvent Reflect . fst . reflect'
+
+-- | Internal method
+replayReflection
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Eq a, Pretty a)
+  => Wain ct pt p a m -> (Wain ct pt p a m, [String])
+replayReflection w = (w', msgs)
+  where msgs = case mrReport of
+                 Just rReport -> B.prettyReflectionReport rReport
+                 Nothing      -> ["No action to reflect on"]
+        (w', mrReport) = reflect' w
+
+-- | Internal method
+reflect'
+  :: (SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Eq a, Pretty a)
+  => Wain ct pt p a m -> (Wain ct pt p a m, Maybe (B.ReflectionReport a))
+reflect' w = (w', rReport)
+  where w' = w { brain=b', litter=litter' }
+        (rReport, b') = B.reflect (brain w) (condition w)
+        litter' = map reflect (litter w)
+
+-- type StimulusImprintReport p = [GSOM.ImprintDetail p]
+
+-- -- | Teaches the wain a set of patterns, and a label for each of them.
+-- imprintStimulus
+--   :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+--      SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
+--      SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+--      SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+--      Pretty p, Pretty a, Eq a, Ord a, Muser m, Pretty m, Action m ~ a)
+--   => [(GSOM.Label, p)] -> Wain ct pt p a m -> Wain ct pt p a m
+-- imprintStimulus lps
+--   = recordEvent (ImprintStimulus lps) . fst . imprintStimulus' lps
+
+-- -- | Internal method
+-- replayImprintStimulus
+--   :: (SOM.Adjuster ct, Pretty (SOM.PatternType ct),
+--      SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32)
+--   => [(GSOM.Label, SOM.PatternType ct)]
+--     -> Wain ct pt (SOM.PatternType ct) a m
+--     -> (Wain ct pt (SOM.PatternType ct) a m, [String])
+-- replayImprintStimulus lps w
+--   = (w', concatMap GSOM.prettyImprintDetail iReport)
+--   where (w', iReport) = imprintStimulus' lps w
+
+-- -- | Internal method
+-- imprintStimulus'
+--   :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+--      SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32)
+--   => [(GSOM.Label, p)] -> Wain ct pt p a m
+--       -> (Wain ct pt p a m, [GSOM.ImprintDetail p])
+-- imprintStimulus' lps w = (w { brain=b' }, iReport)
+--   where (iReport, b') = B.imprintStimulus (brain w) lps
+
+
+-- type ResponseImprintReport a = P.LearningReport a
+
+-- | Teaches the wain a desirable action to take in response to a
+--   stimulus.
+--   This can be used to help children learn by observing their parents.
+--   It can also be used to allow wains to learn from others.
+--   Returns a detailed report of the imprint process
+--   and the updated wain.
+imprintResponse
+  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
+     SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Eq a)
+  => [p] -> a -> Wain ct pt p a m -> Wain ct pt p a m
+imprintResponse ps a
+  = recordEvent (ImprintResponse ps a) . fst . imprintResponse' ps a
+
+-- | Internal method
+replayImprintResponse
+  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
+     SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Eq a, Pretty a)
+  => [p] -> a -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
+replayImprintResponse ps a w = (w', P.prettyLearningReport iReport)
+  where (w', iReport) = imprintResponse' ps a w
+
+-- | Internal method
+imprintResponse'
+  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
+     SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
+     Eq a)
+  => [p] -> a -> Wain ct pt p a m -> (Wain ct pt p a m, P.LearningReport a)
+imprintResponse' ps a w = (w { brain=b'' }, iReport)
+  where (iReport, b'') = B.imprintResponse b' ls a
+        (cReport, b') = B.classifyInputs (brain w) ps
+        ls = map GSOM.cBmu $ Cl.cDetails cReport
+
+--
+-- Miscelaneous utilities
+--
+
+-- TODO: Do I still need all these?
+
+data ReflectionReport p a
+  = ReflectionReport
+      {
+        rReflectionReport :: B.ReflectionReport a,
+        rImprintReports   :: [P.LearningReport a]
+      } deriving (Generic, Show, NFData)
+
+happinessError :: ReflectionReport p a -> Double
+happinessError = B.brrErr . rReflectionReport
+
 
 -- | Describes the classifier models.
 prettyClassifierModels :: Pretty p => Wain ct pt p a m -> [String]
@@ -573,61 +709,6 @@ prettyBrainSummary w
                      ++ intercalate "," (map g (R.labels r)) ++ " "
                      ++ pretty r
         g l' = show l' ++ " " ++ pretty (lookup l' ps)
-
-prettyClassificationReport
-  :: Pretty p
-  => Wain ct pt p a m -> DecisionReport p a -> [String]
-prettyClassificationReport w r
-  = (agentId w ++ " classifies the input(s)")
-    : Cl.prettyClassifierReport (wdrClassifierReport r)
-    ++ concatMap f wrs
-  where wrs = zip (litter w) (wdrImprintReports r)
-        f (child, iReport) = indent $
-                               prettyStimulusImprintReport child iReport
-
-prettyScenarioReport
-  :: Wain ct pt p a m -> DecisionReport p a -> [String]
-prettyScenarioReport w r
-  = (agentId w ++ " develops hypotheses about the current scenario")
-    : B.prettyScenarioReport (wdrScenarioReport r)
-
-prettyPredictionReport
-  :: Pretty a
-  => Wain ct pt p a m -> DecisionReport p a -> [String]
-prettyPredictionReport w r
-  = (agentId w ++ " considers possible responses")
-    : map pretty (wdrPredictorReport r)
-
-prettyActionReport
-  :: Pretty a
-  => Wain ct pt p a m -> DecisionReport p a -> [String]
-prettyActionReport w r
-  = (agentId w ++ " predicts outcomes of possible responses")
-    : B.prettyActionReport (wdrActionReport r)
-
-prettyReflectionReport
-  :: Pretty a
-  => Wain ct pt p a m -> ReflectionReport p a -> [String]
-prettyReflectionReport w r
-  = (agentId w ++ " reflects on the outcome")
-    : B.prettyReflectionReport (rReflectionReport r)
-    ++ concatMap f wrs
-  where wrs = zip (litter w) (rImprintReports r)
-        f (child, iReport) = indent $
-                               prettyResponseImprintReport child iReport
-
-prettyStimulusImprintReport
-  :: Pretty p
-  => Wain ct pt p a m -> StimulusImprintReport p -> [String]
-prettyStimulusImprintReport w r
-  = (agentId w ++ " imprints a stimulus")
-    : concatMap GSOM.prettyImprintDetail r
-
-prettyResponseImprintReport
-  :: Pretty a => Wain ct pt p a m -> ResponseImprintReport a -> [String]
-prettyResponseImprintReport w r
-  = (agentId w ++ " imprints a response")
-    : P.prettyLearningReport r
 
 indent :: [String] -> [String]
 indent = map ("...." ++ )

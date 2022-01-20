@@ -19,16 +19,15 @@ module ALife.Creatur.Wain.AgentCSV
   ) where
 
 import           ALife.Creatur.Wain
-import qualified ALife.Creatur.Wain.Statistics           as S
-import           Control.Monad                           (filterM, liftM)
-import qualified Data.ByteString                         as BS
+import qualified ALife.Creatur.Wain.Statistics   as S
+import           Control.Monad                   (filterM)
+import qualified Data.ByteString                 as BS
 import qualified Data.Datamining.Clustering.SGM4 as SOM
-import qualified Data.Serialize                          as DS
-import           System.Directory                        (listDirectory)
-import           System.FilePath.Posix                   (combine)
-import           System.Posix                            (isDirectory,
-                                                          isRegularFile)
-import           System.Posix.Files                      (getFileStatus)
+import qualified Data.Serialize                  as DS
+import           System.Directory                (listDirectory)
+import           System.FilePath.Posix           (combine)
+import           System.Posix                    (isDirectory, isRegularFile)
+import           System.Posix.Files              (getFileStatus)
 
 fetchObjects :: DS.Serialize b => FilePath -> IO [b]
 fetchObjects f = do
@@ -42,7 +41,7 @@ fetchObjects f = do
 fetchAllObjects :: DS.Serialize b => FilePath -> IO [b]
 fetchAllObjects f =
   (listDirectory f
-    >>= filterM (liftM isRegularFile . getFileStatus) . map (combine f))
+    >>= filterM (fmap isRegularFile . getFileStatus) . map (combine f))
   >>= mapM fetchObject
 
 fetchObject :: DS.Serialize b => FilePath -> IO b

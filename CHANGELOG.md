@@ -1,5 +1,12 @@
 # Changelog for creatur-wains
 
+11.0.0 Added re-playable events.
+       Added cloning.
+       Revamped action & imprint API.
+       A child now learns by observing how the carer's actions affect
+       it (the child).
+       Wains can no longer imprint labels for patterns.
+
 10.0.0 Migrate to som 11.0.
        Remove lenses.
 

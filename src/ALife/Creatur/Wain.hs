@@ -30,35 +30,29 @@ module ALife.Creatur.Wain
     prettyPredictorModels,
     prettyBrainSummary,
     -- * Reacting to stimuli
-    DecisionReport,
     novelties,
     adjNovelties,
     chooseAction,
-    prettyClassificationReport,
-    prettyScenarioReport,
-    prettyPredictionReport,
-    prettyActionReport,
     -- * Learning through experience
-    ReflectionReport,
-    prettyReflectionReport,
     reflect,
     happinessError,
     -- * Learning through instruction
-    StimulusImprintReport,
-    prettyStimulusImprintReport,
-    imprintStimulus,
-    ResponseImprintReport,
-    prettyResponseImprintReport,
+    -- imprintStimulus,
     imprintResponse,
     -- * Reproduction
     mate,
     weanMatureChildren,
     pruneDeadChildren,
+    -- * Replaying events in a wain's life
+    clone,
+    Event,
+    replayEvent,
     -- * Misc.
     Label,
     packageVersion
   ) where
 
-import           ALife.Creatur.Wain.Brain      (Condition)
-import           ALife.Creatur.Wain.GeneticSOM (Label)
+import           ALife.Creatur.Genetics.Reproduction.Sexual (clone)
+import           ALife.Creatur.Wain.Brain                   (Condition)
+import           ALife.Creatur.Wain.GeneticSOM              (Label)
 import           ALife.Creatur.WainInternal

@@ -65,7 +65,7 @@ instance Arbitrary TestPattern where
 --   stats (TestPattern x) = [iStat "" x]
 
 
-data TestPatternAdjuster = TestPatternAdjuster LearningParams
+newtype TestPatternAdjuster = TestPatternAdjuster LearningParams
   deriving (Eq, Show, Read, Generic, Serialize, G.Genetic, Diploid, NFData)
 
 instance Adjuster TestPatternAdjuster where

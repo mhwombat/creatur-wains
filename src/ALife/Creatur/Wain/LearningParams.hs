@@ -10,9 +10,6 @@
 -- Learning parameters for self-organising maps.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveAnyClass  #-}
-{-# LANGUAGE DeriveGeneric   #-}
-{-# LANGUAGE TemplateHaskell #-}
 module ALife.Creatur.Wain.LearningParams
   (
     LPI.LearningParams,

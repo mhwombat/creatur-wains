@@ -33,6 +33,7 @@ module ALife.Creatur.Wain.Brain
     -- * Miscellaneous
     happiness,
     decisionQuality,
+    prettyDecisionReport,
     prettyScenarioReport,
     prettyActionReport,
     prettyReflectionReport

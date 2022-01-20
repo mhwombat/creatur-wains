@@ -24,12 +24,10 @@ import           ALife.Creatur.Gene.Numeric.Weights      (makeWeights)
 import           ALife.Creatur.Wain.BrainInternal        (classifier,
                                                           decisionQuality,
                                                           makeBrain, predictor)
-import           ALife.Creatur.Wain.Classifier           (bmus)
 import           ALife.Creatur.Wain.GeneticSOM           (schemaQuality)
 import           ALife.Creatur.Wain.LearningParams       (mkLearningParams)
 import           ALife.Creatur.Wain.PatternQC            (TestPattern (..),
                                                           TestPatternAdjuster (..))
-import           ALife.Creatur.Wain.Response             (action, labels)
 import           ALife.Creatur.Wain.ResponseQC           (TestAction (..),
                                                           TestResponseAdjuster (..))
 import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser,
@@ -79,7 +77,7 @@ testWain = w'
         Right ep = mkLearningParams 0.1 0.0001 1000
         w = buildWainAndGenerateGenome wName wAppearance wBrain
               wDevotion wAgeOfMaturity wPassionDelta
-        (w', _) = adjustEnergy 0.5 w
+        w' = adjustEnergy 0.5 "initial" w
 
 tryOne :: TestWain -> (Int, TestPattern) -> IO TestWain
 tryOne w (n, p) = do
@@ -89,31 +87,29 @@ tryOne w (n, p) = do
   mapM_ putStrLn $ prettyClassifierModels w
   putStrLn "Initial decision models"
   mapM_ putStrLn $ prettyBrainSummary w
-  let (report, r, wainAfterDecision) = chooseAction [p] w
-  mapM_ putStrLn $ prettyClassificationReport wainAfterDecision report
-  mapM_ putStrLn $ prettyScenarioReport wainAfterDecision report
-  mapM_ putStrLn $ prettyPredictionReport wainAfterDecision report
-  mapM_ putStrLn $ prettyActionReport wainAfterDecision report
+  let (wainAfterDecision, a) = chooseAction [p] w
+  -- mapM_ putStrLn $ prettyClassificationReport wainAfterDecision report
+  -- mapM_ putStrLn $ prettyScenarioReport wainAfterDecision report
+  -- mapM_ putStrLn $ prettyPredictionReport wainAfterDecision report
+  -- mapM_ putStrLn $ prettyActionReport wainAfterDecision report
   putStrLn $ "DEBUG classifier SQ=" ++ show (schemaQuality . classifier . brain $ wainAfterDecision)
-  let a = action r
   let deltaE = energyFor p a
-  let (wainRewarded, _) = adjustEnergy deltaE wainAfterDecision
+  let wainRewarded = adjustEnergy deltaE "reward" wainAfterDecision
   putStrLn $ "Δe=" ++ show deltaE
   putStrLn $ "condition before=" ++ show (condition w) ++ " after=" ++ show (condition wainRewarded)
   putStrLn $ "happiness before=" ++ show (happiness w) ++ " after=" ++ show (happiness wainRewarded)
-  let bmu = head . bmus . wdrClassifierReport $ report
-  putStr $ "Choosing to " ++ show a ++ " in response to " ++ show p ++ " (BMU " ++ show bmu
+  -- let bmu = head . bmus . wdrClassifierReport $ report
+  putStr $ "Choosing to " ++ show a ++ " in response to " ++ show p
   if deltaE < 0
-    then putStrLn ") was wrong"
-    else putStrLn ") was correct"
-  let (rReflect, wainAfterReflection) = reflect r w wainRewarded
-  mapM_ putStrLn $ prettyReflectionReport wainAfterReflection rReflect
-  let ls = labels r
-  let (iReport, wAfterImprint) = imprintResponse ls (correctAnswer p) wainAfterReflection
-  mapM_ putStrLn $ prettyResponseImprintReport wAfterImprint iReport
+    then putStrLn " was wrong"
+    else putStrLn " was correct"
+  let wainAfterReflection = reflect wainRewarded
+  -- mapM_ putStrLn $ prettyReflectionReport wainAfterReflection rReflect
+  let wAfterImprint = imprintResponse [p] (correctAnswer p) wainAfterReflection
+  -- mapM_ putStrLn $ prettyResponseImprintReport wAfterImprint iReport
   -- keep the wain's energy constant
   let restorationEnergy = UI.wide (energy w) - UI.wide (energy wAfterImprint)
-  let (wainFinal, _) = adjustEnergy restorationEnergy wAfterImprint
+  let wainFinal = adjustEnergy restorationEnergy "restoration" wAfterImprint
   putStrLn "Final classifier models"
   mapM_ putStrLn $ prettyClassifierModels wainFinal
   putStrLn "Final decision models"
