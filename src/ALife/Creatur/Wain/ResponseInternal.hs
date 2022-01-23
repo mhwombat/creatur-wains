@@ -32,7 +32,8 @@ import           Data.List                               (intercalate)
 import           Data.Serialize                          (Serialize)
 import           GHC.Generics                            (Generic)
 import           Test.QuickCheck                         (Gen, arbitrary,
-                                                          choose, vectorOf)
+                                                          choose, getSize,
+                                                          vectorOf)
 import           Text.Printf                             (printf)
 
 -- | A model of a scenario that a wain might encounter
@@ -94,18 +95,17 @@ instance (Statistical a)
 
 -- This method is used by other test classes to ensure that all of the
 -- scenarios have the same number of objects and condition parameters.
-sizedArbResponse :: Gen a -> Int -> Gen (Response a)
-sizedArbResponse genAction n = do
-  nObjects <- choose (0, n)
-  let nConditions = n - nObjects
-  arbResponse nObjects nConditions genAction
-
--- This method is used by other test classes to ensure that all of the
--- scenarios have the same number of objects and condition parameters.
-arbResponse :: Int -> Int -> Gen a -> Gen (Response a)
-arbResponse nObjects nConditions genAction = do
+sizedArbResponse :: Int -> Int -> Gen a -> Gen (Response a)
+sizedArbResponse nObjects nConditions genAction = do
   s <- vectorOf nObjects arbitrary
   a <- genAction
   o <- vectorOf nConditions arbitrary
   return $ Response s a o
+
+arbResponse :: Gen a -> Gen (Response a)
+arbResponse genAction = do
+  n <- getSize
+  nObjects <- choose (0, n)
+  let nConditions = n - nObjects
+  sizedArbResponse nObjects nConditions genAction
 

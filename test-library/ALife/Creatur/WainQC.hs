@@ -10,45 +10,43 @@
 -- QuickCheck tests.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module ALife.Creatur.WainQC
   (
     test
   ) where
 
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import qualified ALife.Creatur.Gene.Test                 as GT
-import           ALife.Creatur.Genetics.BRGCWord8        (runDiploidReader,
-                                                          write)
-import qualified ALife.Creatur.Wain.Brain                as B
-import qualified ALife.Creatur.Wain.BrainQC              as BQC
-import qualified ALife.Creatur.Wain.Classifier           as Cl
-import           ALife.Creatur.Wain.GeneticSOM           (Label)
-import           ALife.Creatur.Wain.PatternQC            (TestPattern,
-                                                          TestPatternAdjuster)
-import           ALife.Creatur.Wain.ResponseInternal     (labels)
-import           ALife.Creatur.Wain.ResponseQC           (TestAction,
-                                                          TestResponse,
-                                                          TestResponseAdjuster)
-import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser)
+import qualified ALife.Creatur.Gene.Numeric.UnitInterval    as UI
+import qualified ALife.Creatur.Gene.Test                    as GT
+import qualified ALife.Creatur.Genetics.BRGCWord8           as W8
+import qualified ALife.Creatur.Genetics.Reproduction.Sexual as RS
+import qualified ALife.Creatur.Wain.BrainQC                 as BQC
+import           ALife.Creatur.Wain.PatternQC               (TestPattern,
+                                                             TestPatternAdjuster)
+import           ALife.Creatur.Wain.ResponseQC              (TestAction,
+                                                             TestResponseAdjuster)
+import           ALife.Creatur.Wain.SimpleMuser             (SimpleMuser)
 import           ALife.Creatur.WainInternal
-import           Control.DeepSeq                         (deepseq)
-import qualified Data.Datamining.Clustering.SGM4         as SOM
-import           Test.Framework                          (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck.Counterexamples         (Arbitrary, Gen,
-                                                          Property, arbitrary,
-                                                          choose, sized,
-                                                          vectorOf)
+import           Control.DeepSeq                            (deepseq)
+import           Control.Monad.Random                       (evalRand, mkStdGen)
+import           Data.List                                  (foldl')
+import qualified Numeric.ApproxEq                           as N
+import           Test.Framework                             (Test, testGroup)
+import           Test.Framework.Providers.QuickCheck2       (testProperty)
+import           Test.QuickCheck.Counterexamples            (Arbitrary, Gen,
+                                                             arbitrary, getSize,
+                                                             oneof, vectorOf)
 
 type TestWain = Wain TestPatternAdjuster TestResponseAdjuster
                    TestPattern TestAction (SimpleMuser TestAction)
 
-equiv
-  :: TestWain
-    -> TestWain
-      -> Bool
+newtype InexperiencedTestWain = ITW TestWain deriving (Eq, Read, Show)
+
+newtype ExperiencedTestWain = ETW TestWain deriving (Eq, Read, Show)
+
+equiv :: TestWain -> TestWain -> Bool
 equiv a1 a2 =
   appearance a1 == appearance a2
   && brain a1 `BQC.equivBrain` brain a2
@@ -68,194 +66,170 @@ strawMan = Wain <$> pure ""       -- name
                 <*> arbitrary     -- passion
                 <*> arbitrary     -- age
                 <*> pure []       -- litter
-                <*> arbitrary     -- children borne during lifetime
-                <*> arbitrary     -- children weanded during lifetime
                 <*> pure ([],[])  -- genome
                 <*> pure []       -- biography
 
 -- | Can't just generate an arbitrary genome and build an agent from
 --   it, because random genomes tend to be invalid.
-arbWain :: Gen TestWain
-arbWain = do
-  n <- arbitrary
-  a1 <- strawMan
-  a2 <- strawMan
-  let g1 = write a1
-  let g2 = write a2
-  let r = runDiploidReader (buildWainFromGenome False n) (g1, g2)
-  case r of
-    (Left s)   -> error . show $ s
-    (Right r') -> return r'
+instance Arbitrary InexperiencedTestWain where
+  arbitrary = do
+    n <- arbitrary
+    a1 <- strawMan
+    a2 <- strawMan
+    let g1 = W8.write a1
+    let g2 = W8.write a2
+    let r = W8.runDiploidReader (buildWainFromGenome False n) (g1, g2)
+    case r of
+      (Left s)   -> error . show $ s
+      (Right r') -> return $ ITW r'
 
-sizedArbWain :: Int -> Gen TestWain
-sizedArbWain n = do
-  w <- arbWain
-  if n > 1
-    then do
-      k <- choose (1, min 3 n)
-      cs <- vectorOf k arbWain
-      return $ w { litter=cs }
-    else return w
+instance Arbitrary ExperiencedTestWain where
+  arbitrary = do
+    ITW w <- arbitrary
+    n <- fmap (min 10) getSize
+    experiences <- vectorOf n arbitrary
+    let w' = foldl' runExperience w experiences
+    return $ ETW w'
 
-instance Arbitrary TestWain where
-  arbitrary = sized sizedArbWain
+-- Avoid long input vectors, they slow down testing
+arbitraryStimulus :: Gen [TestPattern]
+arbitraryStimulus = do
+  n <- fmap (\k -> min 3 (k + 1)) getSize
+  vectorOf n arbitrary
+
+data Experience = IncAgeExperience
+                | EnergyAdjustmentExperience Double String
+                | AutoAdjustPassionExperience
+                | MatingExperience InexperiencedTestWain String
+                | ChoiceExperience [TestPattern]
+                | ReflectionExperience
+                | ImprintResponseExperience [TestPattern] TestAction
+                | WeaningExperience
+                | PruningExperience
+                | DeathExperience String
+  deriving (Eq, Read, Show)
+
+instance Arbitrary Experience where
+  arbitrary = oneof [ return IncAgeExperience,
+                      EnergyAdjustmentExperience <$> arbitrary <*> arbitrary,
+                      return AutoAdjustPassionExperience,
+                      MatingExperience <$> arbitrary <*> arbitrary,
+                      ChoiceExperience <$> arbitraryStimulus,
+                      return ReflectionExperience,
+                      ImprintResponseExperience <$> arbitraryStimulus <*> arbitrary,
+                      return WeaningExperience,
+                      return PruningExperience,
+                      DeathExperience <$> arbitrary ]
+
+runExperience :: TestWain -> Experience -> TestWain
+runExperience w IncAgeExperience = fst $ incAge w
+runExperience w (EnergyAdjustmentExperience delta reason) = fst $ adjustEnergy delta reason w
+runExperience w AutoAdjustPassionExperience = fst $ autoAdjustPassion w
+runExperience w (MatingExperience (ITW w2) childName) = testMating w w2 childName
+runExperience w (ChoiceExperience ps) = testChoice ps w
+runExperience w ReflectionExperience = fst $ reflect w
+runExperience w (ImprintResponseExperience ps a) = fst $ imprintResponse ps a w
+runExperience w WeaningExperience = head . fst $ weanMatureChildren w
+runExperience w PruningExperience = head . fst $ pruneDeadChildren w
+runExperience w (DeathExperience reason) = fst $ recordDeath reason w
+
+testMating :: TestWain -> TestWain -> String -> TestWain
+testMating w w2 childName = w'
+  where (w':_, _) = evalRand (mate w w2 childName) g
+        g = mkStdGen 12345
+
+testChoice :: [TestPattern] -> TestWain -> TestWain
+testChoice ps w = w'
+  where (w', _, _) =chooseAction ps w
+
+-- This just tests the generator
+prop_runExperience_never_causes_error
+  :: InexperiencedTestWain -> Experience -> Bool
+prop_runExperience_never_causes_error (ITW w) e
+  = deepseq (runExperience w e) True
+
+prop_serialize_round_trippable :: ExperiencedTestWain -> Bool
+prop_serialize_round_trippable (ETW w)
+  = GT.prop_serialize_round_trippable w
+
+prop_genetic_round_trippable :: InexperiencedTestWain -> Bool
+prop_genetic_round_trippable (ITW w)
+  = GT.prop_genetic_round_trippable (equiv) w
+
+prop_diploid_identity :: InexperiencedTestWain -> Bool
+prop_diploid_identity (ITW w)
+  = GT.prop_diploid_identity (equiv) w
 
 prop_adjustEnergy_balances_energy
-  :: Double -> TestWain -> Bool
-prop_adjustEnergy_balances_energy e w
-  = energy w' == energy w + UI.narrow used
-    && e == used + leftover
-  where (w', used,leftover) = adjustEnergy' e "test" w
+  :: Double -> UI.Double -> Bool
+prop_adjustEnergy_balances_energy delta e
+  = N.within 10 (UI.wide e') (UI.wide e + used)
+  && N.within 10 delta (used + leftover)
+  where (e', used, leftover) = adjustEnergy' delta e
 
 data ChoosingTestData
-  = ChoosingTestData TestWain [TestPattern]
+  = ChoosingTestData ExperiencedTestWain [TestPattern]
   deriving (Eq, Show)
 
-sizedArbChoosingTestData :: Int -> Gen ChoosingTestData
-sizedArbChoosingTestData n = do
-  (BQC.ChoosingTestData b ps _) <- BQC.sizedArbChoosingTestData n
-  w <- arbitrary
-  let w' = w {brain = b}
-  return $ ChoosingTestData w' ps
-
 instance Arbitrary ChoosingTestData where
-  arbitrary = sized sizedArbChoosingTestData
+  arbitrary = do
+    (BQC.ChoosingTestData b ps _) <- arbitrary
+    (ETW w) <- arbitrary
+    let w' = w {brain = b}
+    return $ ChoosingTestData (ETW w') ps
 
 prop_chooseAction_never_causes_error
   :: ChoosingTestData -> Bool
-prop_chooseAction_never_causes_error (ChoosingTestData w ps)
+prop_chooseAction_never_causes_error (ChoosingTestData (ETW w) ps)
   = deepseq x True
   where x = chooseAction ps w
 
-data ReflectionTestData
-  = ReflectionTestData [TestPattern] TestResponse TestWain TestWain
-  deriving (Eq, Show)
-
-sizedArbReflectionTestData :: Int -> Gen ReflectionTestData
-sizedArbReflectionTestData n = do
-  (BQC.ReflectionTestData b r cBefore cAfter)
-    <- BQC.sizedArbReflectionTestData n
-  let nObjects = length $ labels r
-  ps <- vectorOf nObjects arbitrary
-  w <- arbitrary :: Gen TestWain
-  let wBefore = w { brain = b, energy = head cBefore,
-                    passion = 1 - cBefore !! 1 }
-  let wAfter = wBefore { energy = head cAfter,
-                         passion = 1 - cAfter !! 1 }
-  return $ ReflectionTestData ps r wBefore wAfter
-
-instance Arbitrary ReflectionTestData where
-  arbitrary = sized sizedArbReflectionTestData
-
-prop_reflect_never_causes_error
-  :: ReflectionTestData -> Bool
-prop_reflect_never_causes_error (ReflectionTestData _ _ _ wAfter)
-  = deepseq x True
+prop_reflect_never_causes_error :: ExperiencedTestWain -> Bool
+prop_reflect_never_causes_error (ETW wAfter) = deepseq x True
   where x = reflect wAfter
 
-data ImprintTestData
-  = ImprintTestData TestWain [TestPattern] [Label] TestAction B.Condition
-    deriving (Eq, Show)
-
-sizedArbImprintTestData :: Int -> Gen ImprintTestData
-sizedArbImprintTestData n = do
-  let nConditions = 3
-  (BQC.ImprintTestData b ps a _ ls) <- BQC.sizedArbImprintTestData n
-  w <- arbitrary
-  let w' = w {brain = b}
-  c <- vectorOf nConditions arbitrary
-  return $ ImprintTestData w' ps ls a c
-
-instance Arbitrary ImprintTestData where
-  arbitrary = sized sizedArbImprintTestData
-
 prop_imprintResponse_never_causes_error
-  :: ImprintTestData -> Bool
-prop_imprintResponse_never_causes_error (ImprintTestData w ps _ a _)
-  = deepseq x True
+  :: ExperiencedTestWain -> [TestPattern] -> TestAction -> Bool
+prop_imprintResponse_never_causes_error (ETW w) ps a = deepseq x True
   where x = imprintResponse ps a w
 
 prop_imprintResponse_twice_never_causes_error
-  :: ImprintTestData -> Bool
-prop_imprintResponse_twice_never_causes_error (ImprintTestData w ps _ a _)
-  = deepseq w'' True
-  where w' = imprintResponse ps a w
-        w'' = imprintResponse ps a w'
+  :: ExperiencedTestWain -> [TestPattern] -> TestAction -> Bool
+prop_imprintResponse_twice_never_causes_error (ETW w) ps a = deepseq w' True
+  where w' = fst . imprintResponse ps a $ dummy
+        dummy = fst . imprintResponse ps a $ w
 
--- prop_prettyClassifierModels_never_causes_error
---   :: ChoosingTestData -> Bool
--- prop_prettyClassifierModels_never_causes_error (ChoosingTestData w ps)
---   = deepseq x True
---   where (_, _, w') = chooseAction ps w
---         x = prettyClassifierModels w'
+prop_cloning_produces_equivalent_wain :: ExperiencedTestWain -> Bool
+prop_cloning_produces_equivalent_wain (ETW w) = wFresh == wClone
+  where wClone = RS.clone w (name w)
+        wFresh = w { energy = 0,
+                     passion = 1,
+                     brain = brain wClone,
+                     age = 0,
+                     litter = [],
+                     biography = [] }
 
--- prop_prettyPredictorModels_never_causes_error
---   :: ChoosingTestData -> Bool
--- prop_prettyPredictorModels_never_causes_error (ChoosingTestData w ps)
---   = deepseq x True
---   where (_, _, w') = chooseAction ps w
---         x = prettyPredictorModels w'
-
--- prop_prettyClassificationReport_never_causes_error
---   :: ChoosingTestData -> Bool
--- prop_prettyClassificationReport_never_causes_error
---   (ChoosingTestData w ps)
---   = deepseq x' True
---   where (x, _, w') = chooseAction ps w
---         x' = prettyClassificationReport w' x
-
--- prop_prettyScenarioReport_never_causes_error
---   :: ChoosingTestData -> Bool
--- prop_prettyScenarioReport_never_causes_error (ChoosingTestData w ps)
---   = deepseq x' True
---   where (x, _, w') = chooseAction ps w
---         x' = prettyScenarioReport w' x
-
--- prop_prettyPredictionReport_never_causes_error
---   :: ChoosingTestData -> Bool
--- prop_prettyPredictionReport_never_causes_error (ChoosingTestData w ps)
---   = deepseq x' True
---   where (x, _, w') = chooseAction ps w
---         x' = prettyPredictionReport w' x
-
--- prop_prettyActionReport_never_causes_error
---   :: ChoosingTestData -> Bool
--- prop_prettyActionReport_never_causes_error (ChoosingTestData w ps)
---   = deepseq x' True
---   where (x, _, w') = chooseAction ps w
---         x' = prettyActionReport w' x
-
--- prop_prettyReflectionReport_never_causes_error
---   :: ReflectionTestData -> Bool
--- prop_prettyReflectionReport_never_causes_error
---   (ReflectionTestData ps r wBefore wAfter)
---   = deepseq x' True
---   where (x, w') = reflect ps r wBefore wAfter
---         x' = prettyReflectionReport w' x
-
--- prop_prettyImprintReport_never_causes_error
---   :: ImprintTestData -> Bool
--- prop_prettyImprintReport_never_causes_error
---   (ImprintTestData w ps a _)
---   = deepseq x' True
---   where (x, w') = imprint ps a w
---         x' = prettyImprintReport w' x
+prop_replay_produces_equivalent_wain :: ExperiencedTestWain -> Bool
+prop_replay_produces_equivalent_wain (ETW w) = w == wClone'
+  where wClone = fst $ replayLife w
+        wClone' = wClone { name=name w }
 
 test :: Test
 test = testGroup "ALife.Creatur.WainQC"
   [
+    testProperty "prop_runExperience_never_causes_error"
+      prop_runExperience_never_causes_error,
     testProperty "prop_serialize_round_trippable - Wain"
-      (GT.prop_serialize_round_trippable :: TestWain -> Bool),
+      prop_serialize_round_trippable,
     testProperty "prop_genetic_round_trippable - Wain"
-      (GT.prop_genetic_round_trippable equiv :: TestWain -> Bool),
+      prop_genetic_round_trippable,
     -- testProperty "prop_genetic_round_trippable2 - Wain"
     --   (GT.prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestWain -> Bool),
     testProperty "prop_diploid_identity - Wain"
-      (GT.prop_diploid_identity equiv :: TestWain -> Bool),
+      prop_diploid_identity,
     -- testProperty "prop_show_read_round_trippable - Wain"
     --   (GT.prop_show_read_round_trippable (==) :: TestWain -> Bool),
-
     testProperty "prop_adjustEnergy_balances_energy"
       prop_adjustEnergy_balances_energy,
     testProperty "prop_chooseAction_never_causes_error"
@@ -265,21 +239,9 @@ test = testGroup "ALife.Creatur.WainQC"
     testProperty "prop_imprintResponse_never_causes_error"
       prop_imprintResponse_never_causes_error,
     testProperty "prop_imprintResponse_twice_never_causes_error"
-      prop_imprintResponse_twice_never_causes_error
-    -- testProperty "prop_prettyClassifierModels_never_causes_error"
-    --   prop_prettyClassifierModels_never_causes_error,
-    -- testProperty "prop_prettyPredictorModels_never_causes_error"
-    --   prop_prettyPredictorModels_never_causes_error,
-    -- testProperty "prop_prettyClassificationReport_never_causes_error"
-    --   prop_prettyClassificationReport_never_causes_error,
-    -- testProperty "prop_prettyScenarioReport_never_causes_error"
-    --   prop_prettyScenarioReport_never_causes_error,
-    -- testProperty "prop_prettyPredictionReport_never_causes_error"
-    --   prop_prettyPredictionReport_never_causes_error,
-    -- testProperty "prop_prettyActionReport_never_causes_error"
-    --   prop_prettyActionReport_never_causes_error,
-    -- testProperty "prop_prettyReflectionReport_never_causes_error"
-    --   prop_prettyReflectionReport_never_causes_error,
-    -- testProperty "prop_prettyImprintReport_never_causes_error"
-    --   prop_prettyImprintReport_never_causes_error
+      prop_imprintResponse_twice_never_causes_error,
+    testProperty "prop_cloning_produces_equivalent_wain"
+      prop_cloning_produces_equivalent_wain,
+    testProperty "prop_replay_produces_equivalent_wain"
+      prop_replay_produces_equivalent_wain
   ]

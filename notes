@@ -1,18 +1,9 @@
-events
-------
-IncAge
-EnergyAdjustment Double String
-ChooseAction [p]
-reflect on outcome
-imprint action
-auto adjust passion
-cool passion
-flirt
-mate
-produce child
-retire
-die
-wean child
+
+
+
+import qualified Test.Framework                      as TF
+TF.defaultMain [test]
+Just (w :&: ()) <- quickCheck prop_replay_produces_equivalent_wain
 
 
 

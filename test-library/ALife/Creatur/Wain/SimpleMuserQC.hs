@@ -26,14 +26,14 @@ import           Test.Framework.Providers.QuickCheck2   (testProperty)
 import           Test.QuickCheck
 
 sizedArbMuser :: Int -> Gen (SimpleMuser TestAction)
-sizedArbMuser n = do
-  o <- vectorOf 3 arbitrary
-  d <- choose (1, min 3 (fromIntegral n + 1))
+sizedArbMuser nConditions = do
+  o <- vectorOf nConditions arbitrary
+  d <- fmap (\n -> min 3 (fromIntegral n + 1)) getSize
   let (Right m) = makeMuser o d
   return m
 
 instance Arbitrary (SimpleMuser TestAction) where
-  arbitrary = sized sizedArbMuser
+  arbitrary = sizedArbMuser 3
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.SimpleMuserQC"

@@ -56,11 +56,11 @@ type TestWain = Wain TestPatternAdjuster TestResponseAdjuster
                      TestPattern TestAction (SimpleMuser TestAction)
 
 imprintAll :: TestWain -> TestWain
-imprintAll w = imprintResponse [TestPattern 25] Walk
-                 . imprintResponse [TestPattern 75] Run
-                 . imprintResponse [TestPattern 125] Jump
-                 . imprintResponse [TestPattern 175] Skip
-                 $ imprintResponse [TestPattern 225] Crawl w
+imprintAll w = fst . imprintResponse [TestPattern 25] Walk
+                 . fst . imprintResponse [TestPattern 75] Run
+                 . fst . imprintResponse [TestPattern 125] Jump
+                 . fst . imprintResponse [TestPattern 175] Skip
+                 . fst $ imprintResponse [TestPattern 225] Crawl w
 
 
 testWain :: TestWain
@@ -87,7 +87,7 @@ testWain = w'
         Right ep = mkLearningParams 0.1 0.0001 1000
         w = buildWainAndGenerateGenome wName wAppearance wBrain
               wDevotion wAgeOfMaturity wPassionDelta
-        w' = adjustEnergy 0.5 "initial" w
+        w' = fst $ adjustEnergy 0.5 "initial" w
 
 tryOne :: TestWain -> (Int, TestPattern) -> IO TestWain
 tryOne w (n, p) = do
@@ -97,14 +97,14 @@ tryOne w (n, p) = do
   mapM_ putStrLn $ prettyClassifierModels w
   putStrLn "Initial decision models"
   mapM_ putStrLn $ prettyBrainSummary w
-  let (wainAfterDecision, a) = chooseAction [p] w
+  let (wainAfterDecision, a, _) = chooseAction [p] w
   -- mapM_ putStrLn $ prettyClassificationReport wainAfterDecision report
   -- mapM_ putStrLn $ prettyScenarioReport wainAfterDecision report
   -- mapM_ putStrLn $ prettyPredictionReport wainAfterDecision report
   -- mapM_ putStrLn $ prettyActionReport wainAfterDecision report
   putStrLn $ "DEBUG classifier SQ=" ++ show (schemaQuality . classifier . brain $ wainAfterDecision)
   let deltaE = energyFor p a
-  let wainRewarded = adjustEnergy deltaE "reward" wainAfterDecision
+  let wainRewarded = fst $ adjustEnergy deltaE "reward" wainAfterDecision
   putStrLn $ "Δe=" ++ show deltaE
   putStrLn $ "condition before=" ++ show (condition w) ++ " after=" ++ show (condition wainRewarded)
   putStrLn $ "happiness before=" ++ show (happiness w) ++ " after=" ++ show (happiness wainRewarded)
@@ -113,11 +113,11 @@ tryOne w (n, p) = do
   if deltaE < 0
     then putStrLn " was wrong"
     else putStrLn " was correct"
-  let wainAfterReflection = reflect wainRewarded
+  let wainAfterReflection = fst $ reflect wainRewarded
   -- mapM_ putStrLn $ prettyReflectionReport wainAfterReflection rReflect
   -- keep the wain's energy constant
   let restorationEnergy = UI.wide (energy w) - UI.wide (energy wainAfterReflection)
-  let wainFinal = adjustEnergy restorationEnergy "restoration" wainAfterReflection
+  let wainFinal = fst $ adjustEnergy restorationEnergy "restoration" wainAfterReflection
   putStrLn "Final classifier models"
   mapM_ putStrLn $ prettyClassifierModels wainFinal
   putStrLn "Final decision models"

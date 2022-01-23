@@ -47,6 +47,7 @@ module ALife.Creatur.Wain
     clone,
     Event,
     replayEvent,
+    replayLife,
     -- * Misc.
     Label,
     packageVersion
@@ -56,3 +57,9 @@ import           ALife.Creatur.Genetics.Reproduction.Sexual (clone)
 import           ALife.Creatur.Wain.Brain                   (Condition)
 import           ALife.Creatur.Wain.GeneticSOM              (Label)
 import           ALife.Creatur.WainInternal
+import           Data.Version                               (showVersion)
+import           Paths_creatur_wains                        (version)
+
+-- | Returns the current version number of this library.
+packageVersion :: String
+packageVersion = "creatur-wains-" ++ showVersion version

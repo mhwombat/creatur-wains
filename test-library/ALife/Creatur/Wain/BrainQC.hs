@@ -18,11 +18,8 @@ module ALife.Creatur.Wain.BrainQC
     test,
     equivBrain,
     ChoosingTestData(..),
-    sizedArbChoosingTestData,
     ReflectionTestData(..),
-    sizedArbReflectionTestData,
     ImprintTestData(..),
-    sizedArbImprintTestData
   ) where
 
 import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
@@ -34,7 +31,7 @@ import qualified ALife.Creatur.Gene.Test                 as GT
 import           ALife.Creatur.Wain.BrainInternal
 import qualified ALife.Creatur.Wain.Classifier           as Cl
 import           ALife.Creatur.Wain.GeneticSOM           (Label)
-import           ALife.Creatur.Wain.GeneticSOMQC         (sizedArbGeneticSOM)
+import           ALife.Creatur.Wain.GeneticSOMQC         (arbGeneticSOM)
 import           ALife.Creatur.Wain.PatternQC            (TestPattern,
                                                           TestPatternAdjuster)
 import qualified ALife.Creatur.Wain.Predictor            as P
@@ -43,8 +40,8 @@ import           ALife.Creatur.Wain.Response             (Response (..))
 import           ALife.Creatur.Wain.ResponseQC           (TestAction,
                                                           TestResponse,
                                                           TestResponseAdjuster)
-import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser,
-                                                          makeMuser)
+import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser)
+import           ALife.Creatur.Wain.SimpleMuserQC        (sizedArbMuser)
 import           Control.DeepSeq                         (deepseq)
 import qualified Data.Datamining.Clustering.SGM4         as SOM
 import qualified Numeric.ApproxEq                        as EQ
@@ -70,20 +67,11 @@ equivBrain x y = x == y' && equivWeights wx wy
 type TestBrain = Brain TestPatternAdjuster TestResponseAdjuster
                        TestPattern TestAction (SimpleMuser TestAction)
 
-sizedArbTestBrain :: Int -> Gen TestBrain
-sizedArbTestBrain n = do
-  ~[cSize, nObjects] <- GT.divvy n 2
-  let nConditions = 3
-  let pSize = n + 1
-  arbTestBrain cSize nObjects nConditions pSize
-
-arbTestBrain :: Int -> Int -> Int -> Int -> Gen TestBrain
-arbTestBrain cSize nObjects nConditions pSize = do
-  c <- sizedArbGeneticSOM arbitrary cSize
-  os <- vectorOf nConditions arbitrary
-  d <- max 1 <$> arbitrary
-  let (Right m) = makeMuser os d
-  p <- PQC.arbTestPredictor nObjects nConditions pSize
+arbTestBrain :: Int -> Int -> Gen TestBrain
+arbTestBrain nObjects nConditions = do
+  c <- arbGeneticSOM arbitrary
+  m <- sizedArbMuser nConditions
+  p <- PQC.sizedArbTestPredictor nObjects nConditions
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
   s <- choose (1, 255)
@@ -94,13 +82,11 @@ arbTestBrain cSize nObjects nConditions pSize = do
 
 -- Like arbTestBrain, except that imprint outcomes and reinforcement
 -- deltas are positive
-arbSensibleTestBrain :: Int -> Int -> Int -> Int -> Gen TestBrain
-arbSensibleTestBrain cSize nObjects nConditions pSize = do
-  c <- sizedArbGeneticSOM arbitrary cSize
-  os <- vectorOf nConditions arbitrary
-  d <- max 1 <$> arbitrary
-  let (Right m) = makeMuser os d
-  p <- PQC.arbTestPredictor nObjects nConditions pSize
+arbSensibleTestBrain :: Int -> Int -> Gen TestBrain
+arbSensibleTestBrain nObjects nConditions = do
+  c <- arbGeneticSOM arbitrary
+  m <- sizedArbMuser nConditions
+  p <- PQC.sizedArbTestPredictor nObjects nConditions
   hw <- makeWeights <$> vectorOf nConditions arbitrary
   t <- arbitrary
   s <- choose (1, 255)
@@ -110,7 +96,10 @@ arbSensibleTestBrain cSize nObjects nConditions pSize = do
   return b
 
 instance Arbitrary TestBrain where
-  arbitrary = sized sizedArbTestBrain
+  arbitrary = do
+    nObjects <- fmap (\n -> min 3 (n+1)) getSize
+    let nConditions = 3
+    arbTestBrain nObjects nConditions
 
 -- sizedArbEmptyTestBrain :: Int -> Gen TestBrain
 -- sizedArbEmptyTestBrain n = do
@@ -143,19 +132,15 @@ instance Show ChoosingTestData where
     = "ChoosingTestData (" ++ show b ++ ") " ++ show ps ++ " "
       ++ show c
 
-sizedArbChoosingTestData :: Int -> Gen ChoosingTestData
-sizedArbChoosingTestData n = do
-  ~[cSize, nObjects] <- GT.divvy (min 10 n) 2
-  -- nConditions <- choose (0, n - cSize - nObjects)
-  let nConditions = 3
-  let pSize = n + 1
-  b <- arbSensibleTestBrain cSize nObjects nConditions pSize
-  ps <- vectorOf nObjects arbitrary
-  c <- vectorOf nConditions arbitrary
-  return $ ChoosingTestData b ps c
-
 instance Arbitrary ChoosingTestData where
-  arbitrary = sized sizedArbChoosingTestData
+  arbitrary = do
+    nObjects <- fmap (\n -> min 3 (n+1)) getSize
+    let nConditions = 3
+    b <- arbSensibleTestBrain nObjects nConditions
+    ps <- vectorOf nObjects arbitrary
+    c <- vectorOf nConditions arbitrary
+    return $ ChoosingTestData b ps c
+
 
 -- prop_chooseAction_doesnt_add_predictor_models
 --   :: ChoosingTestData -> Bool
@@ -179,35 +164,28 @@ instance Show ReflectionTestData where
     = "ReflectionTestData (" ++ show b ++ ") (" ++ show r ++ ") "
       ++ show cBefore ++ " " ++ show cAfter
 
-sizedArbReflectionTestData :: Int -> Gen ReflectionTestData
-sizedArbReflectionTestData n = do
-  ~[cSize, nObjects] <- GT.divvy (min 10 n) 2
-  let nConditions = 3
-  c <- vectorOf nConditions arbitrary
-  ps <- vectorOf nObjects arbitrary
-  let pSize = n + 1
-  b <- arbTestBrain cSize nObjects nConditions pSize
-  let (report, b') = chooseAction b ps c
-  let r = bdrRecommendedResponse report
-  cBefore <- vectorOf nConditions arbitrary
-  cAfter <- vectorOf nConditions arbitrary
-  return $ ReflectionTestData b' r cBefore cAfter
-
 instance Arbitrary ReflectionTestData where
-  arbitrary = sized sizedArbReflectionTestData
+  arbitrary = do
+    nObjects <- fmap (\n -> min 3 (n+1)) getSize
+    let nConditions = 3
+    c <- vectorOf nConditions arbitrary
+    ps <- vectorOf nObjects arbitrary
+    b <- arbTestBrain nObjects nConditions
+    let (report, b') = chooseAction b ps c
+    let r = bdrRecommendedResponse report
+    cBefore <- vectorOf nConditions arbitrary
+    cAfter <- vectorOf nConditions arbitrary
+    return $ ReflectionTestData b' r cBefore cAfter
 
 prop_reflect_makes_predictions_more_accurate
   :: ReflectionTestData -> Bool
 prop_reflect_makes_predictions_more_accurate
-  (ReflectionTestData b r cBefore cAfter)
+  (ReflectionTestData b _ _ cAfter)
     = errAfter <= errBefore
-  where (report:_) = predictAll b . zip [r] $ repeat 1
-        r2 = P.pResponse report
-        (Just report2, b2) = reflect b cAfter
+  where (Just report2, b2) = reflect b cAfter
         errBefore = brrErr report2
-        (report3:_) = predictAll b . zip [r] $ repeat 1
-        r3 = P.pResponse report3
-        (Just report4, _) = reflect b2 cAfter
+        b3 = b2 { lastChoice = lastChoice b } -- hack for testing
+        (Just report4, _) = reflect b3 cAfter
         errAfter = brrErr report4
 
 prop_reflect_error_in_range :: ReflectionTestData -> Bool
@@ -236,21 +214,16 @@ data ImprintTestData
   = ImprintTestData TestBrain [TestPattern] TestAction [PM1.Double] [Label]
     deriving Eq
 
-sizedArbImprintTestData :: Int -> Gen ImprintTestData
-sizedArbImprintTestData n = do
-  ~[cSize, nO] <- GT.divvy (min 10 n) 2
-  let nObjects = min 3 nO
-  let nConditions = 3
-  let pSize = n + 1
-  b <- arbSensibleTestBrain cSize nObjects nConditions pSize
-  ps <- vectorOf nObjects arbitrary
-  a <- arbitrary
-  os <- vectorOf nConditions arbitrary
-  ls <- vectorOf (length ps) arbitrary
-  return $ ImprintTestData b ps a os ls
-
 instance Arbitrary ImprintTestData where
-  arbitrary = sized sizedArbImprintTestData
+  arbitrary = do
+    nObjects <- fmap (\n -> min 3 (n+1)) getSize
+    let nConditions = 3
+    b <- arbSensibleTestBrain nObjects nConditions
+    ps <- vectorOf nObjects arbitrary
+    a <- arbitrary
+    os <- vectorOf nConditions arbitrary
+    ls <- vectorOf (length ps) arbitrary
+    return $ ImprintTestData b ps a os ls
 
 instance Show ImprintTestData where
   show (ImprintTestData b ps a os ls)

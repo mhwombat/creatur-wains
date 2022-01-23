@@ -82,7 +82,7 @@ data Brain ct pt p a m = Brain
     actionCounts        :: M.Map a Int,
     -- | Last choice made
     lastChoice          :: Maybe (Response a, Condition)
-  } deriving (Generic, Eq, NFData)
+  } deriving (Generic, Eq, NFData, Serialize, Diploid, Show, Read)
 
 -- | @'makeBrain' c m p hw t ios rds@ returns a brain with
 --   classifier @c@, muser @m@, predictor @p@, happiness weights @hw@,
@@ -107,13 +107,6 @@ makeBrain c m p hw t x ios rds
   | otherwise
       = Right $ Brain c m p hw t x ios rds M.empty Nothing
 
-instance (Serialize ct, Serialize pt, Serialize p, Serialize a, Ord a,
-          Serialize m)
-  => Serialize (Brain ct pt p a m)
-
-instance (Diploid ct, Diploid pt, Diploid p, Diploid a, Ord a, Diploid m)
-  => Diploid (Brain ct pt p a m)
-
 instance (Statistical ct, SOM.Adjuster ct,
           Statistical pt, SOM.Adjuster pt, Eq a, Statistical m)
   => Statistical (Brain ct pt p a m) where
@@ -135,13 +128,6 @@ instance (Statistical ct, SOM.Adjuster ct,
              dStat "passionReinforcement" . PM1.wide $ rds !! 1,
              dStat "litterSizeReinforcement" . PM1.wide $ rds !! 2,
              iStat "tiebreaker" t, iStat "strictness" s ]
-
-instance (Show ct, Show pt, Show p, Show a, Show m)
-  => Show (Brain ct pt p a m) where
-  show (Brain c m p hw t s ios rds ks lrc) = "Brain (" ++ show c ++ ") ("
-    ++ show m ++ ") (" ++ show p ++ ") (" ++ show hw ++ ") "
-    ++ show t ++ " " ++ show s ++ " " ++ show ios ++ show rds
-    ++ " (" ++ show ks ++ ") " ++ show lrc
 
 instance (Genetic ct, Genetic pt, Genetic p, Genetic a, Genetic m, M.Muser m)
   => Genetic (Brain ct pt p a m) where
@@ -444,9 +430,9 @@ reflect
   => Brain ct pt p a m -> Condition
       -> (Maybe (ReflectionReport a), Brain ct pt p a m)
 reflect b cAfter
-  = case (lastChoice b) of
+  = case lastChoice b of
       Just (r, cBefore)
-        -> (Just report', b { predictor=d' })
+        -> (Just report', b { predictor=d', lastChoice=Nothing })
           where osActual = map UI.narrow $ zipWith (-) (map UI.wide cAfter)
                   (map UI.wide cBefore)
                 rReflect = r {outcomes = osActual}

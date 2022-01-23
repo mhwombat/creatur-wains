@@ -15,8 +15,7 @@
 module ALife.Creatur.Wain.PredictorQC
   (
     test,
-    arbTestPredictor,
-    arbEmptyTestPredictor,
+    sizedArbTestPredictor,
     TrainingTestData(..),
     ImprintTestData(..)
   ) where
@@ -26,12 +25,11 @@ import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import qualified ALife.Creatur.Gene.Test                 as GT
 import           ALife.Creatur.Wain.GeneticSOM           (Label,
                                                           trainAndClassify)
-import           ALife.Creatur.Wain.GeneticSOMQC         (sizedArbEmptyGeneticSOM,
-                                                          sizedArbGeneticSOM)
+import           ALife.Creatur.Wain.GeneticSOMQC         (arbGeneticSOM)
 import           ALife.Creatur.Wain.PredictorInternal
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
 import           ALife.Creatur.Wain.ResponseInternal     (Response (..),
-                                                          arbResponse)
+                                                          sizedArbResponse)
 import           ALife.Creatur.Wain.ResponseQC           (TestAction,
                                                           TestResponse,
                                                           TestResponseAdjuster)
@@ -43,22 +41,16 @@ import           Test.QuickCheck.Counterexamples         hiding (labels)
 
 type TestPredictor = Predictor TestResponseAdjuster TestAction
 
-sizedArbTestPredictor :: Int -> Gen TestPredictor
-sizedArbTestPredictor n = do
-  ~[nObjects, nConditions, capacity] <- GT.divvy n 3
-  arbTestPredictor nObjects nConditions capacity
-
-arbEmptyTestPredictor :: Int -> Gen TestPredictor
-arbEmptyTestPredictor capacity = do
-  sizedArbEmptyGeneticSOM capacity
-
-arbTestPredictor :: Int -> Int -> Int -> Gen TestPredictor
-arbTestPredictor nObjects nConditions capacity = do
-  let genResponse = arbResponse nObjects nConditions arbitrary
-  sizedArbGeneticSOM genResponse capacity
+sizedArbTestPredictor :: Int -> Int -> Gen TestPredictor
+sizedArbTestPredictor nObjects nConditions = do
+  let genResponse = sizedArbResponse nObjects nConditions arbitrary
+  arbGeneticSOM genResponse
 
 instance Arbitrary TestPredictor where
-  arbitrary = sized sizedArbTestPredictor
+  arbitrary = do
+    nObjects <- fmap (min 3) getSize
+    nConditions <- fmap (min 5) getSize
+    sizedArbTestPredictor nObjects nConditions
 
 data TrainingTestData
   = TrainingTestData
@@ -68,17 +60,14 @@ data TrainingTestData
         xOutcomes  :: [PM1.Double]
       } deriving (Eq, Show)
 
-sizedArbTrainingTestData :: Int -> Gen TrainingTestData
-sizedArbTrainingTestData n = do
-  ~[nO, nConditions, capacity] <- GT.divvy n 3
-  let nObjects = min 3 nO
-  p <- arbTestPredictor nObjects nConditions capacity
-  r <- arbResponse nObjects nConditions arbitrary
-  os <- vectorOf nConditions arbitrary
-  return $ TrainingTestData p r os
-
 instance Arbitrary TrainingTestData where
-  arbitrary = sized sizedArbTrainingTestData
+  arbitrary = do
+    nObjects <- fmap (min 3) getSize
+    nConditions <- fmap (min 5) getSize
+    p <- sizedArbTestPredictor nObjects nConditions
+    r <- sizedArbResponse nObjects nConditions arbitrary
+    os <- vectorOf nConditions arbitrary
+    return $ TrainingTestData p r os
 
 prop_predict_never_causes_error
   :: TrainingTestData -> UI.Double -> Bool
@@ -120,11 +109,9 @@ data ImprintTestData
         iDeltas    :: [PM1.Double]
       } deriving (Eq, Show)
 
-sizedArbImprintTestData :: Int -> Gen ImprintTestData
-sizedArbImprintTestData n = do
-  ~[nO, nConditions, capacity] <- GT.divvy n 3
-  let nObjects = min 3 nO
-  p <- arbTestPredictor nObjects nConditions capacity
+sizedArbImprintTestData :: Int -> Int -> Gen ImprintTestData
+sizedArbImprintTestData nObjects nConditions = do
+  p <- sizedArbTestPredictor nObjects nConditions
   ls <- vectorOf nObjects arbitrary
   a <- arbitrary
   os <- vectorOf nConditions $ choose (0.00001, 1)
@@ -132,7 +119,10 @@ sizedArbImprintTestData n = do
   return $ ImprintTestData p ls a os ds
 
 instance Arbitrary ImprintTestData where
-  arbitrary = sized sizedArbImprintTestData
+  arbitrary = do
+    nObjects <- fmap (min 3) getSize
+    nConditions <- fmap (min 5) getSize
+    sizedArbImprintTestData nObjects nConditions
 
 prop_imprintOrReinforce_never_causes_error
   :: ImprintTestData -> Bool

@@ -18,8 +18,8 @@ module ALife.Creatur.Wain.GeneticSOMQC
   (
     test,
     TestGSOM,
-    sizedArbGeneticSOM,
-    sizedArbEmptyGeneticSOM
+    arbGeneticSOM,
+    arbEmptyGeneticSOM
   ) where
 
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
@@ -61,26 +61,26 @@ classify gs p = detail
 type TestGSOM = GeneticSOM TestPatternAdjuster TestPattern
 
 -- | Used by other test modules
-sizedArbEmptyGeneticSOM
-  :: (Arbitrary t, SOM.Adjuster t)
-  => Int -> Gen (GeneticSOM t p)
-sizedArbEmptyGeneticSOM maxSz = do
+arbEmptyGeneticSOM
+  :: (Arbitrary t, SOM.Adjuster t) => Gen (GeneticSOM t p)
+arbEmptyGeneticSOM = do
   a <- arbitrary
-  return $ SOM.makeSGM a maxSz
+  nMax <- fmap (\n -> min 20 (n+1)) $ getSize
+  return $ SOM.makeSGM a nMax
 
 -- | Used by other test modules
-sizedArbGeneticSOM
+arbGeneticSOM
   :: (Arbitrary t, SOM.Adjuster t, SOM.PatternType t ~ p,
      SOM.MetricType t ~ UI.Double, SOM.TimeType t ~ Word32)
-  => Gen p -> Int -> Gen (GeneticSOM t p)
-sizedArbGeneticSOM arbPattern n = do
-  som <- sizedArbEmptyGeneticSOM (n+1)
-  k <- choose (0, n+1)
-  xs <- vectorOf k arbPattern
+  => Gen p -> Gen (GeneticSOM t p)
+arbGeneticSOM arbPattern = do
+  nPatterns <- fmap (min 20) $ getSize
+  xs <- vectorOf nPatterns arbPattern
+  som <- arbEmptyGeneticSOM
   return $ SOM.trainBatch som xs
 
 instance Arbitrary TestGSOM where
-  arbitrary = sized (sizedArbGeneticSOM arbitrary)
+  arbitrary = arbGeneticSOM arbitrary
 
 prop_classify_never_causes_error_unless_empty
   :: TestGSOM -> TestPattern -> Property

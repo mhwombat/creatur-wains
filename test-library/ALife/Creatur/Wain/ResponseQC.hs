@@ -64,11 +64,8 @@ instance Statistical TestAction where
 
 type TestResponse = Response TestAction
 
-sizedArbTestResponse :: Int -> Gen TestResponse
-sizedArbTestResponse = sizedArbResponse arbitrary
-
 instance Arbitrary TestResponse where
-  arbitrary = sized sizedArbTestResponse
+  arbitrary = arbResponse arbitrary
 
 -- | This is used for testing random SOM generation
 instance Random TestAction where

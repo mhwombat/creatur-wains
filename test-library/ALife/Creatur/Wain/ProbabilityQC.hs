@@ -34,14 +34,12 @@ sizedArbString n = do
   k <- choose (1, n+1)
   nub <$> vectorOf k (elements ['a'..'z'])
 
-sizedArbPermuteTestData :: Int -> Gen PermuteTestData
-sizedArbPermuteTestData n = do
-  k <- min 3 <$> choose (1, n+1)
-  let m = min 3 $ n + 2 - k
-  PermuteTestData <$> vectorOf k (sizedArbString m)
-
 instance Arbitrary PermuteTestData where
-  arbitrary = sized sizedArbPermuteTestData
+  arbitrary = do
+    n <- getSize
+    k <- min 3 <$> choose (1, n+1)
+    let m = min 3 $ n + 2 - k
+    PermuteTestData <$> vectorOf k (sizedArbString m)
 
 prop_number_of_permutations_is_correct :: PermuteTestData -> Bool
 prop_number_of_permutations_is_correct (PermuteTestData xss)
@@ -60,14 +58,12 @@ prop_normalise_works ps = not (null ps) ==>
 newtype TestSignatures = TestSignatures [[(Label, UI.Double)]]
   deriving (Eq, Show)
 
-sizedArbTestSignatures :: Int -> Gen TestSignatures
-sizedArbTestSignatures n = do
-  k <- min 3 <$> choose (1, n+1)
-  let m = min 3 $ n + 2 - k
-  TestSignatures <$> vectorOf k (vectorOf m arbitrary)
-
 instance Arbitrary TestSignatures where
-  arbitrary = sized sizedArbTestSignatures
+  arbitrary = do
+    n <- getSize
+    k <- min 3 <$> choose (1, n+1)
+    let m = min 3 $ n + 2 - k
+    TestSignatures <$> vectorOf k (vectorOf m arbitrary)
 
 prop_hypothesis_probabilities_eq_1 :: Word32 -> TestSignatures -> Property
 prop_hypothesis_probabilities_eq_1 s (TestSignatures lds) = s >= 1 ==>

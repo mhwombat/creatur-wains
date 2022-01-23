@@ -29,9 +29,7 @@ import           Data.Word                                 (Word32)
 import           System.Random                             (mkStdGen)
 import           Test.Framework                            (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2      (testProperty)
-import           Test.QuickCheck.Counterexamples           (Arbitrary, Property,
-                                                            arbitrary, (==>))
-import           Test.QuickCheck.Gen                       (Gen (MkGen))
+import           Test.QuickCheck.Counterexamples           (Property, (==>))
 
 validLearningParams :: LearningParams -> Bool
 validLearningParams (LearningParams r0 rf tf)
