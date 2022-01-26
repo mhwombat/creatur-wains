@@ -98,7 +98,7 @@ arbitraryStimulus = do
   vectorOf n arbitrary
 
 data Experience = IncAgeExperience
-                | EnergyAdjustmentExperience Double String
+                | AdjustEnergyExperience Double String
                 | AutoAdjustPassionExperience
                 | MatingExperience InexperiencedTestWain String
                 | ChoiceExperience [TestPattern]
@@ -111,7 +111,7 @@ data Experience = IncAgeExperience
 
 instance Arbitrary Experience where
   arbitrary = oneof [ return IncAgeExperience,
-                      EnergyAdjustmentExperience <$> arbitrary <*> arbitrary,
+                      AdjustEnergyExperience <$> arbitrary <*> arbitrary,
                       return AutoAdjustPassionExperience,
                       MatingExperience <$> arbitrary <*> arbitrary,
                       ChoiceExperience <$> arbitraryStimulus,
@@ -123,7 +123,7 @@ instance Arbitrary Experience where
 
 runExperience :: TestWain -> Experience -> TestWain
 runExperience w IncAgeExperience = fst $ incAge w
-runExperience w (EnergyAdjustmentExperience delta reason) = fst $ adjustEnergy delta reason w
+runExperience w (AdjustEnergyExperience delta reason) = fst $ adjustEnergy delta reason w
 runExperience w AutoAdjustPassionExperience = fst $ autoAdjustPassion w
 runExperience w (MatingExperience (ITW w2) childName) = testMating w w2 childName
 runExperience w (ChoiceExperience ps) = testChoice ps w
@@ -165,7 +165,7 @@ prop_adjustEnergy_balances_energy
 prop_adjustEnergy_balances_energy delta e
   = N.within 10 (UI.wide e') (UI.wide e + used)
   && N.within 10 delta (used + leftover)
-  where (e', used, leftover) = adjustEnergy' delta e
+  where (e', used, leftover) = calculateEnergyChange delta e
 
 data ChoosingTestData
   = ChoosingTestData ExperiencedTestWain [TestPattern]
@@ -209,10 +209,9 @@ prop_cloning_produces_equivalent_wain (ETW w) = wFresh == wClone
                      litter = [],
                      biography = [] }
 
-prop_replay_produces_equivalent_wain :: ExperiencedTestWain -> Bool
-prop_replay_produces_equivalent_wain (ETW w) = w == wClone'
-  where wClone = fst $ replayLife w
-        wClone' = wClone { name=name w }
+prop_runLife_produces_equivalent_wain :: ExperiencedTestWain -> Bool
+prop_runLife_produces_equivalent_wain (ETW w) = w == wClone
+  where wClone = fst $ runLife w
 
 test :: Test
 test = testGroup "ALife.Creatur.WainQC"
@@ -242,6 +241,6 @@ test = testGroup "ALife.Creatur.WainQC"
       prop_imprintResponse_twice_never_causes_error,
     testProperty "prop_cloning_produces_equivalent_wain"
       prop_cloning_produces_equivalent_wain,
-    testProperty "prop_replay_produces_equivalent_wain"
-      prop_replay_produces_equivalent_wain
+    testProperty "prop_runLife_produces_equivalent_wain"
+      prop_runLife_produces_equivalent_wain
   ]

@@ -46,8 +46,8 @@ module ALife.Creatur.Wain
     -- * Replaying events in a wain's life
     clone,
     Event,
-    replayEvent,
-    replayLife,
+    runEvent,
+    runLife,
     -- * Misc.
     Label,
     packageVersion

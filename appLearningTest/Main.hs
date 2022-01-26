@@ -20,6 +20,7 @@ module Main where
 import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
 import           ALife.Creatur.Gene.Numeric.Weights      (makeWeights)
+import           ALife.Creatur.Wain
 import           ALife.Creatur.Wain.BrainInternal        (classifier,
                                                           decisionQuality,
                                                           makeBrain, predictor)
@@ -32,7 +33,6 @@ import           ALife.Creatur.Wain.ResponseQC           (TestAction (..),
 import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser,
                                                           makeMuser)
 import           ALife.Creatur.Wain.Statistics           (stats)
-import           ALife.Creatur.WainInternal
 import           Control.Monad                           (foldM_)
 import           Control.Monad.Random                    (evalRand, getRandoms,
                                                           mkStdGen)

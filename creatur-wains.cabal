@@ -52,13 +52,12 @@ library
   hs-source-dirs:   src
   exposed-modules:
     ALife.Creatur.Wain
-    ALife.Creatur.Wain.AgentCSV
+    ALife.Creatur.WainInternal
     ALife.Creatur.Wain.Brain
     ALife.Creatur.Wain.BrainInternal
     ALife.Creatur.Wain.Checkpoint
     ALife.Creatur.Wain.Classifier
     ALife.Creatur.Wain.ClassifierInternal
-    ALife.Creatur.Wain.ExamineAgent
     ALife.Creatur.Wain.GeneticSOM
     ALife.Creatur.Wain.LearningParams
     ALife.Creatur.Wain.LearningParamsInternal
@@ -75,7 +74,7 @@ library
     ALife.Creatur.Wain.SimpleMuser
     ALife.Creatur.Wain.SimpleMuserInternal
     ALife.Creatur.Wain.Statistics
-    ALife.Creatur.WainInternal
+    ALife.Creatur.Wain.Util
   other-modules:    Paths_creatur_wains
   autogen-modules:  Paths_creatur_wains
   ghc-options:      -Wall -Wunused-packages -Werror

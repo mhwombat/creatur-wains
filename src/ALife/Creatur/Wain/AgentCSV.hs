@@ -29,27 +29,6 @@ import           System.FilePath.Posix           (combine)
 import           System.Posix                    (isDirectory, isRegularFile)
 import           System.Posix.Files              (getFileStatus)
 
-fetchObjects :: DS.Serialize b => FilePath -> IO [b]
-fetchObjects f = do
-  dir <- isDirectory <$> getFileStatus f
-  if dir
-    then fetchAllObjects f
-    else do
-      w <- fetchObject f
-      return [w]
-
-fetchAllObjects :: DS.Serialize b => FilePath -> IO [b]
-fetchAllObjects f =
-  (listDirectory f
-    >>= filterM (fmap isRegularFile . getFileStatus) . map (combine f))
-  >>= mapM fetchObject
-
-fetchObject :: DS.Serialize b => FilePath -> IO b
-fetchObject f = do
-  x <- BS.readFile f
-  let (Right w) = DS.decode x
-  return w
-
 agentToCSV
   :: (SOM.Adjuster ct, S.Statistical ct, SOM.Adjuster pt, S.Statistical pt,
      Ord a, S.Statistical m)

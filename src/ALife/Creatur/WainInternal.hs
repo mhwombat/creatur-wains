@@ -68,67 +68,82 @@ import           Text.Printf                                (printf)
 data Event ct pt p a m
   = IncAge
   | AdjustEnergy Double String
+  | AdjustSelfEnergy Double String
+  | AdjustLitterEnergy Double String
   | AutoAdjustPassion
   | CoolPassion
   -- | ImprintStimulus [(GSOM.Label, p)]
   | ImprintResponse [p] a
   | Reflect
   | ChooseAction [p]
+  | AskToMate
+  | AgreeToMate
   | AddChild (Wain ct pt p a m)
   | RemoveChild (Wain ct pt p a m) String
   | Mature
   | Death String
   deriving (Generic, NFData, Read, Show, Eq, Serialize)
 
-replayEvent
-  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+runEvent
+  :: (SOM.Adjuster ct, Show ct, SOM.PatternType ct ~ p,
      SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
-     SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.Adjuster pt, Show pt, SOM.PatternType pt ~ R.Response a,
      SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
-     Pretty p, Pretty a, Eq a, Ord a, Muser m, Pretty m, Action m ~ a)
+     Pretty p, Show p, Pretty a, Show a, Eq a, Ord a,
+     Muser m, Pretty m, Show m, Action m ~ a)
   => Event ct pt p a m -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
-replayEvent IncAge w                      = incAge w
-replayEvent AutoAdjustPassion w           = autoAdjustPassion w
-replayEvent CoolPassion w                 = coolPassion w
-replayEvent (AdjustEnergy delta reason) w = adjustEnergy delta reason w
--- replayEvent (ImprintStimulus lps) w      = imprintStimulus lps w
-replayEvent (ImprintResponse ps a) w      = imprintResponse ps a w
-replayEvent Reflect w                     = reflect w
-replayEvent (ChooseAction ps) w           = (w', msgs)
+runEvent IncAge w                       = incAge w
+runEvent AutoAdjustPassion w            = autoAdjustPassion w
+runEvent CoolPassion w                  = coolPassion w
+runEvent (AdjustSelfEnergy delta source) w  = adjustSelfEnergy delta source w
+runEvent (AdjustLitterEnergy delta source) w  = adjustLitterEnergy delta source w
+-- runEvent (ImprintStimulus lps) w      = imprintStimulus lps w
+runEvent (ImprintResponse ps a) w       = imprintResponse ps a w
+runEvent Reflect w                      = reflect w
+runEvent (ChooseAction ps) w            = (w', msgs)
   where (w', _, msgs) = chooseAction ps w
-replayEvent (AddChild c) w                = addChild c w
-replayEvent (RemoveChild c reason) w      = removeChild c reason w
-replayEvent Mature w                      = markMature w
-replayEvent (Death reason) w              = recordDeath reason w
+runEvent (AddChild c) w                 = addChild c w
+runEvent (RemoveChild c source) w       = removeChild c source w
+runEvent Mature w                       = markMature w
+runEvent (Death source) w               = recordDeath source w
+runEvent e w                            = runInfoOnlyEvent e w
 
 recordEvent :: Event ct pt p a m -> Wain ct pt p a m -> Wain ct pt p a m
 recordEvent e w = w { biography=e:biography w }
 
+runInfoOnlyEvent
+  :: (Show ct, Show pt, Show p, Show a, Show m)
+  => Event ct pt p a m -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
+runInfoOnlyEvent e w = (recordEvent e w, [show e])
 
-replayLife
-  :: (SOM.Adjuster ct, Diploid ct, Genetic ct, SOM.PatternType ct ~ p,
-     SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
-     SOM.Adjuster pt, Diploid pt, Genetic pt, SOM.PatternType pt ~ R.Response a,
-     SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
-     Pretty p, Diploid p, Genetic p, Diploid a, Eq a, Genetic a, Ord a, Pretty a,
-     Muser m, Diploid m, Genetic m, Pretty m, Action m ~ a)
+runLife
+  :: (SOM.Adjuster ct, Diploid ct, Genetic ct, Show ct,
+     SOM.PatternType ct ~ p, SOM.MetricType ct ~ UI.Double,
+     SOM.TimeType ct ~ Word32,
+     SOM.Adjuster pt, Diploid pt, Genetic pt, Show pt,
+     SOM.PatternType pt ~ R.Response a, SOM.MetricType pt ~ UI.Double,
+     SOM.TimeType pt ~ Word32,
+     Pretty p, Show p, Diploid p, Genetic p,
+     Diploid a, Eq a, Genetic a, Ord a, Pretty a, Show a,
+     Muser m, Diploid m, Genetic m, Pretty m, Show m, Action m ~ a)
   => Wain ct pt p a m -> (Wain ct pt p a m, [String])
-replayLife w = foldr replayEvent' (w', []) events
-  where w' = RS.clone w cloneName
-        cloneName = agentId w ++ "_clone"
+runLife w = foldr runEvent' (w', []) events
+  where w' = RS.clone w (agentId w)
         events = biography w
 
 -- | Internal method
-replayEvent'
-  :: (SOM.Adjuster ct, SOM.PatternType ct ~ p,
+runEvent'
+  :: (SOM.Adjuster ct, Show ct, SOM.PatternType ct ~ p,
      SOM.MetricType ct ~ UI.Double, SOM.TimeType ct ~ Word32,
-     SOM.Adjuster pt, SOM.PatternType pt ~ R.Response a,
+     SOM.Adjuster pt, Show pt, SOM.PatternType pt ~ R.Response a,
      SOM.MetricType pt ~ UI.Double, SOM.TimeType pt ~ Word32,
-     Pretty p, Pretty a, Eq a, Ord a, Muser m, Pretty m, Action m ~ a)
+     Pretty p, Show p, Pretty a, Show a, Eq a, Ord a,
+     Muser m, Pretty m, Show m, Action m ~ a)
   => Event ct pt p a m -> (Wain ct pt p a m, [String])
     -> (Wain ct pt p a m, [String])
-replayEvent' e (w, msgs) = (w', msgs ++ msgs')
-  where (w', msgs') = replayEvent e w
+runEvent' e (w, msgs) = (w', msgs ++ msg:msgs')
+  where (w', msgs') = runEvent e w
+        msg = "EVENT: " ++ show e
 
 -- | A data mining agent that can learn, reproduce, and evolve.
 data Wain ct pt p a m = Wain
@@ -141,8 +156,9 @@ data Wain ct pt p a m = Wain
     -- | The wain's brain, which recognises patterns and makes
     --   decisions.
     brain         :: B.Brain ct pt p a m,
-    -- | The amount of energy the wain will give to offspring at birth.
-    --   This is a number between 0 and 1, inclusive.
+    -- | Controls how a wain shares energy rewards with any children
+    --   it is currently caring for.
+    --   This is a fraction between 0 and 1, inclusive.
     devotion      :: UI.Double,
     -- | The age at which this wain will/has left its parent.
     ageOfMaturity :: Word16,
@@ -349,19 +365,46 @@ adjNovelties = map GSOM.cAdjNovelty . Cl.cDetails . B.bdrClassifierReport
 
 adjustEnergy
   :: Double -> String -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
-adjustEnergy delta reason w
-  = (recordEvent (AdjustEnergy delta reason) w', msgs)
+adjustEnergy delta source w = ( w3, msgs2 ++ msgs3)
+  where w1 = recordEvent (AdjustEnergy delta source) w
+        (w2, msgs2, delta2) = apportion delta source w1
+        (w3, msgs3) = adjustSelfEnergy delta2 source w2
+
+apportion
+  :: Double -> String -> Wain ct pt p a m -> (Wain ct pt p a m, [String], Double)
+apportion delta source w
+  = if null (litter w)
+      then (w, [], delta)
+      else (w', msgs, carerShare)
+  where (w', msgs) = adjustLitterEnergy litterShare source w
+        litterShare = delta * UI.wide (devotion w)
+        carerShare = delta - litterShare
+
+adjustLitterEnergy
+  :: Double -> String -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
+adjustLitterEnergy delta source w
+  = (recordEvent (AdjustLitterEnergy delta source) w', [msg])
+  where w' = w { litter=litter' }
+        litter' = map (fst . adjustEnergy childShare source') $ litter w
+        source' = source ++ " (from carer)"
+        childShare = delta / (fromIntegral . length $ litter w)
+        msg = "Shared " ++ pretty childShare ++ " from " ++ source ++ " with offspring"
+
+adjustSelfEnergy
+  :: Double -> String -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
+adjustSelfEnergy delta source w
+  = (recordEvent (AdjustSelfEnergy delta source) w', msgs)
   where w' = w { energy=e' }
         e = energy w
-        (e', used, leftover) = adjustEnergy' delta e
-        msgs = [ "Adjusting energy, reason is " ++ reason,
+        (e', used, leftover) = calculateEnergyChange delta e
+        msgs = [ "Adjusting energy because " ++ source,
                  pretty e ++ " " ++ pretty delta
                    ++ " -> " ++ pretty e'
                    ++ " (used=" ++ pretty used
                    ++ ", leftover=" ++ pretty leftover ++ ")" ]
 
-adjustEnergy' :: Double -> UI.Double -> (UI.Double, Double, Double)
-adjustEnergy' delta e = (e', used, leftover)
+calculateEnergyChange :: Double -> UI.Double -> (UI.Double, Double, Double)
+calculateEnergyChange delta e = (e', used, leftover)
   where e' = UI.crop $ UI.wide e + delta
         used = UI.wide e' - UI.wide e
         leftover = delta - used
@@ -421,10 +464,12 @@ mate
     -> Rand r ([Wain ct pt p a m], [String])
 mate a b babyName
   | hasLitter a
-      = return ([a, b], [name a ++ " already has a litter"])
+      = return ([a', b'], [name a ++ " already has a litter"])
   | hasLitter b
-      = return ([a, b], [name b ++ " already has a litter"])
-  | otherwise = mate' a b babyName
+      = return ([a', b'], [name b ++ " already has a litter"])
+  | otherwise = mate' a' b' babyName
+  where a' = recordEvent AskToMate a
+        b' = recordEvent AgreeToMate b
 
 -- | Internal method
 mate'
@@ -465,10 +510,10 @@ donateParentsEnergy
 donateParentsEnergy a b c = (a', b', c')
   where aContribution = - UI.wide (devotion a * energy a)
         bContribution = - UI.wide (devotion b * energy b)
-        a' = fst $ adjustEnergy aContribution "donation to child" a
-        b' = fst $ adjustEnergy bContribution "donation to child" b
+        a' = fst $ adjustSelfEnergy aContribution "donation to child" a
+        b' = fst $ adjustSelfEnergy bContribution "donation to child" b
         cContribution = -(aContribution + bContribution)
-        c' = fst $ adjustEnergy cContribution "donation from parents" c
+        c' = fst $ adjustSelfEnergy cContribution "donation from parents" c
 
 -- | Removes any mature children from the wain's litter.
 --   Returns a list containing the (possibly modified) wain, together
@@ -485,17 +530,17 @@ weanMatureChildren w =
 removeChildFold
   :: String -> (Wain ct pt p a m, [String]) -> Wain ct pt p a m
   -> (Wain ct pt p a m, [String])
-removeChildFold reason (w, msgs) child = (w', msgs ++ msgs')
-  where (w', msgs') = removeChild child reason w
+removeChildFold cause (w, msgs) child = (w', msgs ++ msgs')
+  where (w', msgs') = removeChild child cause w
 
 -- | Internal method
 removeChild
   :: Wain ct pt p a m -> String -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
-removeChild child reason w
-  = (recordEvent (RemoveChild child reason) w', [msg])
+removeChild child cause w
+  = (recordEvent (RemoveChild child cause) w', [msg])
   where w' = w { litter=filter wrongName (litter w) }
         wrongName c = name c /= name child
-        msg = "Separated from child " ++ name child ++ " because " ++ reason
+        msg = "Separated from child " ++ name child ++ " because " ++ cause
 
 -- | Internal method
 markMature :: Wain ct pt p a m -> (Wain ct pt p a m, [String])
@@ -513,9 +558,9 @@ pruneDeadChildren w =
 
 -- | Internal method
 recordDeath :: String -> Wain ct pt p a m -> (Wain ct pt p a m, [String])
-recordDeath reason w = (recordEvent (Death reason) w',
+recordDeath cause w = (recordEvent (Death cause) w',
                         ["Died at age " ++ show (age w'),
-                         "Cause of death: " ++ reason])
+                         "Cause of death: " ++ cause])
   where w' = w { litter=litter' }
         litter' = map (fst . recordDeath "death of carer") $ litter w
 
@@ -549,7 +594,7 @@ chooseAction ps w = (recordEvent (ChooseAction ps) w', a, msgs)
         a = R.action r
         litter' = map (first . chooseAction ps) (litter w)
         first (x, _, _) = x
-          -- actions of children are only used for reflection
+          -- actions chosen by children are only used for reflection
 
 -- | Causes a wain to considers whether it is happier or not as a
 --   result of the last action it took, and modifies its decision models
