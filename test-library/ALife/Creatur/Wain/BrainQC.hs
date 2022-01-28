@@ -24,9 +24,10 @@ module ALife.Creatur.Wain.BrainQC
 
 import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
 import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Gene.Numeric.Weights      (Weights, makeWeights,
-                                                          numWeights,
-                                                          toUIDoubles)
+import           ALife.Creatur.Gene.Numeric.Weights      (Weights,
+                                                          extractWeights,
+                                                          makeWeights,
+                                                          numWeights)
 import qualified ALife.Creatur.Gene.Test                 as GT
 import           ALife.Creatur.Wain.BrainInternal
 import qualified ALife.Creatur.Wain.Classifier           as Cl
@@ -49,14 +50,14 @@ import           Test.Framework                          (Test, testGroup)
 import           Test.Framework.Providers.QuickCheck2    (testProperty)
 import           Test.QuickCheck.Counterexamples
 
--- The express function in Diploid normalises the weights, so the identity may
--- not hold exactly.
-equivWeights :: Weights -> Weights -> Bool
+-- Both get and express (re)normalise weights, which can result in
+-- small differences even if the weights are already normalised.
+equivWeights :: Weights Double -> Weights Double -> Bool
 equivWeights x y
   = numWeights x == numWeights y
       && and (zipWith (EQ.within 100000) wx wy)
-  where wx = map UI.wide $ toUIDoubles x
-        wy = map UI.wide $ toUIDoubles y
+  where wx = extractWeights x
+        wy = extractWeights y
 
 equivBrain :: (Eq ct, Eq pt, Eq p, Eq a, Eq m) => Brain ct pt p a m -> Brain ct pt p a m -> Bool
 equivBrain x y = x == y' && equivWeights wx wy
@@ -72,7 +73,7 @@ arbTestBrain nObjects nConditions = do
   c <- arbGeneticSOM arbitrary
   m <- sizedArbMuser nConditions
   p <- PQC.sizedArbTestPredictor nObjects nConditions
-  hw <- makeWeights <$> vectorOf nConditions arbitrary
+  hw <- resize nConditions arbitrary
   t <- arbitrary
   s <- choose (1, 255)
   ios <- vectorOf nConditions $ choose (-0.9999, 1)
@@ -87,7 +88,7 @@ arbSensibleTestBrain nObjects nConditions = do
   c <- arbGeneticSOM arbitrary
   m <- sizedArbMuser nConditions
   p <- PQC.sizedArbTestPredictor nObjects nConditions
-  hw <- makeWeights <$> vectorOf nConditions arbitrary
+  hw <- resize nConditions arbitrary
   t <- arbitrary
   s <- choose (1, 255)
   ios <- vectorOf nConditions $ choose (0.0001, 1)
@@ -299,7 +300,7 @@ test = testGroup "ALife.Creatur.Wain.BrainQC"
     testProperty "prop_serialize_round_trippable - Brain"
       (GT.prop_serialize_round_trippable :: TestBrain -> Bool),
     testProperty "prop_genetic_round_trippable - Brain"
-      (GT.prop_genetic_round_trippable (==) :: TestBrain -> Bool),
+      (GT.prop_genetic_round_trippable equivBrain :: TestBrain -> Bool),
     -- testProperty "prop_genetic_round_trippable2 - Brain"
     --   (GT.prop_genetic_round_trippable2
     --    :: Int -> [Word8] -> TestBrain -> Bool),

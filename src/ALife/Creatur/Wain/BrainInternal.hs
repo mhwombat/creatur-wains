@@ -62,7 +62,7 @@ data Brain ct pt p a m = Brain
     -- | Component that decides what actions to take
     predictor           :: P.Predictor pt a,
     -- | Weights for evaluating happiness
-    happinessWeights    :: Weights,
+    happinessWeights    :: Weights Double,
     -- | Used to break ties when actions seem equally promising
     tiebreaker          :: Word8,
     -- | Controls how willing the wain is to consider alternative
@@ -90,8 +90,8 @@ data Brain ct pt p a m = Brain
 --   @rds@. See @Brain@ for an explanation of these parameters.
 makeBrain
   :: M.Muser m
-     => Cl.Classifier ct p -> m -> P.Predictor pt a -> Weights -> Word8
-       -> Word32 -> [PM1.Double] -> [PM1.Double]
+     => Cl.Classifier ct p -> m -> P.Predictor pt a -> Weights Double
+       -> Word8 -> Word32 -> [PM1.Double] -> [PM1.Double]
        -> Either [String] (Brain ct pt p a m)
 makeBrain c m p hw t x ios rds
   | x < 1
@@ -118,9 +118,9 @@ instance (Statistical ct, SOM.Adjuster ct,
         ++ stats m
         ++ map (prefix "predictor ") (stats p)
         ++ [ iStat "DQ" $ decisionQuality b,
-             dStat "energyWeight" . UI.wide $ hw `weightAt` 0,
-             dStat "passionWeight" . UI.wide $ hw `weightAt` 1,
-             dStat "litterSizeWeight" . UI.wide $ hw `weightAt` 2,
+             dStat "energyWeight" $ hw `weightAt` 0,
+             dStat "passionWeight" $ hw `weightAt` 1,
+             dStat "litterSizeWeight" $ hw `weightAt` 2,
              dStat "energyImprint" . PM1.wide $ head ios,
              dStat "passionImprint" . PM1.wide $ ios !! 1,
              dStat "litterSizeImprint" . PM1.wide $ ios !! 2,
@@ -480,7 +480,7 @@ imprintResponse b ls a = (irReport, b { predictor=d2 })
 
 -- | Evaluates a condition and reports the resulting happiness.
 happiness :: Brain ct pt p a m -> Condition -> UI.Double
-happiness b = weightedSum (happinessWeights b)
+happiness b = UI.narrow . weightedSum (happinessWeights b) . map UI.wide
 
 -- | A metric for how flexible a brain is at making decisions.
 decisionQuality :: Brain ct pt p a m -> Int

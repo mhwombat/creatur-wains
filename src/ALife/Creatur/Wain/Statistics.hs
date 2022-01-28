@@ -35,13 +35,12 @@ module ALife.Creatur.Wain.Statistics
     popStdDev
   ) where
 
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Gene.Numeric.Weights      (Weights, toUIDoubles)
-import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
-import           Data.List                               (groupBy, sortOn)
-import           Data.Serialize                          (Serialize)
+import           ALife.Creatur.Gene.Numeric.Weights (Weights, extractWeights)
+import           ALife.Creatur.Wain.Pretty          (Pretty, pretty)
+import           Data.List                          (groupBy, sortOn)
+import           Data.Serialize                     (Serialize)
 import           GHC.Generics
-import           Prelude                                 hiding (lookup)
+import           Prelude                            hiding (lookup)
 
 -- | A value for calculating statistics with.
 data Statistic = DStatistic {sName :: String, sVal :: Double}
@@ -109,8 +108,9 @@ instance (Show k, Statistical v)
   stats = concatMap f
     where f (k, v) = map (prefix ("[" ++ show k ++ "]")) $ stats v
 
-instance Statistical Weights where
-  stats = dStats "" . map UI.wide . toUIDoubles
+instance (Real a) => Statistical (Weights a) where
+  stats = dStats "" . extractWeights
+  -- We won't have any infinite or NaN values, so using realToFrac is OK
 
 kvToDStats :: (Show k, Real v) => [(k, v)] -> [Statistic]
 kvToDStats = map f

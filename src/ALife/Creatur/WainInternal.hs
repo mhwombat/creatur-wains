@@ -146,6 +146,15 @@ runEvent' e (w, msgs) = (w', msgs ++ msg:msgs')
         msg = "EVENT: " ++ show e
 
 -- | A data mining agent that can learn, reproduce, and evolve.
+--   @ct@ is the type of the adjuster used by the classifier,
+--   which is a component of the brain.
+--   @pt@ is the type of the adjuster used by the predictor.
+--   (another brain component)
+--   @p@ is the type of the input patterns that the wain "sees",
+--   and the mental models that it builds to represent its experiences
+--   and make decisions.
+--   @a@ is the type of the actions that a wain can take.
+--   @m@ is the type of the muser (another brain component).
 data Wain ct pt p a m = Wain
   {
     -- | Each wain should have a unique name.
