@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.ClassifierQC
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -19,14 +19,14 @@ module ALife.Creatur.Wain.ClassifierQC
     TestClassifier
   ) where
 
-import qualified ALife.Creatur.Gene.Test               as GT
-import           ALife.Creatur.Wain.ClassifierInternal
-import qualified ALife.Creatur.Wain.GeneticSOM         as GSOM
-import           ALife.Creatur.Wain.GeneticSOMQC       (TestGSOM)
-import           ALife.Creatur.Wain.PatternQC          (TestPattern)
-import           Control.DeepSeq                       (deepseq)
-import           Test.Framework                        (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2  (testProperty)
+import ALife.Creatur.Gene.Test               qualified as GT
+import ALife.Creatur.Wain.ClassifierInternal
+import ALife.Creatur.Wain.GeneticSOM         qualified as GSOM
+import ALife.Creatur.Wain.GeneticSOMQC       (TestGSOM)
+import ALife.Creatur.Wain.PatternQC          (TestPattern)
+import Control.DeepSeq                       (deepseq)
+import Test.Framework                        (Test, testGroup)
+import Test.Framework.Providers.QuickCheck2  (testProperty)
 
 type TestClassifier = TestGSOM
 

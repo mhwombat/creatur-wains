@@ -1,32 +1,31 @@
 module Main where
 
-import           Data.Time.Clock
+import Data.Time.Clock
 
-import qualified ALife.Creatur.Genetics.BRGCWord8 as W8
-import           ALife.Creatur.Util               (fromEither)
-import           ALife.Creatur.Wain               hiding (size)
-import           ALife.Creatur.Wain.Brain
-import           ALife.Creatur.Wain.ClassifierQC  (TestTweaker (..))
-import           ALife.Creatur.Wain.GeneticSOM    hiding (size)
-import           ALife.Creatur.Wain.Muser
-import           ALife.Creatur.Wain.Predictor
-import           ALife.Creatur.Wain.PredictorQC   ()
-import           ALife.Creatur.Wain.Response
-import           ALife.Creatur.Wain.ResponseQC
-import           ALife.Creatur.Wain.Scenario
-import           ALife.Creatur.Wain.TestUtils
-import           ALife.Creatur.Wain.UnitInterval  (UI.Double)
-import           ALife.Creatur.Wain.Util          (unitInterval)
-import           ALife.Creatur.Wain.Weights       (makeWeights)
-import           Control.Monad                    (replicateM)
-import           Control.Monad.Random             (Rand, Random, RandomGen,
-                                                   evalRandIO, getRandom,
-                                                   getRandomR)
-import qualified Data.Map.Strict                  as M
-import           Data.Version                     (showVersion)
-import           Data.Word                        (Word16, Word8)
-import           Paths_creatur_wains              (version)
-import           System.IO.Temp                   (withSystemTempDirectory)
+import ALife.Creatur.Genetics.BRGCWord8 qualified as W8
+import ALife.Creatur.Util               (fromEither)
+import ALife.Creatur.Wain               hiding (size)
+import ALife.Creatur.Wain.Brain
+import ALife.Creatur.Wain.ClassifierQC  (TestTweaker (..))
+import ALife.Creatur.Wain.GeneticSOM    hiding (size)
+import ALife.Creatur.Wain.Muser
+import ALife.Creatur.Wain.Predictor
+import ALife.Creatur.Wain.PredictorQC   ()
+import ALife.Creatur.Wain.Response
+import ALife.Creatur.Wain.ResponseQC
+import ALife.Creatur.Wain.Scenario
+import ALife.Creatur.Wain.TestUtils
+import ALife.Creatur.Wain.UnitInterval  (UI.Double)
+import ALife.Creatur.Wain.Util          (unitInterval)
+import ALife.Creatur.Wain.Weights       (makeWeights)
+import Control.Monad                    (replicateM)
+import Control.Monad.Random             (Rand, Random, RandomGen, evalRandIO,
+                                         getRandom, getRandomR)
+import Data.Map.Strict                  qualified as M
+import Data.Version                     (showVersion)
+import Data.Word                        (Word16, Word8)
+import Paths_creatur_wains              (version)
+import System.IO.Temp                   (withSystemTempDirectory)
 
 makePredictor :: Word16 -> UI.Double -> Predictor TestAction
 makePredictor n dt = buildGeneticSOM e n dt t

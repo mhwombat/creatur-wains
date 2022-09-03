@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.ProbabilityQC
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -17,15 +17,15 @@ module ALife.Creatur.Wain.ProbabilityQC
     test
   ) where
 
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Wain.GeneticSOM           (Label)
-import           ALife.Creatur.Wain.ProbabilityInternal
-import           Data.List                               (nub)
-import           Data.Word                               (Word32)
-import qualified Numeric.ApproxEq                        as N
-import           Test.Framework                          (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Wain.GeneticSOM           (Label)
+import ALife.Creatur.Wain.ProbabilityInternal
+import Data.List                               (nub)
+import Data.Word                               (Word32)
+import Numeric.ApproxEq                        qualified as N
+import Test.Framework                          (Test, testGroup)
+import Test.Framework.Providers.QuickCheck2    (testProperty)
+import Test.QuickCheck
 
 newtype PermuteTestData = PermuteTestData [[Char]] deriving (Eq, Show)
 

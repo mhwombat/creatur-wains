@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.ProbabilityInternal
--- Copyright   :  (c) 2012-2021 Amy de Buitléir
+-- Copyright   :  (c) 2012-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -17,10 +17,10 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.ProbabilityInternal where
 
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Wain.GeneticSOM           (Label)
-import           Data.Word                               (Word32)
-import           Text.Printf                             (printf)
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Wain.GeneticSOM           (Label)
+import Data.Word                               (Word32)
+import Text.Printf                             (printf)
 
 -- | Returns a set of hypotheses about the scenario the wain is facing,
 --   paired with the estimated probability that each hypothesis is true.

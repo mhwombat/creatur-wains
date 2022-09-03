@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.BrainQC
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -22,33 +22,30 @@ module ALife.Creatur.Wain.BrainQC
     ImprintTestData(..),
   ) where
 
-import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Gene.Numeric.Weights      (Weights,
-                                                          extractWeights,
-                                                          makeWeights,
-                                                          numWeights)
-import qualified ALife.Creatur.Gene.Test                 as GT
-import           ALife.Creatur.Wain.BrainInternal
-import qualified ALife.Creatur.Wain.Classifier           as Cl
-import           ALife.Creatur.Wain.GeneticSOM           (Label)
-import           ALife.Creatur.Wain.GeneticSOMQC         (arbGeneticSOM)
-import           ALife.Creatur.Wain.PatternQC            (TestPattern,
-                                                          TestPatternAdjuster)
-import qualified ALife.Creatur.Wain.Predictor            as P
-import qualified ALife.Creatur.Wain.PredictorQC          as PQC
-import           ALife.Creatur.Wain.Response             (Response (..))
-import           ALife.Creatur.Wain.ResponseQC           (TestAction,
-                                                          TestResponse,
-                                                          TestResponseAdjuster)
-import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser)
-import           ALife.Creatur.Wain.SimpleMuserQC        (sizedArbMuser)
-import           Control.DeepSeq                         (deepseq)
-import qualified Data.Datamining.Clustering.SGM4         as SOM
-import qualified Numeric.ApproxEq                        as EQ
-import           Test.Framework                          (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck.Counterexamples
+import ALife.Creatur.Gene.Numeric.PlusMinusOne qualified as PM1
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Gene.Numeric.Weights      (Weights, extractWeights,
+                                                makeWeights, numWeights)
+import ALife.Creatur.Gene.Test                 qualified as GT
+import ALife.Creatur.Wain.BrainInternal
+import ALife.Creatur.Wain.Classifier           qualified as Cl
+import ALife.Creatur.Wain.GeneticSOM           (Label)
+import ALife.Creatur.Wain.GeneticSOMQC         (arbGeneticSOM)
+import ALife.Creatur.Wain.PatternQC            (TestPattern,
+                                                TestPatternAdjuster)
+import ALife.Creatur.Wain.Predictor            qualified as P
+import ALife.Creatur.Wain.PredictorQC          qualified as PQC
+import ALife.Creatur.Wain.Response             (Response (..))
+import ALife.Creatur.Wain.ResponseQC           (TestAction, TestResponse,
+                                                TestResponseAdjuster)
+import ALife.Creatur.Wain.SimpleMuser          (SimpleMuser)
+import ALife.Creatur.Wain.SimpleMuserQC        (sizedArbMuser)
+import Control.DeepSeq                         (deepseq)
+import Data.Datamining.Clustering.SGM4         qualified as SOM
+import Numeric.ApproxEq                        qualified as EQ
+import Test.Framework                          (Test, testGroup)
+import Test.Framework.Providers.QuickCheck2    (testProperty)
+import Test.QuickCheck.Counterexamples
 
 -- Both get and express (re)normalise weights, which can result in
 -- small differences even if the weights are already normalised.

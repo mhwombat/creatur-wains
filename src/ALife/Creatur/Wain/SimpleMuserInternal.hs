@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.SimpleMuserInternal
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -19,22 +19,22 @@
 {-# LANGUAGE UndecidableInstances #-}
 module ALife.Creatur.Wain.SimpleMuserInternal where
 
-import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import qualified ALife.Creatur.Genetics.BRGCWord8        as G
-import           ALife.Creatur.Genetics.Diploid          (Diploid)
-import           ALife.Creatur.Wain.GeneticSOM           (Label)
-import qualified ALife.Creatur.Wain.Muser                as M
-import           ALife.Creatur.Wain.Pretty               (Pretty)
-import           ALife.Creatur.Wain.Response             (Response (..))
-import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
-                                                          iStat, stats)
-import           Control.DeepSeq                         (NFData)
-import           Data.List                               (sortOn)
-import           Data.Ord                                (Down (..))
-import           Data.Serialize                          (Serialize)
-import           Data.Word                               (Word8)
-import           GHC.Generics                            (Generic)
+import ALife.Creatur.Gene.Numeric.PlusMinusOne qualified as PM1
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Genetics.BRGCWord8        qualified as G
+import ALife.Creatur.Genetics.Diploid          (Diploid)
+import ALife.Creatur.Wain.GeneticSOM           (Label)
+import ALife.Creatur.Wain.Muser                qualified as M
+import ALife.Creatur.Wain.Pretty               (Pretty)
+import ALife.Creatur.Wain.Response             (Response (..))
+import ALife.Creatur.Wain.Statistics           (Statistical, dStat, iStat,
+                                                stats)
+import Control.DeepSeq                         (NFData)
+import Data.List                               (sortOn)
+import Data.Ord                                (Down (..))
+import Data.Serialize                          (Serialize)
+import Data.Word                               (Word8)
+import GHC.Generics                            (Generic)
 
 
 -- | Object responsible for generating potential responses for

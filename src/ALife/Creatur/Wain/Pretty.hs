@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Pretty
--- Copyright   :  (c) 2012-2021 Amy de Buitléir
+-- Copyright   :  (c) 2012-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -16,15 +16,13 @@ module ALife.Creatur.Wain.Pretty
     Pretty(..)
   ) where
 
-import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Gene.Numeric.Weights      (Weights,
-                                                          extractWeights)
-import qualified Data.Map.Strict                         as MS
-import           Data.Word                               (Word16, Word32,
-                                                          Word64, Word8)
-import           Numeric                                 (showHex)
-import           Text.Printf                             (printf)
+import ALife.Creatur.Gene.Numeric.PlusMinusOne qualified as PM1
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Gene.Numeric.Weights      (Weights, extractWeights)
+import Data.Map.Strict                         qualified as MS
+import Data.Word                               (Word16, Word32, Word64, Word8)
+import Numeric                                 (showHex)
+import Text.Printf                             (printf)
 
 -- | Values that have a pretty format.
 class Pretty a where

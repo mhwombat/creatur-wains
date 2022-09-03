@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.ResponseInternal
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -19,22 +19,20 @@
 {-# LANGUAGE TypeFamilies      #-}
 module ALife.Creatur.Wain.ResponseInternal where
 
-import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Genetics.BRGCWord8        (Genetic)
-import           ALife.Creatur.Genetics.Diploid          (Diploid)
-import           ALife.Creatur.Wain.GeneticSOM           (Label)
-import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
-import           ALife.Creatur.Wain.Statistics           (Statistical (..),
-                                                          dStat)
-import           Control.DeepSeq                         (NFData)
-import           Data.List                               (intercalate)
-import           Data.Serialize                          (Serialize)
-import           GHC.Generics                            (Generic)
-import           Test.QuickCheck                         (Gen, arbitrary,
-                                                          choose, getSize,
-                                                          vectorOf)
-import           Text.Printf                             (printf)
+import ALife.Creatur.Gene.Numeric.PlusMinusOne qualified as PM1
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Genetics.BRGCWord8        (Genetic)
+import ALife.Creatur.Genetics.Diploid          (Diploid)
+import ALife.Creatur.Wain.GeneticSOM           (Label)
+import ALife.Creatur.Wain.Pretty               (Pretty, pretty)
+import ALife.Creatur.Wain.Statistics           (Statistical (..), dStat)
+import Control.DeepSeq                         (NFData)
+import Data.List                               (intercalate)
+import Data.Serialize                          (Serialize)
+import GHC.Generics                            (Generic)
+import Test.QuickCheck                         (Gen, arbitrary, choose, getSize,
+                                                vectorOf)
+import Text.Printf                             (printf)
 
 -- | A model of a scenario that a wain might encounter
 data Response a = Response

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Brain
--- Copyright   :  (c) 2012-2021 Amy de Buitléir
+-- Copyright   :  (c) 2012-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -39,5 +39,5 @@ module ALife.Creatur.Wain.Brain
     prettyReflectionReport
   ) where
 
-import           ALife.Creatur.Wain.BrainInternal
-import           ALife.Creatur.Wain.Classifier
+import ALife.Creatur.Wain.BrainInternal
+import ALife.Creatur.Wain.Classifier

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.LearningParams
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -20,4 +20,4 @@ module ALife.Creatur.Wain.LearningParams
     LPI.randomLearningParams,
   ) where
 
-import qualified ALife.Creatur.Wain.LearningParamsInternal as LPI
+import ALife.Creatur.Wain.LearningParamsInternal qualified as LPI

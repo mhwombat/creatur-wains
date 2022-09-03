@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.ClassifierInternal
--- Copyright   :  (c) 2012-2021 Amy de Buitléir
+-- Copyright   :  (c) 2012-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -17,15 +17,15 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.ClassifierInternal where
 
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import qualified ALife.Creatur.Wain.GeneticSOM           as GSOM
-import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
-import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Clustering.SGM4 as SOM
-import           Data.List                               (foldl')
-import qualified Data.Map.Strict                         as M
-import           Data.Word                               (Word32)
-import           GHC.Generics                            (Generic)
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Wain.GeneticSOM           qualified as GSOM
+import ALife.Creatur.Wain.Pretty               (Pretty, pretty)
+import Control.DeepSeq                         (NFData)
+import Data.Datamining.Clustering.SGM4         qualified as SOM
+import Data.List                               (foldl')
+import Data.Map.Strict                         qualified as M
+import Data.Word                               (Word32)
+import GHC.Generics                            (Generic)
 
 -- | Maintains a set of models to represent the input patterns
 --   encountered, and classifies the input patterns according to the

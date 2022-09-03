@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.PredictorInternal
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -17,22 +17,21 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.PredictorInternal where
 
-import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import qualified ALife.Creatur.Wain.GeneticSOM           as GSOM
-import           ALife.Creatur.Wain.Pretty               (Pretty (..))
-import           ALife.Creatur.Wain.Probability          (prettyProbability)
-import           ALife.Creatur.Wain.Response             (Response (..),
-                                                          addToOutcomes, labels,
-                                                          outcomes)
-import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Clustering.SGM4         as SOM
-import qualified Data.Datamining.Pattern.List            as L
-import           Data.List                               (nub, (\\))
-import qualified Data.Map.Strict                         as M
-import           Data.Word                               (Word32)
-import           GHC.Generics                            (Generic)
-import           Text.Printf                             (printf)
+import ALife.Creatur.Gene.Numeric.PlusMinusOne qualified as PM1
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Wain.GeneticSOM           qualified as GSOM
+import ALife.Creatur.Wain.Pretty               (Pretty (..))
+import ALife.Creatur.Wain.Probability          (prettyProbability)
+import ALife.Creatur.Wain.Response             (Response (..), addToOutcomes,
+                                                labels, outcomes)
+import Control.DeepSeq                         (NFData)
+import Data.Datamining.Clustering.SGM4         qualified as SOM
+import Data.Datamining.Pattern.List            qualified as L
+import Data.List                               (nub, (\\))
+import Data.Map.Strict                         qualified as M
+import Data.Word                               (Word32)
+import GHC.Generics                            (Generic)
+import Text.Printf                             (printf)
 
 -- | A predictor predicts the outcome of a response to a scenario.
 type Predictor t a = GSOM.GeneticSOM t (Response a)

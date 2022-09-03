@@ -1,7 +1,7 @@
 -----------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.BrainInternal
--- Copyright   :  (c) 2012-2021 Amy de Buitléir
+-- Copyright   :  (c) 2012-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -19,34 +19,32 @@
 {-# LANGUAGE TypeFamilies        #-}
 module ALife.Creatur.Wain.BrainInternal where
 
-import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Gene.Numeric.Weights      (Weights, numWeights,
-                                                          weightAt, weightedSum)
-import           ALife.Creatur.Genetics.BRGCWord8        (Genetic, get, put)
-import           ALife.Creatur.Genetics.Diploid          (Diploid)
-import qualified ALife.Creatur.Wain.Classifier           as Cl
-import qualified ALife.Creatur.Wain.GeneticSOM           as GSOM
-import qualified ALife.Creatur.Wain.Muser                as M
-import qualified ALife.Creatur.Wain.Predictor            as P
-import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
-import           ALife.Creatur.Wain.Probability          (hypothesise,
-                                                          prettyProbability)
-import           ALife.Creatur.Wain.Report               (Report, report)
-import           ALife.Creatur.Wain.Response             (Response (..))
-import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
-                                                          iStat, prefix, stats)
-import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Clustering.SGM4         as SOM
-import           Data.Function                           (on)
-import           Data.List                               (foldl', groupBy,
-                                                          sortBy)
-import qualified Data.Map.Strict                         as M
-import           Data.Ord                                (comparing)
-import           Data.Serialize                          (Serialize)
-import           Data.Word                               (Word32, Word8)
-import           GHC.Generics                            (Generic)
-import           Text.Printf                             (printf)
+import ALife.Creatur.Gene.Numeric.PlusMinusOne qualified as PM1
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Gene.Numeric.Weights      (Weights, numWeights, weightAt,
+                                                weightedSum)
+import ALife.Creatur.Genetics.BRGCWord8        (Genetic, get, put)
+import ALife.Creatur.Genetics.Diploid          (Diploid)
+import ALife.Creatur.Wain.Classifier           qualified as Cl
+import ALife.Creatur.Wain.GeneticSOM           qualified as GSOM
+import ALife.Creatur.Wain.Muser                qualified as M
+import ALife.Creatur.Wain.Predictor            qualified as P
+import ALife.Creatur.Wain.Pretty               (Pretty, pretty)
+import ALife.Creatur.Wain.Probability          (hypothesise, prettyProbability)
+import ALife.Creatur.Wain.Report               (Report, report)
+import ALife.Creatur.Wain.Response             (Response (..))
+import ALife.Creatur.Wain.Statistics           (Statistical, dStat, iStat,
+                                                prefix, stats)
+import Control.DeepSeq                         (NFData)
+import Data.Datamining.Clustering.SGM4         qualified as SOM
+import Data.Function                           (on)
+import Data.List                               (foldl', groupBy, sortBy)
+import Data.Map.Strict                         qualified as M
+import Data.Ord                                (comparing)
+import Data.Serialize                          (Serialize)
+import Data.Word                               (Word32, Word8)
+import GHC.Generics                            (Generic)
+import Text.Printf                             (printf)
 
 -- | A wain's condition
 type Condition = [UI.Double]

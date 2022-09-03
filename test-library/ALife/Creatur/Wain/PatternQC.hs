@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.PatternQC
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -24,34 +24,32 @@ module ALife.Creatur.Wain.PatternQC
     randomTestPattern
   ) where
 
-import qualified ALife.Creatur.Gene.AdjusterTest         as AT
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import qualified ALife.Creatur.Gene.Test                 as GT
-import qualified ALife.Creatur.Genetics.BRGCWord8        as G
-import qualified ALife.Creatur.Genetics.BRGCWord8        as W8
-import           ALife.Creatur.Genetics.Diploid          (Diploid)
-import           ALife.Creatur.Wain.Pretty               (Pretty)
+import ALife.Creatur.Gene.AdjusterTest         qualified as AT
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Gene.Test                 qualified as GT
+import ALife.Creatur.Genetics.BRGCWord8        qualified as G
+import ALife.Creatur.Genetics.BRGCWord8        qualified as W8
+import ALife.Creatur.Genetics.Diploid          (Diploid)
+import ALife.Creatur.Wain.Pretty               (Pretty)
 -- import           ALife.Creatur.Wain.Statistics           (Statistical, stats)
-import           ALife.Creatur.Wain.LearningParams       (LearningParams,
-                                                          toLearningFunction)
-import           ALife.Creatur.Wain.LearningParamsQC     ()
-import           ALife.Creatur.Wain.Report               (Report, report)
-import           ALife.Creatur.Wain.Statistics           (Statistical, stats)
-import           Control.DeepSeq                         (NFData)
-import           Control.Monad.Random                    (Rand, RandomGen,
-                                                          getRandom)
-import           Data.Datamining.Clustering.SGM4         (Adjuster, MetricType,
-                                                          PatternType, TimeType,
-                                                          difference,
-                                                          learningRate,
-                                                          makeSimilar)
-import qualified Data.Datamining.Pattern.Numeric         as N
-import           Data.Serialize                          (Serialize)
-import           Data.Word                               (Word32, Word8)
-import           GHC.Generics                            (Generic)
-import           Test.Framework                          (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck.Counterexamples         (Arbitrary, arbitrary)
+import ALife.Creatur.Wain.LearningParams       (LearningParams,
+                                                toLearningFunction)
+import ALife.Creatur.Wain.LearningParamsQC     ()
+import ALife.Creatur.Wain.Report               (Report, report)
+import ALife.Creatur.Wain.Statistics           (Statistical, stats)
+import Control.DeepSeq                         (NFData)
+import Control.Monad.Random                    (Rand, RandomGen, getRandom)
+import Data.Datamining.Clustering.SGM4         (Adjuster, MetricType,
+                                                PatternType, TimeType,
+                                                difference, learningRate,
+                                                makeSimilar)
+import Data.Datamining.Pattern.Numeric         qualified as N
+import Data.Serialize                          (Serialize)
+import Data.Word                               (Word32, Word8)
+import GHC.Generics                            (Generic)
+import Test.Framework                          (Test, testGroup)
+import Test.Framework.Providers.QuickCheck2    (testProperty)
+import Test.QuickCheck.Counterexamples         (Arbitrary, arbitrary)
 
 -- | A simple pattern that is useful for testing.
 newtype TestPattern = TestPattern Word8

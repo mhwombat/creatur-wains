@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.PredictorQC
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -20,24 +20,21 @@ module ALife.Creatur.Wain.PredictorQC
     ImprintTestData(..)
   ) where
 
-import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import qualified ALife.Creatur.Gene.Test                 as GT
-import           ALife.Creatur.Wain.GeneticSOM           (Label,
-                                                          trainAndClassify)
-import           ALife.Creatur.Wain.GeneticSOMQC         (arbGeneticSOM)
-import           ALife.Creatur.Wain.PredictorInternal
+import ALife.Creatur.Gene.Numeric.PlusMinusOne qualified as PM1
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Gene.Test                 qualified as GT
+import ALife.Creatur.Wain.GeneticSOM           (Label, trainAndClassify)
+import ALife.Creatur.Wain.GeneticSOMQC         (arbGeneticSOM)
+import ALife.Creatur.Wain.PredictorInternal
 -- import ALife.Creatur.Wain.Pretty (Pretty(pretty))
-import           ALife.Creatur.Wain.ResponseInternal     (Response (..),
-                                                          sizedArbResponse)
-import           ALife.Creatur.Wain.ResponseQC           (TestAction,
-                                                          TestResponse,
-                                                          TestResponseAdjuster)
-import           Control.DeepSeq                         (deepseq)
-import qualified Data.Datamining.Clustering.SGM4         as SOM
-import           Test.Framework                          (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck.Counterexamples         hiding (labels)
+import ALife.Creatur.Wain.ResponseInternal     (Response (..), sizedArbResponse)
+import ALife.Creatur.Wain.ResponseQC           (TestAction, TestResponse,
+                                                TestResponseAdjuster)
+import Control.DeepSeq                         (deepseq)
+import Data.Datamining.Clustering.SGM4         qualified as SOM
+import Test.Framework                          (Test, testGroup)
+import Test.Framework.Providers.QuickCheck2    (testProperty)
+import Test.QuickCheck.Counterexamples         hiding (labels)
 
 type TestPredictor = Predictor TestResponseAdjuster TestAction
 

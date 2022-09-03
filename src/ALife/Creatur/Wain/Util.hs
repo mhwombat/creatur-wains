@@ -19,25 +19,24 @@ module ALife.Creatur.Wain.Util
     replay
   ) where
 
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Genetics.BRGCWord8        (Genetic)
-import           ALife.Creatur.Genetics.Diploid          (Diploid)
-import           ALife.Creatur.Wain
-import           ALife.Creatur.Wain.Muser                (Action, Muser)
-import           ALife.Creatur.Wain.Pretty               (Pretty)
-import           ALife.Creatur.Wain.Report               (Report, report)
-import qualified ALife.Creatur.Wain.Response             as R
-import qualified ALife.Creatur.Wain.Statistics           as S
-import           Control.Monad                           (filterM)
-import qualified Data.ByteString                         as BS
-import qualified Data.Datamining.Clustering.SGM4         as SOM
-import qualified Data.Serialize                          as DS
-import           Data.Word                               (Word32)
-import           System.Directory                        (listDirectory)
-import           System.FilePath.Posix                   (combine)
-import           System.Posix                            (isDirectory,
-                                                          isRegularFile)
-import           System.Posix.Files                      (getFileStatus)
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Genetics.BRGCWord8        (Genetic)
+import ALife.Creatur.Genetics.Diploid          (Diploid)
+import ALife.Creatur.Wain
+import ALife.Creatur.Wain.Muser                (Action, Muser)
+import ALife.Creatur.Wain.Pretty               (Pretty)
+import ALife.Creatur.Wain.Report               (Report, report)
+import ALife.Creatur.Wain.Response             qualified as R
+import ALife.Creatur.Wain.Statistics           qualified as S
+import Control.Monad                           (filterM)
+import Data.ByteString                         qualified as BS
+import Data.Datamining.Clustering.SGM4         qualified as SOM
+import Data.Serialize                          qualified as DS
+import Data.Word                               (Word32)
+import System.Directory                        (listDirectory)
+import System.FilePath.Posix                   (combine)
+import System.Posix                            (isDirectory, isRegularFile)
+import System.Posix.Files                      (getFileStatus)
 
 fetchObjects :: DS.Serialize b => FilePath -> IO [b]
 fetchObjects f = do

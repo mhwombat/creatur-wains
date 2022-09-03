@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.WainInternal
--- Copyright   :  (c) 2012-2021 Amy de Buitléir
+-- Copyright   :  (c) 2012-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -19,51 +19,42 @@
 {-# LANGUAGE UndecidableInstances #-}
 module ALife.Creatur.WainInternal where
 
-import           ALife.Creatur                              (Agent, agentId,
-                                                             isAlive)
-import           ALife.Creatur.Database                     (Record,
-                                                             SizedRecord, key)
-import qualified ALife.Creatur.Database                     (size)
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval    as UI
-import           ALife.Creatur.Gene.Numeric.Util            (enforceRange,
-                                                             unitInterval)
-import           ALife.Creatur.Genetics.BRGCWord8           (DiploidReader,
-                                                             Genetic, Sequence,
-                                                             consumed2, copy,
-                                                             copy2, get,
-                                                             getAndExpress, put,
-                                                             runDiploidReader,
-                                                             write)
-import           ALife.Creatur.Genetics.Diploid             (Diploid, express)
-import           ALife.Creatur.Genetics.Recombination       (mutatePairedLists,
-                                                             randomCrossover,
-                                                             randomCutAndSplice,
-                                                             randomOneOfPair,
-                                                             repeatWithProbability,
-                                                             withProbability)
-import qualified ALife.Creatur.Genetics.Reproduction.Sexual as RS
-import qualified ALife.Creatur.Wain.Brain                   as B
-import qualified ALife.Creatur.Wain.Classifier              as Cl
-import qualified ALife.Creatur.Wain.GeneticSOM              as GSOM
-import           ALife.Creatur.Wain.Muser                   (Action, Muser)
-import qualified ALife.Creatur.Wain.Predictor               as P
-import           ALife.Creatur.Wain.Pretty                  (Pretty, pretty)
-import           ALife.Creatur.Wain.Report                  (Report, report)
-import qualified ALife.Creatur.Wain.Response                as R
-import           ALife.Creatur.Wain.Statistics              (Statistical, dStat,
-                                                             iStat, stats)
-import           Control.DeepSeq                            (NFData)
-import           Control.Monad.Random                       (Rand, RandomGen)
-import qualified Data.Datamining.Clustering.SGM4            as SOM
-import           Data.List                                  (foldl',
-                                                             intercalate,
-                                                             sortOn)
-import qualified Data.Map.Strict                            as M
-import           Data.Serialize                             (Serialize)
-import           Data.Word                                  (Word16, Word32,
-                                                             Word8)
-import           GHC.Generics                               (Generic)
-import           Text.Printf                                (printf)
+import ALife.Creatur                              (Agent, agentId, isAlive)
+import ALife.Creatur.Database                     (Record, SizedRecord, key)
+import ALife.Creatur.Database                     qualified (size)
+import ALife.Creatur.Gene.Numeric.UnitInterval    qualified as UI
+import ALife.Creatur.Gene.Numeric.Util            (enforceRange, unitInterval)
+import ALife.Creatur.Genetics.BRGCWord8           (DiploidReader, Genetic,
+                                                   Sequence, consumed2, copy,
+                                                   copy2, get, getAndExpress,
+                                                   put, runDiploidReader, write)
+import ALife.Creatur.Genetics.Diploid             (Diploid, express)
+import ALife.Creatur.Genetics.Recombination       (mutatePairedLists,
+                                                   randomCrossover,
+                                                   randomCutAndSplice,
+                                                   randomOneOfPair,
+                                                   repeatWithProbability,
+                                                   withProbability)
+import ALife.Creatur.Genetics.Reproduction.Sexual qualified as RS
+import ALife.Creatur.Wain.Brain                   qualified as B
+import ALife.Creatur.Wain.Classifier              qualified as Cl
+import ALife.Creatur.Wain.GeneticSOM              qualified as GSOM
+import ALife.Creatur.Wain.Muser                   (Action, Muser)
+import ALife.Creatur.Wain.Predictor               qualified as P
+import ALife.Creatur.Wain.Pretty                  (Pretty, pretty)
+import ALife.Creatur.Wain.Report                  (Report, report)
+import ALife.Creatur.Wain.Response                qualified as R
+import ALife.Creatur.Wain.Statistics              (Statistical, dStat, iStat,
+                                                   stats)
+import Control.DeepSeq                            (NFData)
+import Control.Monad.Random                       (Rand, RandomGen)
+import Data.Datamining.Clustering.SGM4            qualified as SOM
+import Data.List                                  (foldl', intercalate, sortOn)
+import Data.Map.Strict                            qualified as M
+import Data.Serialize                             (Serialize)
+import Data.Word                                  (Word16, Word32, Word8)
+import GHC.Generics                               (Generic)
+import Text.Printf                                (printf)
 
 data Event ct pt p a m
   = IncAge

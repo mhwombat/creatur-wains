@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.WainQC
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -18,26 +18,25 @@ module ALife.Creatur.WainQC
     test
   ) where
 
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval    as UI
-import qualified ALife.Creatur.Gene.Test                    as GT
-import qualified ALife.Creatur.Genetics.BRGCWord8           as W8
-import qualified ALife.Creatur.Genetics.Reproduction.Sexual as RS
-import qualified ALife.Creatur.Wain.BrainQC                 as BQC
-import           ALife.Creatur.Wain.PatternQC               (TestPattern,
-                                                             TestPatternAdjuster)
-import           ALife.Creatur.Wain.ResponseQC              (TestAction,
-                                                             TestResponseAdjuster)
-import           ALife.Creatur.Wain.SimpleMuser             (SimpleMuser)
-import           ALife.Creatur.WainInternal
-import           Control.DeepSeq                            (deepseq)
-import           Control.Monad.Random                       (evalRand, mkStdGen)
-import           Data.List                                  (foldl')
-import qualified Numeric.ApproxEq                           as N
-import           Test.Framework                             (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2       (testProperty)
-import           Test.QuickCheck.Counterexamples            (Arbitrary, Gen,
-                                                             arbitrary, getSize,
-                                                             oneof, vectorOf)
+import ALife.Creatur.Gene.Numeric.UnitInterval    qualified as UI
+import ALife.Creatur.Gene.Test                    qualified as GT
+import ALife.Creatur.Genetics.BRGCWord8           qualified as W8
+import ALife.Creatur.Genetics.Reproduction.Sexual qualified as RS
+import ALife.Creatur.Wain.BrainQC                 qualified as BQC
+import ALife.Creatur.Wain.PatternQC               (TestPattern,
+                                                   TestPatternAdjuster)
+import ALife.Creatur.Wain.ResponseQC              (TestAction,
+                                                   TestResponseAdjuster)
+import ALife.Creatur.Wain.SimpleMuser             (SimpleMuser)
+import ALife.Creatur.WainInternal
+import Control.DeepSeq                            (deepseq)
+import Control.Monad.Random                       (evalRand, mkStdGen)
+import Data.List                                  (foldl')
+import Numeric.ApproxEq                           qualified as N
+import Test.Framework                             (Test, testGroup)
+import Test.Framework.Providers.QuickCheck2       (testProperty)
+import Test.QuickCheck.Counterexamples            (Arbitrary, Gen, arbitrary,
+                                                   getSize, oneof, vectorOf)
 
 type TestWain = Wain TestPatternAdjuster TestResponseAdjuster
                    TestPattern TestAction (SimpleMuser TestAction)

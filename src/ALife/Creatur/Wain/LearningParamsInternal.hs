@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.LearningParamsInternal
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -16,22 +16,22 @@
 {-# LANGUAGE DeriveGeneric  #-}
 module ALife.Creatur.Wain.LearningParamsInternal where
 
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Gene.Numeric.Util         (inRange, intersection)
-import qualified ALife.Creatur.Genetics.BRGCWord8        as G
-import           ALife.Creatur.Genetics.Diploid          (Diploid)
-import           ALife.Creatur.Wain.Pretty               (pretty)
-import           ALife.Creatur.Wain.Report               (Report, report)
-import           ALife.Creatur.Wain.Statistics           (Statistical, dStat,
-                                                          iStat, stats)
-import           Control.DeepSeq                         (NFData)
-import           Control.Monad.Random                    (Rand, RandomGen,
-                                                          getRandomR, runRand)
-import           Data.Serialize                          (Serialize)
-import           Data.Word                               (Word32)
-import           GHC.Generics                            (Generic)
-import           Test.QuickCheck                         (Arbitrary, arbitrary)
-import           Test.QuickCheck.Gen                     (Gen (MkGen))
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Gene.Numeric.Util         (inRange, intersection)
+import ALife.Creatur.Genetics.BRGCWord8        qualified as G
+import ALife.Creatur.Genetics.Diploid          (Diploid)
+import ALife.Creatur.Wain.Pretty               (pretty)
+import ALife.Creatur.Wain.Report               (Report, report)
+import ALife.Creatur.Wain.Statistics           (Statistical, dStat, iStat,
+                                                stats)
+import Control.DeepSeq                         (NFData)
+import Control.Monad.Random                    (Rand, RandomGen, getRandomR,
+                                                runRand)
+import Data.Serialize                          (Serialize)
+import Data.Word                               (Word32)
+import GHC.Generics                            (Generic)
+import Test.QuickCheck                         (Arbitrary, arbitrary)
+import Test.QuickCheck.Gen                     (Gen (MkGen))
 
 --
 --

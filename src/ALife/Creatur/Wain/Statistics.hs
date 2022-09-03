@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Statistics
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -35,12 +35,12 @@ module ALife.Creatur.Wain.Statistics
     popStdDev
   ) where
 
-import           ALife.Creatur.Gene.Numeric.Weights (Weights, extractWeights)
-import           ALife.Creatur.Wain.Pretty          (Pretty, pretty)
-import           Data.List                          (groupBy, sortOn)
-import           Data.Serialize                     (Serialize)
-import           GHC.Generics
-import           Prelude                            hiding (lookup)
+import ALife.Creatur.Gene.Numeric.Weights (Weights, extractWeights)
+import ALife.Creatur.Wain.Pretty          (Pretty, pretty)
+import Data.List                          (groupBy, sortOn)
+import Data.Serialize                     (Serialize)
+import GHC.Generics
+import Prelude                            hiding (lookup)
 
 -- | A value for calculating statistics with.
 data Statistic = DStatistic {sName :: String, sVal :: Double}

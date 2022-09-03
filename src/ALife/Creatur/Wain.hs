@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain
--- Copyright   :  (c) 2012-2021 Amy de Buitléir
+-- Copyright   :  (c) 2012-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -53,12 +53,12 @@ module ALife.Creatur.Wain
     packageVersion
   ) where
 
-import           ALife.Creatur.Genetics.Reproduction.Sexual (clone)
-import           ALife.Creatur.Wain.Brain                   (Condition)
-import           ALife.Creatur.Wain.GeneticSOM              (Label)
-import           ALife.Creatur.WainInternal
-import           Data.Version                               (showVersion)
-import           Paths_creatur_wains                        (version)
+import ALife.Creatur.Genetics.Reproduction.Sexual (clone)
+import ALife.Creatur.Wain.Brain                   (Condition)
+import ALife.Creatur.Wain.GeneticSOM              (Label)
+import ALife.Creatur.WainInternal
+import Data.Version                               (showVersion)
+import Paths_creatur_wains                        (version)
 
 -- | Returns the current version number of this library.
 packageVersion :: String

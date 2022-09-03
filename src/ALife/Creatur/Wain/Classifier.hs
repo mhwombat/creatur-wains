@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Classifier
--- Copyright   :  (c) 2012-2021 Amy de Buitléir
+-- Copyright   :  (c) 2012-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -25,4 +25,4 @@ module ALife.Creatur.Wain.Classifier
     prettyClassifierReport
   ) where
 
-import           ALife.Creatur.Wain.ClassifierInternal
+import ALife.Creatur.Wain.ClassifierInternal

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.SimpleMuserQC
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -18,12 +18,12 @@ module ALife.Creatur.Wain.SimpleMuserQC
     sizedArbMuser
   ) where
 
-import qualified ALife.Creatur.Gene.Test                as GT
-import           ALife.Creatur.Wain.ResponseQC          (TestAction)
-import           ALife.Creatur.Wain.SimpleMuserInternal
-import           Test.Framework                         (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2   (testProperty)
-import           Test.QuickCheck
+import ALife.Creatur.Gene.Test                qualified as GT
+import ALife.Creatur.Wain.ResponseQC          (TestAction)
+import ALife.Creatur.Wain.SimpleMuserInternal
+import Test.Framework                         (Test, testGroup)
+import Test.Framework.Providers.QuickCheck2   (testProperty)
+import Test.QuickCheck
 
 sizedArbMuser :: Int -> Gen (SimpleMuser TestAction)
 sizedArbMuser nConditions = do

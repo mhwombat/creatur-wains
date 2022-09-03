@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Checkpoint
--- Copyright   :  (c) 2015-2021 Amy de Buitléir
+-- Copyright   :  (c) 2015-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -17,12 +17,12 @@ module ALife.Creatur.Wain.Checkpoint
     enforceAll
   ) where
 
-import           ALife.Creatur.Task            (requestShutdown)
-import           ALife.Creatur.Universe        (Universe, currentTime)
-import           ALife.Creatur.Wain.Statistics (Statistic, iStat, lookup)
-import           Control.Monad                 (unless, when)
-import           Control.Monad.State.Lazy      (StateT)
-import           Prelude                       hiding (lookup)
+import ALife.Creatur.Task            (requestShutdown)
+import ALife.Creatur.Universe        (Universe, currentTime)
+import ALife.Creatur.Wain.Statistics (Statistic, iStat, lookup)
+import Control.Monad                 (unless, when)
+import Control.Monad.State.Lazy      (StateT)
+import Prelude                       hiding (lookup)
 
 -- | @`Check t s l`@ creates a constraint @l@ on the statistic @s@
 --   to be satisfied beginning at time @t@.

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.LearningParamsQC
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -19,17 +19,17 @@ module ALife.Creatur.Wain.LearningParamsQC
     test
   ) where
 
-import qualified ALife.Creatur.Gene.Test                   as GT
-import qualified ALife.Creatur.Genetics.BRGCWord8          as W8
-import           ALife.Creatur.Genetics.Diploid            (express)
-import           ALife.Creatur.Wain.LearningParamsInternal
-import           Control.DeepSeq                           (deepseq)
-import           Control.Monad.Random                      (evalRand, runRand)
-import           Data.Word                                 (Word32)
-import           System.Random                             (mkStdGen)
-import           Test.Framework                            (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2      (testProperty)
-import           Test.QuickCheck.Counterexamples           (Property, (==>))
+import ALife.Creatur.Gene.Test                   qualified as GT
+import ALife.Creatur.Genetics.BRGCWord8          qualified as W8
+import ALife.Creatur.Genetics.Diploid            (express)
+import ALife.Creatur.Wain.LearningParamsInternal
+import Control.DeepSeq                           (deepseq)
+import Control.Monad.Random                      (evalRand, runRand)
+import Data.Word                                 (Word32)
+import System.Random                             (mkStdGen)
+import Test.Framework                            (Test, testGroup)
+import Test.Framework.Providers.QuickCheck2      (testProperty)
+import Test.QuickCheck.Counterexamples           (Property, (==>))
 
 validLearningParams :: LearningParams -> Bool
 validLearningParams (LearningParams r0 rf tf)

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Probability
--- Copyright   :  (c) 2012-2021 Amy de Buitléir
+-- Copyright   :  (c) 2012-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -20,4 +20,4 @@ module ALife.Creatur.Wain.Probability
     prettyProbability
   ) where
 
-import           ALife.Creatur.Wain.ProbabilityInternal
+import ALife.Creatur.Wain.ProbabilityInternal

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.GeneticSOM
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -43,20 +43,19 @@ module ALife.Creatur.Wain.GeneticSOM
     adjNovelty -- TODO: move to GeneticSOMInternal, should only be used for testing
   ) where
 
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import qualified ALife.Creatur.Genetics.BRGCWord8        as G
-import           ALife.Creatur.Genetics.Diploid          (Diploid, express)
-import           ALife.Creatur.Wain.Pretty               (Pretty, pretty)
-import           ALife.Creatur.Wain.Report               (Report, report)
-import           ALife.Creatur.Wain.Statistics           (Statistical, iStat,
-                                                          kvToIStats, prefix,
-                                                          stats)
-import           Control.DeepSeq                         (NFData)
-import qualified Data.Datamining.Clustering.SGM4         as SOM
-import qualified Data.Map.Strict                         as M
-import qualified Data.Serialize                          as S
-import           Data.Word                               (Word32)
-import           GHC.Generics                            (Generic)
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Genetics.BRGCWord8        qualified as G
+import ALife.Creatur.Genetics.Diploid          (Diploid, express)
+import ALife.Creatur.Wain.Pretty               (Pretty, pretty)
+import ALife.Creatur.Wain.Report               (Report, report)
+import ALife.Creatur.Wain.Statistics           (Statistical, iStat, kvToIStats,
+                                                prefix, stats)
+import Control.DeepSeq                         (NFData)
+import Data.Datamining.Clustering.SGM4         qualified as SOM
+import Data.Map.Strict                         qualified as M
+import Data.Serialize                          qualified as S
+import Data.Word                               (Word32)
+import GHC.Generics                            (Generic)
 
 -- | A unique identifier for a model in a SOM.
 type Label = Word32

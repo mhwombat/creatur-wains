@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.PersistentStatistics
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -18,21 +18,16 @@ module ALife.Creatur.Wain.PersistentStatistics
     clearStats
   ) where
 
-import           ALife.Creatur.Universe
-    (Universe, writeToLog)
-import qualified ALife.Creatur.Wain.Statistics as Stats
-import           Control.Monad.IO.Class
-    (liftIO)
-import           Control.Monad.State
-    (StateT)
-import qualified Data.Serialize                as DS
-import           System.Directory
-    (createDirectoryIfMissing, doesFileExist)
-import           System.FilePath
-    (dropFileName)
+import ALife.Creatur.Universe        (Universe, writeToLog)
+import ALife.Creatur.Wain.Statistics qualified as Stats
+import Control.Monad.IO.Class        (liftIO)
+import Control.Monad.State           (StateT)
+import Data.Serialize                qualified as DS
+import System.Directory              (createDirectoryIfMissing, doesFileExist)
+import System.FilePath               (dropFileName)
 --import System.IO (hGetContents, withFile, Handle, IOMode(ReadMode))
 --import Text.Read (readEither)
-import qualified Data.ByteString               as BS
+import Data.ByteString               qualified as BS
 
 -- | Updates the stored statistics.
 updateStats :: Universe u => [Stats.Statistic] -> FilePath -> StateT u IO ()

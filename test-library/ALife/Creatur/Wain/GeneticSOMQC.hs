@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.SOMQC
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -22,18 +22,18 @@ module ALife.Creatur.Wain.GeneticSOMQC
     arbEmptyGeneticSOM
   ) where
 
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import qualified ALife.Creatur.Gene.Test                 as GT
-import           ALife.Creatur.Wain.GeneticSOM
-import           ALife.Creatur.Wain.PatternQC            (TestPattern,
-                                                          TestPatternAdjuster)
-import           Control.DeepSeq                         (deepseq)
-import qualified Data.Datamining.Clustering.SGM4         as SOM
-import           Data.Map.Strict                         (keys, (!))
-import           Data.Word                               (Word32)
-import           Test.Framework                          (Test, testGroup)
-import           Test.Framework.Providers.QuickCheck2    (testProperty)
-import           Test.QuickCheck.Counterexamples         hiding (classify)
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Gene.Test                 qualified as GT
+import ALife.Creatur.Wain.GeneticSOM
+import ALife.Creatur.Wain.PatternQC            (TestPattern,
+                                                TestPatternAdjuster)
+import Control.DeepSeq                         (deepseq)
+import Data.Datamining.Clustering.SGM4         qualified as SOM
+import Data.Map.Strict                         (keys, (!))
+import Data.Word                               (Word32)
+import Test.Framework                          (Test, testGroup)
+import Test.Framework.Providers.QuickCheck2    (testProperty)
+import Test.QuickCheck.Counterexamples         hiding (classify)
 
 -- | @'classify' s p@ identifies the model @s@ that most closely
 --   matches the pattern @p@.

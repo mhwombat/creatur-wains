@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.LearningTest
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -17,26 +17,23 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main where
 
-import qualified ALife.Creatur.Gene.Numeric.PlusMinusOne as PM1
-import qualified ALife.Creatur.Gene.Numeric.UnitInterval as UI
-import           ALife.Creatur.Gene.Numeric.Weights      (makeWeights)
-import           ALife.Creatur.Wain
-import           ALife.Creatur.Wain.BrainInternal        (classifier,
-                                                          decisionQuality,
-                                                          makeBrain, predictor)
-import           ALife.Creatur.Wain.GeneticSOM           (schemaQuality)
-import           ALife.Creatur.Wain.LearningParams       (mkLearningParams)
-import           ALife.Creatur.Wain.PatternQC            (TestPattern (..),
-                                                          TestPatternAdjuster (..))
-import           ALife.Creatur.Wain.ResponseQC           (TestAction (..),
-                                                          TestResponseAdjuster (..))
-import           ALife.Creatur.Wain.SimpleMuser          (SimpleMuser,
-                                                          makeMuser)
-import           ALife.Creatur.Wain.Statistics           (stats)
-import           Control.Monad                           (foldM_)
-import           Control.Monad.Random                    (evalRand, getRandoms,
-                                                          mkStdGen)
-import qualified Data.Datamining.Clustering.SGM4         as SOM
+import ALife.Creatur.Gene.Numeric.PlusMinusOne qualified as PM1
+import ALife.Creatur.Gene.Numeric.UnitInterval qualified as UI
+import ALife.Creatur.Gene.Numeric.Weights      (makeWeights)
+import ALife.Creatur.Wain
+import ALife.Creatur.Wain.BrainInternal        (classifier, decisionQuality,
+                                                makeBrain, predictor)
+import ALife.Creatur.Wain.GeneticSOM           (schemaQuality)
+import ALife.Creatur.Wain.LearningParams       (mkLearningParams)
+import ALife.Creatur.Wain.PatternQC            (TestPattern (..),
+                                                TestPatternAdjuster (..))
+import ALife.Creatur.Wain.ResponseQC           (TestAction (..),
+                                                TestResponseAdjuster (..))
+import ALife.Creatur.Wain.SimpleMuser          (SimpleMuser, makeMuser)
+import ALife.Creatur.Wain.Statistics           (stats)
+import Control.Monad                           (foldM_)
+import Control.Monad.Random                    (evalRand, getRandoms, mkStdGen)
+import Data.Datamining.Clustering.SGM4         qualified as SOM
 
 reward :: Double
 reward = 0.1

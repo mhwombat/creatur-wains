@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Response
--- Copyright   :  (c) 2013-2021 Amy de Buitléir
+-- Copyright   :  (c) 2013-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -22,4 +22,4 @@ module ALife.Creatur.Wain.Response
     arbResponse
   ) where
 
-import           ALife.Creatur.Wain.ResponseInternal
+import ALife.Creatur.Wain.ResponseInternal

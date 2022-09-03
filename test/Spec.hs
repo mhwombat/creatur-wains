@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  Main
--- Copyright   :  (c) 2012-2021 Amy de Buitléir
+-- Copyright   :  (c) 2012-2022 Amy de Buitléir
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -10,18 +10,18 @@
 -- Runs the QuickCheck tests.
 --
 ------------------------------------------------------------------------
-import           ALife.Creatur.Wain.BrainQC          (test)
-import           ALife.Creatur.Wain.ClassifierQC     (test)
-import           ALife.Creatur.Wain.GeneticSOMQC     (test)
-import           ALife.Creatur.Wain.LearningParamsQC (test)
-import           ALife.Creatur.Wain.PatternQC        (test)
-import           ALife.Creatur.Wain.PredictorQC      (test)
-import           ALife.Creatur.Wain.ProbabilityQC    (test)
-import           ALife.Creatur.Wain.ResponseQC       (test)
-import           ALife.Creatur.Wain.SimpleMuserQC    (test)
-import           ALife.Creatur.WainQC                (test)
+import ALife.Creatur.Wain.BrainQC          (test)
+import ALife.Creatur.Wain.ClassifierQC     (test)
+import ALife.Creatur.Wain.GeneticSOMQC     (test)
+import ALife.Creatur.Wain.LearningParamsQC (test)
+import ALife.Creatur.Wain.PatternQC        (test)
+import ALife.Creatur.Wain.PredictorQC      (test)
+import ALife.Creatur.Wain.ProbabilityQC    (test)
+import ALife.Creatur.Wain.ResponseQC       (test)
+import ALife.Creatur.Wain.SimpleMuserQC    (test)
+import ALife.Creatur.WainQC                (test)
 
-import qualified Test.Framework                      as TF
+import Test.Framework                      qualified as TF
 
 tests :: [TF.Test]
 tests =
