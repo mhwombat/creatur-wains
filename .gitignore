@@ -1,7 +1,8 @@
 # misc
 *.lock
 *~
-fixit.sh
+.envrc
+.textadept_session
 
 # nix
 result
